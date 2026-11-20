@@ -30,12 +30,30 @@ export const TALL = 3; // rows: a room's inside
 /** A room's lights when it has more than MANY (a chandelier), and its chest, by the room's id: their ids in `slots`. */
 export const LAMPS = "lamps:", CHEST = "chest:";
 
+/** What kind of light a light is, by its name: a standing lamp, a spotlight, a strip, or
+ * (any other) a pendant. Only a standing lamp is laid out differently: it stands on the
+ * floor, two blocks tall, where the others hang from the ceiling.
+ * ponytail: by its name, in English, as outbuildings are told. A setting per light if
+ * this guesses wrong too often (owner, 2026-11-20). */
+export type Lamp = "standing" | "spot" | "strip" | "pendant";
+const LAMP_NAMES: [Lamp, RegExp][] = [
+  ["strip", /\b(strip|lightstrip|plinth|under[ -]?(cabinet|cupboard|counter)|cove)\b/i],
+  ["spot", /\b(spot(light)?s?|down ?lights?|recessed)\b/i],
+  ["standing", /\b(lamps?|floor ?lights?|uplighters?)\b/i],
+];
+export const lamp = (name: string): Lamp => LAMP_NAMES.find(([, re]) => re.test(name))?.[0] ?? "pendant";
+
 /** How a thing stands in a room: a lamp on the ceiling, a window from the ceiling down,
- * a door from the floor up, a block on the floor, or a picture on the wall (a camera's:
- * PICTURE blocks wide, so that what it sees can be told from another's). */
-type Shape = "lamp" | "window" | "door" | "block" | "picture";
+ * a door (or a standing lamp) from the floor up, a block on the floor, or a picture on
+ * the wall (a camera's: PICTURE blocks wide, so that what it sees can be told from another's). */
+type Shape = "lamp" | "standing" | "window" | "door" | "block" | "picture";
 export const PICTURE = 3;
-const shape = (d: Device): Shape => (d.kind === "camera" ? "picture" : d.kind === "light" ? "lamp" : d.kind === "lock" || (d.kind === "cover" && d.guarded) ? "door" : d.kind === "cover" ? "window" : "block");
+const shape = (d: Device): Shape =>
+  d.kind === "camera" ? "picture"
+  : d.kind === "light" ? (lamp(d.name) === "standing" ? "standing" : "lamp")
+  : d.kind === "lock" || (d.kind === "cover" && d.guarded) ? "door"
+  : d.kind === "cover" ? "window"
+  : "block";
 type Item = { id: string; shape: Shape };
 
 /** Where a block is, how many blocks tall, and how many wide if more than one. */
@@ -69,15 +87,19 @@ function items(room: Room): Item[] {
     ...(levers.length > MANY || room.scenes.length ? [{ id: CHEST + room.id, shape: "block" as const }] : []),
   ];
 }
-const count = (list: Item[]) => list.reduce((n, i) => ({ ...n, [i.shape]: n[i.shape] + 1 }), { lamp: 0, window: 0, door: 0, block: 0, picture: 0 });
+const count = (list: Item[]) => list.reduce((n, i) => ({ ...n, [i.shape]: n[i.shape] + 1 }), { lamp: 0, standing: 0, window: 0, door: 0, block: 0, picture: 0 });
 /** How many blocks of a wall the windows and the pictures take between them. */
 const hung = (n: ReturnType<typeof count>) => n.window + PICTURE * n.picture;
 
+/** How many columns are tall things standing on the floor, from the right: the doors and the standing lamps. */
+const upright = (n: ReturnType<typeof count>) => n.door + n.standing;
+
 /** How wide a room must be for what is in it. The lamps are two deep under the ceiling
- * beside the windows and the pictures, clear of the doors; the blocks and the doors share the floor. */
+ * beside the windows and the pictures, clear of the doors and standing lamps; the blocks
+ * and those share the floor. */
 function wide(room: Room) {
   const n = count(items(room));
-  return Math.max(MIN, hung(n) + Math.ceil(n.lamp / 2) + n.door, n.block + n.door);
+  return Math.max(MIN, hung(n) + Math.ceil(n.lamp / 2) + upright(n), n.block + upright(n));
 }
 /** How wide a storey's rooms are with the walls between them. */
 const across = (storey: Room[]) => storey.reduce((sum, r) => sum + wide(r) + 1, -1);
@@ -118,7 +140,7 @@ export function build(rooms: Room[], forecast = false): World {
   const ground = h - EARTH;
 
   // Across: the pond, the tree, the signpost, the notice, the forecast, each place out of doors, each building.
-  const plots = outdoor.map((room) => ({ room, list: items(room), n: count(items(room)) })).map((p) => ({ ...p, w: Math.max(PLOT, Math.ceil(p.n.lamp / 2) + hung(p.n) + p.n.door + p.n.block) }));
+  const plots = outdoor.map((room) => ({ room, list: items(room), n: count(items(room)) })).map((p) => ({ ...p, w: Math.max(PLOT, Math.ceil((p.n.lamp + p.n.standing) / 2) + hung(p.n) + p.n.door + p.n.block) }));
   const first = 12 + (forecast ? SIGNS + 1 : 0);
   const garden = plots.reduce((x, p) => x + p.w + 1, first);
   const w = spans.reduce((x, s) => x + s[0] + 4, garden);
@@ -146,11 +168,12 @@ export function build(rooms: Room[], forecast = false): World {
   for (const { room, list, w: across } of plots) {
     world.plots.push({ id: room.id, name: room.name, x0: x, x1: x + across - 1, y: ground - 4 });
     // The lamps are two to a post; then whatever else there is, each on the ground.
-    const lamps = list.filter((i) => i.shape === "lamp");
+    // Out of doors every light is a lantern on a post, a standing lamp too.
+    const lamps = list.filter((i) => i.shape === "lamp" || i.shape === "standing");
     lamps.forEach((lamp, i) => slots.set(lamp.id, { x: x + (i >> 1), y: ground - 2 - (i % 2), h: 1 }));
     for (let i = 0; i < lamps.length; i += 2) deco.push(["post", x + (i >> 1), ground - 1]);
     let at = x + Math.ceil(lamps.length / 2);
-    for (const item of list.filter((i) => i.shape !== "lamp")) {
+    for (const item of list.filter((i) => !lamps.includes(i))) {
       // A picture out of doors is a board on a post.
       if (item.shape === "picture") deco.push(["post", at + 1, ground - 1]);
       slots.set(item.id, item.shape === "block" ? { x: at, y: ground - 1, h: 1 } : item.shape === "picture" ? { x: at, y: ground - 3, h: 2, w: PICTURE } : { x: at, y: ground - 2, h: 2 });
@@ -195,13 +218,14 @@ export function build(rooms: Room[], forecast = false): World {
 
         // The windows and the pictures from the left, the doors from the right, and the lamps between them: along the ceiling, then under it.
         const list = items(room), n = count(list);
-        const lamps = zone.x1 - zone.x0 + 1 - hung(n) - n.door;
+        const lamps = zone.x1 - zone.x0 + 1 - hung(n) - upright(n);
         let window = zone.x0, lamp = 0, door = zone.x1, floor = zone.x0;
         const by: Record<Shape, () => Slot> = {
           window: () => ({ x: window++, y: y0, h: 2 }),
           picture: () => ({ x: (window += PICTURE) - PICTURE, y: y0, h: 2, w: PICTURE }),
           lamp: () => ({ x: zone.x0 + hung(n) + (lamp % lamps), y: y0 + Math.floor(lamp++ / lamps), h: 1 }),
           door: () => ({ x: door--, y: y0 + 1, h: 2 }),
+          standing: () => ({ x: door--, y: y0 + 1, h: 2 }),
           block: () => ({ x: floor++, y: y1, h: 1 }),
         };
         for (const item of list) slots.set(item.id, by[item.shape]());

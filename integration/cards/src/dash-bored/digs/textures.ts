@@ -75,6 +75,23 @@ const climbing = (hair: string, top: string, legs: string, left: boolean): Paint
   const raised = left ? x > 7 : x < 8;
   return raised && y > 27 ? null : y > (raised ? 25 : 29) ? INK : legs;
 };
+// A spotlight set in the ceiling: a ring with its lamp under it, and a faint beam when it is on.
+const spot = (on: boolean): Paint => (x, y) => {
+  const mid = Math.abs(x - 7.5);
+  if (y < 2) return mid < 4 ? (y === 0 || mid > 3 ? "#7c7f86" : "#b9bcc4") : null;
+  if (y === 2) return mid < 2.5 ? (on ? "#fff8d8" : "#5a5a5a") : null;
+  return on && y < 9 && mid < 1.5 + (y - 3) * 0.6 ? "rgba(255,240,190,.22)" : null;
+};
+// A strip of light along the top of the wall, under the ceiling.
+const strip = (on: boolean): Paint => (_x, y) => (y === 1 ? "#7c7f86" : y === 2 ? (on ? "#fff3c0" : "#6a6a66") : on && y === 3 ? "rgba(255,233,160,.45)" : null);
+// A standing lamp, two blocks tall: a shade that widens to its rim, a pole and a foot.
+const standing = (on: boolean): Paint => (x, y, r) => {
+  const mid = Math.abs(x - 7.5);
+  if (y > 1 && y < 11) return mid < 2.5 + (y - 2) * 0.5 ? (y === 10 ? (on ? "#d8a43a" : "#8a8478") : j(on ? "#ffe9a0" : "#c9c2b4", r, 0.05)) : null;
+  if (y === 11) return mid < 2 ? (on ? "#fff8d8" : "#3a2a18") : null;
+  if (y > 11 && y < 29) return mid < 1 ? "#3a2a18" : null;
+  return y > 28 && y < 31 && mid < 4 ? "#3a2a18" : null;
+};
 const FRAMES = 7; // standing, four of walking, two of climbing: one strip, a block wide each
 const person = (hair: string, top: string, legs: string): Paint => {
   const frames = [facing(hair, top, legs), ...[4, 0, -4, 0].map((stride) => walking(hair, top, legs, stride)), climbing(hair, top, legs, true), climbing(hair, top, legs, false)];
@@ -117,6 +134,12 @@ const PAINTS: Record<string, [number, number, Paint]> = {
   slat: [16, 16, (_x, y) => (y % 3 === 2 ? shade("#e8e0c8", 0.7) : "#e8e0c8")],
   lampOff: [16, 16, pendant(false)],
   lampOn: [16, 16, pendant(true)],
+  spotOff: [16, 16, spot(false)],
+  spotOn: [16, 16, spot(true)],
+  stripOff: [16, 16, strip(false)],
+  stripOn: [16, 16, strip(true)],
+  standingOff: [16, 32, standing(false)],
+  standingOn: [16, 32, standing(true)],
   lanternOff: [16, 16, lantern("#4a3016", "#4f3a1c", "#7a5a2a", 0.06)],
   lanternOn: [16, 16, lantern("#a8742a", "#e0a93a", "#ffe9a0", 0.05)],
   machOff: [16, 16, machine(false)],

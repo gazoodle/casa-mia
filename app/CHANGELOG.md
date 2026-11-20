@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.10-b5
+
+- **Dash-Bored: Digs draws each light as the kind of lamp its name says.** A light whose name has "lamp", "floor light" or "uplighter" in it is a standing lamp on the floor, two blocks tall. One called a spotlight, spot or downlight is a spotlight in the ceiling, and one called a strip, plinth or under-cupboard light is a strip of light under the ceiling. Any other light is a pendant, as before, and out of doors every light is a lantern on its post. The names are read in English. A room with a standing lamp is a block wider to make room for it.
+
 ## 2026.11.10-b4
 
 - **Dash-Bored: Digs' household walks more often.** Each person now stays 10 to 40 seconds where they get to, instead of 20 to 90, so that someone is usually on the move for the tour to follow.

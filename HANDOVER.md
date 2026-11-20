@@ -478,9 +478,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   - A figure is a strip of seven frames (`textures.ts` `person`: standing front-on, four
     of a side-on stride, two of a climb from behind) drawn in `.who::before`, which flips
     for `.left` so that the name does not; `.walking` and `.climbing` step through it.
-  - **A light is a pendant** indoors (`lampOn`/`lampOff`), a lantern on a post out of
-    doors (the old block); a lit one has `.lamp` and `--lit` (its level) for its glow.
-    Shapes by name are next (BACKLOG).
+  - **A light is drawn by its name** (`world.ts` `lamp`, English, since b5): a standing
+    lamp (`standing`, a shape of its own laid out from the right like a door, two blocks
+    tall on the floor), a spotlight, a strip, or a pendant; out of doors always a lantern
+    on a post. Only the standing lamp changes the layout. A lit one has `.lamp`, its kind
+    and `--lit` (its level) for its pool of light.
   - **A camera is a picture on the wall** (owner, 2026-11-18: "artistic licence", since
     one camera's block was like another's). Its slot is `PICTURE` (3) blocks wide and two
     tall (`Slot.w`), on a post out of doors. `digs/shots.ts` draws its `picture` into a

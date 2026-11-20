@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CHEST, LAMPS, MANY, build, cutout, rng, shades } from "./digs/world.ts";
+import { CHEST, LAMPS, MANY, build, cutout, lamp, rng, shades } from "./digs/world.ts";
 
 const device = (kind: string, name: string, on = false, extra = {}) => ({ id: `${kind}.${name}`, name, kind, on, dims: false, span: { min: 0, max: 100, step: 1, vote: 10 }, away: false, since: 0, guarded: kind === "lock", room: "", ...extra });
 const room = (id: string, floor: string | undefined, devices: any[]) => ({ id, name: id[0].toUpperCase() + id.slice(1), floor, devices, scenes: [] });
@@ -209,4 +209,23 @@ test("with nobody else walking, the view stays on whom it follows rather than go
   walks.sync([{ id: "person.ann", name: "Ann", place: "home", since: 0 }, { id: "person.bob", name: "Bob", place: "home", since: 0 }]);
   assert.equal(walks.pick("person.ann"), "person.ann");
   assert.ok(["person.ann", "person.bob"].includes(walks.pick("")!));
+});
+
+test("a light's name says what kind of lamp it is, and a standing lamp stands on the floor", () => {
+  const kinds = { "Floor lamp": "standing", Lamp: "standing", "Reading lamps": "standing", Uplighter: "standing", Spotlights: "spot", Downlights: "spot", "Under cupboard": "strip", "LED strip": "strip", Ceiling: "pendant", "Kitchen 1": "pendant", Lampshade: "pendant" };
+  for (const [name, kind] of Object.entries(kinds)) assert.equal(lamp(name), kind, name);
+
+  const lounge = (lights: any[]) => [room("lounge", "Ground", lights), room("hall", "Ground", [device("light", "h1")])] as any[];
+  const plain = build(lounge([device("light", "Ceiling")]));
+  const world = build(lounge([device("light", "Ceiling"), device("light", "Floor lamp"), device("lock", "front", true)]));
+  const zone = world.zones.find((z) => z.id === "lounge")!;
+  const at = world.slots.get("light.Floor lamp")!;
+  assert.deepEqual([at.h, at.y + at.h - 1], [2, zone.y1], "two blocks tall, on the floor");
+  assert.ok(at.x >= zone.x0 && at.x <= zone.x1);
+  assert.notEqual(at.x, world.slots.get("lock.front")!.x, "beside the door, not in it");
+  assert.ok(world.slots.get("light.Ceiling")!.y === zone.y0, "a pendant still hangs from the ceiling");
+  assert.ok(zone.x1 - zone.x0 >= plain.zones.find((z) => z.id === "lounge")!.x1 - plain.zones.find((z) => z.id === "lounge")!.x0);
+  // Out of doors a lamp is a lantern on a post like any other light.
+  const garden = build([room("garden", undefined, [device("light", "Lamp")])] as any[]);
+  assert.equal(garden.slots.get("light.Lamp")!.h, 1);
 });

@@ -63,6 +63,11 @@ export const STYLES = css`
   .lamp { overflow: visible; filter: brightness(calc(.5 + .5 * var(--lit))); }
   .lamp::before { content: ""; position: absolute; left: -75%; top: 70%; width: 250%; height: 180%; pointer-events: none;
     background: radial-gradient(ellipse 50% 100% at 50% 0, rgba(255,233,160,.5), transparent); opacity: var(--lit); }
+  /* Each kind's pool of light starts under its own lamp: a spotlight's and a strip's at the
+     ceiling, a standing lamp's under its shade, which is a third of the way down its two blocks. */
+  .lamp.spot::before, .lamp.strip::before { top: 18%; }
+  .lamp.strip::before { left: -50%; width: 200%; background: linear-gradient(rgba(255,233,160,.45), transparent); height: 120%; }
+  .lamp.standing::before { top: 34%; height: 70%; }
   /* The block that is chosen: a white edge, and its name over it, in the light whatever the hour. */
   .tag, .label.sel { outline: 3px solid #fff; outline-offset: -3px; }
   .tag { pointer-events: none; }

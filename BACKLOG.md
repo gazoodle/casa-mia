@@ -296,11 +296,9 @@ the Gazette's own work is parked below it.
     how long after the last touch it starts again (2 minutes at first), and the imp's
     prank (which can't be turned off since 2026.11.9-b18). A card option for each, and a
     choice on the page. The walking and the following were built in 2026.11.10-b1.
-  - **Lamp shapes, next** (owner, 2026-11-20): since 2026.11.10-b1 a light indoors is a
-    pendant and one out of doors a lantern. Next, a shape by the light's name, as
-    outbuildings are told today: "lamp" or "floor" a standing lamp on the floor (which
-    changes how wide a room is), "spot" or "downlight" a spotlight, "strip" an LED strip,
-    and a pendant otherwise. A light's colour could tint its glow, if `house.ts` carries it.
+  - **A light's colour could tint its glow** (2026-11-20), if `house.ts` carries it. The
+    lamp shapes by name were built in 2026.11.10-b5; a setting per light if the names
+    guess wrong too often.
   - **Topology will tell Digs much more** (owner, 2026-11-20): once a house's Topology is
     filled in, Digs can take the house's shape from it: which rooms lead to which, where
     the stairs and the doors out are, and which way each faces. That replaces what Digs

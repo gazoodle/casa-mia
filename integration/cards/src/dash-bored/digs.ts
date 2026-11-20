@@ -17,7 +17,7 @@ import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
 import { bg, figure, say, texture } from "./digs/textures.ts";
 import { Walks } from "./digs/walk.ts";
-import { CHEST, LAMPS, build, cutout, shades, type Slot, type World } from "./digs/world.ts";
+import { CHEST, LAMPS, build, cutout, lamp, shades, type Slot, type World } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
 import type { Device, House, Kind, Room, Survey } from "./house.ts";
@@ -44,6 +44,8 @@ const FACES: Partial<Record<Kind, [on: string, off: string]>> = {
   light: ["lampOn", "lampOff"], lock: ["door", "doorOpen"], cover: ["doorOpen", "door"], climate: ["stoveOn", "stoveOff"], water_heater: ["stoveOn", "stoveOff"],
   camera: ["camera", "camera"], [ALARM]: ["alarmOn", "alarmOff"],
 };
+// Each kind of light's drawing indoors, by world.ts `lamp`: the textures' names without On or Off.
+const LAMP_FACES = { pendant: "lamp", spot: "spot", strip: "strip", standing: "standing" } as const;
 // What a level's stack is built of, by kind: embers for any not here.
 const FILLS: Partial<Record<Kind, string>> = { light: "lanternOn", cover: "slat" };
 // Home Assistant's words for the weather that fall from the sky, and those under which the sky is clear.
@@ -253,19 +255,22 @@ export class Digs extends Family {
   private _block = (d: Device, at?: Slot) => {
     const window = d.kind === "cover" && !d.guarded;
     const outlet = d.kind === "switch" && this._hass!.states[d.id]?.attributes.device_class === "outlet";
-    // A light indoors is a pendant; out of doors, on its post, a lantern.
-    const lantern = d.kind === "light" && !!at && this._world?.zone[at.y]?.[at.x] === "out";
-    const faces = lantern ? ["lanternOn", "lanternOff"] : d.kind === "switch" && !outlet ? ["leverOn", "leverOff"] : (FACES[d.kind] ?? ["machOn", "machOff"]);
+    // A light indoors is a pendant, a spotlight, a strip or a standing lamp by its name
+    // (world.ts `lamp`); out of doors, on its post, a lantern.
+    const light = d.kind === "light" ? (at && this._world?.zone[at.y]?.[at.x] === "out" ? "lantern" : LAMP_FACES[lamp(d.name)]) : "";
+    const faces = light ? [`${light}On`, `${light}Off`] : d.kind === "switch" && !outlet ? ["leverOn", "leverOff"] : (FACES[d.kind] ?? ["machOn", "machOff"]);
     const face = d.away ? "dead" : window ? "glass" : faces[d.on || d.phase === "triggered" ? 0 : 1];
     const armed = this._armed === d.id;
     // A lit lamp in the world casts a pool of light under it, as bright as the lamp is turned up.
-    const glow = d.kind === "light" && d.on && !d.away && at ? `--lit:${(0.35 + (0.65 * (d.level ?? 100)) / 100).toFixed(2)};` : "";
+    const glow = light && d.on && !d.away && at ? `--lit:${(0.35 + (0.65 * (d.level ?? 100)) / 100).toFixed(2)};` : "";
+    // In a room's list a standing lamp, two blocks tall, is shown whole in its square.
+    const fit = !at && light === "standing" ? "background-size:auto 100%;background-position:center;" : "";
     // In the world a camera is a picture of what it last saw, with its name: one camera's block is otherwise like another's.
     if (at?.w && !d.away)
       return html`<button class="at dev painting" style="${place(at.x, at.y, at.w, at.h)};background-image:${bg("frame")}" aria-label="${d.room} ${d.name}: camera. Open" @click=${() => this._press(d, !at)}>
         <canvas class="shot" width=${SHOT[0]} height=${SHOT[1]} data-src=${d.picture ?? ""}></canvas>${say(d.name)}
       </button>`;
-    return html`<button class="${at ? "at" : ""} dev ${glow ? "lamp" : ""} ${armed ? "cracked" : ""} ${d.phase === "triggered" ? "sounding" : ""}" style="${at ? `${place(at.x, at.y, at.w, at.h)};` : ""}${glow}background-image:${bg(face)}"
+    return html`<button class="${at ? "at" : ""} dev ${glow ? `lamp ${light}` : ""} ${armed ? "cracked" : ""} ${d.phase === "triggered" ? "sounding" : ""}" style="${at ? `${place(at.x, at.y, at.w, at.h)};` : ""}${glow}${fit}background-image:${bg(face)}"
       aria-pressed=${d.on} aria-label="${d.room} ${d.name}: ${said(d)}${armed ? `. Hit again to ${AGAIN[d.kind]}` : ""}" @click=${() => this._press(d, !at)}>
       ${window && !d.away ? html`<span class="blind" style="height:${d.on ? 100 - (d.level ?? 100) : 100}%;background-image:${bg("slat")}"></span>` : nothing}
     </button>`;
