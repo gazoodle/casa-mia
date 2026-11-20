@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.10-b3
+
+- **Dash-Bored: Digs' household walks and climbs instead of sliding.** Each figure takes steps as it goes, faces the way it is walking, and climbs the ladders hand over hand, seen from behind. Standing still, it faces you as before.
+- **Dash-Bored: Digs' tour now keeps to whoever is walking.** In 2026.11.10-b1 the view could go over to someone standing still and stay with them while others walked about. Now, when the person it follows stops and someone else sets off, it goes over to them. While it is touring, the line at the foot of the screen says whom it is following and that a touch takes over. It now starts a minute after the last touch instead of two.
+
 ## 2026.11.10-b2
 
 - **Tablet Layout by itself: its repository's front page no longer says it isn't published.** That page is made from Tablet Layout's guide, which still said so in 2026.11.9 after the repository was published. A change to the guide now counts as a change to Tablet Layout, so the next release publishes it again with the guide as it is.

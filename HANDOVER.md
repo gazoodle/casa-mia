@@ -466,11 +466,18 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     draws once a leg, not once a frame. `Walks` keeps each walker; `sync` in `willUpdate`
     (only when the house or world is new) walks a newcomer in from x = -1 and one who has
     gone off it. Most trips end in `_lived`'s rooms; out of doors only by day and dry.
-    `digs/follow.ts` `Tour`: after `IDLE` (2 min) with no `pointerdown`, `wheel` or
-    `keydown` (capture listeners on the element), a `requestAnimationFrame` loop eases
-    `.scroll` toward the walker (or `Prank.spot`) and stops itself when there is nothing
-    to catch up with; `updated` kicks it again. On the page only. The view pans sideways
-    only: the page fits the world's height. Options for all of it are in BACKLOG.
+    `digs/follow.ts` `Tour`: after `IDLE` (1 min since 2026.11.10-b3) with no
+    `pointerdown`, `wheel` or `keydown` (capture listeners on the element), a
+    `requestAnimationFrame` loop eases `.scroll` toward the walker (or `Prank.spot`) and
+    stops itself when there is nothing to catch up with; `updated` kicks it again. It goes
+    over to whoever sets off while the one followed stands (`setOff`), and `pick` never
+    swaps a still walker for another still one: in b1 it did, and the view sat on someone
+    standing while others walked. The tip says "Following …" while touring. On the page
+    only. The view pans sideways only: the page fits the world's height. Options for all
+    of it are in BACKLOG.
+  - A figure is a strip of seven frames (`textures.ts` `person`: standing front-on, four
+    of a side-on stride, two of a climb from behind) drawn in `.who::before`, which flips
+    for `.left` so that the name does not; `.walking` and `.climbing` step through it.
   - **A light is a pendant** indoors (`lampOn`/`lampOff`), a lantern on a post out of
     doors (the old block); a lit one has `.lamp` and `--lit` (its level) for its glow.
     Shapes by name are next (BACKLOG).

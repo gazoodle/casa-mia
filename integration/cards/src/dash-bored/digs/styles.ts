@@ -49,8 +49,16 @@ export const STYLES = css`
   .label, .board { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--t); overflow: hidden; }
   .icon, .who, .label:disabled { pointer-events: none; }
   .board, .icon, .who { background: 0 0 / 100% 100% no-repeat; }
-  /* A figure walks a straight leg in the time walk.ts gives it (--ms). */
+  /* A figure walks a straight leg in the time walk.ts gives it (--ms). Its body is a strip
+     of seven frames (textures.ts figure): standing, four of a stride, two of a climb. The
+     body flips to walk left; the name over it does not. */
   .who { transition: left var(--ms, 0ms) linear, top var(--ms, 0ms) linear; }
+  .who::before { content: ""; position: absolute; inset: 0; background: var(--fig) 0 0 / 700% 100% no-repeat; image-rendering: pixelated; }
+  .who.left::before { scale: -1 1; }
+  .who.walking::before { animation: stride .45s steps(4) infinite; }
+  .who.climbing::before { animation: climb .7s steps(2) infinite; }
+  @keyframes stride { from { background-position-x: calc(100% / 6); } to { background-position-x: calc(500% / 6); } }
+  @keyframes climb { from { background-position-x: calc(500% / 6); } to { background-position-x: calc(700% / 6); } }
   /* A lit lamp: as bright as it is turned up (--lit), with a pool of light under it. */
   .lamp { overflow: visible; filter: brightness(calc(.5 + .5 * var(--lit))); }
   .lamp::before { content: ""; position: absolute; left: -75%; top: 70%; width: 250%; height: 180%; pointer-events: none;
@@ -116,5 +124,5 @@ export const STYLES = css`
     .bar.power { right: auto; left: calc(var(--t) * 4); top: calc(var(--t) * 13); }
     .top { top: calc(var(--t) * 22); left: calc(var(--t) * 4); translate: none; }
   }
-  @media (prefers-reduced-motion: reduce) { .cloud, .fall, .sounding { animation: none; } .who, .blind { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .cloud, .fall, .sounding, .who::before { animation: none; } .who, .blind { transition: none; } }
 `;

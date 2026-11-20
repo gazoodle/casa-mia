@@ -25,7 +25,7 @@ const ACROSS = 100_000; // a cell's key is y * ACROSS + x: no world is that wide
 /** A straight walk or climb: from where, begun when, and for how long. */
 type Leg = { from: Cell; t0: number; ms: number };
 /** One of the household in the world: where they stand, or are walking to, and the turns still ahead of them. */
-type Walker = { name: string; at: Cell; leg?: Leg; ahead: Cell[]; leaving: boolean };
+type Walker = { name: string; at: Cell; leg?: Leg; ahead: Cell[]; leaving: boolean; left: boolean };
 
 /** Where the world's ways out are: the left edge on the grass, and the step off it. */
 const edge = (world: World): Cell => ({ x: 0, y: world.ground - 1 });
@@ -102,6 +102,7 @@ type Host = {
   outdoors(): boolean;
   still(): boolean; // nobody walks: a specimen, or less movement asked for
   arrived(id: string): void; // somebody has got where they were going
+  setOff(id: string): void; // somebody has begun a walk
 };
 
 export class Walks {
@@ -144,9 +145,10 @@ export class Walks {
   }
 
   /** Everybody in the world, by their id, for drawing: where each stands or is walking to,
-   * and how long that walk takes (0 when they are standing). */
+   * how long that walk takes (0 when they are standing), whether it is a climb, and
+   * whether they face left (the way they last walked). */
   list() {
-    return [...this._walkers].map(([id, w]) => ({ id, name: w.name, at: w.at, ms: w.leg?.ms ?? 0 }));
+    return [...this._walkers].map(([id, w]) => ({ id, name: w.name, at: w.at, ms: w.leg?.ms ?? 0, climbing: !!w.leg && w.leg.from.x === w.at.x, left: w.left }));
   }
 
   /** Where somebody is now, in blocks (part way between two while walking), and whether they are on the move. */
@@ -159,12 +161,15 @@ export class Walks {
     return { x: along(leg?.from.x ?? 0, w.at.x), y: along(leg?.from.y ?? 0, w.at.y), moving: k < 1 };
   }
 
-  /** Somebody to follow other than `not`: one on the move if anybody is, and `not` if there is nobody else. */
+  /** Somebody to follow other than `not`: one on the move if anybody is. If nobody else
+   * is, `not` while they are there: going over to somebody standing still would leave the
+   * view on them while others walk (the tour seemed to stop following, 2026.11.10-b1). */
   pick(not = "", random = Math.random) {
+    const any = (pool: [string, Walker][]) => (pool.length ? pool[Math.floor(random() * pool.length)][0] : undefined);
     const others = [...this._walkers].filter(([id, w]) => id !== not && !w.leaving);
     const moving = others.filter(([, w]) => w.leg);
-    const pool = moving.length ? moving : others;
-    return pool.length ? pool[Math.floor(random() * pool.length)][0] : this._walkers.has(not) ? not : undefined;
+    if (moving.length) return any(moving);
+    return this._walkers.has(not) ? not : any(others);
   }
 
   private _spot(world: World) {
@@ -189,7 +194,7 @@ export class Walks {
 
   private _enter(p: Person, placed: boolean, world: World) {
     const still = this._host.still();
-    const w: Walker = { name: p.name, at: placed || still ? this._spot(world) : off(world), ahead: [], leaving: false };
+    const w: Walker = { name: p.name, at: placed || still ? this._spot(world) : off(world), ahead: [], leaving: false, left: false };
     this._walkers.set(p.id, w);
     this._host.requestUpdate();
     if (still) return;
@@ -231,9 +236,12 @@ export class Walks {
       return this._host.requestUpdate();
     }
     const ms = Math.abs(next.x - w.at.x) * PACE + Math.abs(next.y - w.at.y) * CLIMB;
+    const setting = !w.leg;
     const leg = (w.leg = { from: w.at, t0: Date.now(), ms });
+    if (next.x !== w.at.x) w.left = next.x < w.at.x;
     w.at = next;
     this._host.requestUpdate();
+    if (setting) this._host.setOff(id);
     // Unless they have turned since (`_turn`), which began a leg of its own.
     this._later(id, w, ms, () => w.leg === leg && this._step(id, w));
   }

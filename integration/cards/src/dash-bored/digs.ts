@@ -101,6 +101,7 @@ export class Digs extends Family {
     outdoors: () => this._day >= DUSK && !(this._house?.outside && FALLS[this._house.outside.sky]),
     still: () => this._sample || calm(),
     arrived: (id) => this._tour.arrived(id),
+    setOff: (id) => this._tour.setOff(id),
   });
   private _tour = new Tour({
     scroller: () => this.renderRoot?.querySelector<HTMLElement>(".scroll"),
@@ -112,6 +113,7 @@ export class Digs extends Family {
       return imp ? { x: imp.x, moving: false } : this._walks.where(who);
     },
     pick: (not) => this._walks.pick(not),
+    requestUpdate: () => this.requestUpdate(),
   });
   private _synced?: [House | undefined, World | undefined]; // the house and world the walks were last told of
   private _hands?: AbortController; // the listeners for a touch, which hands the view back
@@ -237,6 +239,14 @@ export class Digs extends Family {
       ...this._alerts.filter((a) => a.level !== NOMINAL).map((a) => `${a.name}: ${a.message || a.level}`),
       ...devices.filter((d) => d.away).map((d) => `${d.room} ${d.name} not answering`),
     ];
+  }
+
+  /** What the tip says while the view is touring (digs/follow.ts): whom it follows, and that a touch ends it. */
+  private _touring(house: House) {
+    const who = this._tour.following;
+    if (who === undefined) return undefined;
+    const name = this._prank.spot ? "the imp" : (house.people.find((p) => p.id === who)?.name ?? "");
+    return name ? `Following ${name}, touch to take over` : undefined;
   }
 
   /** One device's block: in the world at `at`, or in a room's list. A plain switch is a lever, and one that is an outlet a machine. */
@@ -406,7 +416,7 @@ export class Digs extends Family {
     };
 
     const tip = this._lost ? `No connection since ${clock(this._lost)}` : armed ? `Hit again to ${AGAIN[armed.kind]}` : hurt ? `${this._hurt + 1}/${hurts.length} ${hurt}` : this._told
-      || (sel ? `${sel.room} ${sel.name}: ${said(sel)}` : picked ? `${picked.name}: ${lamps.filter((d) => d.on).length} of ${lamps.length} lights on` : "Press a block to name it, again to switch it");
+      || (sel ? `${sel.room} ${sel.name}: ${said(sel)}` : picked ? `${picked.name}: ${lamps.filter((d) => d.on).length} of ${lamps.length} lights on` : this._touring(house) ?? "Press a block to name it, again to switch it");
     // What stands in the garden: the signpost, the board that says what the house is missing, and the forecast's signs.
     const garden = () => html`
         ${this.hasAttribute("panel")
@@ -432,7 +442,7 @@ export class Digs extends Family {
         ${this._prank.draw()}
         ${alone
           ? nothing
-          : repeat(this._walks.list(), (w) => w.id, (w) => html`<div class="at who" style="${place(w.at.x, w.at.y - 1, 1, 2)};--ms:${w.ms}ms;background-image:${figure(w.name)}">${say(w.name)}</div>`)}
+          : repeat(this._walks.list(), (w) => w.id, (w) => html`<div class="at who ${w.ms ? (w.climbing ? "climbing" : "walking") : ""} ${w.left ? "left" : ""}" style="${place(w.at.x, w.at.y - 1, 1, 2)};--ms:${w.ms}ms;--fig:${figure(w.name)}">${say(w.name)}</div>`)}
         <canvas class="dark" .width=${world.w} .height=${world.h}></canvas>
         ${sel && world.slots.has(sel.id) ? html`<div class="at tag" style=${place(world.slots.get(sel.id)!.x, world.slots.get(sel.id)!.y, world.slots.get(sel.id)!.w, world.slots.get(sel.id)!.h)}>${say(sel.name)}</div>` : nothing}
       </div>`;

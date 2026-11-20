@@ -42,10 +42,44 @@ const lever = (on: boolean): Paint => (x, y) => {
 };
 const chandelier = (glow: string): Paint => (x, y) =>
   (x === 7 || x === 8) && y < 6 ? "#4a3016" : y > 5 && y < 9 && x > 0 && x < 15 ? "#a8742a" : y > 8 && y < 14 && x % 4 > 0 && x % 4 < 3 && x > 0 && x < 15 ? glow : null;
-const person = (hair: string, top: string, legs: string): Paint => (x, y) =>
+// A person, facing us: the standing frame.
+const facing = (hair: string, top: string, legs: string): Paint => (x, y) =>
   y < 8 ? (x < 4 || x > 11 ? null : y < 3 ? hair : y === 4 && (x === 6 || x === 9) ? INK : SKIN)
   : y < 20 ? (x > 3 && x < 12 ? top : x > 1 && x < 14 ? (y < 18 ? shade(top, 0.85) : SKIN) : null)
   : x < 4 || x > 11 ? null : y > 29 ? INK : x === 7 || x === 8 ? shade(legs, 0.8) : legs;
+// Walking to the right, seen from the side: `stride` texels between the feet (one leg
+// forward, then the other) and the near arm swung the other way. Flipped to walk left.
+const walking = (hair: string, top: string, legs: string, stride: number): Paint => (x, y) => {
+  if (y < 8) return x < 5 || x > 10 ? null : y < 3 || (x < 7 && y < 6) ? hair : y === 4 && x === 9 ? INK : SKIN;
+  if (y < 20) {
+    const arm = 7.5 - (stride * (y - 8)) / 24; // the arm swings against the near leg
+    if (Math.abs(x - arm) < 1 && y > 8) return y > 17 ? SKIN : shade(top, 0.8);
+    return x > 4 && x < 11 ? top : null;
+  }
+  const k = (stride * (y - 20)) / 11;
+  const [near, far] = [7.5 + k / 2, 7.5 - k / 2];
+  const on = (c: number) => Math.abs(x - c) < 1.3;
+  return on(near) ? (y > 29 ? INK : legs) : on(far) ? (y > 29 ? INK : shade(legs, 0.75)) : null;
+};
+// Climbing, seen from behind: one hand up and the other knee raised, then the other way.
+const climbing = (hair: string, top: string, legs: string, left: boolean): Paint => (x, y) => {
+  if ((x > 1 && x < 4) || (x > 11 && x < 14)) {
+    const sleeve = shade(top, 0.85);
+    // The raised arm reaches for the rung over the head; the other hangs.
+    if (left === x < 4) return y > 0 && y < 16 ? (y < 3 ? SKIN : sleeve) : null;
+    return y > 8 && y < 20 ? (y < 18 ? sleeve : SKIN) : null;
+  }
+  if (x < 4 || x > 11) return null;
+  if (y < 8) return y < 6 ? hair : SKIN;
+  if (y < 20) return top;
+  const raised = left ? x > 7 : x < 8;
+  return raised && y > 27 ? null : y > (raised ? 25 : 29) ? INK : legs;
+};
+const FRAMES = 7; // standing, four of walking, two of climbing: one strip, a block wide each
+const person = (hair: string, top: string, legs: string): Paint => {
+  const frames = [facing(hair, top, legs), ...[4, 0, -4, 0].map((stride) => walking(hair, top, legs, stride)), climbing(hair, top, legs, true), climbing(hair, top, legs, false)];
+  return (x, y, r) => frames[x >> 4](x & 15, y, r);
+};
 const bitmap = (rows: string[], colour: string): [number, number, Paint] => [rows[0].length, rows.length, (x, y) => (rows[y][x] === "#" ? colour : null)];
 const HEART = [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."], BOLT = ["..##", ".##.", "####", ".##.", "##..", "#..."];
 const cloud = (hex: string): Paint => (x, y) => (y > 4 && y < 10 && x > 1 && x < 14 && !(y === 5 && (x < 5 || x > 10)) ? hex : null);
@@ -162,10 +196,11 @@ const kept = (key: string, make: () => HTMLCanvasElement) => {
 };
 /** A texture as a CSS background. */
 export const bg = (name: string) => `url(${kept(name, () => texture(name))})`;
-/** A person's figure as a CSS background: sixteen texels by thirty-two, dressed by their name. */
+/** A person's figure as a CSS background, dressed by their name: a strip of FRAMES
+ * frames, each sixteen texels by thirty-two (styles.ts steps through them). */
 export function figure(name: string) {
   const n = hash(name);
-  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16, 32, person(HAIR[n % HAIR.length], TOPS[(n >> 3) % TOPS.length], LEGS[(n >> 6) % LEGS.length])))})`;
+  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16 * FRAMES, 32, person(HAIR[n % HAIR.length], TOPS[(n >> 3) % TOPS.length], LEGS[(n >> 6) % LEGS.length])))})`;
 }
 
 // ---- Lettering: three texels by five, a row to an octal digit. ----

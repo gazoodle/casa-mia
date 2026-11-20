@@ -1,12 +1,13 @@
-// Digs' tour: when nobody has touched the page for two minutes, the view follows one of the
+// Digs' tour: when nobody has touched the page for a minute, the view follows one of the
 // household about the house, and the imp while he is at his prank. When the one followed
-// gets where they were going, it goes over to somebody else on the move. A touch, the
-// wheel or a key hands the view back at once. A frame is drawn only while there is
+// gets where they were going, or stands still while somebody else sets off, it goes over
+// to somebody on the move. The tip says whom it follows. A touch, the wheel or a key
+// hands the view back at once. A frame is drawn only while there is
 // somewhere to move the view to: on a wall tablet it is otherwise still.
 // ponytail: always on, on the page only, after IDLE. The options (BACKLOG: Digs, options
 // for what moves by itself) turn it off, put it on a dashboard's card, or change the wait.
 
-const IDLE = 120_000; // ms: no touch for this long and the view is the tour's again
+const IDLE = 60_000; // ms: no touch for this long and the view is the tour's again (owner, 2026-11-20: a minute, so that it is clear when it is touring)
 const EASE = 400; // ms: about how far behind the one followed the view keeps
 
 /** What the tour needs of the element it is on. */
@@ -18,6 +19,7 @@ type Host = {
   /** Where the view is to be, across in blocks, and whether that is moving: the imp's prank, or the one followed. */
   target(who: string): { x: number; moving: boolean } | undefined;
   pick(not: string): string | undefined;
+  requestUpdate(): void; // the tour began or ended: the tip says so
 };
 
 export class Tour {
@@ -34,14 +36,21 @@ export class Tour {
 
   /** Somebody touched the page, or it has just been opened: the view is theirs until IDLE has passed with no touch. */
   touched = () => {
+    if (this._on) this._host.requestUpdate();
     this._on = false;
     this._halt();
     this._idle = this._host.instead(this._idle, IDLE, () => {
       this._on = this._host.able();
       this._who = this._host.pick("") ?? "";
+      this._host.requestUpdate();
       this.kick();
     });
   };
+
+  /** Whom the view follows while it is touring, by their id ("" for nobody yet); undefined while the view is the viewer's. */
+  get following() {
+    return this._on ? this._who : undefined;
+  }
 
   /** The element has left the page. Its own timers go with it. */
   stop() {
@@ -53,6 +62,13 @@ export class Tour {
   arrived(id: string) {
     if (!this._on || id !== this._who) return;
     this._who = this._host.pick(id) ?? id;
+    this.kick();
+  }
+
+  /** Somebody set off: the view goes over to them if the one it follows is standing still. */
+  setOff(id: string) {
+    if (!this._on || id === this._who || this._host.target(this._who)?.moving) return;
+    this._who = id;
     this.kick();
   }
 
