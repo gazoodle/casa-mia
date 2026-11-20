@@ -459,6 +459,9 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
             git("show", f"{version}:{guides_of(domain)[0]}").split("\n\n")[1].split()
         )
         about = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", about)  # a link's words only
+        # GitHub shows a description as it is: "**Yet Another Dashboard Designer**" kept
+        # its asterisks (Dash-Bored, 2026.11.9).
+        about = re.sub(r"\*+|`", "", about)
         run(
             "gh", "repo", "edit", mirror, "--description", about,
             "--add-topic", KINDS[kind_of(domain)]["topics"],

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.10-b2
+
+- **Tablet Layout by itself: its repository's front page no longer says it isn't published.** That page is made from Tablet Layout's guide, which still said so in 2026.11.9 after the repository was published. A change to the guide now counts as a change to Tablet Layout, so the next release publishes it again with the guide as it is.
+
 ## 2026.11.10-b1
 
 - **Dash-Bored: Digs' household walks all over the house.** Each person at home walks from room to room, up and down the ladders, out through a door at each end of the ground floor into the garden and over to the outbuildings, and stays a while where they get to. Most trips end in a room with a light on, and nobody goes out of doors after dark or while it is raining or snowing. Someone who leaves home walks off the left of the garden, and someone who comes home walks in from there.

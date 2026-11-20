@@ -869,4 +869,6 @@ Ideas where one module makes another better. Each module still works alone; each
 
 `tests/test_compositor.py::test_the_pages_controls_restart_flush_and_forget` failed once
 in a full run on 2026-11-15 (`assert not out["live"]["pictures"]` after a flush), then
-passed alone and in three more full runs. Find the race before it is trusted again.
+passed alone and in three more full runs. It failed again in a full run on 2026-11-20,
+then passed alone three times and in the next full run. Find the race before it is
+trusted again.
