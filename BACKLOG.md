@@ -776,6 +776,13 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 ## Next: Casa Mia, the public release
 
+- **After 2026.11.10 is released (owner: once Digs is complete, 2026-11-20).** That
+  release republishes Tablet Layout's mirror without "It isn't published there yet"
+  (2026.11.10-b2). Then, asking first: submit `gazoodle/casa-mia-tablet-layout` to
+  hacs/default's `plugin` list as Dash-Bored's was (hacs/default#14577, opened
+  2026-11-20), and re-request Frenck's review on #13883 and #14085, whose
+  `documentation` and `issue_tracker` were put right in 2026.11.9.
+
 Decided (2026-10-02): **ship everything.** Every module is off until enabled; no private edition: the house runs the public release like everyone else. House-specific values go to configuration (the alarm's entity ids, the compositor's cameras, the house photo). FONA's hardware is published with its sketch ("FONA Arduino firmware into the repo"). The costs: security reports (guest login hands out HA sessions), docs and support for other setups.
 
 - **Be open about what Casa Mia touches.** One "What Casa Mia changes" section, in the README and on the admin page, per module: what it reads and writes (`/homeassistant`: custom_components on start, dashboards saved by Camera Dashboard deploys and the Kiosk mode page; `configuration.yaml` never so far), what it never touches, and that each write happens only on a button press and is logged. Check every module against it first, and keep it true, ideally with a test that fails on a write path not in the list.
