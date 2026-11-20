@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.11-b5
+
+- **Dash-Bored: Digs no longer goes blank for some people's names.** Each person's clothes are chosen from their name, and for about half of all names the choice fell outside the list of colours. The walking figures then had no colour to draw with, and the whole page stopped drawing. It showed on a tablet once b3 brought everyone with no tracker into the house.
+
 ## 2026.11.11-b4
 
 - **People: gender, pronouns and date of birth.** Each person can have them, all optional, so messages can be worded to fit the person. Pronouns are she/her, he/him, they/them, or any others with all five forms typed in; when they aren't set, they/them is used, never a guess from the gender. The date of birth can be the whole date, the year alone, or the day and month alone.

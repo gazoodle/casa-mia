@@ -219,11 +219,18 @@ const kept = (key: string, make: () => HTMLCanvasElement) => {
 };
 /** A texture as a CSS background. */
 export const bg = (name: string) => `url(${kept(name, () => texture(name))})`;
+/** A person's clothes by their name: hair, top and legs. The shifts are unsigned: `>>`
+ * made a name whose hash is 2³¹ or more pick from before the start of a list, and the
+ * figure that then had no colour stopped Digs drawing at all (2026.11.11-b3, on a tablet). */
+export function dress(name: string): [hair: string, top: string, legs: string] {
+  const n = hash(name);
+  return [HAIR[n % HAIR.length], TOPS[(n >>> 3) % TOPS.length], LEGS[(n >>> 6) % LEGS.length]];
+}
+
 /** A person's figure as a CSS background, dressed by their name: a strip of FRAMES
  * frames, each sixteen texels by thirty-two (styles.ts steps through them). */
 export function figure(name: string) {
-  const n = hash(name);
-  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16 * FRAMES, 32, person(HAIR[n % HAIR.length], TOPS[(n >> 3) % TOPS.length], LEGS[(n >> 6) % LEGS.length])))})`;
+  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16 * FRAMES, 32, person(...dress(name))))})`;
 }
 
 // ---- Lettering: three texels by five, a row to an octal digit. ----

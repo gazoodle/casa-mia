@@ -234,3 +234,11 @@ test("somebody is about the house when they are at home or can't be placed, and 
   const { about } = await import("./digs/walk.ts");
   assert.deepEqual(["home", "unknown", "unavailable", undefined, "not_home", "Work"].map(about), [true, true, true, true, false, false]);
 });
+
+test("everybody is dressed, whatever their name hashes to", async () => {
+  const { dress } = await import("./digs/textures.ts");
+  const { hash } = await import("./digs/world.ts");
+  const names = Array.from({ length: 2000 }, (_, i) => `Person ${i}`);
+  assert.ok(names.some((n) => hash(n) >= 2 ** 31), "the test has names that hash high");
+  for (const n of names) for (const colour of dress(n)) assert.match(colour, /^#[0-9a-f]{6}$/, n);
+});
