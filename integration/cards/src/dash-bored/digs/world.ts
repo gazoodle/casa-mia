@@ -173,6 +173,9 @@ export function build(rooms: Room[], forecast = false): World {
       put(x0, top(s), right(s), top(s), "roof");
       if (s) put(x0, top(s - 1), right(s), top(s - 1), "beam");
     });
+    // A doorway in each end wall of the ground storey, so that the household can walk out
+    // into the garden and over to the other buildings (walk.ts).
+    for (const end of [x0, right(0)]) put(end, ground - 2, end, ground - 1, "wall");
     if (!tall) {
       const s = storeys.length - 1;
       for (let i = 1; i < 3; i++) if (x0 + 2 * i <= right(s) - 2 * i) put(x0 + 2 * i, top(s) - i, right(s) - 2 * i, top(s) - i, "roof");

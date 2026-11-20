@@ -459,6 +459,21 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     credit, and its maker's terms do not allow its textures in other software). **Not
     built:** a way to turn it off. Seen on the harness in WebKit; `el._prank._begin()`
     in the console starts one at once.
+  - **The household walks all over, and the view follows them** (2026.11.10-b1; owner,
+    2026-11-20). `digs/walk.ts`: `route` is a breadth-first search over the blocks (floor
+    rows, ladders, and since then a doorway in each end wall of the ground storey);
+    `corners` cuts a way into straight legs, each one CSS transition (`--ms`), so Lit
+    draws once a leg, not once a frame. `Walks` keeps each walker; `sync` in `willUpdate`
+    (only when the house or world is new) walks a newcomer in from x = -1 and one who has
+    gone off it. Most trips end in `_lived`'s rooms; out of doors only by day and dry.
+    `digs/follow.ts` `Tour`: after `IDLE` (2 min) with no `pointerdown`, `wheel` or
+    `keydown` (capture listeners on the element), a `requestAnimationFrame` loop eases
+    `.scroll` toward the walker (or `Prank.spot`) and stops itself when there is nothing
+    to catch up with; `updated` kicks it again. On the page only. The view pans sideways
+    only: the page fits the world's height. Options for all of it are in BACKLOG.
+  - **A light is a pendant** indoors (`lampOn`/`lampOff`), a lantern on a post out of
+    doors (the old block); a lit one has `.lamp` and `--lit` (its level) for its glow.
+    Shapes by name are next (BACKLOG).
   - **A camera is a picture on the wall** (owner, 2026-11-18: "artistic licence", since
     one camera's block was like another's). Its slot is `PICTURE` (3) blocks wide and two
     tall (`Slot.w`), on a post out of doors. `digs/shots.ts` draws its `picture` into a
@@ -475,8 +490,7 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     a heart is lost for each unlocked door, each Sensor Watch alert and each device not
     answering; a thermostat is a stove and a switch a lever (one whose `device_class`
     is `outlet` is a machine: `Device` does not say which switches are appliances); the
-    forecast is signs in the garden; the household walk about in the lit rooms, or the
-    ground floor with none lit (`_lived`); and a signpost in the garden fires `CHOOSE`.
+    forecast is signs in the garden; and a signpost in the garden fires `CHOOSE`.
   - My choices, told to the owner: a camera or an alarm opens Home Assistant's dialog;
     every guarded kind cracks, not only a lock; a device not answering is a cracked grey
     block that takes no press; the level's stack is at the screen's right edge and is

@@ -291,8 +291,21 @@ the Gazette's own work is parked below it.
   - Many cameras in one area (2026-11-18): each is a picture three blocks wide, so an
     area with a dozen is 36 blocks of pictures. Nothing gathers them as the chandelier
     gathers lights; decide with the owner once it is seen on his house.
-  - The imp's prank can't be turned off (2026.11.9-b18). A card option and a choice on the
-    page, if the owner or anyone using it live asks.
+  - **Options for what moves by itself** (owner, 2026-11-20): the people walking about
+    the house, the view following one of them (or the imp) when nobody is touching it,
+    how long after the last touch it starts again (2 minutes at first), and the imp's
+    prank (which can't be turned off since 2026.11.9-b18). A card option for each, and a
+    choice on the page. The walking and the following were built in 2026.11.10-b1.
+  - **Lamp shapes, next** (owner, 2026-11-20): since 2026.11.10-b1 a light indoors is a
+    pendant and one out of doors a lantern. Next, a shape by the light's name, as
+    outbuildings are told today: "lamp" or "floor" a standing lamp on the floor (which
+    changes how wide a room is), "spot" or "downlight" a spotlight, "strip" an LED strip,
+    and a pendant otherwise. A light's colour could tint its glow, if `house.ts` carries it.
+  - **Topology will tell Digs much more** (owner, 2026-11-20): once a house's Topology is
+    filled in, Digs can take the house's shape from it: which rooms lead to which, where
+    the stairs and the doors out are, and which way each faces. That replaces what Digs
+    guesses today from the order of rooms and their names, including the ways the
+    household walks (`digs/walk.ts` finds them from the blocks).
   - Known and left: a device in no room has no block (the board counts them); the clock
     and the hearts lie over the top storey's roof on a house of three storeys; the sun is up from six to six all year (Home Assistant's sun
     entity has the real hours); out of doors is told by an area's name in English; a

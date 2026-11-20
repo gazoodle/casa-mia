@@ -18,7 +18,16 @@ const WOOD = "#b98a4e", DARK = "#7d5a30", GREY = "#868686", SKIN = "#e0b088", IN
 /** How far a texel is from a point. */
 const round = (x: number, y: number, cx: number, cy: number) => Math.hypot(x - cx, y - cy);
 const plank = (hex: string): Paint => (x, y, r) => (y % 4 === 3 || x === ((y >> 2) * 7 + 3) % 16 ? shade(hex, 0.7) : j(hex, r, 0.06));
-const lamp = (frame: string, grid: string, inner: string, a: number): Paint => (x, y, r) => (edge(x, y) ? frame : x % 5 === 0 || y % 5 === 0 ? grid : j(inner, r, a));
+// A lantern on a post out of doors: panes in a frame, lit from within.
+const lantern = (frame: string, grid: string, inner: string, a: number): Paint => (x, y, r) => (edge(x, y) ? frame : x % 5 === 0 || y % 5 === 0 ? grid : j(inner, r, a));
+// A pendant hung from the ceiling: a cord, a shade that widens to its rim, and a bulb under it.
+const pendant = (on: boolean): Paint => (x, y, r) => {
+  const mid = Math.abs(x - 7.5);
+  if (y < 5) return mid < 1 ? "#3a2a18" : null;
+  if (y < 10) return mid < 2.5 + (y - 5) * 1.2 ? (y === 9 ? (on ? "#8a5a1c" : "#3a2410") : j(on ? "#c8963a" : "#5a3c1c", r, 0.08)) : null;
+  if (y < 12) return mid < 2 ? (on ? (y === 10 ? "#fff8d8" : "#ffe9a0") : "#8a8a80") : null;
+  return on && y === 12 && mid < 2 ? "rgba(255,233,160,.5)" : null;
+};
 // A machine with a window in its front, a stove with a fire in its mouth, and a block with a lamp in it.
 const machine = (on: boolean): Paint => (x, y, r) => (edge(x, y) ? shade(GREY, 0.55) : x > 3 && x < 12 && y > 5 && y < 13 ? (on ? j("#ffb030", r, 0.2) : "#26262a") : y < 3 ? shade(GREY, 1.15) : j("#7c7f86", r, 0.06));
 const stove = (on: boolean): Paint => (x, y, r) =>
@@ -72,8 +81,10 @@ const PAINTS: Record<string, [number, number, Paint]> = {
   board: [16, 16, (x, y, r) => (edge(x, y) ? shade(WOOD, 0.55) : j(WOOD, r, 0.05))],
   glass: [16, 32, (x, y) => (edge(x, y, 16, 32) || y === 15 ? "#dff1ff" : (x + y) % 16 === 8 && x > 2 && x < 8 ? "rgba(255,255,255,.8)" : "rgba(170,215,255,.25)")],
   slat: [16, 16, (_x, y) => (y % 3 === 2 ? shade("#e8e0c8", 0.7) : "#e8e0c8")],
-  lampOff: [16, 16, lamp("#4a3016", "#4f3a1c", "#7a5a2a", 0.06)],
-  lampOn: [16, 16, lamp("#a8742a", "#e0a93a", "#ffe9a0", 0.05)],
+  lampOff: [16, 16, pendant(false)],
+  lampOn: [16, 16, pendant(true)],
+  lanternOff: [16, 16, lantern("#4a3016", "#4f3a1c", "#7a5a2a", 0.06)],
+  lanternOn: [16, 16, lantern("#a8742a", "#e0a93a", "#ffe9a0", 0.05)],
   machOff: [16, 16, machine(false)],
   machOn: [16, 16, machine(true)],
   stoveOff: [16, 16, stove(false)],

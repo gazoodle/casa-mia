@@ -1,22 +1,26 @@
 // Digs: the house in section, built of square blocks, standing in its garden. A block for
-// each device, lit by its lamps; the household walking about in the lit rooms; hearts for
+// each device, lit by its lamps; the household walking about the house; hearts for
 // the house's health and a bar for its power; the scenes along the bottom; and a sky that
 // keeps the time and the weather. After the mock-up, docs/design/dash-bored/digs.html.
 // It is built on what every family shares (family.ts): digs/world.ts lays the house out,
 // digs/textures.ts paints the blocks and the lettering, digs/chest.ts is a room's list,
-// digs/shots.ts draws the cameras' pictures, digs/prank.ts is the imp's show and
-// digs/styles.ts is the look.
+// digs/shots.ts draws the cameras' pictures, digs/prank.ts is the imp's show,
+// digs/walk.ts walks the household about, digs/follow.ts has the view follow them when
+// nobody is touching it, and digs/styles.ts is the look.
 import { html, nothing } from "lit";
+import { repeat } from "lit/directives/repeat.js";
 import { fire, room as below, watchRoom } from "../ha.ts";
 import { ALARM, chest, said, shown } from "./digs/chest.ts";
+import { Tour } from "./digs/follow.ts";
 import { Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
 import { bg, figure, say, texture } from "./digs/textures.ts";
-import { CHEST, LAMPS, build, cutout, hash, shades, type Slot, type World, type Zone } from "./digs/world.ts";
+import { Walks } from "./digs/walk.ts";
+import { CHEST, LAMPS, build, cutout, shades, type Slot, type World } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
-import type { Device, House, Kind, Person, Room, Survey } from "./house.ts";
+import type { Device, House, Kind, Room, Survey } from "./house.ts";
 import { CHOOSE } from "./shell.ts";
 import { NOMINAL, clock, flip, type Alert } from "./stories.ts";
 
@@ -25,7 +29,7 @@ const ARMED = 3000; // ms: how long a cracked block waits for its second hit
 const CHOSEN = 8000; // ms: how long a block stays chosen with nothing pressed
 const ROOM = "room:"; // before a room's id in `_sel`: its name is what is chosen
 const MINUTE = 60_000;
-const STEP = 5000; // ms: how often the people take a step
+const DUSK = 0.3; // daylight under which nobody goes out of doors
 const HEARTS = 10;
 const BOLT = 0.3; // kW: what each bolt of the power bar stands for
 const LEVELS = 10; // blocks in a level's stack
@@ -41,7 +45,7 @@ const FACES: Partial<Record<Kind, [on: string, off: string]>> = {
   camera: ["camera", "camera"], [ALARM]: ["alarmOn", "alarmOff"],
 };
 // What a level's stack is built of, by kind: embers for any not here.
-const FILLS: Partial<Record<Kind, string>> = { light: "lampOn", cover: "slat" };
+const FILLS: Partial<Record<Kind, string>> = { light: "lanternOn", cover: "slat" };
 // Home Assistant's words for the weather that fall from the sky, and those under which the sky is clear.
 const FALLS: Record<string, "rain" | "snow"> = { rainy: "rain", pouring: "rain", "lightning-rainy": "rain", hail: "rain", snowy: "snow", "snowy-rainy": "snow" };
 const CLEAR = new Set(["sunny", "clear-night", "partlycloudy", "windy"]);
@@ -56,10 +60,12 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 const things = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
 /** Where something is in the world, in blocks, as a style. */
 const place = (x: number, y: number, w = 1, h = 1) => `--x:${x};--y:${y};--cw:${w};--ch:${h}`;
+/** Whether less movement is asked for: nobody walks, no prank, and the view stays where it is put. */
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export class Digs extends Family {
   static styles = [PAGE, STYLES];
-  static properties = { _alerts: { state: true }, _sel: { state: true }, _armed: { state: true }, _hurt: { state: true }, _told: { state: true }, _open: { state: true }, _now: { state: true }, _b: { state: true }, _walk: { state: true } };
+  static properties = { _alerts: { state: true }, _sel: { state: true }, _armed: { state: true }, _hurt: { state: true }, _told: { state: true }, _open: { state: true }, _now: { state: true }, _b: { state: true } };
   _alerts: Alert[] = []; // what Sensor Watch has said of each sensor it has spoken of
   // The device chosen (or ROOM and a room's id): the tip and the tag are about it, the level's stack is its, and its next press switches it.
   _sel = "";
@@ -69,7 +75,6 @@ export class Digs extends Family {
   _open = ""; // the room whose list is open, by its id
   _now = Date.now(); // ms: the minute the clock shows
   _b = BLOCK; // px: a block
-  _walk = new Map<string, { room: string; x: number }>(); // where each person has walked to, by their id
   private _world?: World;
   private _built?: Survey; // the survey the world was built for
   private _day = 1; // how much daylight there is, from 0 to 1
@@ -85,20 +90,50 @@ export class Digs extends Family {
       const scroll = this.renderRoot.querySelector(".scroll");
       return scroll ? [Math.ceil(scroll.scrollLeft / this._b), Math.floor((scroll.scrollLeft + scroll.clientWidth) / this._b) - 1] : [0, 0];
     },
-    still: () => this._sample || this._alone || !!this._open || matchMedia("(prefers-reduced-motion: reduce)").matches,
+    still: () => this._sample || this._alone || !!this._open || calm(),
   });
+  // The household walking about (digs/walk.ts), and the view following them when nobody is touching it (digs/follow.ts).
+  private _walks = new Walks({
+    after: (ms, then) => void this._after(ms, then),
+    requestUpdate: () => this.requestUpdate(),
+    world: () => this._world,
+    homely: (world) => this._lived(world),
+    outdoors: () => this._day >= DUSK && !(this._house?.outside && FALLS[this._house.outside.sky]),
+    still: () => this._sample || calm(),
+    arrived: (id) => this._tour.arrived(id),
+  });
+  private _tour = new Tour({
+    scroller: () => this.renderRoot?.querySelector<HTMLElement>(".scroll"),
+    block: () => this._b,
+    instead: (was, ms, then) => this._instead(was, ms, then),
+    able: () => this.hasAttribute("panel") && !this._alone && !this._sample && !calm(),
+    target: (who) => {
+      const imp = this._prank.spot;
+      return imp ? { x: imp.x, moving: false } : this._walks.where(who);
+    },
+    pick: (not) => this._walks.pick(not),
+  });
+  private _synced?: [House | undefined, World | undefined]; // the house and world the walks were last told of
+  private _hands?: AbortController; // the listeners for a touch, which hands the view back
 
   connectedCallback() {
     super.connectedCallback();
     this._tick();
-    this._after(STEP, this._stroll);
     this._prank.start();
+    this._walks.start();
+    this._synced = undefined;
     this._unwatch = watchRoom(this._fit);
+    // Anything the viewer does stops the tour at once, before the press itself is handled.
+    this._hands = new AbortController();
+    for (const type of ["pointerdown", "wheel", "keydown"]) this.addEventListener(type, this._tour.touched, { capture: true, passive: true, signal: this._hands.signal });
+    this._tour.touched();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._unwatch?.();
+    this._hands?.abort();
+    this._tour.stop();
   }
 
   /** The clock: a date coming due, not a poll. It is set again at the turn of each minute. */
@@ -155,32 +190,12 @@ export class Digs extends Family {
     if (this._armed === d.id) this._armed = "";
   }
 
-  /** The rooms the household is in: Home Assistant says only that somebody is at home, so
-   * they are where a light is on, or on the ground floor when none is. */
+  /** The rooms the household is most likely in: Home Assistant says only that somebody is
+   * at home, so they are where a light is on, or on the ground floor when none is. */
   private _lived(world: World) {
-    const lit = world.zones.filter((z) => this._house!.rooms.find((r) => r.id === z.id)?.devices.some((d) => d.kind === "light" && d.on));
+    const lit = world.zones.filter((z) => this._house?.rooms.find((r) => r.id === z.id)?.devices.some((d) => d.kind === "light" && d.on));
     return lit.length ? lit : world.zones.filter((z) => z.storey === 0);
   }
-
-  /** Where one of the household stands: in a room chosen by their name, where they have walked to in it. */
-  private _stands(p: Person, lived: Zone[]) {
-    const zone = lived[hash(p.id) % lived.length];
-    const walked = this._walk.get(p.id);
-    return { zone, x: walked?.room === zone.id ? walked.x : zone.x0 + (hash(p.id + zone.id) % (zone.x1 - zone.x0 + 1)) };
-  }
-
-  /** Everybody at home takes a step, or none: an animation, and none where less movement is asked for. */
-  private _stroll = () => {
-    this._after(STEP, this._stroll);
-    const lived = this._world && this._house ? this._lived(this._world) : [];
-    if (!lived.length || this._sample || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    this._walk = new Map(
-      this._house!.people.filter((p) => p.place === "home").map((p) => {
-        const { zone, x } = this._stands(p, lived);
-        return [p.id, { room: zone.id, x: clamp(x + Math.floor(Math.random() * 3) - 1, zone.x0, zone.x1) }];
-      }),
-    );
-  };
 
   /** Something was pressed: the tip is about that now, and nothing else. What is chosen
    * stays so for a few seconds after the last press and then is not: a block chosen
@@ -228,15 +243,19 @@ export class Digs extends Family {
   private _block = (d: Device, at?: Slot) => {
     const window = d.kind === "cover" && !d.guarded;
     const outlet = d.kind === "switch" && this._hass!.states[d.id]?.attributes.device_class === "outlet";
-    const faces = d.kind === "switch" && !outlet ? ["leverOn", "leverOff"] : (FACES[d.kind] ?? ["machOn", "machOff"]);
+    // A light indoors is a pendant; out of doors, on its post, a lantern.
+    const lantern = d.kind === "light" && !!at && this._world?.zone[at.y]?.[at.x] === "out";
+    const faces = lantern ? ["lanternOn", "lanternOff"] : d.kind === "switch" && !outlet ? ["leverOn", "leverOff"] : (FACES[d.kind] ?? ["machOn", "machOff"]);
     const face = d.away ? "dead" : window ? "glass" : faces[d.on || d.phase === "triggered" ? 0 : 1];
     const armed = this._armed === d.id;
+    // A lit lamp in the world casts a pool of light under it, as bright as the lamp is turned up.
+    const glow = d.kind === "light" && d.on && !d.away && at ? `--lit:${(0.35 + (0.65 * (d.level ?? 100)) / 100).toFixed(2)};` : "";
     // In the world a camera is a picture of what it last saw, with its name: one camera's block is otherwise like another's.
     if (at?.w && !d.away)
       return html`<button class="at dev painting" style="${place(at.x, at.y, at.w, at.h)};background-image:${bg("frame")}" aria-label="${d.room} ${d.name}: camera. Open" @click=${() => this._press(d, !at)}>
         <canvas class="shot" width=${SHOT[0]} height=${SHOT[1]} data-src=${d.picture ?? ""}></canvas>${say(d.name)}
       </button>`;
-    return html`<button class="${at ? "at" : ""} dev ${armed ? "cracked" : ""} ${d.phase === "triggered" ? "sounding" : ""}" style="${at ? `${place(at.x, at.y, at.w, at.h)};` : ""}background-image:${bg(face)}"
+    return html`<button class="${at ? "at" : ""} dev ${glow ? "lamp" : ""} ${armed ? "cracked" : ""} ${d.phase === "triggered" ? "sounding" : ""}" style="${at ? `${place(at.x, at.y, at.w, at.h)};` : ""}${glow}background-image:${bg(face)}"
       aria-pressed=${d.on} aria-label="${d.room} ${d.name}: ${said(d)}${armed ? `. Hit again to ${AGAIN[d.kind]}` : ""}" @click=${() => this._press(d, !at)}>
       ${window && !d.away ? html`<span class="blind" style="height:${d.on ? 100 - (d.level ?? 100) : 100}%;background-image:${bg("slat")}"></span>` : nothing}
     </button>`;
@@ -284,12 +303,22 @@ export class Digs extends Family {
     // ponytail: the same hours all year. Home Assistant's sun entity has the real ones.
     const date = new Date(this._now), hour = date.getHours() + date.getMinutes() / 60;
     this._day = clamp(Math.sin((Math.PI * (hour - 6)) / 12) * 1.5 + 0.15, 0, 1) * (overcast(this._house) ? 0.8 : 1);
+
+    // Who is at home, told to the walks when the house or its world is new, and not at every frame of a walk.
+    // A room's card shows nobody.
+    const [house, world] = this._synced ?? [];
+    if (!this._alone && (!this._synced || house !== this._house || world !== this._world)) {
+      this._synced = [this._house, this._world];
+      this._walks.sync(this._house?.people.filter((p) => p.place === "home") ?? []);
+    }
   }
 
   /** The blocks are drawn once for a world, and the dark over them and the map at each change. */
   protected updated() {
     const world = this._world;
     shots(this.renderRoot);
+    // Somebody set off, or the imp turned up: the view follows, if it is the tour's.
+    this._tour.kick();
     const [blocks, dark, map] = [".world", ".dark", ".map canvas"].map((c) => this.renderRoot.querySelector<HTMLCanvasElement & { world?: World }>(c));
     if (!world || !this._house || !blocks || !dark || !map) return;
     if (blocks.world !== world) {
@@ -346,7 +375,6 @@ export class Digs extends Family {
     // Along the bottom: the house's scenes, or on a room's card that room's.
     const hot = alone ? house.rooms[0].scenes : house.scenes;
     const latest = hot.reduce((at, s) => Math.max(at, s.at), 0);
-    const lived = this._lived(world);
     const open = rooms.get(this._open);
     const throwing = (s: { id: string; name: string }) => this._call({ domain: "scene", service: "turn_on", ids: [s.id] }, s.name);
 
@@ -402,12 +430,9 @@ export class Digs extends Family {
         ${alone ? nothing : garden()}
         ${[...world.slots].map(([id, at]) => (byId.has(id) ? this._block(byId.get(id)!, at) : this._crowd(id, at, rooms.get(id.replace(LAMPS, "").replace(CHEST, "")))))}
         ${this._prank.draw()}
-        ${lived.length && !alone
-          ? house.people.filter((p) => p.place === "home").map((p) => {
-              const { zone, x } = this._stands(p, lived);
-              return html`<div class="at who" style="${place(x, zone.y1 - 1, 1, 2)};background-image:${figure(p.name)}">${say(p.name)}</div>`;
-            })
-          : nothing}
+        ${alone
+          ? nothing
+          : repeat(this._walks.list(), (w) => w.id, (w) => html`<div class="at who" style="${place(w.at.x, w.at.y - 1, 1, 2)};--ms:${w.ms}ms;background-image:${figure(w.name)}">${say(w.name)}</div>`)}
         <canvas class="dark" .width=${world.w} .height=${world.h}></canvas>
         ${sel && world.slots.has(sel.id) ? html`<div class="at tag" style=${place(world.slots.get(sel.id)!.x, world.slots.get(sel.id)!.y, world.slots.get(sel.id)!.w, world.slots.get(sel.id)!.h)}>${say(sel.name)}</div>` : nothing}
       </div>`;

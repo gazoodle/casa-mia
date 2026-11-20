@@ -49,7 +49,12 @@ export const STYLES = css`
   .label, .board { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--t); overflow: hidden; }
   .icon, .who, .label:disabled { pointer-events: none; }
   .board, .icon, .who { background: 0 0 / 100% 100% no-repeat; }
-  .who { transition: left .5s steps(4); }
+  /* A figure walks a straight leg in the time walk.ts gives it (--ms). */
+  .who { transition: left var(--ms, 0ms) linear, top var(--ms, 0ms) linear; }
+  /* A lit lamp: as bright as it is turned up (--lit), with a pool of light under it. */
+  .lamp { overflow: visible; filter: brightness(calc(.5 + .5 * var(--lit))); }
+  .lamp::before { content: ""; position: absolute; left: -75%; top: 70%; width: 250%; height: 180%; pointer-events: none;
+    background: radial-gradient(ellipse 50% 100% at 50% 0, rgba(255,233,160,.5), transparent); opacity: var(--lit); }
   /* The block that is chosen: a white edge, and its name over it, in the light whatever the hour. */
   .tag, .label.sel { outline: 3px solid #fff; outline-offset: -3px; }
   .tag { pointer-events: none; }

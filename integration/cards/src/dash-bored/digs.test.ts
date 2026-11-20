@@ -143,3 +143,61 @@ test("a room's card is its room and no more: every block of it is inside the cut
   }
   assert.equal(cutout(build([])), undefined);
 });
+
+test("the household can walk from the garden to every room, upstairs by a ladder, and into the outbuilding", async () => {
+  const { corners, route } = await import("./digs/walk.ts");
+  const world = build([...house(), room("garage", undefined, [device("light", "g")])] as any[]);
+  const gate = { x: 0, y: world.ground - 1 };
+  const floors = new Set([world.ground - 1, ...world.zones.map((z) => z.y1)]);
+  for (const z of world.zones)
+    for (let x = z.x0; x <= z.x1; x++) {
+      const way = route(world, gate, { x, y: z.y1 });
+      assert.ok(way, `${z.id} at ${x}`);
+      // Every step is to the next cell, and a climb is only on a ladder.
+      way.slice(1).forEach((c, i) => assert.equal(Math.abs(c.x - way[i].x) + Math.abs(c.y - way[i].y), 1));
+      for (const c of way.filter((c) => !floors.has(c.y))) assert.ok(world.deco.some(([t, x, y]) => t === "ladder" && x === c.x && y === c.y), `${c.x},${c.y} is no rung`);
+    }
+  const study = world.zones.find((z) => z.id === "study")!;
+  const up = corners(route(world, gate, { x: study.x0, y: study.y1 })!);
+  assert.ok(up.length > 2 && up.length < 8, "a few straight legs, not a leg a block");
+  // Nothing walks through a solid wall: with the doorways bricked up, the house can't be got into.
+  const shut = { ...world, blocks: world.blocks.map((row) => row.map((b, x) => (b === "wall" && world.zone[world.ground - 1][x] === "struct" ? "plank" : b))) };
+  assert.equal(route(shut, gate, { x: study.x0, y: study.y1 }), undefined);
+});
+
+test("one who comes home walks in from off the edge, and one who goes walks off it and is gone", async () => {
+  const { Walks } = await import("./digs/walk.ts");
+  const world = build(house());
+  let due: (() => void)[] = [];
+  const arrived: string[] = [];
+  const walks = new Walks({ after: (_ms, then) => void due.push(then), requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: (id) => void arrived.push(id) });
+  // Every wait comes due at once, a round at a time.
+  const run = (rounds = 50) => {
+    for (let i = 0; i < rounds && due.length; i++) {
+      const now = due;
+      due = [];
+      now.forEach((then) => then());
+    }
+  };
+  const ann = { id: "person.ann", name: "Ann", place: "home", since: 0 };
+  const bob = { id: "person.bob", name: "Bob", place: "home", since: 0 };
+
+  // At first everybody is simply somewhere in the house.
+  walks.sync([ann]);
+  assert.ok(world.zones.some((z) => walks.list()[0].at.y === z.y1));
+  // Bob comes home: he is off the edge, then walks to a room.
+  walks.sync([ann, bob]);
+  assert.equal(walks.list().find((w) => w.id === bob.id)!.at.x, -1);
+  run();
+  assert.ok(arrived.includes(bob.id));
+  assert.ok(walks.list().find((w) => w.id === bob.id)!.at.x >= 0);
+  // Ann sets off out, thinks better of it at once, and stays.
+  walks.sync([bob]);
+  walks.sync([ann, bob]);
+  run();
+  assert.ok(walks.list().find((w) => w.id === ann.id)!.at.x >= 0);
+  // Ann goes out: she walks off the edge and is gone.
+  walks.sync([bob]);
+  run();
+  assert.deepEqual(walks.list().map((w) => w.id), [bob.id]);
+});

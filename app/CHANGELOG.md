@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.10-b1
+
+- **Dash-Bored: Digs' household walks all over the house.** Each person at home walks from room to room, up and down the ladders, out through a door at each end of the ground floor into the garden and over to the outbuildings, and stays a while where they get to. Most trips end in a room with a light on, and nobody goes out of doors after dark or while it is raining or snowing. Someone who leaves home walks off the left of the garden, and someone who comes home walks in from there.
+- **Dash-Bored: Digs shows you round when nobody is using it.** On the page, two minutes after the last touch, the view follows one of the household about the house, and goes over to someone else when they get where they were going. When the imp turns up, it follows the imp until the bot has mended his hole. Any touch, scroll wheel or key gives the view back to you at once, and the tour starts again after two more minutes with nothing pressed. It does not run on a dashboard's card, on a room's card, or where the device asks for less movement.
+- **Dash-Bored: Digs' lamps look like lamps.** A light indoors is now a pendant hanging from the ceiling, with a pool of light under it when it is on. The pool is brighter the further up the light is turned. A light out of doors is a lantern on its post.
+
 ## 2026.11.9
 
 - **Topology, begun: how a home's rooms fit together, kept in Home Assistant.** Casa Mia now keeps a record of the buildings and sites above Home Assistant's floors, and of which area leads to which, with an optional direction at each end (any of the sixteen points of the compass, up or down). It has a page of its own in the app, with a tile on the app's home page: each room with its ways out, where adding a way to one room adds it to the other too; the buildings and sites; anything that names a room or floor Home Assistant no longer has; and a picture of it all, drawn by Mermaid, whose text can be copied. Dash-Bored's use of it comes in a later release. Programs can follow it over Home Assistant's websocket (`casa_mia/topology/subscribe`), and it is there even while the app is stopped.
