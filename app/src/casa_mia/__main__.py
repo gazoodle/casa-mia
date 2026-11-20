@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import threading
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -128,6 +129,12 @@ def main() -> int:
     # The integration's check_plate service: may this car open the gates?
     reads["/people/plate"] = lambda query: people.check_plate(
         (query.get("plate") or [""])[0]
+    )
+    # The integration's people service. It sends HA's own date, so a birthday comes at
+    # midnight where the house is, not where the app's clock thinks it is.
+    reads["/people/about"] = lambda query: people.about(
+        (query.get("person") or [None])[0],
+        date.fromisoformat((query.get("today") or [""])[0] or date.today().isoformat()),
     )
     # Always on: an editor for kiosk-mode's settings in the dashboards (nothing runs).
     kiosk_mode = KioskMode(ha)

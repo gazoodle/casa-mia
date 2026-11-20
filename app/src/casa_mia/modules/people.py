@@ -5,8 +5,19 @@ admin page). Each person has at most one phone number, kept in international for
 (+44...), and whether they may call and whether they may text. The FONA reports callers
 as 07... and texters as +447...; both are normalised the same way before matching, so
 each person needs only the one number. A person can also have number plates, and whether
-they open the gates (the integration's check_plate service asks); a person needs a
-number or a plate. A person can be linked to an HA person.
+they open the gates (the integration's check_plate service asks). A person can be
+linked to an HA person, and needs a number, a plate or that link.
+
+For messages that fit the person, each can have a gender, pronouns and a date of birth,
+all optional; the integration's people service hands them out. The forms follow
+standards rather than inventing one:
+
+- gender: female, male or other (FHIR's AdministrativeGender; unset is unknown).
+- pronouns: all five forms a sentence needs, she/her/her/hers/herself (subject, object,
+  possessive determiner, possessive pronoun, reflexive). Unset is they/them, never a
+  guess from the gender.
+- born: ISO 8601 with reduced precision, as FHIR's birthDate: 1984 or 1984-03-07; or
+  vCard's --03-07 (RFC 6350 BDAY), a birthday with no year.
 """
 
 from __future__ import annotations
@@ -17,6 +28,7 @@ import re
 import secrets
 import threading
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +39,13 @@ _LOGGER = logging.getLogger(__name__)
 COUNTRY = "44"  # numbers starting 0 are UK numbers
 KINDS = ("call", "text")
 MAX_NAME = 60
+GENDERS = ("female", "male", "other")
+FORMS = ("subject", "object", "determiner", "possessive", "reflexive")
+THEY = "they/them/their/theirs/themselves"
+# 1984, 1984-03-07 or --03-07: the year (or "-" for none), then the month and day.
+BORN = re.compile(r"(\d{4}|-)(?:-(\d\d)-(\d\d))?")
+# A letter of any alphabet, and words such as xe's or e-m.
+WORD = re.compile(r"[^\W\d_]+(?:['-][^\W\d_]+)*")
 
 Response = tuple[int, str, bytes]
 
@@ -84,6 +103,82 @@ def plates(raw: Any) -> list[str]:
             raise BadRequest(f"{plate} is in the list twice.")
         out.append(plate)
     return out
+
+
+def pronouns(raw: Any) -> str | None:
+    """The five forms in lower case, she/her/her/hers/herself, or None when unset."""
+    if not raw:
+        return None
+    forms = [f.strip().lower() for f in str(raw).split("/")]
+    if len(forms) != len(FORMS) or not all(
+        WORD.fullmatch(f) and len(f) <= 20 for f in forms
+    ):
+        raise BadRequest("Pronouns need all five forms, as she/her/her/hers/herself.")
+    return "/".join(forms)
+
+
+def _parts(born: str) -> tuple[int | None, int | None, int | None]:
+    """The year, month and day of a stored date of birth; None for each part unknown."""
+    m = BORN.fullmatch(born)
+    if m is None or (m[1] == "-" and not m[2]):
+        raise ValueError(born)
+    year = None if m[1] == "-" else int(m[1])
+    return year, int(m[2]) if m[2] else None, int(m[3]) if m[3] else None
+
+
+def born(raw: Any, today: date) -> str | None:
+    """A date of birth as stored (1984, 1984-03-07 or --03-07), or None when unset."""
+    if not raw:
+        return None
+    try:
+        year, month, day = _parts(str(raw))
+        # 2000 for a birthday with no year: a leap year, so 29 February passes.
+        when = date(year or 2000, month or 1, day or 1)
+    except ValueError:
+        raise BadRequest(
+            f"{raw} is not a date of birth. Give the year, the day and month, or all three."
+        ) from None
+    if year is not None and not (1900 <= year and when <= today):
+        raise BadRequest(
+            f"{raw} is not a date of birth: it is too long ago or to come."
+        )
+    return str(raw)
+
+
+def _birthday(year: int, month: int, day: int) -> date:
+    """The birthday in a given year; 29 February falls on 1 March in other years."""
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return date(year, 3, 1)
+
+
+def about(person: dict[str, Any], today: date) -> dict[str, Any]:
+    """What a message needs to know about a person (no number or plates), for the
+    integration's people service. With only the year of birth, `age` is the age they
+    reach this year; `days_to_birthday` is 0 on the day, None with no day and month."""
+    forms = (person.get("pronouns") or THEY).split("/")
+    year, month, day = _parts(person["born"]) if person.get("born") else (None,) * 3
+
+    # The next birthday, today's included, and whether this year's is still to come.
+    to_come = False
+    days = None
+    if month and day:
+        birthday = _birthday(today.year, month, day)
+        to_come = birthday > today
+        if birthday < today:
+            birthday = _birthday(today.year + 1, month, day)
+        days = (birthday - today).days
+
+    return {
+        "name": person["name"],
+        "person": person.get("person"),
+        "gender": person.get("gender"),
+        "pronouns": {**dict(zip(FORMS, forms)), "plural": forms[0] == "they"},
+        "born": person.get("born"),
+        "age": None if year is None else today.year - year - to_come,
+        "days_to_birthday": days,
+    }
 
 
 class People:
@@ -212,11 +307,26 @@ class People:
     def view(self) -> dict[str, Any]:
         with self._lock:
             people = sorted(self.people, key=lambda p: p["name"].lower())
-            # People saved before plates (2026.10.12-b7) have none, and no gates.
+            # People saved before plates (2026.10.12-b7) have none, and no gates; before
+            # 2026.11.11-b4, no gender, pronouns or date of birth.
+            unset = {"plates": [], "gate": False, "gender": None, "pronouns": None}
             return {
-                "people": [{"plates": [], "gate": False, **p} for p in people],
+                "people": [{**unset, "born": None, **p} for p in people],
                 "error": self._broken,
             }
+
+    def about(self, person: str | None, today: date) -> dict[str, Any]:
+        """Everyone's details for messages (see about()), or those linked to one HA
+        person, for the integration's people service."""
+        with self._lock:
+            chosen = [
+                p for p in self.people if person is None or p.get("person") == person
+            ]
+        return {
+            "people": [
+                about(p, today) for p in sorted(chosen, key=lambda p: p["name"].lower())
+            ]
+        }
 
     def persons(self) -> Response:
         """HA's people (Settings > People), to link to; an error if HA can't be asked."""
@@ -240,11 +350,16 @@ class People:
                 "That is not a phone number. Type it as 07700 900123 or +44 7700 900123."
             )
         cars = plates(body.get("plates") or [])
-        if phone is None and not cars:
-            raise BadRequest("A phone number or a number plate is needed.")
         person = body.get("person") or None
         if person is not None and not isinstance(person, str):
             raise BadRequest("person must be an HA person id.")
+        if phone is None and not cars and person is None:
+            raise BadRequest(
+                "A phone number, a number plate or a Home Assistant person is needed."
+            )
+        gender = body.get("gender") or None
+        if gender is not None and gender not in GENDERS:
+            raise BadRequest("gender must be female, male or other.")
         entry = {
             "name": name,
             "phone": phone,
@@ -253,6 +368,9 @@ class People:
             "plates": cars,
             "gate": bool(body.get("gate")),
             "person": person,
+            "gender": gender,
+            "pronouns": pronouns(body.get("pronouns")),
+            "born": born(body.get("born"), date.today()),
         }
 
         with self._lock:

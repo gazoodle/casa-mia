@@ -10,9 +10,14 @@ Who is known to the home.
 
 Keep the list of phone numbers allowed to call or text your home through
 [Phone and SMS](phone-and-sms.md), and the number plates of the cars allowed to open the
-gates. Each person has a phone number, number plates or both, with separate permissions
-for calls, texts and the gates. Numbers outside the list, withheld numbers and calls or
-texts without the corresponding permission are reported as intrusions.
+gates. Each person has a phone number, number plates or a link to a Home Assistant
+person, with separate permissions for calls, texts and the gates. Numbers outside the
+list, withheld numbers and calls or texts without the corresponding permission are
+reported as intrusions.
+
+It also holds each person's gender, pronouns and date of birth, if you give them, so
+that messages and cards can be worded to fit the person. The **People** action hands
+them to your automations (see [Asking about people](#asking-about-people)).
 
 This is Casa Mia's permission list. Linking an entry to a Home Assistant person
 does not create a user, change that user's permissions or set up presence tracking.
@@ -33,15 +38,23 @@ Press **+ Add person** and enter:
 
 - **Name:** the name shown in events and, for a known number, the app's PONG reply.
 - **Phone number:** one number, such as `07700 900123` or `+44 7700 900123`. Leave it
-  empty for someone you only know by their car.
+  empty for someone you only know by their car or their Home Assistant person.
 - **May call** and **May text:** independent permissions. New entries start with both
   ticked; clear either one if it is not wanted.
 - **Number plates:** the person's cars, separated by commas, such as `ZZ00 ZZZ, ZZ51 ZZZ`.
 - **May open the gates:** whether their cars open the gates (see
   [Opening the gates](#opening-the-gates)). New entries start with it clear.
-- **Home Assistant person:** an optional link to an existing person in Home Assistant.
+- **Home Assistant person:** a link to an existing person in Home Assistant. The
+  **People** action finds people by it.
+- **Gender:** female, male or other, or not set.
+- **Pronouns:** she/her, he/him or they/them, or any others with all five forms typed
+  in, such as `ze/hir/hir/hirs/hirself`. When pronouns aren't set, messages use
+  they/them. They are never guessed from the gender.
+- **Date of birth:** the day, month and year, or only the parts you know. The year on its
+  own gives an age, and the day and month on their own give a birthday.
 
-A person needs a phone number, a number plate or both. Press **Save** in the dialog.
+A person needs a phone number, a number plate or a Home Assistant person. Press **Save**
+in the dialog.
 **Edit** changes the name, number, plates or link; the **Call**, **Text** and **Gates**
 ticks in the list save immediately. **Remove** deletes the Casa Mia entry after
 confirmation, so its future calls and texts become intrusions and its cars no longer open
@@ -101,11 +114,50 @@ plate made, and a camera can misread one as another. What a fake plate gets some
 drive, not the house. If your gates guard more than that, don't open them on a plate
 alone.
 
+## Asking about people
+
+The **People** action (`casa_mia.people`) answers with what this page knows about each
+person, so a message can use their name, pronouns and age. Give it a Home Assistant
+person to ask about the entries linked to them, or nothing to get everyone:
+
+```yaml
+actions:
+  - action: casa_mia.people
+    data:
+      person: person.alex
+    response_variable: about
+  - variables:
+      alex: "{{ about.people[0] }}"
+  - action: notify.notify
+    data:
+      message: >-
+        {{ alex.name }} is home. {{ alex.pronouns.subject | capitalize }}
+        {{ 'have' if alex.pronouns.plural else 'has' }} left
+        {{ alex.pronouns.determiner }} keys in the car.
+```
+
+Each entry in `people` has:
+
+- `name`, and `person`: the linked Home Assistant person, such as `person.alex`.
+- `gender`: `female`, `male`, `other`, or none when not set.
+- `pronouns`: `subject` (she), `object` (her), `determiner` (her coat), `possessive`
+  (hers), `reflexive` (herself), and `plural`, true for they/them, so you can choose
+  between "they are" and "she is". When pronouns aren't set, these are they/them.
+- `born`, as entered: `1984-03-07`, `1984` for the year only, or `--03-07` for a
+  birthday with no year. These are the ISO 8601 and vCard forms.
+- `age`: none without a year. With the year only, it is the age they reach this year.
+- `days_to_birthday`: 0 on the day, none without a day and month. Someone born on
+  29 February has their birthday on 1 March in other years.
+
+Phone numbers and plates are not included. Each call asks the app, and birthdays follow
+Home Assistant's time zone.
+
 ## In Home Assistant
 
-The optional person link is stored with the entry. The phone permissions are used by
-FONA's **Call** and **Text** events, and the gates permission by the **Check number
-plate** action; they do not create separate entities for each person. Your automations
+The person link is stored with the entry. The phone permissions are used by FONA's
+**Call** and **Text** events, the gates permission by the **Check number plate** action,
+and the rest by the **People** action; they do not create separate entities for each
+person. Your automations
 choose what to do with an authorised event or an intrusion.
 
 ## Troubleshooting

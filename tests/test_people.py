@@ -1,8 +1,9 @@
 import json
+from datetime import date
 
 import pytest
 
-from casa_mia.modules.people import People, normalise, plate_key
+from casa_mia.modules.people import People, about, normalise, plate_key
 
 
 @pytest.mark.parametrize(
@@ -152,7 +153,7 @@ def test_plates_and_gates(tmp_path):
     status, err = call(p, "POST", "", {"name": "Kim", "plates": ["ZZOO ZZZ"]})
     assert status == 400 and "already belongs to Alex" in err["error"]
     for bad in (
-        {"name": "Kim"},
+        {"name": "Kim"},  # no number, plate or HA person
         {"name": "Kim", "plates": ["!"]},
         {"name": "Kim", "plates": ["ZZ11 ZZZ", "zz11zzz"]},
         {"name": "Kim", "plates": "ZZ11 ZZZ"},
@@ -174,3 +175,99 @@ def test_persons_without_ha(tmp_path):
     p, _ = make(tmp_path)
     status, out = call(p, "GET", "persons")
     assert status == 200 and out["persons"] == [] and out["error"]
+
+
+def test_gender_pronouns_and_birth_are_kept_and_checked(tmp_path):
+    p, _ = make(tmp_path)
+    # Someone with no number or car, known by their HA person.
+    status, view = call(
+        p,
+        "POST",
+        "",
+        {
+            "name": "Robin",
+            "person": "robin1",
+            "gender": "other",
+            "pronouns": " Xe/Xem/Xyr/Xyrs/Xemself ",
+            "born": "--02-29",
+        },
+    )
+    assert status == 201
+    (robin,) = view["people"]
+    assert robin["pronouns"] == "xe/xem/xyr/xyrs/xemself"
+    assert (robin["gender"], robin["born"]) == ("other", "--02-29")
+
+    # Each optional; an entry from before them reads as unset.
+    _, view = call(p, "PUT", robin["id"], {"name": "Robin", "person": "robin1"})
+    assert {
+        k: view["people"][0][k] for k in ("gender", "pronouns", "born")
+    } == dict.fromkeys(("gender", "pronouns", "born"))
+
+    for born in ("1984", "1984-03-07"):
+        assert (
+            call(p, "POST", "", {"name": born, "person": "x", "born": born})[0] == 201
+        )
+    for bad in (
+        {"gender": "m"},
+        {"pronouns": "she/her"},
+        {"pronouns": "she/her/her/hers/her self"},
+        {"born": "07/03/1984"},
+        {"born": "1984-02-30"},
+        {"born": "--13-01"},
+        {"born": "-"},
+        {"born": "1850"},
+        {"born": "2999-01-01"},
+    ):
+        assert call(p, "POST", "", {"name": "Kim", "person": "k", **bad})[0] == 400, bad
+
+
+TODAY = date(2026, 3, 7)
+
+
+@pytest.mark.parametrize(
+    ("born", "age", "days"),
+    [
+        (None, None, None),
+        ("1984", 42, None),  # the age reached this year
+        ("1984-03-07", 42, 0),  # the day itself
+        ("1984-03-08", 41, 1),  # still to come
+        ("1984-03-06", 42, 364),  # just gone
+        ("--03-08", None, 1),
+        ("2000-02-29", 26, 359),  # 1 March 2027, not a leap year
+    ],
+)
+def test_about_age_and_birthday(born, age, days):
+    got = about({"name": "Alex", "born": born}, TODAY)
+    assert (got["age"], got["days_to_birthday"]) == (age, days)
+
+
+def test_about_pronouns_default_to_they_and_the_query_picks_a_person(tmp_path):
+    p, _ = make(
+        tmp_path,
+        [
+            {"id": "a", "name": "Sam", "phone": None, "person": "sam1"},
+            {
+                "id": "b",
+                "name": "Ann",
+                "phone": "+447700900123",
+                "person": None,
+                "gender": "female",
+                "pronouns": "she/her/her/hers/herself",
+            },
+        ],
+    )
+    everyone = p.about(None, TODAY)["people"]
+    assert [x["name"] for x in everyone] == ["Ann", "Sam"]
+    assert "phone" not in everyone[0]
+    assert everyone[0]["pronouns"] == {
+        "subject": "she",
+        "object": "her",
+        "determiner": "her",
+        "possessive": "hers",
+        "reflexive": "herself",
+        "plural": False,
+    }
+    (sam,) = p.about("sam1", TODAY)["people"]
+    assert sam["pronouns"]["subject"] == "they" and sam["pronouns"]["plural"]
+    assert sam["gender"] is None
+    assert p.about("nobody", TODAY) == {"people": []}

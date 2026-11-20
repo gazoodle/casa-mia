@@ -46,6 +46,12 @@ export type Person = {
   gate: boolean;
   /** HA person id, if linked. */
   person: string | null;
+  /** FHIR's AdministrativeGender; null is unknown. */
+  gender: "female" | "male" | "other" | null;
+  /** All five forms, she/her/her/hers/herself; null reads as they/them. */
+  pronouns: string | null;
+  /** ISO 8601, as precise as known: 1984 or 1984-03-07; or vCard's --03-07, no year. */
+  born: string | null;
 };
 
 export type PeopleView = { people: Person[]; error: string | null };

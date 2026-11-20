@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.11-b4
+
+- **People: gender, pronouns and date of birth.** Each person can have them, all optional, so messages can be worded to fit the person. Pronouns are she/her, he/him, they/them, or any others with all five forms typed in; when they aren't set, they/them is used, never a guess from the gender. The date of birth can be the whole date, the year alone, or the day and month alone.
+- **People: someone with no phone or car can be added** by linking them to a Home Assistant person.
+- **New action: People** (`casa_mia.people`). It answers with each person's name, Home Assistant person, gender, pronouns, age and days to their birthday, for everyone or for one person. Phone numbers and plates are not included.
+
 ## 2026.11.11-b3
 
 - **Dash-Bored: Digs shows who is about the house.** Someone Home Assistant tracks is in the house while they are at home and walks out when they leave. Someone it has no way of placing, such as a child or a pet with no phone, is always about. This replaces b2's whole household walking about when nobody was home: a house with everyone out is now shown empty.
