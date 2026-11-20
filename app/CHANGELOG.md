@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.11-b8
+
+## 2026.11.11-b7
+
+- **Dash-Bored: Digs' babies crawl.** A baby under two is drawn sitting, or crawling on hands and knees when it moves about. It stays on the floor it is on and indoors, never climbing a ladder or going into the garden, and it is never seen to arrive or leave.
+
 ## 2026.11.11-b6
 
 - **Dash-Bored: Digs draws children by their age.** When Casa Mia's People has someone's date of birth, Digs draws a child of 5 to 12 shorter than a grown-up, and a younger child shorter still, walking more slowly. On a person's birthday they wear a party hat. Only the age band and whether it is their birthday reach the page, never the date. Without Casa Mia everybody is drawn grown, as before.

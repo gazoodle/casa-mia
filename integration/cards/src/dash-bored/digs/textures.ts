@@ -53,6 +53,8 @@ export const BUILDS = {
   grown: { h: 32, head: 8, body: 12, half: 4, stride: 4 },
   child: { h: 24, head: 7, body: 8, half: 3, stride: 3 },
   toddler: { h: 20, head: 7, body: 6, half: 3, stride: 2 },
+  // A baby sits or crawls (`baby` below): only its height is used.
+  baby: { h: 12, head: 6, body: 4, half: 3, stride: 0 },
 } satisfies Record<string, Build>;
 export type Shape = keyof typeof BUILDS;
 
@@ -93,6 +95,24 @@ const climbing = (b: Build, hair: string, top: string, legs: string, left: boole
   const raised = left ? x > 7 : x < 8;
   return raised && y > b.h - 5 ? null : y > (raised ? b.h - 7 : b.h - 3) ? INK : legs;
 };
+// A baby, sitting facing us: a tuft of hair, its arms at its sides and its legs out in front.
+const sitting = (hair: string, top: string, legs: string): Paint => (x, y) => {
+  if (y < 6) return x < 5 || x > 10 ? null : y === 0 ? (x === 7 || x === 8 ? hair : null) : y === 1 ? hair : y === 3 && (x === 6 || x === 9) ? INK : SKIN;
+  if (y < 10) return x >= 5 && x <= 10 ? top : (x === 4 || x === 11) && y > 6 ? SKIN : null;
+  return x >= 3 && x <= 12 ? (x < 5 || x > 10 ? SKIN : legs) : null;
+};
+// A baby crawling to the right, seen from the side: its back level, its head up, and one
+// hand and the other knee forward (`reach` 1), then back (-1). Flipped to crawl left.
+const crawling = (hair: string, top: string, legs: string, reach: number): Paint => (x, y) => {
+  if (y >= 2 && y <= 7 && x >= 10 && x <= 14) return y === 2 || (x <= 11 && y <= 4) ? hair : y === 4 && x === 13 ? INK : SKIN;
+  if (y >= 5 && y <= 8 && x >= 3 && x <= 10) return top;
+  if (y < 9) return null;
+  // An arm from the shoulder and a thigh from the hip, each slanting down to the floor.
+  const along = (from: number, to: number) => Math.abs(x - (from + ((to - from) * (y - 8)) / 3)) < 1;
+  if (along(10.5, 11 + reach)) return y === 11 ? SKIN : shade(top, 0.85);
+  if (along(4.5, 4 - reach)) return legs;
+  return y === 11 && x < 4 - reach && x >= 1 - reach ? shade(legs, 0.8) : null;
+};
 // A paper party hat for a birthday, worn over the head: stripes, and a bobble on top.
 const hat: Paint = (x, y) => {
   const mid = Math.abs(x - 7.5);
@@ -117,9 +137,14 @@ const standing = (on: boolean): Paint => (x, y, r) => {
   return y > 28 && y < 31 && mid < 4 ? "#3a2a18" : null;
 };
 const FRAMES = 7; // standing, four of walking, two of climbing: one strip, a block wide each
-const person = (b: Build, hair: string, top: string, legs: string): Paint => {
-  const strides = [b.stride, 0, -b.stride, 0].map((stride) => walking(b, hair, top, legs, stride));
-  const frames = [facing(b, hair, top, legs), ...strides, climbing(b, hair, top, legs, true), climbing(b, hair, top, legs, false)];
+const person = (shape: Shape, hair: string, top: string, legs: string): Paint => {
+  const b = BUILDS[shape];
+  // A baby's strip has the same seven places: sitting, four of a crawl, and sitting
+  // where the climb would be, as a baby takes no ladder.
+  const frames =
+    shape === "baby"
+      ? [sitting(hair, top, legs), ...[1, 0, -1, 0].map((reach) => crawling(hair, top, legs, reach)), sitting(hair, top, legs), sitting(hair, top, legs)]
+      : [facing(b, hair, top, legs), ...[b.stride, 0, -b.stride, 0].map((stride) => walking(b, hair, top, legs, stride)), climbing(b, hair, top, legs, true), climbing(b, hair, top, legs, false)];
   return (x, y, r) => frames[x >> 4](x & 15, y, r);
 };
 const bitmap = (rows: string[], colour: string): [number, number, Paint] => [rows[0].length, rows.length, (x, y) => (rows[y][x] === "#" ? colour : null)];
@@ -258,7 +283,7 @@ export function dress(name: string): [hair: string, top: string, legs: string] {
  * build (styles.ts steps through them). */
 export function figure(name: string, shape: Shape = "grown") {
   const key = `who:${shape}:${name}`;
-  return `url(${kept(key, () => painted(key, 16 * FRAMES, BUILDS[shape].h, person(BUILDS[shape], ...dress(name))))})`;
+  return `url(${kept(key, () => painted(key, 16 * FRAMES, BUILDS[shape].h, person(shape, ...dress(name))))})`;
 }
 
 // ---- Lettering: three texels by five, a row to an octal digit. ----

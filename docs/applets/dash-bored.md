@@ -1083,8 +1083,10 @@ Around the house:
   when they come back. Somebody it has no way of placing, such as a child with no phone,
   is always drawn.
 - **Children** are drawn smaller when Casa Mia's People has their date of birth (see
-  the People guide): a child of 5 to 12 is shorter than a grown-up, and a younger child
-  shorter still, walking more slowly. On a person's birthday they wear a party hat. Only
+  the People guide): a child of 5 to 12 is shorter than a grown-up, and a child of 2 to
+  4 shorter still, walking more slowly. A baby sits, or crawls about the floor it is on,
+  never taking a ladder or going out of doors. On a person's birthday they wear a party
+  hat. Only
   the age band and the birthday reach the page, never the date. Without Casa Mia
   everybody is drawn grown.
 - **The signpost** in the garden, lettered DASH BORED, opens the choice of family. Two

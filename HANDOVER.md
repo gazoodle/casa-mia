@@ -488,7 +488,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     `birthday`, never the date or age. Digs' `_shape` picks a `BUILDS` entry
     (`textures.ts`: grown 32 texels tall, child 24, toddler 20, drawn at the same texel
     size, never scaled); a toddler walks at 1.5× (`pace`); a birthday adds the `hat`.
-    A baby is a toddler until part 2 gives it a crawl.
+    A baby (b7) sits or crawls (`sitting`, `crawling` in the same seven-frame strip),
+    at pace 2.5, on `graph(world, true)`: floors only, no rung, no cell `out`, so it keeps
+    to its floor indoors; it is placed and removed, never walked in or out.
   - A figure is a strip of seven frames (`textures.ts` `person`: standing front-on, four
     of a side-on stride, two of a climb from behind) drawn in `.who::before`, which flips
     for `.left` so that the name does not; `.walking` and `.climbing` step through it.

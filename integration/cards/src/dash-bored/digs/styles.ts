@@ -59,6 +59,7 @@ export const STYLES = css`
   .who.climbing::before { animation: climb .7s steps(2) infinite; }
   /* A toddler's steps are quicker, though it gets less far with each (walk.ts pace). */
   .who.toddler.walking::before { animation-duration: .3s; }
+  .who.baby.walking::before { animation-duration: .6s; }
   /* A party hat on a birthday, over the head, with the name over the hat. */
   .who.birthday::after { content: ""; position: absolute; left: 0; width: 100%; top: calc(var(--t) * -7); height: calc(var(--t) * 8); background: var(--hat) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
   .who.birthday img { translate: -50% calc(var(--t) * -8); }

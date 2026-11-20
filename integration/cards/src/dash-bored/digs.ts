@@ -28,6 +28,8 @@ export const CARD = "dash-bored-digs";
 // The feed of what Casa Mia's People says of each person (household.py in the integration).
 const HOUSEHOLD = "casa_mia_dash_bored/household";
 type Aged = { person: string; band: "baby" | "toddler" | "child" | null; birthday: boolean };
+// How much longer each step takes than a grown-up's (walk.ts pace): a toddler toddles, a baby crawls.
+const PACES: Record<Shape, number> = { grown: 1, child: 1, toddler: 1.5, baby: 2.5 };
 const ARMED = 3000; // ms: how long a cracked block waits for its second hit
 const CHOSEN = 8000; // ms: how long a block stays chosen with nothing pressed
 const ROOM = "room:"; // before a room's id in `_sel`: its name is what is chosen
@@ -108,7 +110,8 @@ export class Digs extends Family {
     still: () => this._sample || calm(),
     arrived: (id) => this._tour.arrived(id),
     setOff: (id) => this._tour.setOff(id),
-    pace: (id) => (this._shape(id) === "toddler" ? 1.5 : 1),
+    pace: (id) => PACES[this._shape(id)],
+    crawls: (id) => this._shape(id) === "baby",
   });
   private _tour = new Tour({
     scroller: () => this.renderRoot?.querySelector<HTMLElement>(".scroll"),
@@ -209,11 +212,9 @@ export class Digs extends Family {
     if (this._armed === d.id) this._armed = "";
   }
 
-  /** How somebody is drawn, by the band their age falls in. A baby is drawn as a toddler
-   * until it has a crawl of its own (BACKLOG). Grown without Casa Mia's People. */
+  /** How somebody is drawn: by the band their age falls in, and grown without Casa Mia's People. */
   private _shape(id: string): Shape {
-    const band = this._aged.get(id)?.band;
-    return band === "child" ? "child" : band === "toddler" || band === "baby" ? "toddler" : "grown";
+    return this._aged.get(id)?.band ?? "grown";
   }
 
   /** Who is about the house: everybody Home Assistant has at home, and everybody it can't
