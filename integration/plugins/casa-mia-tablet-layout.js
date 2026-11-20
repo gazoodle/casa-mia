@@ -3901,6 +3901,6 @@ var Zn = class extends X {
 l("casa-mia-over-layer", Gn), l("casa-mia-over-layer-editor", Zn), u("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched.");
 //#endregion
 //#region src/alone.ts
-var Qn = "cm-plugin-version@2026.11.9", $n = Qn.slice(Qn.indexOf("@") + 1);
+var Qn = "cm-plugin-version@2026.11.10", $n = Qn.slice(Qn.indexOf("@") + 1);
 console.info(`%cCASA-MIA TABLET LAYOUT%c ${$n}`, "color: green; font-weight: bold;", ""), t(`casa-mia-tablet-layout.js ${$n}`);
 //#endregion

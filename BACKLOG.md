@@ -291,8 +291,19 @@ the Gazette's own work is parked below it.
   - Many cameras in one area (2026-11-18): each is a picture three blocks wide, so an
     area with a dozen is 36 blocks of pictures. Nothing gathers them as the chandelier
     gathers lights; decide with the owner once it is seen on his house.
-  - The imp's prank can't be turned off (2026.11.9-b18). A card option and a choice on the
-    page, if the owner or anyone using it live asks.
+  - **Options for what moves by itself** (owner, 2026-11-20): the people walking about
+    the house, the view following one of them (or the imp) when nobody is touching it,
+    how long after the last touch it starts again (2 minutes at first), and the imp's
+    prank (which can't be turned off since 2026.11.9-b18). A card option for each, and a
+    choice on the page. The walking and the following were built in 2026.11.10-b1.
+  - **A light's colour could tint its glow** (2026-11-20), if `house.ts` carries it. The
+    lamp shapes by name were built in 2026.11.10-b5; a setting per light if the names
+    guess wrong too often.
+  - **Topology will tell Digs much more** (owner, 2026-11-20): once a house's Topology is
+    filled in, Digs can take the house's shape from it: which rooms lead to which, where
+    the stairs and the doors out are, and which way each faces. That replaces what Digs
+    guesses today from the order of rooms and their names, including the ways the
+    household walks (`digs/walk.ts` finds them from the blocks).
   - Known and left: a device in no room has no block (the board counts them); the clock
     and the hearts lie over the top storey's roof on a house of three storeys; the sun is up from six to six all year (Home Assistant's sun
     entity has the real hours); out of doors is told by an area's name in English; a
@@ -765,6 +776,13 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 ## Next: Casa Mia, the public release
 
+- **After 2026.11.10 is released (owner: once Digs is complete, 2026-11-20).** That
+  release republishes Tablet Layout's mirror without "It isn't published there yet"
+  (2026.11.10-b2). Then, asking first: submit `gazoodle/casa-mia-tablet-layout` to
+  hacs/default's `plugin` list as Dash-Bored's was (hacs/default#14577, opened
+  2026-11-20), and re-request Frenck's review on #13883 and #14085, whose
+  `documentation` and `issue_tracker` were put right in 2026.11.9.
+
 Decided (2026-10-02): **ship everything.** Every module is off until enabled; no private edition: the house runs the public release like everyone else. House-specific values go to configuration (the alarm's entity ids, the compositor's cameras, the house photo). FONA's hardware is published with its sketch ("FONA Arduino firmware into the repo"). The costs: security reports (guest login hands out HA sessions), docs and support for other setups.
 
 - **Be open about what Casa Mia touches.** One "What Casa Mia changes" section, in the README and on the admin page, per module: what it reads and writes (`/homeassistant`: custom_components on start, dashboards saved by Camera Dashboard deploys and the Kiosk mode page; `configuration.yaml` never so far), what it never touches, and that each write happens only on a button press and is logged. Check every module against it first, and keep it true, ideally with a test that fails on a write path not in the list.
@@ -856,4 +874,6 @@ Ideas where one module makes another better. Each module still works alone; each
 
 `tests/test_compositor.py::test_the_pages_controls_restart_flush_and_forget` failed once
 in a full run on 2026-11-15 (`assert not out["live"]["pictures"]` after a flush), then
-passed alone and in three more full runs. Find the race before it is trusted again.
+passed alone and in three more full runs. It failed again in a full run on 2026-11-20,
+then passed alone three times and in the next full run. Find the race before it is
+trusted again.

@@ -62,6 +62,19 @@ def digest(folder: Path) -> str:
     return h.hexdigest()
 
 
+def plugin_digest(name: str, data: bytes) -> str:
+    """A plugin's built file without its version, and the guides its mirror's README is
+    made of (mirror.PLUGINS). A guide that changes is a new version, so the next release
+    publishes the mirror again: its README said "It isn't published there yet" after it
+    was, and a published version is never changed (2026.11.9)."""
+    from mirror import PLUGINS  # here, as mirror imports this module
+
+    h = hashlib.sha256(_STAMP_RE.sub(rb"\1", data))
+    for guide in PLUGINS[name][1] if name in PLUGINS else ():
+        h.update(guide.encode() + b"\0" + (ROOT / guide).read_bytes())
+    return h.hexdigest()
+
+
 def current() -> dict[str, dict[str, str | None]]:
     return {
         p.name: {"version": manifest_version(p), "digest": digest(p)}
@@ -70,7 +83,7 @@ def current() -> dict[str, dict[str, str | None]]:
     } | {
         name: {
             "version": plugin_version(data := path.read_bytes()),
-            "digest": hashlib.sha256(_STAMP_RE.sub(rb"\1", data)).hexdigest(),
+            "digest": plugin_digest(name, data),
         }
         for name, path in plugins().items()
     }
