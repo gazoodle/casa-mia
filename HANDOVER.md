@@ -465,7 +465,7 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     `corners` cuts a way into straight legs, each one CSS transition (`--ms`), so Lit
     draws once a leg, not once a frame. `Walks` keeps each walker; `sync` in `willUpdate`
     (only when the house or world is new) walks a newcomer in from x = -1 and one who has
-    gone off it. Most trips end in `_lived`'s rooms; out of doors only by day and dry.
+    gone off it. Each stays 10–40 s where they get to (since b4; at 20–90 s nobody walked 60% of the time, measured on the VM). Most trips end in `_lived`'s rooms; out of doors only by day and dry.
     `digs/follow.ts` `Tour`: after `IDLE` (1 min since 2026.11.10-b3) with no
     `pointerdown`, `wheel` or `keydown` (capture listeners on the element), a
     `requestAnimationFrame` loop eases `.scroll` toward the walker (or `Prank.spot`) and

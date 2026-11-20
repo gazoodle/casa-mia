@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.10-b4
+
+- **Dash-Bored: Digs' household walks more often.** Each person now stays 10 to 40 seconds where they get to, instead of 20 to 90, so that someone is usually on the move for the tour to follow.
+
 ## 2026.11.10-b3
 
 - **Dash-Bored: Digs' household walks and climbs instead of sliding.** Each figure takes steps as it goes, faces the way it is walking, and climbs the ladders hand over hand, seen from behind. Standing still, it faces you as before.

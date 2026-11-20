@@ -13,7 +13,7 @@ import type { World, Zone } from "./world.ts";
 
 const PACE = 450; // ms: a block walked
 const CLIMB = 700; // ms: a rung climbed
-const [SOONEST, LATEST] = [20_000, 90_000]; // ms: how long somebody stays where they got to
+const [SOONEST, LATEST] = [10_000, 40_000]; // ms: how long somebody stays where they got to (owner, 2026-11-20: 20–90 s left nobody walking 60% of the time)
 const FIRST = 30_000; // ms: the most anybody waits before their first trip
 const SETTLE = 100; // ms: a newcomer is drawn off the edge before they start walking
 const HOMELY = 0.7; // the share of trips that end in a lit room (or the ground floor, with none lit)

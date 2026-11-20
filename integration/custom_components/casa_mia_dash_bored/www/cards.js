@@ -11893,7 +11893,7 @@ var Jh = C`
     .top { top: calc(var(--t) * 22); left: calc(var(--t) * 4); translate: none; }
   }
   @media (prefers-reduced-motion: reduce) { .cloud, .fall, .sounding, .who::before { animation: none; } .who, .blind { transition: none; } }
-`, Yh = 450, Xh = 700, [Zh, Qh] = [2e4, 9e4], $h = 3e4, eg = 100, tg = .7, ng = .2, rg = /* @__PURE__ */ new Set([
+`, Yh = 450, Xh = 700, [Zh, Qh] = [1e4, 4e4], $h = 3e4, eg = 100, tg = .7, ng = .2, rg = /* @__PURE__ */ new Set([
 	"plank",
 	"stone",
 	"brick",
