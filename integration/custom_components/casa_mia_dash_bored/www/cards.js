@@ -11653,6 +11653,9 @@ var Ch = (e, t) => N`<div class="chest" @click=${(e) => e.target === e.currentTa
 	arrived(e) {
 		this._on && e === this._who && (this._who = this._host.pick(e) ?? e, this.kick());
 	}
+	imp() {
+		this._host.able() && (this._on || this._host.requestUpdate(), this._on = !0, this.kick());
+	}
 	setOff(e) {
 		this._on && e !== this._who && !this._host.target(this._who)?.moving && (this._who = e, this.kick());
 	}
@@ -11741,7 +11744,7 @@ var Yh = (e, t = "") => `--x:${e.x};--y:${e.y};${t}`, Xh = class {
 		this._stage = 0, this._mended = 0, this._begin = () => {
 			let e = this._host.world(), t = e && !this._host.still() ? Jh(e, ...this._host.seen(), Math.random) : void 0, n = Wh + Gh * ((t?.holes.length ?? 0) + 2);
 			if (this._host.after((t ? n : 0) + zh + Math.random() * (Bh - zh), this._begin), t) {
-				this._plan = t, this._set(1, 0);
+				this._plan = t, this._set(1, 0), this._host.began();
 				for (let [e, t] of [
 					[Vh, 2],
 					[Hh, 3],
@@ -12153,7 +12156,8 @@ var vg = class {
 				let e = this.renderRoot.querySelector(".scroll");
 				return e ? [Math.ceil(e.scrollLeft / this._b), Math.floor((e.scrollLeft + e.clientWidth) / this._b) - 1] : [0, 0];
 			},
-			still: () => this._sample || this._alone || !!this._open || Yg()
+			still: () => this._sample || this._alone || !!this._open || Yg(),
+			began: () => this._tour.imp()
 		}), this._walks = new vg({
 			after: (e, t) => void this._after(e, t),
 			requestUpdate: () => this.requestUpdate(),
@@ -12251,6 +12255,14 @@ var vg = class {
 	_moved(e) {
 		this._armed === e.id && (this._armed = "");
 	}
+	_household() {
+		return (this._survey?.people ?? []).map((e) => ({
+			id: e,
+			name: this._hass?.states[e]?.attributes.friendly_name ?? e,
+			place: "home",
+			since: 0
+		}));
+	}
 	_lived(e) {
 		let t = e.zones.filter((e) => this._house?.rooms.find((t) => t.id === e.id)?.devices.some((e) => e.kind === "light" && e.on));
 		return t.length ? t : e.zones.filter((e) => e.storey === 0);
@@ -12302,7 +12314,11 @@ var vg = class {
 		let e = new Date(this._now), t = e.getHours() + e.getMinutes() / 60;
 		this._day = Kg(Math.sin(Math.PI * (t - 6) / 12) * 1.5 + .15, 0, 1) * (Vg(this._house) ? .8 : 1);
 		let [n, r] = this._synced ?? [];
-		!this._alone && (!this._synced || n !== this._house || r !== this._world) && (this._synced = [this._house, this._world], this._walks.sync(this._house?.people.filter((e) => e.place === "home") ?? []));
+		if (!this._alone && (!this._synced || n !== this._house || r !== this._world)) {
+			this._synced = [this._house, this._world];
+			let e = this._house?.people.filter((e) => e.place === "home") ?? [];
+			this._walks.sync(e.length ? e : this._household());
+		}
 	}
 	updated() {
 		let e = this._world;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.11-b2
+
+- **Dash-Bored: Digs is never empty.** With nobody at home, the whole household walks about the house all the same, including anyone Home Assistant has no way of placing. When someone comes home, they are the only one about again.
+- **Dash-Bored: Digs always shows you the imp.** When he turns up for a prank, the view goes to him even if you touched the page in the last minute. A touch while he is at it gives you the view back.
+
 ## 2026.11.11-b1
 
 - **Sensor Watch and Love it or Loathe it: a notify blueprint you have changed is kept.** Each integration installed its blueprint and replaced it whenever it differed from its own copy, so changes you made to it were lost at the next start of Home Assistant (and, for Sensor Watch, whenever its groups or notify actions changed). Now a copy is kept up to date only while nobody has changed it. A changed copy is left as it is, and Home Assistant's log says so; Sensor Watch's then no longer offers new groups and notify actions in its lists, though typing one still works. Delete it to have the current one again.

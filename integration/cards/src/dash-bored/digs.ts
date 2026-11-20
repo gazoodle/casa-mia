@@ -20,7 +20,7 @@ import { Walks } from "./digs/walk.ts";
 import { CHEST, LAMPS, build, cutout, lamp, shades, type Slot, type World } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
-import type { Device, House, Kind, Room, Survey } from "./house.ts";
+import type { Device, House, Kind, Person, Room, Survey } from "./house.ts";
 import { CHOOSE } from "./shell.ts";
 import { NOMINAL, clock, flip, type Alert } from "./stories.ts";
 
@@ -93,6 +93,7 @@ export class Digs extends Family {
       return scroll ? [Math.ceil(scroll.scrollLeft / this._b), Math.floor((scroll.scrollLeft + scroll.clientWidth) / this._b) - 1] : [0, 0];
     },
     still: () => this._sample || this._alone || !!this._open || calm(),
+    began: () => this._tour.imp(),
   });
   // The household walking about (digs/walk.ts), and the view following them when nobody is touching it (digs/follow.ts).
   private _walks = new Walks({
@@ -192,6 +193,13 @@ export class Digs extends Family {
 
   protected _moved(d: Device) {
     if (this._armed === d.id) this._armed = "";
+  }
+
+  /** With nobody at home, the whole household walks about all the same, so that the house
+   * is never empty (owner, 2026-11-20): every person Home Assistant has, even one it can't
+   * place (`house.people` leaves those out, as the other families can't say where they are). */
+  private _household(): Person[] {
+    return (this._survey?.people ?? []).map((id) => ({ id, name: this._hass?.states[id]?.attributes.friendly_name ?? id, place: "home", since: 0 }));
   }
 
   /** The rooms the household is most likely in: Home Assistant says only that somebody is
@@ -324,7 +332,8 @@ export class Digs extends Family {
     const [house, world] = this._synced ?? [];
     if (!this._alone && (!this._synced || house !== this._house || world !== this._world)) {
       this._synced = [this._house, this._world];
-      this._walks.sync(this._house?.people.filter((p) => p.place === "home") ?? []);
+      const home = this._house?.people.filter((p) => p.place === "home") ?? [];
+      this._walks.sync(home.length ? home : this._household());
     }
   }
 

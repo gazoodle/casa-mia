@@ -49,7 +49,7 @@ export function plan(world: World, from: number, to: number, random: () => numbe
 }
 
 /** What the prank needs of the element it is on. */
-type Host = { after(ms: number, then: () => void): void; requestUpdate(): void; world(): World | undefined; seen(): [number, number]; still(): boolean };
+type Host = { after(ms: number, then: () => void): void; requestUpdate(): void; world(): World | undefined; seen(): [number, number]; still(): boolean; began(): void };
 const at = (c: Cell, more = "") => `--x:${c.x};--y:${c.y};${more}`;
 
 export class Prank {
@@ -95,6 +95,7 @@ export class Prank {
 
     this._plan = found;
     this._set(1, 0);
+    this._host.began();
     for (const [ms, stage] of [[DOWN, 2], [BANG, 3], [LAUGHED, 4], [BOT, 5]]) this._host.after(ms, () => this._set(stage));
     found.holes.forEach((_, i) => this._host.after(BOT + MEND * (i + 1), () => this._set(5, i + 1)));
     // The bot flies off, and then there is nothing to show.

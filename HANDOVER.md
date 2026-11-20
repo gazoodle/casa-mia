@@ -472,7 +472,10 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     stops itself when there is nothing to catch up with; `updated` kicks it again. It goes
     over to whoever sets off while the one followed stands (`setOff`), and `pick` never
     swaps a still walker for another still one: in b1 it did, and the view sat on someone
-    standing while others walked. The tip says "Following …" while touring. On the page
+    standing while others walked. The tip says "Following …" while touring. A prank
+    starting (`Prank` host `began`) turns the tour on at once, touched or not (`Tour.imp`,
+    owner 2026-11-20). With nobody home, `_household` walks every person in the survey,
+    even one whose state is unknown (b2 of 2026.11.11). On the page
     only. The view pans sideways only: the page fits the world's height. Options for all
     of it are in BACKLOG.
   - A figure is a strip of seven frames (`textures.ts` `person`: standing front-on, four
