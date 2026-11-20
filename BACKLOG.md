@@ -48,6 +48,17 @@ the Gazette's own work is parked below it.
   - Step 3: the bands drawn as zones on the scale, in all five eras' `meter`.
   - Step 4: stand-in meters on the test VM, a picture for the guide, and the guide saying
     the card is in daily use in the author's house once it is on the live dashboards.
+- **The Console's cards, made clear for someone building their own dashboard** (owner,
+  2026-11-20: the gauges and controls "are currently there but a bit confusing to use").
+  Revisit all of Dash-Bored's Home Assistant cards so that it is clear which card to pick
+  and what each one will draw: the part cards (`dash-bored-console-instrument`, `-room`,
+  `-lamps` in `console/cards.ts`), the meter panel and their editors. The owner expects
+  this to mean taking out the way a control picks its own form from its entity, so the
+  user chooses the control and then the entity it shows, not the other way round. Why:
+  the entity-first way suits generating a whole dashboard automatically, but someone
+  putting one card on a page of their own can't tell what they will get. Agree the new
+  shape with the owner before building it, and keep the automatic choice wherever a
+  family draws the whole house.
 - **Every family gets every capability** (owner, 2026-11-17; the rule is in HANDOVER and
   the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
   lists each of these in its `OWED`, and fails when a family starts to show something
@@ -86,6 +97,13 @@ the Gazette's own work is parked below it.
   the chart is of the day up to when it was opened and does not run on; a thermostat's
   modes (heat, cool, auto) and a player's source are not on the panel; the Gazette's
   columns (forecast, Personal, Amusements) have no place on it.
+  - **The knife switches go** (owner, 2026-11-20: "I dislike the knife switches on
+    Bakelite"). A scene, button or script gets a 1950s push button about the size of a
+    thumb, or something like it, instead (`_lenses` in `console/panel.ts` gives them the
+    knife switch). Agree the look with a mock-up first. The guide's Bakelite section and
+    its screenshot (`dash-bored-bakelite.webp`) describe and show knife switches, so they
+    change with it. Its height may differ from the knife switch's, so check `tall` and
+    `console/balance.ts`.
 - **The Console's and the Fridge's open space, what's left** (owner, 2026-11-16; the survey's
   cuts, the rows from `pack.ts`, the selector switch and the Fridge's layout are built, in
   2026.11.9-b9). Agreed with the owner that day and not built:
