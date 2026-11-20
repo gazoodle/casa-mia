@@ -91,7 +91,7 @@ export const tabloid: Voice = {
     "lawn_mower.on": "Go home!", "lawn_mower.off": "Get mowing", "water_heater.on": "Kill the heat", "water_heater.off": "Heat on!",
     "humidifier.on": "Off!", "humidifier.off": "On!", "siren.on": "SHUT IT UP", "siren.off": "Sound it" },
   clipping: { since: "Been that way since {at}.", record: "The story so far", wait: "Digging the dirt…", none: "Nothing all day. Dull!", ago: "Yesterday", now: "Now", reads: "It's {temp}° in there.", playing: "Now playing: {title}.",
-    sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it", closer: "Pinch or double-tap to ZOOM IN", live: "Watch it LIVE" },
+    sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it", closer: "Pinch or double-tap to ZOOM IN", live: "Watch it LIVE", presets: "Point the snapper at", zoom: "ZOOM", controls: "While you're there" },
   celebrity: { song: "{song} rocked the {room}", "song.live": "ON NOW in the {room}: {song}", show: "“{title}” was on in the {room}", "show.live": "ON NOW in the {room}: “{title}”",
     love: "{name} LOVES it", loathe: "{name} HATES it" },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
@@ -100,7 +100,7 @@ export const tabloid: Voice = {
   personal: { home: "{name}'s HOME!", left: "{name} has LEFT the building", zone: "{name} spotted at {place}",
     love: "{name} LOVES {song}", loathe: "{name} can't STAND {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],
-  desk: { by: "By {name}", staff: "our insider", filed: "In at {time}", lapsed: "Gone quiet since {time}", unsure: "Rumour", failed: "No comment" },
+  desk: { by: "By {name}", staff: "our insider", filed: "In at {time}", lapsed: "Gone quiet since {time}", awaited: "Story on its way", late: "Our insider's gone quiet: {reason} (since {time})" },
   stories: {
     alert: SHOCK,
     "alert.warning": { ...SHOCK, kicker: "Uh-oh" },

@@ -37,8 +37,9 @@ views ...
 
 ## Getting started
 
-You need the Casa Mia integration installed (it loads the view into every Home Assistant
-page). Then:
+The view has to be loaded into Home Assistant. The Casa Mia integration does that itself,
+on every page. A house without Casa Mia can have the view as a dashboard plugin instead:
+see [By itself, without Casa Mia](#by-itself-without-casa-mia). Then:
 
 1. Open a dashboard, enter edit mode, and add a view (or edit one).
 2. Set **View type** to **Tablet (Casa Mia)**.
@@ -424,6 +425,30 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 |---|---|---|
 | `fill` | by kind | `true`: alone in its panel, this card fills it; `false`: it never does. Unset: cameras, pictures, maps and iframes fill, other cards don't. |
 | `garnish` | `false` | `true`: adornment that never keeps its panel showing (the sprig in edit mode). |
+
+## By itself, without Casa Mia
+
+Tablet Layout is also published by itself, in the repository
+[gazoodle/casa-mia-tablet-layout](https://github.com/gazoodle/casa-mia-tablet-layout),
+for a house without Casa Mia. It isn't published there yet. Add that repository in HACS,
+or in Home Assistant's Marketplace (2026.11 and later), as a custom repository, and
+download it. It is a dashboard resource, which HACS calls the type Dashboard.
+
+It is one file, `casa-mia-tablet-layout.js`. It has the same view as Casa Mia's, with
+garnish, the [Over layer](over-layer.md) and the Orientation choice in a dashboard's
+Screen condition ([Augmenting Home Assistant](augmenting-home-assistant.md)). Casa Mia's
+other cards are not in it.
+
+It has nothing to set. Two things that Casa Mia has switches for on its Settings page
+are always on: garnish on every Sections dashboard, and the Orientation choice.
+
+The Settings page's other two switches, which outline the panels and show the view's
+size, are not needed: `debug: true` in the view's own YAML does both
+(see [Debugging](#debugging)).
+
+A house with Casa Mia has all of this already and doesn't need the file. If both are
+loaded, the first one is used, and the browser's console says which. Take
+`casa-mia-tablet-layout.js` out of the dashboard's resources.
 
 ## Home Assistant updates
 

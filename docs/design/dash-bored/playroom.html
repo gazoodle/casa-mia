@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Play Room</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+/* Floorboards round the carpet. */
+body { background: repeating-linear-gradient(90deg, #c79a63 0 118px, #b98a54 118px 120px), #c79a63; display: grid; place-items: center; }
+svg { display: block; width: 100%; max-height: 100vh; font-family: "Arial Rounded MT Bold", "Chalkboard SE", "Helvetica Neue", sans-serif; user-select: none; }
+[role=button] { cursor: pointer; outline: none; }
+[role=button]:focus-visible > :first-child { stroke: #1d4ed8; stroke-width: 3; }
+text { fill: #33302b; text-anchor: middle; pointer-events: none; }
+.name { font-size: 11px; } .st { font-size: 10px; opacity: .7; }
+.cap text { paint-order: stroke; stroke: #fffc; stroke-width: 3px; stroke-linejoin: round; }
+
+/* A room is dull until one of its lights is on. */
+.patch { transition: filter .6s; filter: brightness(.82) saturate(.55); }
+.patch.lit { filter: none; }
+
+/* What the page shows is only true while the house answers: with the signal at red the toys fade. */
+.toy, .cap, [data-scene] { transition: opacity .5s; }
+.stale .toy, .stale .cap, .stale [data-scene] { opacity: .4; }
+.lamp { fill: #3a3a3a; } svg:not(.stale) .go { fill: #3ddc68; } .stale .stop { fill: #ff3b30; }
+
+/* Stacking rings: a light. Each coloured ring is a fifth of its level. */
+.ring { fill: #cfcabd; stroke: rgba(0,0,0,.2); transition: fill .3s; }
+.ring.lit { fill: var(--c); }
+.ball { fill: #b5b0a4; transition: fill .3s, filter .3s; }
+.on .ball { fill: #ffd84d; filter: drop-shadow(0 0 7px #ffd84d); }
+
+/* Jack-in-the-box: a switch. He is out while it is on. */
+.head { transform: translateY(44px); transition: transform .45s cubic-bezier(.3, 1.9, .5, 1); }
+.on .head { transform: none; }
+.on .shut, .toy:not(.on) .open { display: none; }
+
+/* Puppet theatre: a cover. The curtains part as far as it is open. */
+.curt { transform-box: fill-box; transform: scaleX(var(--shut, 1)); transition: transform .6s; }
+.curt.l { transform-origin: left; } .curt.r { transform-origin: right; }
+
+/* The door: a lock. "on" is locked, as in the house. */
+.leaf, .shackle, .key { transform-box: fill-box; }
+.leaf { transform-origin: left; transition: transform .5s; }
+.toy:not(.on) .leaf { transform: scaleX(.5); }
+.shackle { transform-origin: 100% 100%; transition: transform .3s; }
+.toy:not(.on) .shackle { transform: rotate(35deg); }
+.key { transform-origin: 50% 0; }
+.armed .key { animation: jiggle .35s infinite; } @keyframes jiggle { 50% { transform: rotate(18deg); } }
+
+/* The shape sorter: a scene. Its block goes into its hole and comes back. */
+.posted { animation: post .9s; }
+@keyframes post { 45% { transform: translate(var(--dx), var(--dy)) scale(.75); opacity: 1; } 55% { transform: translate(var(--dx), var(--dy)) scale(.5); opacity: 0; } 80% { transform: none; opacity: 0; } }
+</style>
+</head>
+<body>
+<svg id="mat" viewBox="0 0 1340 800" role="group" aria-label="Play Room"></svg>
+
+<script src="house.js"></script>
+<script>
+// The carpet is a town mat: a wooden railway round the edge, and roads that leave eight
+// blocks. Six are rooms, one is the shape sorter (scenes) and one is today's facts.
+const XS = [118, 394, 670, 946, 1222], YS = [112, 400, 688];
+const BLOCKS = ["kitchen", "sitting", "study", "scenes", "hall", "bedroom", "garden", "today"];
+const TINT = { kitchen: "#ffe9a8", sitting: "#ffd0c2", study: "#cfe3ff", scenes: "#f0dcff", hall: "#ffe1b8", bedroom: "#d9d2ff", garden: "#b4e39a", today: "#fdf6e3" };
+const PAINT = ["#e63946", "#f4a261", "#e9c46a", "#2a9d8f", "#457b9d", "#9b5de5"];
+const at = (i) => ({ cx: (XS[i % 4] + XS[i % 4 + 1]) / 2, top: YS[i >> 2] + 24 });
+const cap = (name, state) => `<text class="name" y="15">${name}</text><text class="st" y="27">${state}</text>`;
+const shadow = `<ellipse rx="27" ry="6" fill="rgba(0,0,0,.18)"/>`;
+
+// ---------- the toys, each drawn standing on the carpet with its foot at 0,0 ----------
+const TOY = {
+  light: (d, c) => `${shadow}<ellipse cy="-4" rx="26" ry="8" fill="#c9a26b"/><rect x="-2" y="-70" width="4" height="66" fill="#c9a26b"/>
+    ${[0, 1, 2, 3, 4].map((i) => `<ellipse class="ring" data-ring="${i}" cy="${-13 - i * 11}" rx="${23 - i * 3}" ry="7" style="--c:${PAINT[(i + c) % 6]}"/>`).join("")}
+    <circle class="ball" cy="-73" r="8"/>`,
+
+  switch: (d, c) => `${shadow}<polygon points="-20,-36 20,-36 28,-46 -12,-46" fill="#3a2a1a"/>
+    <polygon class="open" points="-12,-46 28,-46 30,-80 -10,-80" fill="${PAINT[(c + 3) % 6]}" stroke="rgba(0,0,0,.2)"/>
+    <g class="head"><polyline points="0,-34 -6,-38 6,-42 -6,-46 6,-50 0,-52" fill="none" stroke="#888" stroke-width="2"/>
+      <polygon points="-9,-70 9,-70 0,-88" fill="#e63946"/><circle cy="-88" r="3" fill="#ffd84d"/><circle cy="-62" r="11" fill="#ffe0bd" stroke="rgba(0,0,0,.2)"/>
+      <circle cx="-4" cy="-64" r="1.5"/><circle cx="4" cy="-64" r="1.5"/><circle cy="-60" r="2.5" fill="#e63946"/><path d="M-5,-56 q5,4 10,0" fill="none" stroke="#333"/></g>
+    <polygon points="20,-36 28,-46 28,-10 20,0" fill="rgba(0,0,0,.25)"/><rect x="-20" y="-36" width="40" height="36" fill="${PAINT[c % 6]}" stroke="rgba(0,0,0,.2)"/>
+    <polygon points="20,-36 28,-46 28,-10 20,0" fill="${PAINT[c % 6]}" opacity=".6"/><circle cy="-18" r="8" fill="#fff8" />
+    <polygon class="shut" points="-20,-36 20,-36 28,-46 -12,-46" fill="${PAINT[(c + 3) % 6]}" stroke="rgba(0,0,0,.2)"/>
+    <path d="M28,-22 h7 v-8" fill="none" stroke="#666" stroke-width="2.5"/><circle cx="35" cy="-31" r="3" fill="#e63946"/>`,
+
+  cover: (d, c) => `${shadow}<rect x="-26" y="-68" width="52" height="68" rx="3" fill="${PAINT[c % 6]}" stroke="rgba(0,0,0,.2)"/>
+    ${[-18, -6, 6, 18].map((x) => `<rect x="${x - 3}" y="-22" width="6" height="22" fill="#fff5"/>`).join("")}
+    <rect x="-20" y="-58" width="40" height="34" fill="#9fd8ff"/><circle cx="8" cy="-46" r="7" fill="#ffd84d"/><ellipse cy="-24" rx="20" ry="6" fill="#7cc47f"/>
+    <rect class="curt l" x="-20" y="-58" width="20" height="34" fill="#7b2cbf"/><rect class="curt r" y="-58" width="20" height="34" fill="#7b2cbf"/>
+    <rect x="-24" y="-63" width="48" height="7" rx="2" fill="#e9c46a"/>`,
+
+  lock: () => `${shadow}<rect x="-20" y="-64" width="40" height="64" rx="4" fill="#3a2a1a"/>
+    <g class="leaf"><rect x="-20" y="-64" width="40" height="64" rx="4" fill="#2a9d8f" stroke="rgba(0,0,0,.25)"/>
+      <rect x="-14" y="-58" width="12" height="18" rx="2" fill="#fff3"/><rect x="2" y="-58" width="12" height="18" rx="2" fill="#fff3"/>
+      <path class="shackle" d="M-5,-24 v-5 a5,5 0 0 1 10,0 v5" fill="none" stroke="#888" stroke-width="3"/><rect x="-9" y="-24" width="18" height="14" rx="3" fill="#ffd84d" stroke="rgba(0,0,0,.3)"/></g>
+    <g class="key" fill="none" stroke="#b8860b" stroke-width="3"><circle cx="32" cy="-40" r="6"/><path d="M32,-34 v22 M32,-18 h6 M32,-12 h5"/></g>`,
+};
+
+const star = (s) => Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? s * .45 : s, a = Math.PI * i / 5 - Math.PI / 2; return `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`; }).join(" ");
+const SHAPE = [(s) => `<circle r="${s}"/>`, (s) => `<rect x="${-s}" y="${-s}" width="${2 * s}" height="${2 * s}" rx="2"/>`,
+  (s) => `<polygon points="0,${-s} ${s},${s * .85} ${-s},${s * .85}"/>`, (s) => `<polygon points="${star(s * 1.2)}"/>`];
+const HOLE = [[-22, -52], [22, -52], [-22, -18], [22, -18]];
+// Where a room's toys stand, by how many it has: [across, row], back row first so the front
+// row is drawn over it. They are staggered so that a back toy's name shows between the front ones.
+const SPOT = { 3: [[-68, 0], [68, 0], [0, 1]], 4: [[-74, 0], [26, 0], [-26, 1], [74, 1]] };
+
+// ---------- the mat ----------
+const sign = (cx, top, words) => `<rect x="${cx - 84}" y="${top + 6}" width="168" height="28" rx="6" fill="#e8c88f" stroke="#b98b4a"/><text x="${cx}" y="${top + 25}" font-size="15">${words}</text>`;
+
+const blocks = BLOCKS.map((id, i) => {
+  const { cx, top } = at(i), room = House.rooms.find((r) => r.id === id);
+  const patch = `<rect class="patch${room ? "" : " lit"}" data-room="${id}" x="${cx - 114}" y="${top}" width="228" height="240" rx="18" fill="${TINT[id]}"/>`;
+
+  // The names are drawn after every toy, so a front toy never covers a back toy's name.
+  const stand = (k) => { const [x, row] = SPOT[room.devices.length][k]; return `transform="translate(${cx + x} ${top + 142 + row * 64}) scale(1.15)"`; };
+  if (room) return patch + sign(cx, top, `${room.name} · ${room.temp.toFixed(1)}°`) +
+    room.devices.map((d, k) => `<g class="toy" role="button" tabindex="0" data-id="${d.id}" aria-label="${d.name}" ${stand(k)}>${TOY[d.kind](d, i + k)}</g>`).join("") +
+    room.devices.map((d, k) => `<g class="cap" data-cap="${d.id}" ${stand(k)}>${cap(d.name, "")}</g>`).join("");
+
+  if (id === "scenes") return patch + sign(cx, top, "Scenes") + `<g transform="translate(${cx - 9} ${top + 146})">
+      <polygon points="-45,-70 45,-70 63,-92 -27,-92" fill="#f7c59f"/><polygon points="45,-70 63,-92 63,-22 45,0" fill="#c97f3d"/>
+      <rect x="-45" y="-70" width="90" height="70" fill="#f4a261" stroke="rgba(0,0,0,.2)"/>
+      ${HOLE.map(([x, y], k) => `<g transform="translate(${x} ${y})" fill="#3a2a1a">${SHAPE[k](11)}</g>`).join("")}</g>` +
+    House.scenes.map((s, k) => `<g role="button" tabindex="0" data-scene="${s.id}" aria-label="${s.name}" transform="translate(${cx + (k - 1.5) * 54} ${top + 190})">
+      <rect x="-24" y="-22" width="48" height="56" fill="transparent"/>
+      <g class="blk" style="--dx:${HOLE[k][0] - 9 - (k - 1.5) * 54}px;--dy:${HOLE[k][1] - 44}px" fill="${PAINT[(k * 2 + 1) % 6]}" stroke="rgba(0,0,0,.3)">${SHAPE[k](13)}</g>
+      <text class="name" y="30">${s.name}</text></g>`).join("");
+
+  // Today: alphabet blocks for the power drawn, and the signal for the railway.
+  return patch + sign(cx, top, "Today") + `<g id="kw" transform="translate(${cx} ${top + 62})"></g><text id="lit" x="${cx}" y="${top + 116}" font-size="13"></text>
+    <g id="signal" role="button" tabindex="0" aria-label="Signal" transform="translate(${cx - 78} ${top + 216})">
+      <rect x="-14" y="-86" width="28" height="92" fill="transparent"/><ellipse rx="14" ry="4" fill="rgba(0,0,0,.18)"/><rect x="-3" y="-50" width="6" height="50" fill="#777"/>
+      <rect x="-11" y="-84" width="22" height="38" rx="6" fill="#222"/><circle class="lamp stop" cy="-74" r="6"/><circle class="lamp go" cy="-57" r="6"/></g>
+    <text id="news" x="${cx + 22}" y="${top + 166}" font-size="12"></text><text id="news2" class="st" x="${cx + 22}" y="${top + 182}"></text>`;
+}).join("");
+
+const car = (id, c) => `<g id="${id}"><rect x="-13" y="-8" width="26" height="16" rx="6" fill="${c}" stroke="rgba(0,0,0,.3)"/><rect x="2" y="-6" width="6" height="12" rx="2" fill="#cfefff"/></g>`;
+const TRACK = "M106 46H1234A56 56 0 0 1 1290 102V698A56 56 0 0 1 1234 754H106A56 56 0 0 1 50 698V102A56 56 0 0 1 106 46Z";
+const ROADS = "M118 112H1222V688H118Z M394 112V688 M670 112V688 M946 112V688 M118 400H1222";
+
+document.getElementById("mat").innerHTML = `
+  <rect x="14" y="14" width="1312" height="772" rx="26" fill="#7cc47f"/><rect x="22" y="22" width="1296" height="756" rx="20" fill="none" stroke="#fff8" stroke-width="2" stroke-dasharray="8 7"/>
+  <path id="trk" d="${TRACK}" fill="none" stroke="#e3c08a" stroke-width="24"/><path d="${TRACK}" fill="none" stroke="#a9834f" stroke-width="14"/><path d="${TRACK}" fill="none" stroke="#e3c08a" stroke-width="10"/>
+  <path d="${ROADS}" fill="none" stroke="#5b616b" stroke-width="34" stroke-linejoin="round"/><path d="${ROADS}" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="10 12"/>
+  <path id="loop1" d="M118 112H1222V688H118Z" fill="none"/><path id="loop2" d="M946 400H394V112H946Z" fill="none"/>
+  <g class="toys">${blocks}</g>
+  ${car("car1", "#e63946")}${car("car2", "#457b9d")}
+  ${[["#e9c46a", "#7b4f2a"], ["#2a9d8f", "#ffd84d"]].map(([c, load], i) => `<g id="wagon${i}"><rect x="-13" y="-8" width="26" height="16" rx="3" fill="${c}" stroke="rgba(0,0,0,.3)"/><circle r="5" fill="${load}"/></g>`).join("")}
+  <g id="engine"><rect x="-16" y="-9" width="32" height="18" rx="5" fill="#e63946" stroke="rgba(0,0,0,.3)"/><rect x="-14" y="-8" width="11" height="16" rx="2" fill="#457b9d"/><circle cx="8" r="4" fill="#222"/></g>`;
+
+// ---------- pressing things ----------
+const $ = (id) => document.getElementById(id), mat = $("mat");
+let fresh = true, since = 0, ticking = 0, arming = 0;
+
+function signal() {
+  fresh = !fresh; since = Date.now();
+  mat.classList.toggle("stale", !fresh);
+  clearInterval(ticking);
+  if (!fresh) ticking = setInterval(paint, 1000);
+  paint();
+}
+
+function press(toy) {
+  const d = House.find(toy.dataset.id);
+  // The door is guarded: a first press only arms it, and that lapses by itself.
+  if (d.kind === "lock" && d.on && !toy.classList.contains("armed")) {
+    toy.classList.add("armed"); paint();
+    arming = setTimeout(() => { toy.classList.remove("armed"); paint(); }, 3000);
+    return;
+  }
+  clearTimeout(arming); toy.classList.remove("armed");
+  if (d.kind === "cover" && !d.on) House.set(d.id, d.level || 100); else House.toggle(d.id);
+}
+
+mat.addEventListener("click", (e) => {
+  const ring = e.target.closest("[data-ring]"), toy = e.target.closest("[data-id]"), scene = e.target.closest("[data-scene]");
+  if (e.target.closest("#signal")) return signal();
+  if (!fresh) return;   // the signal's words already say why nothing happens
+  if (ring) House.set(toy.dataset.id, (+ring.dataset.ring + 1) * 20); else if (toy) press(toy);
+  if (scene) { const b = scene.querySelector(".blk"); b.classList.remove("posted"); void b.getBoundingClientRect(); b.classList.add("posted"); House.scene(scene.dataset.scene); }
+});
+mat.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[role=button]")) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+
+function paint() {
+  for (const d of House.devices) {
+    const toy = mat.querySelector(`[data-id="${d.id}"]`);
+    toy.classList.toggle("on", d.on);
+    mat.querySelector(`[data-cap="${d.id}"] .st`).textContent =toy.classList.contains("armed") ? "again to unlock" : House.state(d);
+    toy.querySelectorAll(".ring").forEach((r, i) => r.classList.toggle("lit", d.on && d.level > i * 20));
+    if (d.kind === "cover") toy.style.setProperty("--shut", d.on ? Math.max(.1, 1 - d.level / 100) : 1);
+  }
+  for (const r of House.rooms) mat.querySelector(`[data-room="${r.id}"]`).classList.toggle("lit", House.lightsOn(r) > 0);
+
+  const lit = House.devices.filter((d) => d.kind === "light" && d.on).length;
+  $("lit").textContent = lit ? `${lit} ${lit === 1 ? "light" : "lights"} on` : "All the lights are off";
+  $("kw").innerHTML = [...(House.watts() / 1000).toFixed(1), "kW"].map((ch, i, all) =>
+    `<g transform="translate(${(i - (all.length - 1) / 2) * 36} 0) rotate(${((i * 37) % 9) - 4})"><rect x="-16" y="-16" width="32" height="32" rx="4" fill="${PAINT[(i * 2) % 6]}" stroke="rgba(0,0,0,.25)"/>
+      <rect x="-12" y="-12" width="24" height="24" rx="2" fill="#fff6"/><text y="6" font-size="${ch.length > 1 ? 13 : 18}">${ch}</text></g>`).join("");
+  $("news").textContent = fresh ? "The house is answering" : `No news for ${Math.round((Date.now() - since) / 1000)} s`;
+  $("news2").textContent = fresh ? "press the signal to try it stopped" : "the train waits at the signal";
+}
+House.on(paint);
+paint();
+
+// ---------- what moves: the train while the house answers, the cars by the power drawn ----------
+const put = (el, path, dist) => {
+  const len = path.getTotalLength(), a = ((dist % len) + len) % len, p = path.getPointAtLength(a), q = path.getPointAtLength((a + 1) % len);
+  el.setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${(Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI).toFixed(1)})`);
+};
+let train = 300, cars = 0, last = performance.now();
+function frame(now) {
+  const dt = Math.min(now - last, 100); last = now;
+  if (fresh) train += dt * .06;
+  cars += dt * (.03 + House.watts() / 1000 * .06);
+  put($("engine"), $("trk"), train); put($("wagon0"), $("trk"), train - 34); put($("wagon1"), $("trk"), train - 64);
+  put($("car1"), $("loop1"), cars); put($("car2"), $("loop2"), cars * .8 + 500);
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(frame);
+}
+frame(last);
+</script>
+</body>
+</html>

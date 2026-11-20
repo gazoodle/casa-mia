@@ -4,7 +4,7 @@
 // the panel and acts on what is pressed; styles.ts is their look and how they move.
 import { html, nothing, svg, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import { face } from "../kit.ts";
+import { BEATS, face } from "../kit.ts";
 
 /** The gradients the controls are filled with. Once in each shadow root that draws any. */
 export const DEFS = html`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
@@ -21,6 +21,7 @@ export const DEFS = html`<svg class="defs" width="0" height="0" aria-hidden="tru
   <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1d98d"/><stop offset=".45" stop-color="#b98f3a"/><stop offset=".7" stop-color="#7a5c1e"/><stop offset="1" stop-color="#d8b765"/></linearGradient>
   <linearGradient id="sepia" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efe0b9"/><stop offset=".6" stop-color="#e3cf9f"/><stop offset="1" stop-color="#d2b983"/></linearGradient>
   <path id="arch" d="M24.9,39.1 A57,57 0 0 1 95.1,39.1"/>
+  <path id="round" d="M26.4,84.5 A41,41 0 1 1 93.6,84.5"/>
   <linearGradient id="lever" x1="0" x2="1"><stop offset="0" stop-color="#b98a6c"/><stop offset=".4" stop-color="#6a3f2c"/><stop offset="1" stop-color="#2a140c"/></linearGradient>
 </defs></svg>`;
 
@@ -40,10 +41,6 @@ export const swing = (value: number, lo: number, hi: number) => -50 + 100 * Math
 
 // A meter's unit as its maker would have lettered it round the top of the face.
 const LEGEND: Record<string, string> = { "°C": "Degrees Celsius", kW: "Kilowatts" };
-// How long each meter's pointer takes to waver through its seven places, in units of
-// 16 ms. They are primes so that no two meters fall into step with each other; the
-// eleventh meter on a panel shares the first's.
-const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
 // The scale is a ladder: two arcs with a rung every 2°, a longer one at each tenth of it.
 const RUNGS = Array.from({ length: 51 }, (_, i) => svg`<path class="scale" d="M${xy(36, -50 + i * 2)} L${xy(i % 5 ? 40 : 43, -50 + i * 2)}"/>`);
 
@@ -181,15 +178,30 @@ const OFF = [0.9, -1.3, 0.4, 1.6, -0.7, -1.7];
  * (`--off`); the era's stylesheet places it from those. */
 export const wheels = (name: string, places: number[], turn: (i: number, by: number) => void) => html`<div class="wheels" role="group" aria-label="${name} code">${places.map(
   (place, i) => html`<div class="wheel">
-    ${repeat(
-      [-2, -1, 0, 1, 2].map((d) => place + d),
-      (at) => at,
-      (at) => html`<span class=${at === place ? "at" : ""} aria-hidden=${at === place ? nothing : "true"} aria-label=${at === place ? `Wheel ${i + 1}: ${face(at) || "blank"}` : nothing}
-        style="--n: ${at - place}; --off: ${OFF[i % OFF.length]}px">${face(at)}</span>`,
-    )}
+    ${barrel(place, i, `Wheel ${i + 1}: ${face(place) || "blank"}`)}
     <button aria-label="Wheel ${i + 1} on" @click=${() => turn(i, 1)}></button><button aria-label="Wheel ${i + 1} back" @click=${() => turn(i, -1)}></button>
   </div>`,
 )}</div>`;
+
+// One wheel's digits: the one at the front, `said` to a screen reader if it is to be, and its neighbours.
+const barrel = (place: number, i: number, said?: string) => repeat(
+  [-2, -1, 0, 1, 2].map((d) => place + d),
+  (at) => at,
+  (at) => html`<span class=${at === place ? "at" : ""} aria-hidden=${at === place && said ? nothing : "true"} aria-label=${at === place && said ? said : nothing}
+    style="--n: ${at - place}; --off: ${OFF[i % OFF.length]}px">${face(at)}</span>`,
+);
+
+/** A number on counter wheels, as an electricity meter's register has: the same barrels as
+ * the thumbwheels, with nothing to press, a nought where a figure is blank, and the wheel
+ * after the point marked as tenths (styles.ts). It takes what every era's figures take
+ * (../metered.ts): one that is not `lit` stands at noughts, and its plate says why. */
+export const counter = (text: string, _lit = true, says = text.trim()) => {
+  const point = text.indexOf(".");
+  const digits = [...text.replace(".", "")];
+  return html`<div class="wheels" role="img" aria-label=${says}>${digits.map(
+    (ch, i) => html`<div class="wheel ${point >= 0 && i >= point ? "tenth" : ""}">${barrel((Number(ch) || 0) + 1, i)}</div>`,
+  )}</div>`;
+};
 
 /** A push button over its plate. */
 export const push = (name: string, press: () => void) => html`<button class="push" @click=${press}><span class="cap"></span>${label(name)}</button>`;

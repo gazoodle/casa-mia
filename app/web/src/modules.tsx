@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
+import { HEAD as TOPOLOGY } from "./topology";
 import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, DoorbellIcon, FirmwareIcon, GuestIcon, HeartIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon, TalkbackIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
@@ -124,6 +125,18 @@ export const MODULES: Record<string, ModuleInfo> = {
       ["Players", String(h.players ?? 0)],
       ["Groups of songs", String(h.groups ?? 0)],
       ["Last match", h.last_at ? `${ago(h.last_at)} · ${h.last_song}` : "none since it started"],
+    ],
+  },
+  topology: {
+    title: TOPOLOGY.title,
+    option: "",
+    blurb: TOPOLOGY.blurb,
+    icon: TOPOLOGY.icon,
+    chip: (h) => (h.broken ? [`${h.broken} broken`, "warn"] : undefined),
+    facts: (h) => [
+      ["Kept in", "Home Assistant, by Casa Mia's integration"],
+      ["Buildings", String(h.buildings ?? 0)],
+      ["Ways between rooms", String(h.connections ?? 0)],
     ],
   },
   gitproxy: {

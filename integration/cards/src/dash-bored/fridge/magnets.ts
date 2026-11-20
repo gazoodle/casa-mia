@@ -39,12 +39,16 @@ const PICTURES: Record<Kind, TemplateResult> = {
 // A padlock that is undone, for a lock that is unlocked.
 const UNDONE = svg`${line("M6.5,11 h11 v9 h-11 z M8.8,11 V8 a3.2,3.2 0 0 1 6.2,-1")}<circle cx="12" cy="15.5" r="1.4" fill="#fff"/>`;
 
+/** The picture for a kind of device by itself, on its 24 by 24 square: Aurora's, which
+ * colours the white line with its own stylesheet (aurora/styles.ts). */
+export const picture = (kind: Kind, undone = false) => (kind === "lock" && undone ? UNDONE : PICTURES[kind]);
+
 /** A round button magnet with the picture for a kind of device. Its colour is the
  * element's `--c`, and styles.ts dulls it while its device is off. */
 export const button = (kind: Kind, undone = false) => svg`<svg class="button" viewBox="0 0 48 48" aria-hidden="true">
   <circle cx="24" cy="26" r="21" fill="#000" opacity=".28"/><circle class="disc" cx="24" cy="24" r="21"/>
   <circle cx="24" cy="24" r="21" fill="url(#dome)"/><circle cx="24" cy="24" r="17.5" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="1.2"/>
-  <g transform="translate(12 12)">${kind === "lock" && undone ? UNDONE : PICTURES[kind]}</g>
+  <g transform="translate(12 12)">${picture(kind, undone)}</g>
   <ellipse cx="16.5" cy="13.5" rx="7" ry="3.6" fill="#fff" opacity=".4" transform="rotate(-32 16.5 13.5)"/></svg>`;
 
 // The novelty magnets: moulded and painted, each with a shine on its upper left.
@@ -85,6 +89,10 @@ export const NOVELTIES: Record<string, TemplateResult> = {
   teacup: svg`<path d="M34,22 h4 a5.500,5.500 0 0 1 0,11 h-5" fill="none" stroke="#3a5a8a" stroke-width="3"/><path d="M7,18 h28 v9 a12,12 0 0 1 -12,12 h-4 a12,12 0 0 1 -12,-12 z" fill="#fdfaf2" stroke="#3a5a8a" stroke-width="1.4"/>
     <path d="M9,24 q12,5 24,0" fill="none" stroke="#3a5a8a" stroke-width="1.2"/><g fill="#e36a8a"><circle cx="15" cy="30" r="1.800"/><circle cx="21" cy="33" r="1.800"/><circle cx="27" cy="30" r="1.800"/></g><path d="M5,41 h32" stroke="#3a5a8a" stroke-width="2.400" stroke-linecap="round"/>
     <path d="M15,13 c-2,-3 2,-4 0,-7 M22,13 c-2,-3 2,-4 0,-7 M29,13 c-2,-3 2,-4 0,-7" fill="none" stroke="#9aa5b5" stroke-width="1.400" stroke-linecap="round"/>${shine(13, 22)}`,
+  // A takeaway menu held to the door by a round magnet: the choice of family (shell.ts).
+  menu: svg`<g transform="rotate(-5 24 26)"><rect x="9" y="8" width="30" height="37" rx="1.5" fill="#fdf6df" stroke="#8a2a1c" stroke-width="1.4"/><rect x="9" y="8" width="30" height="10" fill="#d8432e"/>
+    <path d="M14,24 h14 M14,29 h11 M14,34 h14 M14,39 h9" stroke="#6a5a48" stroke-width="1.600" stroke-linecap="round"/><path d="M32,24 h3 M32,29 h3 M32,34 h3 M32,39 h3" stroke="#d8432e" stroke-width="1.600" stroke-linecap="round"/></g>
+    <circle cx="24" cy="9" r="6" fill="#2a9d8f" stroke="#14564e" stroke-width="1.4"/>${shine(22, 7)}`,
 };
 /** A novelty magnet by its name. styles.ts gives it the shadow it casts on the door. */
 export const novelty = (name: string) => svg`<svg class="novelty" viewBox="0 0 48 48" aria-hidden="true">${NOVELTIES[name]}</svg>`;

@@ -170,6 +170,49 @@ def checked(cameras: Any) -> Cams:
     return out
 
 
+def preset_entries(ptz: dict) -> list[tuple[str, str]]:
+    """(label shown, preset name). A preset is a name, or {"preset", "label"} when what
+    is shown needs another label (a "Home" preset would clash with the Home button)."""
+    return [
+        (p, p) if isinstance(p, str) else (p.get("label") or p["preset"], p["preset"])
+        for p in ptz.get("presets", [])
+    ]
+
+
+def preset_data(ptz: dict, preset: str) -> dict:
+    """What a camera's PTZ action is called with to go to one preset."""
+    return {**ptz.get("data", {}), "preset": preset}
+
+
+def for_pages(cameras: Cams) -> list[dict]:
+    """The cameras as a page in Home Assistant is told them (they ride /health, and the
+    integration feeds them to any signed-in user: casa_mia/cameras/subscribe). Each preset
+    comes as the call that goes to it, so no page builds one of its own."""
+    out = []
+    for entity, cam in cameras.items():
+        ptz = cam.get("ptz") or {}
+        out.append(
+            {"entity": entity, "title": cam["title"]}
+            | {k: cam[k] for k in ("medium", "high", "zoom") if cam.get(k)}
+            | {
+                "presets": [
+                    {
+                        "name": label,
+                        "action": ptz["action"],
+                        "data": preset_data(ptz, preset),
+                    }
+                    for label, preset in preset_entries(ptz)
+                    if ptz.get("action")
+                ],
+                "controls": [
+                    {"entity": c["entity"], "name": c.get("name") or ""}
+                    for c in cam.get("controls", [])
+                ],
+            }
+        )
+    return out
+
+
 class Cameras:
     def __init__(
         self,
@@ -221,6 +264,9 @@ class Cameras:
                 "state": "offline" if self._error else "running",
                 "error": self._error,
                 "cameras": len(self._cameras),
+                # ponytail: every camera's record rides each /health (a few hundred
+                # bytes a camera). If that ever shows, send a stamp and a read, as swap does.
+                "list": for_pages(self._cameras),
             }
 
     # -- the admin page's API

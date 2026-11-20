@@ -17,11 +17,13 @@
         "description": "These apply to every Dash-Bored page and card. To leave a room or a device out altogether, give it the label Dash-Bored hide.",
         "data": {
           "floor_order": "Floors, in the order to show them",
-          "room_order": "Rooms to put first on their floor"
+          "room_order": "Rooms to put first on their floor",
+          "column": "Write the agent's column"
         },
         "data_description": {
           "floor_order": "Any floor not listed follows, from the lowest up. To move one, take it out and add it again.",
-          "room_order": "In this order. Any room not listed follows, by name."
+          "room_order": "In this order. Any room not listed follows, by name.",
+          "column": "Where the house runs ZenOS-AI, the Gazette has a column written from its summaries, by the model ZenOS uses. That is a call to the model each time ZenOS writes a new summary of the house, about 100 a day. Switched off, the Gazette has no column."
         }
       }
     }

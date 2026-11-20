@@ -13,6 +13,11 @@ the component really changed, not on every app update.
 At a release, `tools/versioning.py release` calls `restamp`: a component stamped with one of
 that release's builds takes the release's own version (2026.11.3-b14 -> 2026.11.3), because a
 published component's version must be its release's tag (docs/design/marketplace-mirrors.md).
+
+A dashboard plugin (`integration/plugins/<name>.js`, built by tools/build_cards) is kept the
+same way, under its file's name. It has no manifest, so its version is in the built file,
+as the marker `cm-plugin-version@<version>`. Its build reads the version back from the lock
+(vite.tablet-layout.config.ts), so building unchanged sources again gives the same file.
 """
 
 from __future__ import annotations
@@ -30,6 +35,19 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPONENTS = ROOT / "integration" / "custom_components"
 LOCK = ROOT / "integration" / "versions.lock.json"
 _VERSION_RE = re.compile(rb'("version"\s*:\s*)"[^"]*"')
+_STAMP_RE = re.compile(rb"(cm-plugin-version@)[0-9A-Za-z.\-]*")
+
+
+def plugins() -> dict[str, Path]:
+    """Each built plugin's file, by name. Beside the components, so that a test's own
+    folder has its own."""
+    return {p.stem: p for p in sorted((COMPONENTS.parent / "plugins").glob("*.js"))}
+
+
+def plugin_version(data: bytes) -> str | None:
+    """The version a plugin's built file carries; None if its build lost the marker."""
+    found = _STAMP_RE.search(data)
+    return found[0].partition(b"@")[2].decode() if found else None
 
 
 def digest(folder: Path) -> str:
@@ -49,10 +67,22 @@ def current() -> dict[str, dict[str, str | None]]:
         p.name: {"version": manifest_version(p), "digest": digest(p)}
         for p in sorted(COMPONENTS.iterdir())
         if (p / "manifest.json").is_file()
+    } | {
+        name: {
+            "version": plugin_version(data := path.read_bytes()),
+            "digest": hashlib.sha256(_STAMP_RE.sub(rb"\1", data)).hexdigest(),
+        }
+        for name, path in plugins().items()
     }
 
 
 def stamp(domain: str, version: str) -> None:
+    if plugin := plugins().get(domain):
+        # \g<1>, not \1: a version starts with a digit, and \12 would be another group.
+        plugin.write_bytes(
+            _STAMP_RE.sub(rb"\g<1>" + version.encode(), plugin.read_bytes(), count=1)
+        )
+        return
     manifest = COMPONENTS / domain / "manifest.json"
     manifest.write_bytes(
         _VERSION_RE.sub(
@@ -84,7 +114,11 @@ def restamp(builds_of: str, release: str) -> list[str]:
 def problems(
     now: dict[str, dict[str, str | None]], lock: dict[str, dict[str, str | None]]
 ) -> list[str]:
-    out = []
+    out = [
+        f"{domain}: its built file has no cm-plugin-version@ marker (its build lost it)"
+        for domain in plugins()
+        if now[domain]["version"] is None
+    ]
     for domain, entry in now.items():
         old = lock.get(domain)
         if old is None:

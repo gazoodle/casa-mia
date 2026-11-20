@@ -2,7 +2,7 @@
 // They know nothing of wording. Each carries a `kind` (and a `variant` of it) for a voice
 // to look up, the `vars` a voice's sentences are filled from, the one number that goes
 // in the figure, and what the reader can do about it.
-import type { Device, House, Kind, Person, Sighting } from "./house.ts";
+import { lights as houseLights, type Control, type Device, type House, type Kind, type Person, type Preset, type Sighting } from "./house.ts";
 
 /** One of Sensor Watch's alerts, as Dash-Bored's integration feeds it (alerts.py). */
 export type Alert = {
@@ -46,6 +46,17 @@ export function setting(d: Device, level: number): Press {
   if (d.kind === "light" && !level) return { domain: "light", service: "turn_off", ids: [d.id] };
   const [service, data] = SET[d.kind]!;
   return { domain: d.kind, service, ids: [d.id], data: data(level) };
+}
+/** The call that sets a camera's zoom, which is a number entity of its own. */
+export const zooming = (d: Device, level: number): Press => ({ domain: "number", service: "set_value", ids: [d.zoom!.id], data: { value: level } });
+/** The call that turns a camera to one of its presets: whatever call its camera takes. */
+export const turning = (preset: Preset): Press => ({ domain: preset.action.split(".")[0], service: preset.action.split(".")[1] ?? "", ids: [], data: preset.data });
+// What pressing a camera's control does, by its domain: Home Assistant's toggle for any not here.
+const PRESSED: Record<string, string> = { button: "button.press", input_button: "input_button.press", script: "script.turn_on", scene: "scene.turn_on" };
+/** The call that presses a camera's control that is no device of a room's: a button, a script. */
+export function pressing(control: Control): Press {
+  const [domain, service] = (PRESSED[control.id.split(".")[0]] ?? "homeassistant.toggle").split(".");
+  return { domain, service, ids: [control.id] };
 }
 export type Story = {
   kind: string;
@@ -196,7 +207,7 @@ export function stories(house: House, alerts: Alert[], now: number, sightings: S
   for (const a of house.appliances)
     add({ kind: "appliance", id: "load." + a.id, rank: 55, vars: { name: a.name, room: a.room, kw: a.kw.toFixed(1) }, figure: [a.kw.toFixed(1), "kilowatts"], press: { domain: "switch", service: "turn_off", ids: [a.id] } });
 
-  const lights = devices.filter((d) => d.kind === "light" && !d.away);
+  const lights = houseLights(house);
   const lit = lights.filter((d) => d.on);
   if (lights.length) {
     // Ablaze is most of the lights in the house, not merely several.

@@ -6,6 +6,7 @@ import pytest
 
 from casa_mia.modules.cameras import (
     Cameras,
+    for_pages,
     ha_cameras,
     motion_sensors,
     motion_switches,
@@ -39,7 +40,12 @@ def test_the_first_start_moves_the_cameras_from_the_camera_dashboard(cams, tmp_p
 def test_starts_empty_without_old_files(tmp_path):
     cams = Cameras(tmp_path, None)
     cams.start()
-    assert cams.health() == {"state": "running", "error": None, "cameras": 0}
+    assert cams.health() == {
+        "state": "running",
+        "error": None,
+        "cameras": 0,
+        "list": [],
+    }
     assert not (tmp_path / "cameras.json").exists()
 
 
@@ -56,6 +62,41 @@ def test_save_checks_and_tells_the_listeners(cams):
     assert call(cams, "PUT", "", {"cameras": {"camera.x": {"title": " "}}})[0] == 400
     assert call(cams, "PUT", "", {"cameras": {"switch.x": {"title": "X"}}})[0] == 400
     assert told == [out["cameras"]]  # a refused save tells nobody
+
+
+def test_pages_are_told_each_camera_with_its_presets_as_calls():
+    ptz = {
+        "action": "unifiprotect.ptz_goto_preset",
+        "data": {"device_id": "abc"},
+        "presets": ["Gate", {"preset": "0", "label": "Home"}],
+    }
+    cameras = {
+        "camera.drive_low": {
+            "title": "Drive",
+            "high": "camera.drive_high",
+            "zoom": "number.drive_zoom_level",
+            "live": "webrtc-camera",  # the dashboard's own: no page is told it
+            "ptz": ptz,
+            "controls": [{"entity": "button.gate", "name": "Gate", "icon": "mdi:gate"}],
+        },
+        "camera.shed": {"title": "Shed", "ptz": {"presets": ["Door"]}},
+    }
+    call = {"action": "unifiprotect.ptz_goto_preset"}
+    assert for_pages(cameras) == [
+        {
+            "entity": "camera.drive_low",
+            "title": "Drive",
+            "high": "camera.drive_high",
+            "zoom": "number.drive_zoom_level",
+            "presets": [
+                call | {"name": "Gate", "data": {"device_id": "abc", "preset": "Gate"}},
+                call | {"name": "Home", "data": {"device_id": "abc", "preset": "0"}},
+            ],
+            "controls": [{"entity": "button.gate", "name": "Gate"}],
+        },
+        # presets with no action to call can't be gone to: none are told
+        {"entity": "camera.shed", "title": "Shed", "presets": [], "controls": []},
+    ]
 
 
 def test_thumbnails(cams):

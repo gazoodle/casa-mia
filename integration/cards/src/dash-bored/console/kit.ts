@@ -5,7 +5,16 @@
 
 /** The controls an era draws. Bakelite's kit is the pattern: each is a function of what
  * it shows, and its file says what each argument is. `recorder` is a room's history. */
-export type Kit = Pick<typeof import("./bakelite/kit.ts"), "DEFS" | "label" | "meter" | "valve" | "dolly" | "knob" | "tv" | "wheels" | "push" | "knife" | "jewel"> & { recorder: typeof import("./bakelite/recorder.ts").recorder };
+export type Kit = Pick<typeof import("./bakelite/kit.ts"), "DEFS" | "label" | "meter" | "valve" | "dolly" | "knob" | "tv" | "wheels" | "push" | "knife" | "jewel"> & { recorder: typeof import("./bakelite/recorder.ts").recorder }
+  // The weather's two instruments: Bakelite's own, and every later era's from ./weather.ts.
+  & Pick<typeof import("./bakelite/weather.ts"), "barometer" | "calendar">
+  // A total of energy on the era's own figures (./metered.ts), for a meter panel.
+  & { register: ReturnType<typeof import("./metered.ts").register> };
+
+// How long each needle meter's pointer takes to waver through its seven places, in units
+// of 16 ms. They are primes so that no two meters fall into step with each other; the
+// eleventh meter on a panel shares the first's.
+export const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
 
 // A thumbwheel has eleven places round it: a blank, then the digits.
 const PLACES = 11;

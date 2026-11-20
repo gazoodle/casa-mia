@@ -1,0 +1,65 @@
+{
+  "_": "Topology's contract (docs/design/topology.md), one invented house. tests/test_topology.py checks the integration's model against it; Dash-Bored's tests read `view` as the feed. Written by hand: change it only with the contract.",
+  "registry": {
+    "floors": ["ground", "first"],
+    "areas": {
+      "hall": "ground",
+      "parlour": "ground",
+      "kitchen": "ground",
+      "scullery": "ground",
+      "landing": "first",
+      "bedroom": "first",
+      "studio": "first",
+      "workshop": null,
+      "garden": null
+    }
+  },
+  "record": {
+    "sites": [{"id": "home", "name": "Home"}],
+    "buildings": [
+      {"id": "house", "name": "The House", "site": "home", "floors": ["ground", "first", "cellar"], "areas": []},
+      {"id": "workshop", "name": "Workshop", "site": "home", "floors": [], "areas": ["workshop"]},
+      {"id": "studio", "name": "Studio", "site": "home", "floors": [], "areas": ["studio"]}
+    ],
+    "connections": [
+      {"a": "hall", "b": "parlour", "way": "n", "back": null},
+      {"a": "hall", "b": "landing", "way": "up", "back": null},
+      {"a": "kitchen", "b": "scullery", "way": "e", "back": "s"},
+      {"a": "hall", "b": "garden", "way": null, "back": null},
+      {"a": "garden", "b": "workshop", "way": "ne", "back": null},
+      {"a": "kitchen", "b": "old_larder", "way": "w", "back": null},
+      {"a": "landing", "b": "bedroom", "way": "sse", "back": null}
+    ]
+  },
+  "view": {
+    "rev": 7,
+    "sites": [{"id": "home", "name": "Home"}],
+    "buildings": [
+      {"id": "house", "name": "The House", "site": "home", "floors": ["ground", "first"], "areas": []},
+      {"id": "workshop", "name": "Workshop", "site": "home", "floors": [], "areas": ["workshop"]},
+      {"id": "studio", "name": "Studio", "site": "home", "floors": [], "areas": []}
+    ],
+    "exits": {
+      "hall": [{"to": "parlour", "way": "n"}, {"to": "landing", "way": "up"}, {"to": "garden"}],
+      "parlour": [{"to": "hall", "way": "s"}],
+      "landing": [{"to": "hall", "way": "down"}, {"to": "bedroom", "way": "sse"}],
+      "kitchen": [{"to": "scullery", "way": "e"}],
+      "scullery": [{"to": "kitchen", "way": "s"}],
+      "garden": [{"to": "hall"}, {"to": "workshop", "way": "ne"}],
+      "workshop": [{"to": "garden", "way": "sw"}],
+      "bedroom": [{"to": "landing", "way": "nnw"}]
+    },
+    "broken": [
+      {"kind": "building", "id": "house", "ref": "cellar", "why": "gone"},
+      {"kind": "building", "id": "studio", "ref": "studio", "why": "on a floor"},
+      {"kind": "connection", "a": "kitchen", "b": "old_larder", "ref": "old_larder", "why": "gone"}
+    ]
+  },
+  "directions": {
+    "NE": "ne", "n/e": "ne", "North-East": "ne", "northeast": "ne", "n.e.": "ne",
+    "SSE": "sse", "s/s/e": "sse", "south-south-east": "sse", "South South East": "sse",
+    "w": "w", "WEST": "w", " up ": "up", "Down": "down"
+  },
+  "not_directions": ["", "en", "northish", "upward", "nn", "sideways"],
+  "opposites": {"n": "s", "sse": "nnw", "ene": "wsw", "w": "e", "up": "down", "down": "up"}
+}

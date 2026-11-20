@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import aiohttp
 import voluptuous as vol
@@ -25,7 +27,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import sensor_watch
+from . import layout_resource, sensor_watch, topology
 from .children import discover_children, reload_children
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
 from .coordinator import (
@@ -71,6 +73,15 @@ PLATFORMS = [
 # setup again with this same code, so reading the manifest then would take the newer
 # version the app may since have installed as loaded, and drop its restart Repair.
 LOADED_VERSION = manifest_version()
+# Set up from config entries only; async_setup is here for Topology alone.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
+    """What belongs to Home Assistant and not the app, so is there while the app is
+    down: the entry's set-up fails then (its first refresh asks the app)."""
+    await topology.set_up(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -121,6 +132,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     sensor_watch.old_services(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await _load_scripts(hass, entry, loaded_version, helpers)
+    await layout_resource.watch(hass, entry)
 
     @callback
     def reload_on_switch() -> None:
@@ -209,6 +221,7 @@ async def _load_scripts(
         hass.data[f"{DOMAIN}_www"] = True
         websocket_api.async_register_command(hass, _ws_settings)
         websocket_api.async_register_command(hass, _ws_settings_subscribe)
+        websocket_api.async_register_command(hass, _ws_cameras_subscribe)
         websocket_api.async_register_command(hass, _ws_cards)
     hass.data[f"{DOMAIN}_cards"] = version
     for name in [CARDS_JS, *helpers]:
@@ -247,21 +260,23 @@ def _ws_settings(
     connection.send_result(msg["id"], data.get("settings", {}))
 
 
-@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings/subscribe"})
-@callback
-def _ws_settings_subscribe(
-    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+def _follow(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+    pick: Callable[[dict[str, Any]], Any],
 ) -> None:
-    """The same, now and again at each change (the app fires casa_mia_settings_changed on a
-    save, so the coordinator polls at once); any user.
+    """Send a page one part of what the app last said (`pick`, of the coordinator's
+    data), now and again whenever it differs. The app fires casa_mia_settings_changed on
+    a save, so the coordinator asks at once and the page has the change in a moment.
     ponytail: follows the coordinator running when it subscribes; a page that outlives an
     integration reload gets nothing more until it shows again."""
     coordinator = running_coordinator(hass)
-    last: list[dict] = []
+    last: list[Any] = []
 
     @callback
     def send() -> None:
-        now = ((coordinator.data if coordinator else None) or {}).get("settings", {})
+        now = pick((coordinator.data if coordinator else None) or {})
         if not last or last[0] != now:
             last[:] = [now]
             connection.send_message(websocket_api.event_message(msg["id"], now))
@@ -271,6 +286,33 @@ def _ws_settings_subscribe(
     )
     connection.send_result(msg["id"])
     send()
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings/subscribe"})
+@callback
+def _ws_settings_subscribe(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The app's settings for the cards, now and again at each change; any user."""
+    _follow(hass, connection, msg, lambda data: data.get("settings", {}))
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/cameras/subscribe"})
+@callback
+def _ws_cameras_subscribe(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The app's cameras (its Cameras page: each one's title, streams, zoom entity, PTZ
+    presets as calls, and page controls), now and again at each change; any user. For
+    pages that draw the house's cameras: Dash-Bored follows it by name. None while the
+    Cameras module is off. While the app is down these are the cameras as it last said:
+    they are what was set up, not how anything stands."""
+    _follow(
+        hass,
+        connection,
+        msg,
+        lambda data: data.get("modules", {}).get("cameras", {}).get("list", []),
+    )
 
 
 async def _send(

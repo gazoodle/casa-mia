@@ -222,7 +222,7 @@ async def test_a_loathed_song_is_muted_until_the_next_track(hass):
     play(hass, "Last Christmas", "Wham!")
     await settled(hass)
     [mute] = calls["volume_mute"]
-    assert mute.data == {"entity_id": PLAYER, "is_volume_muted": True}
+    assert mute.data == {"entity_id": [PLAYER], "is_volume_muted": True}
     [event] = events
     assert event.data["group"] == "Christmas" and event.data["feeling"] == "loathe"
     assert event.data["result"] == "muted until the next track"
@@ -462,6 +462,54 @@ async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freeze
     assert trail.lines(hass, entry)[-1]["text"] == "Switched back to Home"
 
 
+async def test_back_at_the_end_of_a_song_when_the_entry_says_so(hass, freezer):
+    entry, calls = await add(
+        hass,
+        a_group("Christmas", patterns=XMAS, action="switch", minutes=5),
+        a_station("Jazz", JAZZ),
+        back_at_end=True,
+    )
+
+    async def minutes(n):
+        freezer.tick(timedelta(minutes=n, seconds=1))
+        async_fire_time_changed(hass, dt_util.utcnow())
+        await settled(hass)
+
+    play(hass, "Last Christmas", "Wham!", **HOME)
+    await settled(hass)
+    play(hass, "A Long Jazz Tune", "A Trio", **JAZZ)
+    await settled(hass)
+    calls["play_media"].clear()
+
+    # The time is up in the middle of a song: it plays on, and back when it ends.
+    await minutes(5)
+    assert not calls["play_media"]
+    assert trail.lines(hass, entry)[-1]["text"] == (
+        "Time is up: switching back when this song ends"
+    )
+    play(hass, "The Next Jazz Tune", "A Trio", **JAZZ)
+    await settled(hass)
+    assert calls["play_media"][0].data == {"entity_id": PLAYER, **HOME}
+    assert hass.states.get(SENSOR).attributes["away"] == {}
+
+    # A station whose title never changes still comes back, after the longest song; a
+    # restart in between loses nothing.
+    play(hass, "Something Ordinary", "A Band", **HOME)
+    await settled(hass)
+    play(hass, "Last Christmas", "Wham!", **HOME)
+    await settled(hass)
+    play(hass, "A Jazz Tune for ever", "A Trio", **JAZZ)
+    await settled(hass)
+    calls["play_media"].clear()
+    await minutes(5)
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    await minutes(9)
+    assert not calls["play_media"]
+    await minutes(1)
+    assert calls["play_media"][0].data == {"entity_id": PLAYER, **HOME}
+
+
 async def test_no_switching_back_over_a_persons_own_choice(hass, freezer):
     entry, calls = await add(
         hass,
@@ -511,11 +559,21 @@ async def test_only_a_groups_leader_acts_and_a_player_with_no_title_is_named(has
         hass, a_group("Christmas", patterns=XMAS), players=(PLAYER, other)
     )
 
+    # The leader acts, for every speaker in its group: Sonos mutes each by itself.
     members = [PLAYER, other]
     play(hass, "Last Christmas", "Wham!", group_members=members)
     play(hass, "Last Christmas", "Wham!", entity=other, group_members=members)
     await settled(hass)
-    assert [c.data["entity_id"] for c in calls["volume_mute"]] == [PLAYER]
+    assert [c.data["entity_id"] for c in calls["volume_mute"]] == [members]
+
+    # And each still muted is unmuted at the next track.
+    play(hass, "Wonderwall", "Oasis", entity=other, is_volume_muted=True)
+    play(hass, "Wonderwall", "Oasis", group_members=members)
+    await settled(hass)
+    assert calls["volume_mute"][-1].data == {
+        "entity_id": [other],
+        "is_volume_muted": False,
+    }
 
     play(hass, "", entity=other)
     await settled(hass)

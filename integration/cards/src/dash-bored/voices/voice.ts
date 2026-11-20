@@ -21,14 +21,14 @@ export type Voice = {
   words: Record<string, string>; // one device, by `kind.on`, `kind.off`, `kind.plain` (on, with a level that isn't known) or `kind.<phase>`; `kind.many` is a room's count of them, in a big house; `percent` and `degrees` are how a level is said, and are a clause's {level}
   polls: Record<string, { ask: string; less: string; more: string }>; // by kind: the question over a level's scale, and its two votes
   acts: Record<string, string>; // on a device's clipping: the button that puts it the other way, by `kind.on` or `kind.off` as it stands
-  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string; closer: string; live: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
+  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string; closer: string; live: string; presets: string; zoom: string; controls: string }; // the rest of a clipping's words; `presets`, `zoom` and `controls` are over a camera's own, where Casa Mia's app lists it; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
   wire: { trouble: string; clear: string }; // an alert in the late news
   forecast: { now: string; today: string }; // the weather column: the weather at present, and what the forecast's first day is called
   skies: Record<string, string>; // Home Assistant's word for the weather (its condition), as this paper says it
   celebrity: Record<string, string>; // the celebrity column, by a Billing's kind, `kind.live` while it is on, and a rating's kind for what was said of it
   personal: Record<string, string>; // the Personal column, by a Notice's kind; `song` and `tune` are how a song is named, with its artist and without
   notices: string[]; // under each scene, in turn
-  desk: { by: string; staff: string; filed: string; lapsed: string; unsure: string; failed: string }; // the agent's column (katas.ts): its by-line, the name where the agent has none, when it was written, that it is out of date, and the words before a piece the model doubted or could not write
+  desk: { by: string; staff: string; filed: string; lapsed: string; awaited: string; late: string }; // the agent's column (column.ts): its by-line, the name where the agent has none, when it was written, that it is out of date, that none is written yet, and why a newer one is late
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
 };
 export type Told = { kicker: string; head: string; deck: string; body: string; act: string; vote: string };

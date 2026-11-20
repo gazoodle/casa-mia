@@ -174,6 +174,9 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
+  `_back` forgets a return only once `play_media` has worked: a player not playing, not
+  yet there after a restart, or refusing the call keeps `away` with `due`, and the
+  return is made when it next plays (b24; before, the return was cleared first and lost).
   `afresh` judges what is playing now at every start, so at each save of a group,
   change of feeling and rating (owner, 2026-11-13: a song added to a list while it
   plays must be acted on then). Safe because unloading undoes volumes and mutes first.
@@ -182,6 +185,20 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   (`custom_components/cm_demo_players`, on the VM only) give it Kitchen, Living room,
   Bedroom and Garden to watch, with the people Ann and Ben, the entry Downstairs and
   the dashboard `music-demo`. Keep them there for the next pictures.
+- **Tablet Layout by itself** (b13, 2026-11-17): `integration/plugins/casa-mia-tablet-layout.js`,
+  built by `tools/build_cards` from `integration/cards/src/alone.ts`, to be published as a
+  dashboard plugin. `tools/mirror.py` makes its mirror (`PLUGINS`; the kinds' differences
+  are in `tools/mirrors/texts.py`). Not published; what is left is in `BACKLOG.md` ("The
+  layout bundle, next"). Alone it has nothing to set: garnish everywhere and the orientation
+  conditions are on. With Casa Mia as well, `casa_mia/layout_resource.py` raises a Repair
+  while the file is in the dashboard's resources (b16). Its version is stamped in the built
+  file by `tools/component_versions.py`, as a component's is in its manifest. A change to the view, garnish or the Over layer must keep working with no
+  integration answering (`own.ts`).
+- **A mirror is its own home** (b12, 2026-11-17; HACS's review asked for it): a published
+  component's manifest names its mirror for `documentation` and `issue_tracker`, the
+  mirror's README is the whole guide, and the mirror takes its own issues
+  (`docs/design/marketplace-mirrors.md`, "The mirror is its own home"). The review needs
+  a release that publishes all three mirrors, then a re-request on each pull request.
 - **The mirrors' READMEs** carry Casa Mia's set of badges under the title
   (`tools/mirror.py` `BADGES`: Stars, Downloads, version, Validated, Licence), and each
   release has the integration as a ZIP (`hacs.json` `zip_release`).
@@ -259,26 +276,231 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`
   (the page's commands too, through a websocket client).
 
+## Topology
+
+Inside `casa_mia`, wholly in Home Assistant (owner, 2026-11-18). Begun 2026.11.9-b23. The
+brief, with the agreed contract and the order of building, is `docs/design/topology.md`.
+
+- **The rules** are `casa_mia/topology/model.py`, with no Home Assistant in it: `check`
+  (a save), `view` (the feed: `exits` and `broken` worked out once per change),
+  `direction` (any spelling to one form, "sse"). **The glue** is `topology/__init__.py`:
+  its Store, the `rev` check, the registry events that resend the feed.
+- **Set up by `casa_mia`'s `async_setup`, not its entry**, so it answers while the app is
+  down (the entry's first refresh fails then).
+- **One invented house is the contract**, `tests/topology_cases.json`: the model
+  (`tests/test_topology.py`) and the real storage and registries
+  (`tests_ha/test_topology.py`) both pass it, and Dash-Bored's tests are to read it.
+- **A save tells every page before it answers**, so a page's own feed has the new rev
+  before its save's result.
+- **The editor** is the admin page `app/web/src/topology/` (2026.11.9-b24), talking to
+  Home Assistant through `homeConnection` as Love it or Loathe it's does; the Home page
+  follows the same feed for its tile. A save sends the whole record, rebuilt from the
+  feed (`savedOf`), so what is broken is dropped by the next save: it couldn't be saved.
+  Room and floor names come from Home Assistant's registry lists, listed again on its
+  registry events. Mermaid 12 is loaded only for the picture and has ELK built in (no
+  `@mermaid-js/layout-elk`); it adds ~5 MB of chunks to the committed build, of which a
+  flowchart fetches only its own.
+- Next: Digs (step 3), then the guide, maturity and README (step 6).
+
 ## Dash-Bored
 
 Its own integration, `casa_mia_dash_bored`, since 2026.11.8-b1 (2026-11-13; name and
 sidebar label agreed with the owner). Standalone like Sensor Watch: nothing imported from
 `casa_mia`, no app option, no entities. In development. Guide: `docs/applets/dash-bored.md`.
 
+- **Every family gets every capability** (owner, 2026-11-17). When a capability is built
+  for one family, add its row to the table in `docs/design/dash-bored-survey.md` and a
+  backlog entry for each family that lacks it, in the same piece of work. Before calling
+  a family done, read its column. Why: the Gazette had the weather and who is at home,
+  and Aurora and the Console were built without either although both are in `House`,
+  which every family is given. Nobody noticed until Aurora was compared with other
+  dashboards. `tests/test_dash_bored_parity.py` enforces what it can read from the
+  sources (the fields of `House`, a device's optional fields, the feeds): what a family
+  lacks is in its `OWED` with the reason. The table still has cells marked `?`.
+- **A card for one room** (2026.11.9-b19; owner, 2026-11-18: any family should be usable
+  on an ordinary page that is about one room). `room.ts` `roomCard(Family, tag)` makes a
+  family's `-room` card: it tells the family's element `rooms: [room]` and that it is
+  `_alone` (`family.ts`). Each family's `render` then draws the one room without the
+  house's furniture, and follows no feed that is about the whole house. The Fridge,
+  Aurora, Digs (`digs/world.ts` `cutout`) and Contraption have one; the Console's is
+  older (`console/cards.ts`). Their editor is `editor.ts`, which the Console's part cards
+  use too. A new family gets one by a branch on `_alone` and a row in `ROOMS` in
+  `index.ts`.
+  - **The Gazette has none, and is not to** (owner, 2026-11-18). Why: a newspaper is an
+    overview and does not fit a page about one room, and its rooms have their own
+    headings already. It may be given sections after Topology (BACKLOG).
+  - Seen on the test VM's house at 480 and 360 px, by loading the local build into its
+    page (nothing copied there). Not seen: Home Assistant's own card picker and editor
+    (no picker draws on a headless page), the dark theme, a tablet.
+- **The forecast is `Family`'s** (2026.11.9-b15): `_outlook()`, called from a family's
+  `_surveyed`, follows Home Assistant's `weather/subscribe_forecast` and fills `_days`.
+  The Gazette and the Console use it; the Fridge and Aurora are to.
+- **The Console's weather** (2026.11.9-b15; the owner agreed the 1950s mock-up,
+  `docs/design/dash-bored/console-weather.html`, and approved the rest on 2026-11-17).
+  An era's kit gives `barometer` and `calendar`. Bakelite's are its own
+  (`console/bakelite/weather.ts`: a barometer and a desk calendar). The other four eras
+  share `console/weather.ts`, dressed by each stylesheet. Its `WEATHER` styles are listed
+  after the era's own, so an era overrides them under `.panel`. The Outside air meter is
+  not to change (owner, 2026-11-17).
 - **Why it exists** (owner, 2026-11-13): dashboards that write themselves from the house,
   in styles people enjoy using; "it must not look cheap". The looks were tried first as
   working mock-ups on an invented house, in `docs/design/dash-bored/` (`index.html` is the
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
-  Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
-- **The Gazette has a column by a ZenOS-AI house's agent** (2026.11.8-b40, a prototype
-  the owner means to show ZenOS's author). `katas.ts` reads the Kata sensor's attributes
-  (`variables.<component>.value`, and `zen_summary`), found by ZenOS's labels
-  `zen_kata_cabinet` and `zen_dojo_cabinet`; `house.ts` watches them and fills
-  `house.desk`, so any family can draw it. The test VM runs ZenOS for this: its
-  summarizers use a local model on the owner's network, its agent uses the owner's paid
-  API account with six tools exposed, and installing it needed several manual steps that
-  its guide doesn't give (the owner has the list).
+  Movement (a watch movement in three.js) is a showpiece, not built.
+  Contraption is the sixth family, begun (see below). Its brief,
+  with what is decided, measured, dropped and left to do, and which mock-up shows each
+  thing, is `docs/design/dash-bored-contraption.md`. Read it before building any of it.
+- **Contraption is the sixth family, begun** (2026.11.9-b18; the owner asked on 2026-11-18
+  for the renderer, the tiles there are and one room, and has not seen the build).
+  `contraption.ts` on `family.ts`, with `contraption/`:
+  - A tile is written as SVG with named parts (`data-p`), in `light.ts`, `group.ts`,
+    `carriers.ts` and `devices.ts` (the stand-in crate, where each kind's own tile is to
+    go). `tile.ts` states the two rules a drawing must keep for the bitmaps: everything
+    that moves is inside a named part, and a named element has no transform of its own.
+  - `sprites.ts` measures a drawing on an unseen bench in the page and makes the atlas;
+    `stage.ts` places it. A bitmap is never turned as it is drawn: `data-ring` says how a
+    part is turned ahead of time (`kit.ts` `ringOf`). A bitmap whose words or colour change
+    is made again in its slot (`rebake`), through one queue in `run.ts`, so that it never
+    lands in an atlas that is being replaced. Such a drawing carries its device's id, which
+    is what stops it sharing a bitmap with one that looks the same.
+  - `run.ts` is the machine (cells, ducks, covers, the goose), with no Home Assistant in
+    it. `layout.ts` is the rule and has the node test, with every tile's edge rule.
+  - **A network of loops** (2026.11.9-b20; owner, 2026-11-18, who found the first build
+    "too conveyor belt-ish" and then asked for loops "engineered to be clean"). The rule:
+    every way in, way out and tunnel carries one duck a period. `flow.ts` is that, with
+    no drawing in it, and its node test runs 200 periods. A tile's `io` may name several
+    ways ("B>RLT") and a tile may have a hole (`pit`); `layout.ts` `links` throws on a
+    layout that does not join up or balance. A change to the layout rule must keep that
+    test and `links` passing: they are what "clean" means. `points.ts` has the
+    redirector (spares queue up a ramp; on the shaft a board goes through it), the
+    roundabout collector, a wing's end and the dumb waiter's foot and top; `climbs.ts`
+    the escalator, slide, lift and cutlery; `underground.ts` the tunnels: tubes placed
+    to keep apart (`placed`), timed so a duck keeps the sheet's pace (`Way.lead`), and
+    the dumb waiter's return, which forks and wanders the empty places (`wander`; a
+    tunnel may have several ways, taken in turn, `flow.ts` `beats`). Turns are taken by `tile.ts` `dealt`, in the flow and
+    in the tiles alike. Seen on the harness in WebKit (13 and 19 devices) and put on the
+    test VM; not seen on the owner's house or the iPad. A device may stand upright where the stream goes
+    down or up two rows (2026.11.9-b22: `light.ts` `UPRIGHT`, `devices.ts`; the upright
+    light drives have not been looked at). `shows.ts` (b22) has the poop the bot shovels to a compost
+    bin and the gantry's tongs: they draw, and never touch the flow. What is left is in
+    BACKLOG.
+  - The page keeps one `Dev` for each device and changes it in place (`_told`), so a tile
+    holds its own. The machine is built once for a survey, never for a state.
+  - **My choices, to be told to the owner:** the room is the area with "kitchen" in its
+    name, else the first, or a card's `rooms`; lights switched together are a Home
+    Assistant light group, whose own entity then has no tile; a guarded device, a camera
+    or an alarm opens Home Assistant's dialog, since where they go is not designed; a tile
+    is drawn to fit the width but no smaller than 140 px, and the sheet is then scrolled
+    sideways (the second family with a box that scrolls, sideways only).
+  - Seen on a throw-away harness with an invented kitchen (Chromium and WebKit; 1366, 1024
+    and 390 px; all three skins; a press on a light, a lock and a dead device; a device
+    coming back; the connection lost): 60 frames a second in both. **Not seen:** the
+    owner's kitchen, an iPad, inside Home Assistant, the test VM, the card picker. What
+    is owed is in BACKLOG ("Contraption, the sixth family").
+- **Digs is the fifth family** (2026.11.9-b16; name agreed with the owner 2026-11-18, who
+  asked for it for his grandson and has not yet seen the build). The house in section,
+  built of square blocks in the style of block-building games, after
+  `docs/design/dash-bored/digs.html`. `digs.ts` on `family.ts`, with `digs/`:
+  - `world.ts` lays the house out as a grid of blocks, and works out the light
+    (`shades`). It has no page in it and its own test. The world is built once for a
+    `Survey` (by its identity, in `_surveyed`), never for a state: a block must not move
+    because a light was switched. A floor is a storey, in the survey's order (lowest
+    first, unless the house's `floor_order` says otherwise: then the first named is the
+    ground). A room is three blocks high and as wide as its devices need: lamps and
+    windows share the ceiling, blocks and doors the floor. An area out of doors by its
+    name (`OUTDOORS`, English) is in the garden.
+  - `textures.ts` is the texture pack 4² (a block is sixteen texels square; the name is
+    shown beside "Digs" in the chooser, `beside` in `shell.ts`, and is no part of the
+    name) and the lettering, three texels by five, as pictures. Everything is our own
+    and made in code: no name, texture, creature or font from any game, because
+    Dash-Bored is published. A new block is a row in `PAINTS`.
+  - **A big house, or one not sorted into floors** (owner, 2026-11-18: his has
+    outbuildings, three floors and very many lights, and most of its areas are on no
+    floor yet). All in `world.ts`:
+    - Over `MANY` (8) lights a room has one chandelier (`LAMPS` + the room's id in
+      `slots`), and over `MANY` switches, or with scenes of its own, a chest (`CHEST`).
+      Either opens the room's list (`digs/chest.ts`): every device's block with its name,
+      and the room's scenes. Up to `MANY` lamps are a block each, two deep.
+    - Rooms on no floor are a building of their own, wrapped into up to three storeys
+      (`wrapped`). One that is an outbuilding by its name (`OUTBUILDING`, English) is a
+      building by itself. **Not built:** a setting that says which floors are which
+      building (BACKLOG); it is no use until the areas have floors.
+    - A storey is as wide as its own rooms, and at least as wide as any over it; the
+      roof covers what has nothing above. Three storeys have one row of sky and no
+      pitched roof, so the world is 16 rows and a block 48 px on a 768 px screen.
+    - A board in the garden counts `house.gaps` (`floorless`, `loose`). A room's name is
+      a button for its lights (`_lights`, now in `family.ts` and shared with the Fridge).
+      The bar holds `house.scenes` only. The map (`.map`, 3 px a block, drawn from the
+      two canvases in `updated`) is shown while the world is wider than the screen.
+    - Measured on an invented house of 33 rooms, 29 of them on no floor: 112 blocks
+      wide, 5.3 screens of a 1024 px tablet at 48 px. Before these changes a like house
+      had 32 px blocks and one storey.
+  - **The first press chooses, the next switches** (owner, 2026-11-18: the blocks can't
+    all be lettered, and finding out what one is must not change the house). `_sel` is
+    the chosen device, or `ROOM` and a room's id for its name; it lapses `CHOSEN` (8 s)
+    after the last press (`_point`), so that a block chosen long ago does not switch at
+    one press beside one that takes two. The chosen block has a tag: a white edge and
+    its name, over the dark. A guarded block's crack comes after the choosing, so
+    unlocking is three presses. One press still does it where nothing is in doubt or
+    nothing changes: a scene, the level's stack, a chandelier or chest, a camera, an
+    alarm, and a block in a room's list (`named` in `_press`). Choosing a thermostat
+    brings its stack up without switching it.
+  - **The imp's prank** (2026.11.9-b18; owner, 2026-11-18: "a bit more crazy", for his
+    grandson). `digs/prank.ts`: `plan` (no page in it, tested) picks a free place on a
+    room's floor or the grass among the columns on the screen, where the imp runs to,
+    and the blocks broken, never a device's, a sign's or a post's. `Prank` runs it as
+    dates coming due through the element's `_after`: the first after 20 s, then 3 to 6
+    minutes apart. **It is a show only**, as Aurora's decorations are: no press, no
+    device hidden, nothing called. None in the card picker, while a room's list is open,
+    or where less movement is asked for. The imp, the crate and the bot are our own
+    drawings (the crate is a red bundle of sticks with a paper band lettered TNT, drawn
+    from nothing; the owner asked on 2026-11-18 about a game's own TNT block with a
+    credit, and its maker's terms do not allow its textures in other software). **Not
+    built:** a way to turn it off. Seen on the harness in WebKit; `el._prank._begin()`
+    in the console starts one at once.
+  - **A camera is a picture on the wall** (owner, 2026-11-18: "artistic licence", since
+    one camera's block was like another's). Its slot is `PICTURE` (3) blocks wide and two
+    tall (`Slot.w`), on a post out of doors. `digs/shots.ts` draws its `picture` into a
+    canvas of 44 by 22 texels when the address changes, cut to fill, over its name. No
+    still is the camera block in the frame; a still that fails is the cracked grey block
+    and a line in the console (the address without its token). Not in a room's list,
+    where it is the plain camera block. A room of many cameras is three blocks wide for
+    each: nothing gathers them.
+  - Each device is a real button over one canvas of the blocks, with a second canvas of
+    the dark over them (a pixel to a block). A block's size is a multiple of 8 px (half
+    texels) from 16 to 64, fitted to the screen's height as the page, and 32 px as a card.
+  - **Agreed with the owner on 2026-11-18:** a house wider than the screen is walked
+    along sideways (`.scroll`, the one family with a box that scrolls: sideways only);
+    a heart is lost for each unlocked door, each Sensor Watch alert and each device not
+    answering; a thermostat is a stove and a switch a lever (one whose `device_class`
+    is `outlet` is a machine: `Device` does not say which switches are appliances); the
+    forecast is signs in the garden; the household walk about in the lit rooms, or the
+    ground floor with none lit (`_lived`); and a signpost in the garden fires `CHOOSE`.
+  - My choices, told to the owner: a camera or an alarm opens Home Assistant's dialog;
+    every guarded kind cracks, not only a lock; a device not answering is a cracked grey
+    block that takes no press; the level's stack is at the screen's right edge and is
+    there only for a device whose level can be set; a fault is said in plain type so
+    that it wraps.
+  - Seen on a throw-away harness with an invented house (Chromium and WebKit; 1344,
+    1024 and 390 px; day, night, rain and snow; as a card; the small house and the big
+    one), where each kind of press made the right call. **Not seen:** inside Home Assistant, the test VM, the owner's
+    house, a tablet, the card picker, a real finger's sideways scroll, a house of three
+    storeys or of thirty rooms. What is owed is in BACKLOG ("Digs, the fifth family").
+- **Published by itself** (2026.11.9-b1; owner, 2026-11-15): in `components.PUBLISHED`,
+  mirror `gazoodle/casa-mia-dash-bored`, made by `tools/mirror.py` at a release
+  (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.
+  So the "no downgrade" rule covers it, and its guide is the mirror's README: keep the
+  guide's links and pictures ones the mirror can carry.
+- **The Gazette's agent's column is written by a model** (2026.11.9-b14;
+  `docs/design/dash-bored-column.md`). The integration's `column.py` follows ZenOS's Kata
+  cabinet (found by the label `zen_kata_cabinet`) and, on each newer `zen_summary`, makes
+  one `ai_task.generate_data` call with the model in `input_text.zenos_ai_task_entity`.
+  `katas.py` picks the Katas and writes the brief. The column is kept in a Store and fed
+  as `casa_mia_dash_bored/column`; `column.ts` turns it into the desk. It is read-only
+  towards ZenOS (owner, 2026-11-15). On the test VM's local model one call took 61 s
+  (2026-11-17), inside the 120 s limit. The test VM runs ZenOS, with its summarisers on a
+  local model on the owner's network.
 - **The Fridge is the third family** (2026.11.8-b37; the owner asked for it on 2026-11-15
   and it was built while he slept, so he has not seen it). `fridge.ts` on `family.ts`;
   `fridge/magnets.ts` draws the button magnets (a picture for each kind) and the novelty
@@ -294,7 +516,68 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   switch in its `era` slot. Silverface (1970s) is built to the design agreed that day (`console/silverface.ts`
   with `console/silverface/`); it takes `tv`, `wheels` and `swing` from Bakelite's kit,
   where the markup is the same and only the stylesheet differs. Why: they are the same panel in different skins, as
-  the Gazette's papers are. Bakelite is completed first and keeps its name.
+  the Gazette's papers are. Bargraph (1980s, 2026.11.9-b2: `console/bargraph.ts` with
+  `console/bargraph/`) is built to the mock-up the owner chose from on 2026-11-15
+  (`docs/design/dash-bored/bargraph.html`). Its levels are faders: a kit's control with
+  the class `slide` is slid, not cranked, by `_dial` in `console/panel.ts`, which moves
+  the level by how far the finger went along the element's height. Its needle is a layer
+  of its own over a still face, and it has no CSS filter: the pattern for the other eras
+  if the iPad's sluggishness (reported 2026-11-15, not yet measured) is the meters. Seen
+  on a throw-away harness with an invented house, in WebKit and Chromium, and on the
+  test VM; it has no screenshot in the guide. Nixie (1960s, 2026.11.9-b3:
+  `console/nixie.ts` with `console/nixie/`) is built the same way, from
+  `docs/design/dash-bored/nixie.html`. What the rectangular eras share is in the Console's
+  own files: `console/needle.ts` (the layered needle meter: Nixie's two top meters and
+  Bargraph's), `console/scope.ts` (the oscilloscope recorder, made with an era's `label`
+  and `push`: Nixie's and Silverface's), `BEATS` in `console/kit.ts`, and `panel` and
+  `plate` in `console/figures.ts` (a display's fixed cells, and a knob's plate taken apart).
+  Beige (1990s, 2026.11.9-b4: `console/beige.ts` with `console/beige/`) completes the five,
+  from `docs/design/dash-bored/beige.html`. `console/figures.ts` also has what Bargraph's
+  fluorescent displays and Beige's LCDs share: the figures of seven bars (`figs`, with
+  the stylesheet fragment `FIGURES`, whose sizes are whole pixels: the owner saw bars of
+  different sizes when they were fractions of the type size), the meter that is a display
+  and the alarm's code as figures with keys (`keyed`). Beige's chart is `scope.ts`'s
+  oscilloscope dressed by its stylesheet, through the class names on the scope's parts. Bakelite is completed first and keeps its name.
+  - **The meter panel** (2026.11.9-b23, asked 2026-11-18; plan in
+    `docs/design/console-meter-panel.md`): `dash-bored-console-meters`, a fifth view,
+    `meters`. It is for ordinary dashboards and is not on the Console's page. A chassis
+    for each device in `devices`: `console/meters.ts` (no Lit, tested in node) says what
+    is on it from each sensor's device class and the phase in its name, with the limits
+    of each scale; `console/metered.ts` draws it, and holds `register`, which every era's
+    kit now has (its figures; Bakelite's is `counter`). It reads no house: `_shown` in
+    `family.ts` says when to draw again. Each meter's sensor is followed with Sensor
+    Watch's own `follow` (`_consult` in `panel.ts`; the feeds are in the family's `_feeds`,
+    so leaving the page stops them): its bands give the scale, its level a `jewel` under
+    the meter, and a watch that Sensor Watch can no longer give is kept and said to be
+    lapsed (`_lapsed`). A chassis's works are laid out at their natural width and
+    zoomed to fit (b24: `fit` in `meters.ts` chooses the form and the zoom, `sized` in
+    `metered.ts` applies them, and `_fit` in `panel.ts` watches each chassis's width). That
+    is a stopgap the owner chose on 2026-11-18 to get the card working on a phone; BACKLOG
+    has sizing every control properly. Steps 1 and 2 of the plan are built. Steps 3 and 4 (zones on the
+    scales, a picture for the guide) are in BACKLOG. Seen in all five eras in a scratch harness
+    with a fake Home Assistant, not yet in a real one. The owner agreed the name
+    (2026-11-18).
+  - **Part cards** (2026.11.9-b5, names agreed with the owner 2026-11-16):
+    `dash-bored-console-instrument`, `-room` and `-lamps` (`console/cards.ts`). Each is
+    the host without its switch, telling the era's element a `view` (`Config` in
+    `panel.ts`). The element gets its options as a `.config` property in the host's
+    template, before it is on the page, so that each view follows only the feeds it shows.
+    One entity is surveyed alone by `entity` in `house.ts` (it is shown even if it is
+    hidden or in no room). A room uses the existing `rooms` option, and the lamps read no
+    house at all (`_reads` in `family.ts`). Their layout and `backing: false` are in
+    `console/views.ts`, which each era takes before its own styles. Checked on the test VM
+    in all five eras, in Chromium and WebKit, on the light and dark themes. The editors'
+    entity and room pickers could not be seen there: no picker drew on that headless page,
+    even a plain one, so they are unchecked in HA's own card editor.
+  - **In HA's card picker a family draws a specimen** (2026.11.9-b8; owner, 2026-11-16:
+    the previews were "too big to be useful"). Each whole-house card was 3,200 to 7,500 px
+    tall there. `picked` in `family.ts` sees that the element is in `hui-card-picker` (HA
+    tells a card nothing), `survey` then cuts the house to one room and four devices
+    (`specimen` in `house.ts`, by the internal `sample` option), no feed is followed, and
+    the element is a 400 px window. The Console host tells its era's element `sample`.
+    The part cards are left whole: they are small. Bakelite's own card is no longer
+    registered for the picker; its element stays for dashboards that have it. Measured in
+    the test VM's picker (Chromium): 400 px each. Not checked in WebKit.
   - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
     drilled into the panel"; true of the Console's eras, perhaps not of other families).
     Each hangs from the top of its row with a fixed height and room for a two-line
@@ -305,11 +588,209 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     without end in WebKit only, and a cover folded to nothing still took taps there, so
     on the owner's iPad a guarded switch could not be thrown. Playwright's WebKit is in
     `~/Library/Caches/ms-playwright/webkit-2359` (pass its `pw_run.sh` as the executable).
+  - **A family's page is scrolled by the document, never by a box of its own**
+    (2026.11.9-b6; `PAGE` in `family.ts`). Why: on the owner's iPad a family one screen
+    tall with `overflow-y: auto` stopped for over a second at a time while scrolling.
+    Don't give the Console's rooms `content-visibility: auto`: it was tried the same day,
+    and each room swapping its stand-in height for its real one moved the page under
+    the owner's finger (Safari on iOS does not hold the page steady).
+    A full-page screenshot's time is not a paint time: most of it is compressing the
+    picture, which depends on what is drawn. Headless WebKit never showed the stutter;
+    it was found on the iPad with a test page of switches (the Console, 100 invented
+    rooms), which is the way to look for the next one.
+- **Rooms stand in rows chosen by `pack.ts`** (2026.11.9-b9; owner, 2026-11-16: the
+  Console had "too much open space" on his house). `rows` takes how tall each room is at
+  each width and the number of columns, and gives each a width and a row for the least
+  height, order kept. Each family tells it its own sizes: the Console's exact ones in
+  `console/balance.ts` (`laid`), the Fridge's estimates in `fridge/rows.ts`. The columns
+  come from the element's width (`_resized` in `family.ts`, a ResizeObserver), and the
+  rows are kept until the rooms or the columns change. The grid itself is CSS, once for
+  all five eras in `console/views.ts` (it was copied in each era's stylesheet), and in
+  `fridge/styles.ts`, where the rows are left ragged on purpose.
+  - **Small rooms stack, floors run on, and nothing is stretched** (owner, 2026-11-16:
+    floors may share a row, with a separator; and the test VM "must look great", since
+    his video is shot there). A row is columns (`bays` in `pack.ts`), and a column holds
+    up to three small rooms (`STACK`), never across a floor (`apart`). A floor's plate is
+    in a lane over the row it begins in, and each bay is placed by its own grid row and
+    column, so a floor begins wherever the one before ends, with `.bar` to its left (brass
+    in Bakelite; a plain line in the other four eras, to be decided with him). On the
+    Console a chassis keeps its own height, and `racks` in `balance.ts` fits a blanking
+    plate (`.blank`, the era's chassis with a vent) under a bay with 96 px or more to
+    spare. Why: stretched to its row, a room of two switches was a tenth full. The plate
+    is where the back pocket's sensors are to go.
+  - Measured on the owner's house at 1024 px before the change: Console 25,655 px tall
+    and about 30% controls, Fridge 31,274 px. Sorting rooms by height within a floor was
+    simulated and saved 2% to 4% more, so the order is kept (his call was that rooms
+    could move within a floor; he asked for guidance, and that was it).
+  - The survey (`house.ts`) keeps one camera for each device, and gives each scene to its
+    room (by area, or by its name beginning with the room's), its floor (by name) or the
+    house. `scenes(house)` is all of them, for a family that lists them (the Gazette).
+    A new family that reads `house.scenes` alone shows only the house's and the floors'.
+  - A room's scenes on the Console are `console/selector.ts`, the same in every era and
+    not in the kits. Its pointer is the scene last set (a scene's state is that time).
+  - What's left is in BACKLOG. Checked on a throw-away harness with an invented house of
+    22 rooms, in all five eras, at 390 and 1024 px, in Chromium and WebKit: no control
+    outside its chassis. Bakelite also seen on the test VM (the bundle copied to its
+    share; 2,918 px before the stacks and plates, 2,605 after). Not seen on the owner's
+    house or a tablet, and the Fridge not on the VM.
+- **Aurora is the fourth family** (2026.11.9-b9; the owner asked for it on 2026-11-16).
+  `aurora.ts` on `family.ts`, after `docs/design/dash-bored/aurora.html`. In `aurora/`:
+  `bento.ts` packs tiles into screens, `pages.ts` says what the screens are, `words.ts`
+  is what it says (the hero's sentence, the power's line) and `styles.ts` the look.
+  - **It is screens, each full** (owner, 2026-11-16: the first build had "loads of space
+    around"; he expected none free, as in the mock-up). `bento` puts each tile where it
+    first fits at the size it wants, then grows the tiles into the cells left. Tall
+    tiles can box a free cell in (about one screen in fifty): that screen is laid out
+    again with every tile one row tall, which can't. A sweep of 12,600 cases left no
+    cell free. Sizes come from the survey alone (how many devices a room has), never
+    from how the house stands: a tile must not move because a light was switched.
+    `_lay` works the screens out again only when the survey or the element's size change.
+  - **The grid is chosen for the tiles, not for the window** (owner, 2026-11-16, of a
+    Mac's window: "soo bad"). A window that could hold 8×6 cells gave seven tiles 48
+    cells to share, and they grew into empty slabs. `fitted` in `pages.ts` now picks,
+    per screen, the grid with the fewest cells to spare and cells near 1.3:1; small
+    sets next to each other share a screen while they fit one (`FULL`); and a tile's
+    contents are enlarged with its cell by CSS `zoom` (`zoom`, at most 1.6). Test any
+    change at 2560×1300 as well as at a tablet's and a phone's size.
+  - **Skins are varieties of colour** (owner, 2026-11-16, after HA Dial's themes), built
+    2026.11.9-b12 as data in `aurora/skins.ts`: a skin is the sky's three hues, how far
+    each turns as lights come on, the warm light's hue, a strength and the rooms' glow
+    hues, given to the stylesheet as custom properties (`paint`). A skin must change no
+    size or place. Chosen from the bar, kept in the browser, or named by a card's
+    `style`. **Not built:** the choice being open to automation (BACKLOG).
+  - **Season and holiday skins** (owner, 2026-11-16: "be creative"), built
+    2026.11.9-b12: nine in `SEASONAL` (`skins.ts`), each with decorations of the same
+    name in `DECORS` (`aurora/seasons.ts`); the drawings are in `aurora/art.ts`, by
+    hand, and `aurora/season-styles.ts` moves them. **A decoration never moves a tile
+    or takes a press:** it drifts over the page, runs along the foot either side of the
+    bar, stands in the greeting's top right corner (at the foot it stood on the
+    sentence), or is along the top. `almanac` picks the skin for a date. Seen on
+    the test VM in Chromium and WebKit at 1340 px, light theme. **Fireworks and Halloween
+    are always dark** (`Skin.dark`; owner, 2026-11-17), because on a light page they came
+    out pastel. **Not seen:** Home Assistant's dark theme, a phone, a tablet's frame rate
+    with 26 flakes falling.
+  - **What drifts is a simulation** (owner, 2026-11-17: leaves "flutter side to side",
+    look irregular, "settle on the ground", a robot collects them and a blower the
+    snow; then piles on tile tops, knocked off by a hover), built 2026.11.9-b13.
+    `aurora/drift.ts` is the model, with no page in it and its own test: each thing is
+    a van der Pol oscillator (it keeps swinging) and the wind is one Lorenz system (it
+    never repeats). A new thing that drifts is a row in `MOVES`. `aurora/drifting.ts`
+    places the drawings each frame. Owner's rulings, all 2026-11-17:
+    - **Artistic licence over physics:** each thing takes its own share of the wind,
+      some against it, and has its own speed, because everything going one way at once
+      "looks odd".
+    - **Ledges:** things land on the tops of the showing screen's tiles, the bar and
+      the ground. The bar hides the foot of the page, which is why it is one. Ledges
+      are measured when Aurora draws itself and by a ResizeObserver, not each frame. A
+      tile within 56 px of the page's top is no ledge: the machine could not stand there.
+    - **Heaps, not a blizzard:** a thing lies about for some seconds and then joins its
+      ledge's heap, one path however much is in it (`outline`), so at most `PILE`
+      things lie about.
+    - **Shaking:** a hover, a press, or a ledge that is gone (a swipe) drops what was
+      on it.
+    - **The machine flies** to each ledge with something on it, every 5 to 8 minutes.
+    - **Not built:** things lying on a room's sheet or on buttons. The sheet is a modal
+      dialog in the browser's top layer, so it would need a layer of its own inside it.
+    Fireworks still burst by CSS alone. Seen on the test VM at 60 frames a second in
+    Chromium and WebKit on a Mac. **Not seen:** a tablet's frame rate, a phone, a real
+    swipe, a machine's whole visit at its own time.
+  - **The device controls are a layer of their own**, `aurora/controls.ts`
+    (`Controls extends Family`), which `Aurora` extends: split out verbatim on
+    2026-11-17 when `aurora.ts` reached 569 lines.
+  - **A set of rooms is not a floor** (owner, 2026-11-16: "arbitrary splits" was to stop
+    floor or area being built in; the other way is not yet specified). `splits` in
+    `pages.ts` is the one place that knows a set is a floor today. A set takes no more
+    screens than the fewest it can (`fewest`).
+  - **The way round** (owner, 2026-11-16): a tab at the left and the right edge that
+    names its neighbour, and a bar that floats at the foot with a drop shadow, which
+    also has the search and a button for the choice of family. That button fires
+    `CHOOSE` (`shell.ts`), since a full screen leaves the shell's corner no free place
+    to press. The screens stand side by side in a box the browser snaps sideways
+    (`.pages`); no script moves them. `updated` puts the pager back in place only when
+    the layout changed, or it would fight a swipe.
+  - **A tile that has the room holds the room's controls** (`holds` in `pages.ts`, by
+    the tile's size in px, down to 170 px tall each): my addition, after the first
+    packed screens had big tiles that were mostly empty glass. Its columns must stay the
+    sheet's (`.controls`), which is what `holds` counts by.
+  - **Where it leaves the mock-up, for a tablet's sake** (my choices, told to the owner):
+    the sky is gradients moved by transform, with no blur filter; a tile has no
+    `backdrop-filter` (only the sky is behind it); and the tile grows into the sheet by
+    an animation of the dialog's transform, since a view transition can't be styled from
+    a shadow root.
+  - A guarded device's dot opens the sheet, where its key takes two presses; a camera or
+    an alarm opens Home Assistant's dialog, with the sheet shut first (a modal dialog is
+    over anything Home Assistant opens). The ring is the first thermostat in the house's
+    order of rooms: the owner has not said which it should be.
+  - The power's line is asked from history once per sensor and then grows by what is
+    pushed, a point at most every 30 s (`thinned`, `GAP`).
+  - Shared with the Fridge: `_after` and `_instead` are now in `family.ts`; `STANDS` and
+    `AGAIN` are exported from `fridge.ts`, and `picture` from `fridge/magnets.ts` (the
+    white line pictures, coloured by Aurora's stylesheet).
+  - **What the browsers taught:** a `<dialog>` given a class with `position: relative`
+    is placed from the top of the document, not of the screen (`.sheet` is fixed by
+    name). Headless WebKit paints no `backdrop-filter`, so anything that needs the blur
+    to be read can't be judged there: the sheet, the bar and the edge tabs are nearly
+    opaque by themselves. A dot's class must not be a device's kind: `climate` is also
+    the thermostat tile's class (a light's dot is `lamp`).
+  - Seen on a throw-away harness with an invented house (Chromium and WebKit; tablet,
+    desktop and phone sizes; 8 and 48 rooms; light and dark), and on the test VM's page
+    in Home Assistant (2026-11-16, both browsers, wide and phone, light theme,
+    hand-copied `cards.js`). **Not seen:** a finger's swipe on any real device, the
+    dark theme in Home Assistant, the card and the card picker since the screens, an
+    iPad or a wall tablet. On the VM there were no alerts (Sensor Watch was not loaded
+    there that day), no scenes and no power sensor: those three were seen on the harness
+    only.
+- **Casa Mia's own data on every family** (owner, 2026-11-16: every view is to take what
+  Casa Mia and its other integrations have, where they are installed). Dash-Bored still
+  stands alone: each source is found through Home Assistant by name, lands in `House`
+  (`house.ts`), and the families draw from that. Three steps, agreed in this order:
+  - **Cameras, built for the Console and the Gazette** (2026.11.9-b11). The app's
+    cameras ride `/health` (`cameras.py` `for_pages`, as `modules.cameras.list`; each
+    PTZ preset is the call that goes to it, built once with the dashboard's by
+    `preset_data`). `casa_mia/cameras/subscribe` feeds them to any user (`_follow` in
+    the integration's `__init__.py`, shared with the settings feed). `family.ts`
+    follows it only where `casa_mia` is among `hass.config.components`; a Casa Mia too
+    old to have the feed is said once in the console and is no fault on the page
+    (`newer` in `_follow`). **A camera Casa Mia lists replaces the one found** (owner,
+    2026-11-16): its title, and a `Device`'s `zoom`, `presets` and `controls`. The
+    entity kept is still the photographed stream where there is one, since sightings
+    are told by that entity (`rank` in `survey`), then Casa Mia's. A control that is a
+    kind a room shows is a `Device` (guarded as any); another is only pressed
+    (`pressing` in `stories.ts`: the page is no dashboard, so Lovelace's toggle action
+    is not there to use). On the Console (`_lenses` in `panel.ts`) a zoom is a knob, a
+    button or script a knife switch, a device a dolly, and the presets a selector with
+    a head line (`presets` in `balance.ts`'s `Load`); the controls stand in the order
+    `tall` counts them, so change the two together. Seen on a throw-away harness with
+    an invented house (Chromium and WebKit, 1024 and 390 px, Bakelite and Bargraph: no
+    control outside its chassis, and each press made the right call). **Not seen:** a
+    real PTZ camera, the feed from a real app, the test VM, Nixie, Silverface or
+    Beige, a tablet.
+  - **Aurora, built 2026.11.9-b12:** a camera's picture behind its room's tile, a tile
+    of every camera on the home screen, and on the room's sheet the picture with its
+    presets, zoom and controls (`aurora/cameras.ts`). A still is not live: it says what
+    the camera last saw, or when the still was fetched (`shot`). The sightings feed is
+    followed by `_watch` and `_sighted` in `family.ts`; the Console and the Fridge
+    still have their own copies of both, to be moved onto it in a refactor commit.
+    Seen on the test VM (Chromium and WebKit, 2560, 1340 and 390 px). **Not seen:** a
+    sighting (the VM's cameras report none), presets, zoom or controls (the VM has no
+    Casa Mia app), a real camera.
+  - **A device's choices** (2026.11.9-b12): `Device.choices` holds every setting that
+    is a choice from a list, from one table in `choices.ts` (a new one is a row).
+    Only Aurora's sheet shows them (`aurora/settings.ts`).
+  - **Not built:** the Fridge (it shows the title only), the Console's
+    one-entity card, and steps 2 (Guest Login) and 3 (Sensor Watch's bands). BACKLOG
+    has them.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right
   corner, on nothing in `PRESSED`, open a dialog; the choice is in the browser's storage
-  (`dash-bored-family`). A new family is an entry in `FAMILIES` there, an element defined
+  (`dash-bored-family`). Since 2026.11.9-b20 a browser with nothing stored is shown the
+  dialog first, and every family has a thing of its own on the page (never on a card)
+  that fires `CHOOSE`: the Gazette's ear, the Console's maker's plate (`host.ts`), the
+  Fridge's takeaway menu, Aurora's bar button, Digs' signboard, Contraption's lever. A new
+  family needs one, and says it in its entry's `back`, which the dialog's last line lists.
+  The dialog is three families across in landscape and two in portrait.
+  A new family is an entry in `FAMILIES` there, an element defined
   in `index.ts`, and a class on `family.ts`, which holds what they all need: the house
   (`survey`/`read`, with `_surveyed` and `_moved` to override), the settings feed,
   `_follow` for a feed, `_call`, `_ask`, `_fault` and `_lost`. Each family's element is
@@ -353,6 +834,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   is set at its source (ESPHome and KNX YAML). The label **Dash-Bored hide**
   (`HIDE_LABEL` in `const.py`, id `HIDE` in `house.ts`; a tests_ha test ties the two) is
   for the rest. The page changes nothing in the registries: the owner was told so.
+- **A light in no area still counts** (2026.11.9-b8; found when ZenOS's summary said 8
+  lights were on and the Gazette 7). `survey` keeps such lights as `strays`: on no room's
+  card, but in `lights(house)`, which the Gazette's lights story (and its turn-off button)
+  and the Fridge's notepad count with. A card of chosen floors or rooms leaves them out.
+  Other kinds in no area (a lock, a cover) are still in no story.
 - **Guarded devices** (my ruling for a live house, told to the owner): a lock, or a cover
   whose class is garage, gate or door, is never operated by a press on a sentence or a
   chip; that opens Home Assistant's dialog. The story's own remedy button may lock.
@@ -880,6 +1366,9 @@ CLAUDE.md has them all. What trips agents here:
   notify automation). The docs' screenshots come from it: don't clear it. Left there
   earlier and not checked since: the stable app installed and stopped, and a test
   automation (`cm_old_trigger`) using the old device trigger.
+  Since 2026-11-16 it also runs ZenOS-AI 2026.11.1 Beta 1, installed clean (persona
+  Juniper, invented household, Claude agent with only the DojoTools exposed, summaries
+  on the local Ollama model), so Dash-Bored's agent column has real Katas to show.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change

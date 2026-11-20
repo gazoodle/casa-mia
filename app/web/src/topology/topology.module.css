@@ -1,0 +1,85 @@
+/* Topology's page: only its own layout. Rows, areas, buttons, pills and dialogs are the
+   shared ones (guest.module.css, ui.module.css, pills.css). */
+
+.rows {
+  composes: list from "../guest.module.css";
+}
+
+.row {
+  composes: row from "../guest.module.css";
+  flex-wrap: wrap; /* a phone: the button goes under the words */
+  min-width: 0;
+}
+
+.fixed {
+  cursor: default;
+}
+
+/* A row that opens its dialog: the whole row is the button. */
+.pick {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.main {
+  composes: rowMain from "../guest.module.css";
+  flex: 1 1 200px;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  composes: rowTitle from "../guest.module.css";
+}
+
+.meta {
+  composes: rowMeta from "../guest.module.css";
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.exits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.sub {
+  margin: 18px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The picture keeps its size and scrolls, on a phone too: shrunk, its names can't be read. */
+.picture {
+  overflow: auto;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.picture svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.text {
+  overflow: auto;
+  max-height: 320px;
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre;
+}

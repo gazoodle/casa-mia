@@ -23,6 +23,9 @@ CONF_RATERS = "raters"
 CONF_SCREENS = "screens"
 CONF_ENABLED = "enabled"  # off: the entry watches nothing (switch.py); on if absent
 CONF_DELAY = "delay"  # seconds between a player reporting a track and it being heard
+# On: a player switched to another station goes back when the song playing at the end of
+# its minutes ends, not in the middle of it (owner, 2026-11-16). Off if absent.
+CONF_BACK_AT_END = "back_at_end"
 # Subentry ids in the order the page gave them (admin.py): the order groups settle a tie
 # in, and stations are tried in. Home Assistant keeps them as made, and can't move one.
 CONF_ORDER = "order"
