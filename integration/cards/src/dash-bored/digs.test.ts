@@ -170,7 +170,7 @@ test("one who comes home walks in from off the edge, and one who goes walks off 
   const world = build(house());
   let due: (() => void)[] = [];
   const arrived: string[] = [];
-  const walks = new Walks({ after: (_ms, then) => void due.push(then), requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: (id) => void arrived.push(id), setOff: () => undefined });
+  const walks = new Walks({ after: (_ms, then) => void due.push(then), requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: (id) => void arrived.push(id), setOff: () => undefined, pace: () => 1 });
   // Every wait comes due at once, a round at a time.
   const run = (rounds = 50) => {
     for (let i = 0; i < rounds && due.length; i++) {
@@ -205,7 +205,7 @@ test("one who comes home walks in from off the edge, and one who goes walks off 
 test("with nobody else walking, the view stays on whom it follows rather than going over to somebody standing still", async () => {
   const { Walks } = await import("./digs/walk.ts");
   const world = build(house());
-  const walks = new Walks({ after: () => undefined, requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: () => undefined, setOff: () => undefined });
+  const walks = new Walks({ after: () => undefined, requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: () => undefined, setOff: () => undefined, pace: () => 1 });
   walks.sync([{ id: "person.ann", name: "Ann", place: "home", since: 0 }, { id: "person.bob", name: "Bob", place: "home", since: 0 }]);
   assert.equal(walks.pick("person.ann"), "person.ann");
   assert.ok(["person.ann", "person.bob"].includes(walks.pick("")!));

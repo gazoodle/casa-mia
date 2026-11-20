@@ -271,3 +271,17 @@ def test_about_pronouns_default_to_they_and_the_query_picks_a_person(tmp_path):
     assert sam["pronouns"]["subject"] == "they" and sam["pronouns"]["plural"]
     assert sam["gender"] is None
     assert p.about("nobody", TODAY) == {"people": []}
+
+
+def test_every_saved_change_is_announced_and_a_refused_one_is_not(tmp_path):
+    # Dash-Bored's household feed asks the People action again on CHANGED_EVENT.
+    changes = []
+    p = People(tmp_path / "people.json", on_change=lambda: changes.append(1))
+    status, view = call(p, "POST", body={"name": "Alex", "phone": "07700 900123"})
+    assert status == 201 and len(changes) == 1
+    who = view["people"][0]["id"]
+    assert call(p, "PUT", who, {"name": "Alex", "phone": "07700 900124"})[0] == 200
+    assert call(p, "DELETE", who)[0] == 200
+    assert len(changes) == 3
+    assert call(p, "DELETE", who)[0] == 404
+    assert len(changes) == 3

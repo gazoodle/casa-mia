@@ -152,6 +152,10 @@ Each entry in `people` has:
 Phone numbers and plates are not included. Each call asks the app, and birthdays follow
 Home Assistant's time zone.
 
+After every change saved on this page, Casa Mia fires the event
+`casa_mia_people_changed`, with no data, so an automation or a card that uses the action
+can ask again. Dash-Bored's Digs does this to draw children by their age.
+
 ## In Home Assistant
 
 The person link is stored with the entry. The phone permissions are used by FONA's

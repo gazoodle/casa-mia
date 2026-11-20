@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.11-b6
+
+- **Dash-Bored: Digs draws children by their age.** When Casa Mia's People has someone's date of birth, Digs draws a child of 5 to 12 shorter than a grown-up, and a younger child shorter still, walking more slowly. On a person's birthday they wear a party hat. Only the age band and whether it is their birthday reach the page, never the date. Without Casa Mia everybody is drawn grown, as before.
+- **People: a change is announced.** After every change saved on the People page, Casa Mia fires the event `casa_mia_people_changed`, so whatever uses the People action can ask again at once.
+
 ## 2026.11.11-b5
 
 - **Dash-Bored: Digs no longer goes blank for some people's names.** Each person's clothes are chosen from their name, and for about half of all names the choice fell outside the list of colours. The walking figures then had no colour to draw with, and the whole page stopped drawing. It showed on a tablet once b3 brought everyone with no tracker into the house.

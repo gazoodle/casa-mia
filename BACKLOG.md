@@ -121,6 +121,9 @@ the Gazette's own work is parked below it.
     `jewel`, a reading as a small meter, on the blanking plates that b9 fits. Never
     grows a chassis, and is chosen from the survey so that nothing moves with a state.
   - Not seen on the owner's house or on a tablet: only on a harness with an invented
+  - **Casa Mia People's ages and birthdays** (the household feed, 2026.11.11-b6) on the
+    five families other than Digs, which is the only one that draws people. A birthday
+    at least is news anywhere: a story in the Gazette, a note on the Fridge.
     house (Chromium and WebKit). The Fridge's sizes in `fridge/rows.ts` are estimates.
 - **Casa Mia's data on every family, what's left** (owner, 2026-11-16; the cameras are
   built for the Console and the Gazette in 2026.11.9-b11, see HANDOVER).

@@ -15,7 +15,7 @@ import { Tour } from "./digs/follow.ts";
 import { Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
-import { bg, figure, say, texture } from "./digs/textures.ts";
+import { BUILDS, bg, figure, say, texture, type Shape } from "./digs/textures.ts";
 import { Walks, about } from "./digs/walk.ts";
 import { CHEST, LAMPS, build, cutout, lamp, shades, type Slot, type World } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
@@ -25,6 +25,9 @@ import { CHOOSE } from "./shell.ts";
 import { NOMINAL, clock, flip, type Alert } from "./stories.ts";
 
 export const CARD = "dash-bored-digs";
+// The feed of what Casa Mia's People says of each person (household.py in the integration).
+const HOUSEHOLD = "casa_mia_dash_bored/household";
+type Aged = { person: string; band: "baby" | "toddler" | "child" | null; birthday: boolean };
 const ARMED = 3000; // ms: how long a cracked block waits for its second hit
 const CHOSEN = 8000; // ms: how long a block stays chosen with nothing pressed
 const ROOM = "room:"; // before a room's id in `_sel`: its name is what is chosen
@@ -105,6 +108,7 @@ export class Digs extends Family {
     still: () => this._sample || calm(),
     arrived: (id) => this._tour.arrived(id),
     setOff: (id) => this._tour.setOff(id),
+    pace: (id) => (this._shape(id) === "toddler" ? 1.5 : 1),
   });
   private _tour = new Tour({
     scroller: () => this.renderRoot?.querySelector<HTMLElement>(".scroll"),
@@ -118,6 +122,8 @@ export class Digs extends Family {
     pick: (not) => this._walks.pick(not),
     requestUpdate: () => this.requestUpdate(),
   });
+  // What Casa Mia's People says of each person, by their person entity: empty without it.
+  private _aged = new Map<string, Aged>();
   private _synced?: [House | undefined, World | undefined]; // the house and world the walks were last told of
   private _hands?: AbortController; // the listeners for a touch, which hands the view back
 
@@ -178,6 +184,14 @@ export class Digs extends Family {
         for (const a of alerts) held.set(a.entity_id, a);
         this._alerts = [...held.values()];
       });
+    // The household's ages, for each figure's size: the whole household in each item.
+    if (!this._alone)
+      this._follow(HOUSEHOLD, "Casa Mia's People", (told: { people: Aged[] }[]) => {
+        const last = told.at(-1);
+        if (!last) return;
+        this._aged = new Map(last.people.map((p) => [p.person, p]));
+        this.requestUpdate();
+      });
   }
 
   /** The world is built once for a survey: the registries changed, not a state. */
@@ -193,6 +207,13 @@ export class Digs extends Family {
 
   protected _moved(d: Device) {
     if (this._armed === d.id) this._armed = "";
+  }
+
+  /** How somebody is drawn, by the band their age falls in. A baby is drawn as a toddler
+   * until it has a crawl of its own (BACKLOG). Grown without Casa Mia's People. */
+  private _shape(id: string): Shape {
+    const band = this._aged.get(id)?.band;
+    return band === "child" ? "child" : band === "toddler" || band === "baby" ? "toddler" : "grown";
   }
 
   /** Who is about the house: everybody Home Assistant has at home, and everybody it can't
@@ -458,7 +479,12 @@ export class Digs extends Family {
         ${this._prank.draw()}
         ${alone
           ? nothing
-          : repeat(this._walks.list(), (w) => w.id, (w) => html`<div class="at who ${w.ms ? (w.climbing ? "climbing" : "walking") : ""} ${w.left ? "left" : ""}" style="${place(w.at.x, w.at.y - 1, 1, 2)};--ms:${w.ms}ms;--fig:${figure(w.name)}">${say(w.name)}</div>`)}
+          : repeat(this._walks.list(), (w) => w.id, (w) => {
+              // Feet on the floor whatever the height; a party hat on a birthday.
+              const shape = this._shape(w.id), tall = BUILDS[shape].h / 16, birthday = !!this._aged.get(w.id)?.birthday;
+              return html`<div class="at who ${shape} ${w.ms ? (w.climbing ? "climbing" : "walking") : ""} ${w.left ? "left" : ""} ${birthday ? "birthday" : ""}"
+                style="${place(w.at.x, w.at.y + 1 - tall, 1, tall)};--ms:${w.ms}ms;--fig:${figure(w.name, shape)}${birthday ? `;--hat:${bg("hat")}` : ""}">${say(w.name)}</div>`;
+            })}
         <canvas class="dark" .width=${world.w} .height=${world.h}></canvas>
         ${sel && world.slots.has(sel.id) ? html`<div class="at tag" style=${place(world.slots.get(sel.id)!.x, world.slots.get(sel.id)!.y, world.slots.get(sel.id)!.w, world.slots.get(sel.id)!.h)}>${say(sel.name)}</div>` : nothing}
       </div>`;

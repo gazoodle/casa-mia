@@ -110,6 +110,7 @@ type Host = {
   still(): boolean; // nobody walks: a specimen, or less movement asked for
   arrived(id: string): void; // somebody has got where they were going
   setOff(id: string): void; // somebody has begun a walk
+  pace(id: string): number; // how much longer than a grown-up's their every step takes: a toddler's, 1.5
 };
 
 export class Walks {
@@ -242,7 +243,7 @@ export class Walks {
       }
       return this._host.requestUpdate();
     }
-    const ms = Math.abs(next.x - w.at.x) * PACE + Math.abs(next.y - w.at.y) * CLIMB;
+    const ms = (Math.abs(next.x - w.at.x) * PACE + Math.abs(next.y - w.at.y) * CLIMB) * this._host.pace(id);
     const setting = !w.leg;
     const leg = (w.leg = { from: w.at, t0: Date.now(), ms });
     if (next.x !== w.at.x) w.left = next.x < w.at.x;

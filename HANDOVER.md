@@ -480,6 +480,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     nobody was home, because an empty house should look empty). On the page
     only. The view pans sideways only: the page fits the world's height. Options for all
     of it are in BACKLOG.
+  - **Ages from Casa Mia's People** (2026.11.11-b6; owner, 2026-11-20). The integration's
+    `household.py` asks `casa_mia.people` at start, when the action registers, on
+    `casa_mia_people_changed` (People's `on_change`, fired by `__main__` after every
+    `_commit`) and at 00:00:05, and feeds `casa_mia_dash_bored/household`: per person
+    entity only a band (`baby` under 2, `toddler` under 5, `child` under 13) and
+    `birthday`, never the date or age. Digs' `_shape` picks a `BUILDS` entry
+    (`textures.ts`: grown 32 texels tall, child 24, toddler 20, drawn at the same texel
+    size, never scaled); a toddler walks at 1.5× (`pace`); a birthday adds the `hat`.
+    A baby is a toddler until part 2 gives it a crawl.
   - A figure is a strip of seven frames (`textures.ts` `person`: standing front-on, four
     of a side-on stride, two of a climb from behind) drawn in `.who::before`, which flips
     for `.left` so that the name does not; `.walking` and `.climbing` step through it.

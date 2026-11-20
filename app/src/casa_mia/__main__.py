@@ -41,6 +41,7 @@ from .modules.guest_login import (
 )
 from .modules.kiosk_mode import KioskMode
 from .modules.kiosks import Kiosks
+from .modules.people import CHANGED_EVENT as PEOPLE_CHANGED
 from .modules.people import People
 from .server import PORT, integration_url, make_server
 from .swap.api import SwapApi
@@ -123,7 +124,15 @@ def main() -> int:
     ha = HA(ha_url.replace("http", "ws", 1) + ws_path, ha_token)
     api["/api/swap/"] = SwapApi(ha).handle  # the Swap page (developer mode)
     # Always on: it is only a list, and FONA (and later guest login) look people up in it.
-    people = People(PEOPLE_STORE, ha)
+    # A change to the list is announced at once (on a thread: a save never waits on Home
+    # Assistant), so Dash-Bored's household feed asks again.
+    people = People(
+        PEOPLE_STORE,
+        ha,
+        on_change=lambda: threading.Thread(
+            target=fire_event, args=(token, PEOPLE_CHANGED, {}), daemon=True
+        ).start(),
+    )
     modules["people"] = people.health
     api["/api/people/"] = people.handle
     # The integration's check_plate service: may this car open the gates?

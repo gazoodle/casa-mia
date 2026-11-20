@@ -35,6 +35,9 @@ from typing import Any
 from ..ha import HA, HAError
 
 _LOGGER = logging.getLogger(__name__)
+# Fired with no data after every saved change to the list: whoever draws or words by it
+# (Dash-Bored's household feed) asks the People action again. Push, not poll (RULE FOUR).
+CHANGED_EVENT = "casa_mia_people_changed"
 
 COUNTRY = "44"  # numbers starting 0 are UK numbers
 KINDS = ("call", "text")
@@ -182,9 +185,17 @@ def about(person: dict[str, Any], today: date) -> dict[str, Any]:
 
 
 class People:
-    def __init__(self, store_path: Path, ha: HA | None = None) -> None:
+    def __init__(
+        self,
+        store_path: Path,
+        ha: HA | None = None,
+        on_change: Callable[[], None] = lambda: None,
+    ) -> None:
         self.store_path = store_path
         self.ha = ha
+        self.on_change = (
+            on_change  # after each saved change: __main__ fires CHANGED_EVENT
+        )
         self._lock = threading.Lock()
         self.people: list[dict[str, Any]] = []
         self._broken: str | None = None
@@ -414,6 +425,7 @@ class People:
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
         tmp.write_text(json.dumps({"people": self.people}, indent=2))
         tmp.replace(self.store_path)
+        self.on_change()
 
 
 def _answer(
