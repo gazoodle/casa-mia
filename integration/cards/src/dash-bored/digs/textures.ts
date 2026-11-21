@@ -42,38 +42,82 @@ const lever = (on: boolean): Paint => (x, y) => {
 };
 const chandelier = (glow: string): Paint => (x, y) =>
   (x === 7 || x === 8) && y < 6 ? "#4a3016" : y > 5 && y < 9 && x > 0 && x < 15 ? "#a8742a" : y > 8 && y < 14 && x % 4 > 0 && x % 4 < 3 && x > 0 && x < 15 ? glow : null;
-// A person, facing us: the standing frame.
-const facing = (hair: string, top: string, legs: string): Paint => (x, y) =>
-  y < 8 ? (x < 4 || x > 11 ? null : y < 3 ? hair : y === 4 && (x === 6 || x === 9) ? INK : SKIN)
-  : y < 20 ? (x > 3 && x < 12 ? top : x > 1 && x < 14 ? (y < 18 ? shade(top, 0.85) : SKIN) : null)
-  : x < 4 || x > 11 ? null : y > 29 ? INK : x === 7 || x === 8 ? shade(legs, 0.8) : legs;
+/** A figure's build, in texels: how tall in all, how many rows the head and the body
+ * take (the legs have the rest), half its width facing us, and how far apart its feet go
+ * in a stride. A grown-up's is the figure Digs has always drawn; a child and a toddler
+ * are drawn at the same texel size, shorter, never the grown figure shrunk (which would
+ * give it texels of uneven sizes). Which one a person is comes from Casa Mia's People
+ * (household.py), by the band their age falls in. */
+export type Build = { h: number; head: number; body: number; half: number; stride: number };
+export const BUILDS = {
+  grown: { h: 32, head: 8, body: 12, half: 4, stride: 4 },
+  child: { h: 24, head: 7, body: 8, half: 3, stride: 3 },
+  toddler: { h: 20, head: 7, body: 6, half: 3, stride: 2 },
+  // A baby sits or crawls (`baby` below): only its height is used.
+  baby: { h: 12, head: 6, body: 4, half: 3, stride: 0 },
+} satisfies Record<string, Build>;
+export type Shape = keyof typeof BUILDS;
+
+// A person, facing us: the standing frame. The eyes are either side of the middle.
+const facing = (b: Build, hair: string, top: string, legs: string): Paint => (x, y) => {
+  const [l, r, waist] = [8 - b.half, 7 + b.half, b.head + b.body];
+  if (y < b.head) return x < l || x > r ? null : y < 3 ? hair : y === b.head >> 1 && (x === 6 || x === 9) ? INK : SKIN;
+  if (y < waist) return x >= l && x <= r ? top : x >= l - 2 && x <= r + 2 ? (y < waist - 2 ? shade(top, 0.85) : SKIN) : null;
+  return x < l || x > r ? null : y >= b.h - 2 ? INK : x === 7 || x === 8 ? shade(legs, 0.8) : legs;
+};
 // Walking to the right, seen from the side: `stride` texels between the feet (one leg
 // forward, then the other) and the near arm swung the other way. Flipped to walk left.
-const walking = (hair: string, top: string, legs: string, stride: number): Paint => (x, y) => {
-  if (y < 8) return x < 5 || x > 10 ? null : y < 3 || (x < 7 && y < 6) ? hair : y === 4 && x === 9 ? INK : SKIN;
-  if (y < 20) {
-    const arm = 7.5 - (stride * (y - 8)) / 24; // the arm swings against the near leg
-    if (Math.abs(x - arm) < 1 && y > 8) return y > 17 ? SKIN : shade(top, 0.8);
-    return x > 4 && x < 11 ? top : null;
+const walking = (b: Build, hair: string, top: string, legs: string, stride: number): Paint => (x, y) => {
+  const [l, r, waist] = [9 - b.half, 6 + b.half, b.head + b.body];
+  if (y < b.head) return x < l || x > r ? null : y < 3 || (x < l + 2 && y < b.head - 2) ? hair : y === b.head >> 1 && x === r - 1 ? INK : SKIN;
+  if (y < waist) {
+    const arm = 7.5 - (stride * (y - b.head)) / (b.body * 2); // the arm swings against the near leg
+    if (Math.abs(x - arm) < 1 && y > b.head) return y >= waist - 2 ? SKIN : shade(top, 0.8);
+    return x >= l && x <= r ? top : null;
   }
-  const k = (stride * (y - 20)) / 11;
+  const k = (stride * (y - waist)) / (b.h - waist - 1);
   const [near, far] = [7.5 + k / 2, 7.5 - k / 2];
   const on = (c: number) => Math.abs(x - c) < 1.3;
-  return on(near) ? (y > 29 ? INK : legs) : on(far) ? (y > 29 ? INK : shade(legs, 0.75)) : null;
+  return on(near) ? (y >= b.h - 2 ? INK : legs) : on(far) ? (y >= b.h - 2 ? INK : shade(legs, 0.75)) : null;
 };
 // Climbing, seen from behind: one hand up and the other knee raised, then the other way.
-const climbing = (hair: string, top: string, legs: string, left: boolean): Paint => (x, y) => {
-  if ((x > 1 && x < 4) || (x > 11 && x < 14)) {
+const climbing = (b: Build, hair: string, top: string, legs: string, left: boolean): Paint => (x, y) => {
+  const [l, r, waist] = [8 - b.half, 7 + b.half, b.head + b.body];
+  if ((x >= l - 2 && x < l) || (x > r && x <= r + 2)) {
     const sleeve = shade(top, 0.85);
     // The raised arm reaches for the rung over the head; the other hangs.
-    if (left === x < 4) return y > 0 && y < 16 ? (y < 3 ? SKIN : sleeve) : null;
-    return y > 8 && y < 20 ? (y < 18 ? sleeve : SKIN) : null;
+    if (left === x < l) return y > 0 && y < Math.round(b.head + (b.body * 2) / 3) ? (y < 3 ? SKIN : sleeve) : null;
+    return y > b.head && y < waist ? (y >= waist - 2 ? SKIN : sleeve) : null;
   }
-  if (x < 4 || x > 11) return null;
-  if (y < 8) return y < 6 ? hair : SKIN;
-  if (y < 20) return top;
+  if (x < l || x > r) return null;
+  if (y < b.head) return y < b.head - 2 ? hair : SKIN;
+  if (y < waist) return top;
   const raised = left ? x > 7 : x < 8;
-  return raised && y > 27 ? null : y > (raised ? 25 : 29) ? INK : legs;
+  return raised && y > b.h - 5 ? null : y > (raised ? b.h - 7 : b.h - 3) ? INK : legs;
+};
+// A baby, sitting facing us: a tuft of hair, its arms at its sides and its legs out in front.
+const sitting = (hair: string, top: string, legs: string): Paint => (x, y) => {
+  if (y < 6) return x < 5 || x > 10 ? null : y === 0 ? (x === 7 || x === 8 ? hair : null) : y === 1 ? hair : y === 3 && (x === 6 || x === 9) ? INK : SKIN;
+  if (y < 10) return x >= 5 && x <= 10 ? top : (x === 4 || x === 11) && y > 6 ? SKIN : null;
+  return x >= 3 && x <= 12 ? (x < 5 || x > 10 ? SKIN : legs) : null;
+};
+// A baby crawling to the right, seen from the side: its back level, its head up, and one
+// hand and the other knee forward (`reach` 1), then back (-1). Flipped to crawl left.
+const crawling = (hair: string, top: string, legs: string, reach: number): Paint => (x, y) => {
+  if (y >= 2 && y <= 7 && x >= 10 && x <= 14) return y === 2 || (x <= 11 && y <= 4) ? hair : y === 4 && x === 13 ? INK : SKIN;
+  if (y >= 5 && y <= 8 && x >= 3 && x <= 10) return top;
+  if (y < 9) return null;
+  // An arm from the shoulder and a thigh from the hip, each slanting down to the floor.
+  const along = (from: number, to: number) => Math.abs(x - (from + ((to - from) * (y - 8)) / 3)) < 1;
+  if (along(10.5, 11 + reach)) return y === 11 ? SKIN : shade(top, 0.85);
+  if (along(4.5, 4 - reach)) return legs;
+  return y === 11 && x < 4 - reach && x >= 1 - reach ? shade(legs, 0.8) : null;
+};
+// A paper party hat for a birthday, worn over the head: stripes, and a bobble on top.
+const hat: Paint = (x, y) => {
+  const mid = Math.abs(x - 7.5);
+  if (y < 2) return mid < 1 ? "#fff" : null;
+  return mid < (y - 1) * 0.55 + 0.5 ? ((x + y) % 4 < 2 ? "#e02c3c" : "#ffd83a") : null;
 };
 // A spotlight set in the ceiling: a ring with its lamp under it, and a faint beam when it is on.
 const spot = (on: boolean): Paint => (x, y) => {
@@ -93,8 +137,14 @@ const standing = (on: boolean): Paint => (x, y, r) => {
   return y > 28 && y < 31 && mid < 4 ? "#3a2a18" : null;
 };
 const FRAMES = 7; // standing, four of walking, two of climbing: one strip, a block wide each
-const person = (hair: string, top: string, legs: string): Paint => {
-  const frames = [facing(hair, top, legs), ...[4, 0, -4, 0].map((stride) => walking(hair, top, legs, stride)), climbing(hair, top, legs, true), climbing(hair, top, legs, false)];
+const person = (shape: Shape, hair: string, top: string, legs: string): Paint => {
+  const b = BUILDS[shape];
+  // A baby's strip has the same seven places: sitting, four of a crawl, and sitting
+  // where the climb would be, as a baby takes no ladder.
+  const frames =
+    shape === "baby"
+      ? [sitting(hair, top, legs), ...[1, 0, -1, 0].map((reach) => crawling(hair, top, legs, reach)), sitting(hair, top, legs), sitting(hair, top, legs)]
+      : [facing(b, hair, top, legs), ...[b.stride, 0, -b.stride, 0].map((stride) => walking(b, hair, top, legs, stride)), climbing(b, hair, top, legs, true), climbing(b, hair, top, legs, false)];
   return (x, y, r) => frames[x >> 4](x & 15, y, r);
 };
 const bitmap = (rows: string[], colour: string): [number, number, Paint] => [rows[0].length, rows.length, (x, y) => (rows[y][x] === "#" ? colour : null)];
@@ -176,6 +226,7 @@ const PAINTS: Record<string, [number, number, Paint]> = {
   tnt: [16, 16, (x, y) => (y < 3 ? ((x === 8 && y > 0) || (x === 9 && y === 0) ? "#2a2018" : null)
     : y > 4 && y < 12 ? (y > 5 && y < 11 && x > 1 && x < 14 && (x - 2) % 4 < 3 && Number("72222 65555 72222".split(" ")[(x - 2) >> 2][y - 6]) & (4 >> ((x - 2) % 4)) ? "#2a2018" : "#f0e6c8")
     : x % 4 === 3 ? "#7a1418" : y === 3 || y === 15 ? "#a01c22" : x % 4 === 0 ? "#e85a50" : "#d0282e")],
+  hat: [16, 8, hat],
   hole: [16, 16, (x, y, r) => (edge(x, y) && r() < 0.5 ? null : r() < 0.12 ? "#3a3632" : "#16141a")],
   bot: [16, 16, (x, y) => (y === 0 && x > 2 && x < 13 ? "#b9bcc4" : y < 3 && (x === 7 || x === 8) ? "#5a5d66" : y > 2 && y < 11 && x > 3 && x < 12 ? (y > 4 && y < 8 && x > 5 && x < 10 ? "#5ad8ff" : edge(x - 4, y - 3, 8, 8) ? "#5a5d66" : "#9a9da6")
     : y > 10 && y < 15 && (x === 5 || x === 10) ? "#5a5d66" : (y === 14 && x > 3 && x < 12) || (y > 11 && x > 11 && x < 15 && x - y === 0) ? "#ffd83a" : null)],
@@ -219,11 +270,20 @@ const kept = (key: string, make: () => HTMLCanvasElement) => {
 };
 /** A texture as a CSS background. */
 export const bg = (name: string) => `url(${kept(name, () => texture(name))})`;
-/** A person's figure as a CSS background, dressed by their name: a strip of FRAMES
- * frames, each sixteen texels by thirty-two (styles.ts steps through them). */
-export function figure(name: string) {
+/** A person's clothes by their name: hair, top and legs. The shifts are unsigned: `>>`
+ * made a name whose hash is 2³¹ or more pick from before the start of a list, and the
+ * figure that then had no colour stopped Digs drawing at all (2026.11.11-b3, on a tablet). */
+export function dress(name: string): [hair: string, top: string, legs: string] {
   const n = hash(name);
-  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16 * FRAMES, 32, person(HAIR[n % HAIR.length], TOPS[(n >> 3) % TOPS.length], LEGS[(n >> 6) % LEGS.length])))})`;
+  return [HAIR[n % HAIR.length], TOPS[(n >>> 3) % TOPS.length], LEGS[(n >>> 6) % LEGS.length]];
+}
+
+/** A person's figure as a CSS background, dressed by their name and of the `shape` their
+ * age gives them: a strip of FRAMES frames, each sixteen texels wide and as tall as the
+ * build (styles.ts steps through them). */
+export function figure(name: string, shape: Shape = "grown") {
+  const key = `who:${shape}:${name}`;
+  return `url(${kept(key, () => painted(key, 16 * FRAMES, BUILDS[shape].h, person(shape, ...dress(name))))})`;
 }
 
 // ---- Lettering: three texels by five, a row to an octal digit. ----

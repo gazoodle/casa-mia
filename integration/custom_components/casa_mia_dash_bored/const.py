@@ -32,6 +32,7 @@ PERSONAL = f"{DOMAIN}/personal"  # the feed of the Personal column's announcemen
 SETTINGS = f"{DOMAIN}/settings"  # the feed of the house's settings (settings.py)
 PLAYING = f"{DOMAIN}/playing"  # the feed of what the media players have played
 COLUMN = f"{DOMAIN}/column"  # the feed of the agent's column (column.py)
+HOUSEHOLD = f"{DOMAIN}/household"  # the feed of the household's ages (household.py)
 
 # Sensor Watch's bus event, and the level it gives a sensor with nothing wrong. Named
 # here and not imported: the two integrations meet only through Home Assistant, and each
@@ -40,3 +41,7 @@ WATCH_EVENT = "casa_mia_sensor_watch"
 NOMINAL = "nominal"
 # Love it or Loathe it's bus event for a song somebody rated: named, not imported, as above.
 RATED_EVENT = "casa_mia_love_or_loathe_rated"
+# Casa Mia's People: its action, and the bus event it fires after each saved change.
+# Named, not imported, as above: without Casa Mia there is neither.
+PEOPLE_ACTION = ("casa_mia", "people")
+PEOPLE_EVENT = "casa_mia_people_changed"

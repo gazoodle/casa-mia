@@ -1,9 +1,11 @@
 import { defineConfig } from "vite";
+import { homeOf } from "./vite.home.ts";
 
 // Dash-Bored's page and card, in a file of their own (cards.js) in its integration, which
 // works without Casa Mia's: it loads the file into every HA page itself.
 // CM_DASH_BORED_OUT sends it elsewhere instead.
 export default defineConfig({
+  define: homeOf("casa_mia_dash_bored"),
   build: {
     outDir: process.env.CM_DASH_BORED_OUT || "../custom_components/casa_mia_dash_bored/www",
     emptyOutDir: false,

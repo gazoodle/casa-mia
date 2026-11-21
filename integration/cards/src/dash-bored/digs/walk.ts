@@ -11,6 +11,13 @@ import type { Person } from "../house.ts";
 import type { Cell } from "./prank.ts";
 import type { World, Zone } from "./world.ts";
 
+/** Whether somebody is about the house, by their person's state: at home, or not to be
+ * placed at all (no tracker, or its integration not answering), as a child or a pet with
+ * no phone is always about. Away or in a zone of their own ("Work"), they are out
+ * (owner, 2026-11-20). It replaced, in 2026.11.11-b3, the whole household walking about
+ * whenever nobody was at home: an empty house is worth seeing as empty. */
+export const about = (state?: string) => state === "home" || state === undefined || state === "unknown" || state === "unavailable";
+
 const PACE = 450; // ms: a block walked
 const CLIMB = 700; // ms: a rung climbed
 const [SOONEST, LATEST] = [10_000, 40_000]; // ms: how long somebody stays where they got to (owner, 2026-11-20: 20–90 s left nobody walking 60% of the time)
@@ -32,16 +39,22 @@ const edge = (world: World): Cell => ({ x: 0, y: world.ground - 1 });
 const off = (world: World): Cell => ({ x: -1, y: world.ground - 1 });
 
 const graphs = new WeakMap<World, Map<number, number[]>>();
+const crawls = new WeakMap<World, Map<number, number[]>>();
 
-/** Where a figure can stand or climb, and where it can step to from each: worked out once for a world. */
-function graph(world: World) {
-  let g = graphs.get(world);
+/** Where a figure can stand or climb, and where it can step to from each: worked out once
+ * for a world, and once more for a baby (`crawl`), who keeps to the floors indoors: no
+ * rung, and no step out of the doors. */
+function graph(world: World, crawl = false) {
+  const kept = crawl ? crawls : graphs;
+  let g = kept.get(world);
   if (g) return g;
-  const ladder = new Set(world.deco.filter(([t]) => t === "ladder").map(([, x, y]) => y * ACROSS + x));
+  const ladder = new Set(crawl ? [] : world.deco.filter(([t]) => t === "ladder").map(([, x, y]) => y * ACROSS + x));
   const floors = new Set([world.ground - 1, ...world.zones.map((z) => z.y1)]);
   // A floor's cell that is not solid, with something under it to stand on; or a rung.
   const stands = (x: number, y: number) =>
-    x >= 0 && x < world.w && (ladder.has(y * ACROSS + x) || (floors.has(y) && !SOLID.has(world.blocks[y][x] ?? "") && !!world.blocks[y + 1]?.[x]));
+    x >= 0 &&
+    x < world.w &&
+    (ladder.has(y * ACROSS + x) || (floors.has(y) && !SOLID.has(world.blocks[y][x] ?? "") && !!world.blocks[y + 1]?.[x] && !(crawl && world.zone[y][x] === "out")));
 
   g = new Map();
   for (let y = 0; y < world.h; y++)
@@ -52,13 +65,13 @@ function graph(world: World) {
       for (const b of [y - 1, y + 1]) if (stands(x, b) && (ladder.has(y * ACROSS + x) || ladder.has(b * ACROSS + x))) steps.push([x, b]);
       g.set(y * ACROSS + x, steps.map(([a, b]) => b * ACROSS + a));
     }
-  graphs.set(world, g);
+  kept.set(world, g);
   return g;
 }
 
 /** The shortest way from one cell to another, a cell at a time; nothing if there is none. */
-export function route(world: World, from: Cell, to: Cell): Cell[] | undefined {
-  const g = graph(world);
+export function route(world: World, from: Cell, to: Cell, crawl = false): Cell[] | undefined {
+  const g = graph(world, crawl);
   const [start, goal] = [from.y * ACROSS + from.x, to.y * ACROSS + to.x];
   const back = new Map([[start, -1]]);
   const queue = [start];
@@ -103,6 +116,8 @@ type Host = {
   still(): boolean; // nobody walks: a specimen, or less movement asked for
   arrived(id: string): void; // somebody has got where they were going
   setOff(id: string): void; // somebody has begun a walk
+  pace(id: string): number; // how much longer than a grown-up's their every step takes: a toddler's, 1.5
+  crawls(id: string): boolean; // a baby: keeps to its own floor indoors, and is never seen to come or go
 };
 
 export class Walks {
@@ -138,7 +153,7 @@ export class Walks {
       else if (w.leaving) {
         // Back before they were out of sight: they turn round where they are.
         w.leaving = false;
-        this._turn(p.id, w, (from) => (from.x < 0 ? this._in(world) : this._way(world, from, this._spot(world))));
+        this._turn(p.id, w, (from) => (from.x < 0 ? this._in(world) : this._way(world, p.id, from, this._spot(world, p.id, from))));
       }
     }
     for (const [id, w] of this._walkers) if (!ids.has(id) && !w.leaving) this._leave(id, w, world);
@@ -172,13 +187,20 @@ export class Walks {
     return this._walkers.has(not) ? not : any(others);
   }
 
-  private _spot(world: World) {
-    return destination(world, this._host.homely(world), this._host.outdoors(), Math.random);
+  /** Where somebody goes next. A baby, from `from`, goes to a room on the floor it is on. */
+  private _spot(world: World, id = "", from?: Cell) {
+    const crawl = this._host.crawls(id);
+    const floor = crawl && from ? world.zones.filter((z) => z.y1 === from.y) : [];
+    if (floor.length) return destination(world, floor, false, Math.random);
+    return destination(world, this._host.homely(world), !crawl && this._host.outdoors(), Math.random);
   }
 
-  /** The turns of the way from one cell to another, without the first; none if there is no way. */
-  private _way(world: World, from: Cell, to: Cell, then: Cell[] = []) {
-    const cells = route(world, from, to);
+  /** The turns of the way from one cell to another, without the first; none if there is no
+   * way. A baby crawls, unless it is somewhere crawling does not reach (put in the garden
+   * before its age was known), from where it walks back in the ordinary way. */
+  private _way(world: World, id: string, from: Cell, to: Cell, then: Cell[] = []) {
+    const crawl = this._host.crawls(id) && graph(world, true).has(from.y * ACROSS + from.x);
+    const cells = route(world, from, to, crawl);
     return cells ? corners([...cells, ...then]).slice(1) : [];
   }
 
@@ -193,24 +215,25 @@ export class Walks {
   }
 
   private _enter(p: Person, placed: boolean, world: World) {
-    const still = this._host.still();
-    const w: Walker = { name: p.name, at: placed || still ? this._spot(world) : off(world), ahead: [], leaving: false, left: false };
+    // A baby is never seen to come or go: it is simply there, or not.
+    const still = this._host.still() || this._host.crawls(p.id);
+    const w: Walker = { name: p.name, at: placed || still ? this._spot(world, p.id) : off(world), ahead: [], leaving: false, left: false };
     this._walkers.set(p.id, w);
     this._host.requestUpdate();
-    if (still) return;
-    if (placed) return this._linger(p.id, w, Math.random() * FIRST);
+    if (this._host.still()) return;
+    if (placed || still) return this._linger(p.id, w, Math.random() * FIRST);
     // Drawn off the edge first, so that their first step is seen.
     w.ahead = this._in(world);
     this._later(p.id, w, SETTLE, () => this._step(p.id, w));
   }
 
   private _leave(id: string, w: Walker, world: World) {
-    if (this._host.still()) {
+    if (this._host.still() || this._host.crawls(id)) {
       this._walkers.delete(id);
       return this._host.requestUpdate();
     }
     w.leaving = true;
-    this._turn(id, w, (from) => this._way(world, from, edge(world), [off(world)]));
+    this._turn(id, w, (from) => this._way(world, id, from, edge(world), [off(world)]));
   }
 
   /** Set off a new way at once, from the block they are on now, even part way along a leg:
@@ -235,7 +258,7 @@ export class Walks {
       }
       return this._host.requestUpdate();
     }
-    const ms = Math.abs(next.x - w.at.x) * PACE + Math.abs(next.y - w.at.y) * CLIMB;
+    const ms = (Math.abs(next.x - w.at.x) * PACE + Math.abs(next.y - w.at.y) * CLIMB) * this._host.pace(id);
     const setting = !w.leg;
     const leg = (w.leg = { from: w.at, t0: Date.now(), ms });
     if (next.x !== w.at.x) w.left = next.x < w.at.x;
@@ -251,7 +274,7 @@ export class Walks {
     this._later(id, w, ms, () => {
       const world = this._world;
       if (w.leaving || w.leg || !world) return;
-      w.ahead = this._way(world, w.at, this._spot(world));
+      w.ahead = this._way(world, id, w.at, this._spot(world, id, w.at));
       this._step(id, w);
     });
   }

@@ -459,6 +459,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     credit, and its maker's terms do not allow its textures in other software). **Not
     built:** a way to turn it off. Seen on the harness in WebKit; `el._prank._begin()`
     in the console starts one at once.
+    **The board "Follow the imp"** (2026.11.11-b10; owner, 2026-11-20): `world.chase`,
+    two blocks after the forecast's signs, with free grass beside it. `Prank.chase` gives
+    `GOES` (5) pranks `SOON` (3 s) apart, anywhere in the house; the last goes down at
+    `chase.x + 2`, and `blown` hides the board from the bang until the bot has gone, which
+    ends the chase. One wait for the next prank at a time (`_next`, a turn number), so the
+    press can bring it forward. `spot` stays on the last crate between goes, so the view
+    doesn't swing back to someone in between. `boards(world)` is every board's blocks, for
+    the prank and the shading. Tested with a clock of the test's own (`digs.test.ts`).
   - **The household walks all over, and the view follows them** (2026.11.10-b1; owner,
     2026-11-20). `digs/walk.ts`: `route` is a breadth-first search over the blocks (floor
     rows, ladders, and since then a doorway in each end wall of the ground storey);
@@ -472,9 +480,25 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     stops itself when there is nothing to catch up with; `updated` kicks it again. It goes
     over to whoever sets off while the one followed stands (`setOff`), and `pick` never
     swaps a still walker for another still one: in b1 it did, and the view sat on someone
-    standing while others walked. The tip says "Following …" while touring. On the page
+    standing while others walked. The tip says "Following …" while touring. A prank
+    starting (`Prank` host `began`) turns the tour on at once, touched or not (`Tour.imp`,
+    owner 2026-11-20). `_household` walks every person in the survey who is `about`
+    (walk.ts): at home, or not to be placed at all (`unknown`, `unavailable`); away or in
+    a zone, out (owner, 2026-11-20, 2026.11.11-b3; it replaced b2's whole household when
+    nobody was home, because an empty house should look empty). On the page
     only. The view pans sideways only: the page fits the world's height. Options for all
     of it are in BACKLOG.
+  - **Ages from Casa Mia's People** (2026.11.11-b6; owner, 2026-11-20). The integration's
+    `household.py` asks `casa_mia.people` at start, when the action registers, on
+    `casa_mia_people_changed` (People's `on_change`, fired by `__main__` after every
+    `_commit`) and at 00:00:05, and feeds `casa_mia_dash_bored/household`: per person
+    entity only a band (`baby` under 2, `toddler` under 5, `child` under 13) and
+    `birthday`, never the date or age. Digs' `_shape` picks a `BUILDS` entry
+    (`textures.ts`: grown 32 texels tall, child 24, toddler 20, drawn at the same texel
+    size, never scaled); a toddler walks at 1.5× (`pace`); a birthday adds the `hat`.
+    A baby (b7) sits or crawls (`sitting`, `crawling` in the same seven-frame strip),
+    at pace 2.5, on `graph(world, true)`: floors only, no rung, no cell `out`, so it keeps
+    to its floor indoors; it is placed and removed, never walked in or out.
   - A figure is a strip of seven frames (`textures.ts` `person`: standing front-on, four
     of a side-on stride, two of a climb from behind) drawn in `.who::before`, which flips
     for `.left` so that the name does not; `.walking` and `.climbing` step through it.
@@ -1100,6 +1124,12 @@ CLAUDE.md has them all. What trips agents here:
   names. Likewise **don't recreate entity ids** (a red herring in 2026-10-19's camera hunt).
 - **The restart Repair** reads the loaded version at import, so an entry reload can't clear
   it; it can need a page reload to appear.
+- **A page open across an update runs the old cards** until it is reloaded (custom elements
+  are defined once). `connection.ts` `offerReload` shows HA's toast; with `unattended`
+  (Dash-Bored passes `Shell.shown > 0`) it also reloads by itself after a minute with no
+  touch (2026.11.11-b10, after a wall tablet ran b5 for hours after b7 was installed).
+  Dash-Bored's `Family.update` catches a drawing error and shows it in a red `.broken` box
+  instead of leaving the page blank.
 - **Don't rewrite JSON or YAML through a parser** (`en.json`, `maturity.json`): it reformats
   them. Edit as text, and check the diff of any regex edit.
 - **Default-stripping editors:** a saved card keeps old values, so a changed default doesn't

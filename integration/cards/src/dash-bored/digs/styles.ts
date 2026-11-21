@@ -57,6 +57,12 @@ export const STYLES = css`
   .who.left::before { scale: -1 1; }
   .who.walking::before { animation: stride .45s steps(4) infinite; }
   .who.climbing::before { animation: climb .7s steps(2) infinite; }
+  /* A toddler's steps are quicker, though it gets less far with each (walk.ts pace). */
+  .who.toddler.walking::before { animation-duration: .3s; }
+  .who.baby.walking::before { animation-duration: .6s; }
+  /* A party hat on a birthday, over the head, with the name over the hat. */
+  .who.birthday::after { content: ""; position: absolute; left: 0; width: 100%; top: calc(var(--t) * -7); height: calc(var(--t) * 8); background: var(--hat) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
+  .who.birthday img { translate: -50% calc(var(--t) * -8); }
   @keyframes stride { from { background-position-x: calc(100% / 6); } to { background-position-x: calc(500% / 6); } }
   @keyframes climb { from { background-position-x: calc(500% / 6); } to { background-position-x: calc(700% / 6); } }
   /* A lit lamp: as bright as it is turned up (--lit), with a pool of light under it. */
@@ -69,7 +75,7 @@ export const STYLES = css`
   .lamp.strip::before { left: -50%; width: 200%; background: linear-gradient(rgba(255,233,160,.45), transparent); height: 120%; }
   .lamp.standing::before { top: 34%; height: 70%; }
   /* The block that is chosen: a white edge, and its name over it, in the light whatever the hour. */
-  .tag, .label.sel { outline: 3px solid #fff; outline-offset: -3px; }
+  .tag, .label.sel, .board.sel { outline: 3px solid #fff; outline-offset: -3px; }
   .tag { pointer-events: none; }
   .tag img { position: absolute; bottom: 100%; left: 50%; translate: -50% calc(var(--t) * -1); background: rgba(0,0,0,.6); padding: var(--t); }
   .who img { position: absolute; bottom: 100%; left: 50%; translate: -50% calc(var(--t) * -1); }

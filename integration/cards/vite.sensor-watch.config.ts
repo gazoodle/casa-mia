@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { homeOf } from "./vite.home.ts";
 
 // Sensor Watch's cards, its eye and its Status sensor's colour, in a file of their own
 // (cards.js) in Sensor Watch's integration, which works without Casa Mia's: it loads the
@@ -6,6 +7,7 @@ import { defineConfig } from "vite";
 // folder is never emptied. CM_SW_CARDS_OUT sends it elsewhere instead: the box's own
 // copy, for tools/dev_cards.
 export default defineConfig({
+  define: homeOf("casa_mia_sensor_watch"),
   build: {
     outDir: process.env.CM_SW_CARDS_OUT || "../custom_components/casa_mia_sensor_watch/www",
     emptyOutDir: false,

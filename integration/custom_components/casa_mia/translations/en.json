@@ -146,6 +146,13 @@
       "fields": {
         "plate": { "name": "Number plate", "description": "The plate as the camera read it. Spaces and dashes don't matter, and O and 0, I and 1, and S and 5 are taken as the same." }
       }
+    },
+    "people": {
+      "name": "People",
+      "description": "What Casa Mia's People page knows about each person, so a message can fit them. Use it with a response variable: `people` is a list with each person's `name`, `person` (their Home Assistant person), `gender`, `pronouns` (`subject`, `object`, `determiner`, `possessive`, `reflexive` and `plural`; they/them when not set), `born`, `age` and `days_to_birthday` (0 on the day). Numbers and plates are not included.",
+      "fields": {
+        "person": { "name": "Person", "description": "Only the entries linked to this Home Assistant person. Leave it empty for everyone." }
+      }
     }
   }
 }
