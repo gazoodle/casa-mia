@@ -123,6 +123,42 @@ test("the imp's crate stands where nothing else is, on what is on the screen, an
   assert.ok(plan(build([]), 0, 10, rng(1))!.holes.length > 0);
 });
 
+test("the imp's board gives him five goes one after another, the last by the board, which goes up with it and is off", async () => {
+  const { GOES, Prank } = await import("./digs/prank.ts");
+  const world = build(house(), true);
+  // A clock of the test's own: each wait comes due in turn.
+  let now = 0, blown = false;
+  const due: { at: number; then: () => void }[] = [];
+  const crates: { x: number; y: number; at: number }[] = [];
+  const prank: InstanceType<typeof Prank> = new Prank({
+    after: (ms, then) => void due.push({ at: now + ms, then }),
+    requestUpdate: () => void (blown ||= prank.blown),
+    world: () => world,
+    seen: () => [0, 5],
+    still: () => false,
+    began: () => void crates.push({ ...prank.spot!, at: now }),
+  });
+  const until = (end: number) => {
+    for (let next; (next = due.filter((d) => d.at <= end).sort((a, b) => a.at - b.at)[0]); ) {
+      due.splice(due.indexOf(next), 1);
+      now = next.at;
+      next.then();
+    }
+  };
+
+  prank.start();
+  prank.chase();
+  assert.equal(prank.chasing, GOES);
+  until(170_000);
+  // The first go comes at once, not after the wait for the page's first prank; the next only minutes after the last.
+  assert.equal(crates.length, GOES);
+  assert.equal(crates[0].at, 3000);
+  assert.deepEqual({ x: crates.at(-1)!.x, y: crates.at(-1)!.y }, { x: world.chase.x + 2, y: world.ground - 1 });
+  assert.ok(blown, "the board went up with the last crate");
+  assert.equal(prank.chasing, 0);
+  assert.ok(!prank.blown, "and is back on its posts once the bot has gone");
+});
+
 test("a room's card is its room and no more: every block of it is inside the cut, indoors or out", () => {
   for (const r of house()) {
     const world = build([r]);
@@ -170,7 +206,7 @@ test("one who comes home walks in from off the edge, and one who goes walks off 
   const world = build(house());
   let due: (() => void)[] = [];
   const arrived: string[] = [];
-  const walks = new Walks({ after: (_ms, then) => void due.push(then), requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: (id) => void arrived.push(id), setOff: () => undefined });
+  const walks = new Walks({ after: (_ms, then) => void due.push(then), requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: (id) => void arrived.push(id), setOff: () => undefined, pace: () => 1, crawls: () => false });
   // Every wait comes due at once, a round at a time.
   const run = (rounds = 50) => {
     for (let i = 0; i < rounds && due.length; i++) {
@@ -205,7 +241,7 @@ test("one who comes home walks in from off the edge, and one who goes walks off 
 test("with nobody else walking, the view stays on whom it follows rather than going over to somebody standing still", async () => {
   const { Walks } = await import("./digs/walk.ts");
   const world = build(house());
-  const walks = new Walks({ after: () => undefined, requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: () => undefined, setOff: () => undefined });
+  const walks = new Walks({ after: () => undefined, requestUpdate: () => undefined, world: () => world, homely: () => world.zones, outdoors: () => false, still: () => false, arrived: () => undefined, setOff: () => undefined, pace: () => 1, crawls: () => false });
   walks.sync([{ id: "person.ann", name: "Ann", place: "home", since: 0 }, { id: "person.bob", name: "Bob", place: "home", since: 0 }]);
   assert.equal(walks.pick("person.ann"), "person.ann");
   assert.ok(["person.ann", "person.bob"].includes(walks.pick("")!));
@@ -228,4 +264,34 @@ test("a light's name says what kind of lamp it is, and a standing lamp stands on
   // Out of doors a lamp is a lantern on a post like any other light.
   const garden = build([room("garden", undefined, [device("light", "Lamp")])] as any[]);
   assert.equal(garden.slots.get("light.Lamp")!.h, 1);
+});
+
+test("somebody is about the house when they are at home or can't be placed, and not when they are out", async () => {
+  const { about } = await import("./digs/walk.ts");
+  assert.deepEqual(["home", "unknown", "unavailable", undefined, "not_home", "Work"].map(about), [true, true, true, true, false, false]);
+});
+
+test("everybody is dressed, whatever their name hashes to", async () => {
+  const { dress } = await import("./digs/textures.ts");
+  const { hash } = await import("./digs/world.ts");
+  const names = Array.from({ length: 2000 }, (_, i) => `Person ${i}`);
+  assert.ok(names.some((n) => hash(n) >= 2 ** 31), "the test has names that hash high");
+  for (const n of names) for (const colour of dress(n)) assert.match(colour, /^#[0-9a-f]{6}$/, n);
+});
+
+test("a baby crawls about its own floor indoors: no ladder, and never out of doors", async () => {
+  const { route } = await import("./digs/walk.ts");
+  const world = build([...house(), room("garage", undefined, [device("light", "g")])] as any[]);
+  const at = (id: string) => world.zones.find((z) => z.id === id)!;
+  const [kitchen, hall, study, garage] = ["kitchen", "hall", "study", "garage"].map(at);
+  const floor = (z: typeof kitchen) => ({ x: z.x0, y: z.y1 });
+  // Room to room on the ground floor, and nowhere but its floor on the way.
+  const way = route(world, floor(kitchen), floor(hall), true)!;
+  assert.ok(way && way.every((c) => c.y === kitchen.y1 && world.zone[c.y][c.x] !== "out"));
+  // Not up the ladder, not into the garden, and not over the grass to the garage.
+  assert.equal(route(world, floor(kitchen), floor(study), true), undefined);
+  assert.equal(route(world, floor(kitchen), { x: 2, y: world.ground - 1 }, true), undefined);
+  assert.equal(route(world, floor(kitchen), floor(garage), true), undefined);
+  // A grown-up goes all of those ways.
+  for (const to of [floor(study), floor(garage)]) assert.ok(route(world, floor(kitchen), to));
 });

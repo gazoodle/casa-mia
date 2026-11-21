@@ -4,8 +4,10 @@ blueprint:
   description: >-
     Tell someone when a watched sensor reaches a level, in its own words: the watch's
     message, its value, its area and group. And, if you like, when it's back.
-    Casa Mia's Sensor Watch integration installs this file and replaces it when it
-    changes: to change it, copy it under another name first.
+    Casa Mia's Sensor Watch integration installs this file and keeps it up to date
+    until you change it. A copy you have changed is left as it is, and its lists of
+    groups and notify actions are no longer kept up to date; delete it to have the
+    current one again.
   domain: automation
   homeassistant:
     min_version: "2024.10.0"

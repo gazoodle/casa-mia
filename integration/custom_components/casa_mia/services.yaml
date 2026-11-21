@@ -19,6 +19,12 @@ check_plate:
       example: "ZZ00 ZZZ"
       selector:
         text:
+people:
+  fields:
+    person:
+      selector:
+        entity:
+          domain: person
 send_sms:
   fields:
     number:

@@ -65,6 +65,16 @@ export class Tour {
     this.kick();
   }
 
+  /** The imp has begun a prank: the view goes to him, even in the minute after a touch
+   * (owner, 2026-11-20: "always track the imp if he's up to no good"). A touch during the
+   * prank hands the view back as ever. */
+  imp() {
+    if (!this._host.able()) return;
+    if (!this._on) this._host.requestUpdate();
+    this._on = true;
+    this.kick();
+  }
+
   /** Somebody set off: the view goes over to them if the one it follows is standing still. */
   setOff(id: string) {
     if (!this._on || id === this._who || this._host.target(this._who)?.moving) return;

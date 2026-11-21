@@ -2,10 +2,10 @@
 // now, the house's settings from the integration, and the calls that change a device.
 // A family (the Gazette, Bakelite) extends this and draws the house its own way. It is a
 // page when the shell shows it (shell.ts) and a dashboard card when a dashboard does.
-import { LitElement, css, type PropertyDeclarations } from "lit";
+import { LitElement, ReactiveElement, css, html, render, type PropertyDeclarations, type PropertyValues } from "lit";
 import type { Hass } from "../ha.ts";
 import { days, read, sighted, survey, type Day, type Device, type House, type Lens, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
-import { setting, type Press } from "./stories.ts";
+import { clock, setting, type Press } from "./stories.ts";
 
 // The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
 // likes: each shows trouble in its own way.
@@ -30,6 +30,9 @@ export const PAGE = css`
   /* In the card picker (picked below) a window on the top of the specimen: in its narrow
      column even one room of a family is about 1,000 px tall. */
   :host([sample]) { max-height: 400px; overflow: hidden; }
+  /* A fault is a line, not a screen tall as the page's first element otherwise is. */
+  :host([panel]) > .broken { min-height: 0; }
+  .broken { margin: 16px; padding: 8px 12px; background: #8a1c1c; color: #fff; font: 14px/1.4 system-ui, sans-serif; overflow-wrap: anywhere; }
 `;
 
 /** Whether Home Assistant's card picker is showing this element: it is then a specimen of
@@ -70,6 +73,7 @@ export class Family extends LitElement {
   protected _asking?: ReturnType<typeof setTimeout>; // the level waiting to be asked for: see _ask
   private _picked = false; // in Home Assistant's card picker: see `picked`
   private _sizes?: ResizeObserver; // watches the element's width while it is on the page
+  private _broken = 0; // ms: since when the element has failed to draw (0: it draws)
 
   static getStubConfig(_hass?: Hass): object {
     return {};
@@ -115,6 +119,24 @@ export class Family extends LitElement {
 
   getGridOptions(): { columns: number | "full"; min_columns?: number } {
     return { columns: "full" };
+  }
+
+  /** A family that throws while it draws says so where it would have been, with since
+   * when, and tries again at the next change. Lit leaves an element that throws as it was,
+   * and on a wall tablet that was a blank page that said nothing (2026.11.11-b5: a name
+   * whose colours could not be worked out). Said once in the console, not at every frame. */
+  protected update(changed: PropertyValues) {
+    try {
+      super.update(changed);
+      this._broken = 0;
+    } catch (err: any) {
+      if (!this._broken) console.error(`Dash-Bored: ${this.localName} could not be drawn`, err);
+      this._broken ||= Date.now();
+      render(html`<div class="broken" role="alert">This could not be drawn, since ${clock(this._broken)}: ${err?.message ?? err}. The browser's console has the details.</div>`, this.renderRoot, this.renderOptions);
+      // LitElement's update draws before it marks the update done: one that threw would
+      // stay pending for good and never be drawn again (seen on the test VM). Done here.
+      (ReactiveElement.prototype as any).update.call(this, changed);
+    }
   }
 
   /** Set when the element is Dash-Bored's page, not a card. */

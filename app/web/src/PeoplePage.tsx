@@ -1,17 +1,18 @@
 /** People: everyone known to the home. A phone number with a Call and a Text tick, number
- * plates with a Gates tick (a number, plates or both), optionally linked to an HA person.
+ * plates with a Gates tick, and a link to an HA person (any one of the three will do).
  * Every change applies at once. */
 
 import { useCallback, useEffect, useState } from "react";
-import { api, type Person, type PeopleView, type HAPerson, type NumberCheck, type PlateCheck } from "./api";
+import { api, type ListedPerson, type Person, type PeopleView, type HAPerson, type NumberCheck, type PlateCheck } from "./api";
+import { PersonDialog, pretty } from "./PersonDialog";
+import { personStatus } from "./personStatus";
 import { PeopleIcon } from "./icons";
 import { AreaHead, Empty, Shell, Loading } from "./page";
-import { Dialog, Field, Toasts, type Toast } from "./ui";
+import { Toasts, type Toast } from "./ui";
 import css from "./people.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
 import { confirmBox } from "./confirm";
-import { Select } from "./controls";
 
 const { get, post, put, del } = api("people");
 
@@ -60,7 +61,7 @@ export function PeoplePage() {
       <section className={guest.area}>
         <AreaHead
           title="People"
-          blurb="A phone number, number plates, or both. Tick whether they may call and whether they may text the house (Phone and SMS); anyone else is an intrusion. Tick Gates for the cars that may open the gates (the check_plate action in Home Assistant)."
+          blurb="A phone number, number plates, a Home Assistant person, or any of them together. Tick whether they may call and whether they may text the house (Phone and SMS); anyone else is an intrusion. Tick Gates for the cars that may open the gates (the check_plate action in Home Assistant)."
           action={
             <button className={ui.primary} onClick={() => setEditing("new")}>
               + Add person
@@ -125,6 +126,7 @@ export function PeoplePage() {
                     Remove
                   </button>
                 </span>
+                <Status person={p} />
               </div>
             ))}
           </div>
@@ -158,6 +160,12 @@ export function PeoplePage() {
       <Toasts toasts={toasts} />
     </Shell>
   );
+}
+
+/** The line under a person, the whole width of the row, when their date of birth says something. */
+function Status({ person }: { person: ListedPerson }) {
+  const line = personStatus(person.born, person.about);
+  return line && <span className={css.status}>{line}</span>;
 }
 
 function Checker() {
@@ -226,104 +234,5 @@ function PlateChecker() {
   );
 }
 
-function PersonDialog({
-  person,
-  persons,
-  onClose,
-  onSave,
-}: {
-  person?: Person;
-  persons?: { persons: HAPerson[]; error: string | null };
-  onClose: () => void;
-  onSave: (body: Omit<Person, "id">) => void;
-}) {
-  const [name, setName] = useState(person?.name ?? "");
-  const [phone, setPhone] = useState(person?.phone ? pretty(person.phone) : "");
-  const [call, setCall] = useState(person?.call ?? true);
-  const [text, setText] = useState(person?.text ?? true);
-  const [plates, setPlates] = useState((person?.plates ?? []).join(", "));
-  const [gate, setGate] = useState(person?.gate ?? false);
-  const cars = plates.split(",").map((s) => s.trim()).filter(Boolean);
-  const [link, setLink] = useState(person?.person ?? "");
-  return (
-    <Dialog
-      title={person ? `Edit ${person.name}` : "Add a person"}
-      onClose={onClose}
-      footer={
-        <>
-          <button className={ui.button} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className={ui.primary}
-            disabled={!name.trim() || (!phone.trim() && !cars.length)}
-            onClick={() => onSave({ name: name.trim(), phone: phone.trim() || null, call, text, plates: cars, gate, person: link || null })}
-          >
-            Save
-          </button>
-        </>
-      }
-    >
-      <Field label="Name" help="Shown in events and in the PONG reply, e.g. Alex.">
-        <input value={name} autoFocus onChange={(e) => setName(e.target.value)} />
-      </Field>
-      <Field
-        label="Phone number"
-        help="As you'd dial it: 07700 900123, or +44 7700 900123. Calls and texts both match it, whichever form the FONA reports. Leave it empty for someone known only by their car."
-      >
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-      </Field>
-      <label className={guest.check}>
-        <input type="checkbox" checked={call} onChange={(e) => setCall(e.target.checked)} />
-        <span>
-          May call
-          <span className={guest.checkHelp}>A call is hung up, then passed to Home Assistant as authorised.</span>
-        </span>
-      </label>
-      <label className={guest.check}>
-        <input type="checkbox" checked={text} onChange={(e) => setText(e.target.checked)} />
-        <span>
-          May text
-          <span className={guest.checkHelp}>Texts are passed to Home Assistant as authorised, PING included.</span>
-        </span>
-      </label>
-      <Field
-        label="Number plates"
-        help="Separate several with commas: ZZ00 ZZZ, ZZ51 ZZZ. Spaces and dashes don't matter when a camera's reading is checked, and O and 0, I and 1, and S and 5 count as the same."
-      >
-        <input value={plates} onChange={(e) => setPlates(e.target.value)} />
-      </Field>
-      <label className={guest.check}>
-        <input type="checkbox" checked={gate} onChange={(e) => setGate(e.target.checked)} />
-        <span>
-          May open the gates
-          <span className={guest.checkHelp}>check_plate answers allowed for their plates; your automation opens the gates.</span>
-        </span>
-      </label>
-      <Field
-        label="Home Assistant person"
-        help={persons?.error ? `Optional. Home Assistant's people could not be read (${persons.error}).` : "Optional. Links this entry to one of Home Assistant's people."}
-      >
-        <Select value={link} onChange={(picked) => setLink(picked)}>
-          <option value="">None</option>
-          {persons?.persons.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-          {link && !persons?.persons.some((p) => p.id === link) && <option value={link}>Unknown ({link})</option>}
-        </Select>
-      </Field>
-    </Dialog>
-  );
-}
-
 /** Each tick's words, after the person's name. */
 const MAY = { call: "may call", text: "may text", gate: "may open the gates" } as const;
-
-/** +447700900123 -> 07700 900123; other countries stay as stored. */
-function pretty(phone: string): string {
-  if (!phone.startsWith("+44") || phone.length !== 13) return phone;
-  const national = "0" + phone.slice(3);
-  return `${national.slice(0, 5)} ${national.slice(5)}`;
-}

@@ -166,6 +166,36 @@ def test_plays_are_counted_once_each_and_forgotten():
     assert again.dump(50 * hour) == [(5 * hour, "a band", "round again")]  # in order
 
 
+def test_a_blueprint_someone_has_changed_is_left_as_it_is(tmp_path):
+    """Frenck, reviewing hacs/default#14085 (2026-11-20): every start of Home Assistant
+    used to replace it, and a user's edits with it."""
+    import importlib.util
+
+    root = Path(__file__).resolve().parents[1]
+    path = root / "integration/custom_components/casa_mia_love_or_loathe/blueprint.py"
+    spec = importlib.util.spec_from_file_location("lol_bp", path)
+    assert spec and spec.loader
+    bp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bp)
+    shipped = bp.SOURCE.read_text()
+    target = tmp_path / "love_or_loathe_notify.yaml"
+
+    # An earlier build's copy, with no sum beside it: still ours, so brought up to date.
+    target.write_text("written by an earlier build\n")
+    bp.install(str(target))
+    assert target.read_text() == shipped
+
+    # Changed by hand: left as it is at the next start.
+    target.write_text(shipped + "# my own touch\n")
+    bp.install(str(target))
+    assert target.read_text().endswith("# my own touch\n")
+
+    # Deleted: the current one again.
+    target.unlink()
+    bp.install(str(target))
+    assert target.read_text() == shipped
+
+
 def test_the_notify_blueprint_is_sound_and_reads_only_what_the_event_carries():
     root = Path(__file__).resolve().parents[1]
     component = root / "integration/custom_components/casa_mia_love_or_loathe"

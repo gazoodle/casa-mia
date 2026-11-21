@@ -82,11 +82,40 @@ def test_installs_in_flight_together_never_leave_a_torn_file(tmp_path):
         job.join()
     assert target.read_text() in texts
     yaml.load(target.read_text(), _Loader)  # noqa: S506
-    assert [p.name for p in target.parent.iterdir()] == [target.name]  # no part left
+    # no part left: only the blueprint and the sum of what was written
+    assert sorted(p.name for p in target.parent.iterdir()) == sorted(
+        [target.name, f".{target.name}.written"]
+    )
 
     # the last to run writes the newest text, whatever order the jobs ran in
     bp.install(str(target), lambda: texts[0])
     assert target.read_text() == texts[0]
+
+
+def test_a_copy_someone_has_changed_is_left_as_it_is(tmp_path):
+    """Frenck, reviewing Love it or Loathe it's (hacs/default#14085, 2026-11-20): every
+    change of groups used to replace it, and a user's edits with it."""
+    bp = _module()
+    target = tmp_path / "blueprints" / "sensor_watch_notify.yaml"
+
+    # An earlier build's copy, with no sum beside it: still ours, so brought up to date.
+    target.parent.mkdir()
+    target.write_text("written by an earlier build\n")
+    bp.install(str(target), lambda: "one\n")
+    assert target.read_text() == "one\n"
+    bp.install(str(target), lambda: "two\n")
+    assert target.read_text() == "two\n"
+
+    # Changed by hand: left as it is, whatever comes next.
+    target.write_text("two, with my own touch\n")
+    bp.install(str(target), lambda: "three\n")
+    assert target.read_text() == "two, with my own touch\n"
+
+    # Deleted: the current one again, and kept up to date from then on.
+    target.unlink()
+    bp.install(str(target), lambda: "three\n")
+    bp.install(str(target), lambda: "four\n")
+    assert target.read_text() == "four\n"
 
 
 def test_its_dropdowns_offer_the_groups_and_notify_actions():

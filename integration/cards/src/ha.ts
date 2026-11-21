@@ -76,7 +76,7 @@ export function register(type: string, name: string, description: string): void 
   const w = window as any;
   w.customCards ||= [];
   if (!w.customCards.some((c: { type: string }) => c.type === type))
-    w.customCards.push({ type, name, description, preview: true, documentationURL: "https://github.com/gazoodle/casa-mia" });
+    w.customCards.push({ type, name, description, preview: true, documentationURL: __CM_HOME__ });
 }
 
 // --- ha-form schemas from the shared layout options (app/src/casa_mia/layout.json) -------

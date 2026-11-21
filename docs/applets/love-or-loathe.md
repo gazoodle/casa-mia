@@ -633,8 +633,8 @@ Automations & scenes → Blueprints). An automation made from it sends each matc
 notify action, to Home Assistant's own notifications, or both: the song, the player,
 what was done and the group. It can be limited to loved songs, to loathed songs, or to
 the times something failed, and it can run more actions of your own with the same
-facts. The integration replaces the blueprint's file when it changes, so copy it under
-another name before changing it.
+facts. The integration keeps the blueprint's file up to date until you change it. If
+you change it, it is left as it is; delete it to have the current one again.
 
 ## What it can't do
 

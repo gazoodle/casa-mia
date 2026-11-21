@@ -85,6 +85,7 @@ export const MODULES: Record<string, ModuleInfo> = {
       ["People", String(h.people ?? 0)],
       ["May call", String(h.callers ?? 0)],
       ["May text", String(h.texters ?? 0)],
+      ["Next birthday", birthday(h.next_birthday as { who: string[]; days: number } | null | undefined)],
     ],
   },
   sensor_watch: {
@@ -247,3 +248,10 @@ export const MODULES: Record<string, ModuleInfo> = {
     },
   },
 };
+
+/** People's next birthday: "Alex and Ann, in 2 days", or none known. */
+function birthday(next: { who: string[]; days: number } | null | undefined): string {
+  if (!next) return "none known";
+  const when = next.days === 0 ? "today" : next.days === 1 ? "tomorrow" : `in ${next.days} days`;
+  return `${new Intl.ListFormat("en-GB").format(next.who)}, ${when}`;
+}

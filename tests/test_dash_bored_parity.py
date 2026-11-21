@@ -70,6 +70,11 @@ OWED = {
         for family in ("console", "fridge", "aurora", "digs")
         for feed in ("personal", "playing", "column")
     },
+    # Casa Mia People's ages and birthdays (2026.11.11-b6): only Digs draws people.
+    **{
+        (family, "feed casa_mia_dash_bored/household"): PARITY
+        for family in ("gazette", "console", "fridge", "aurora", "contraption")
+    },
     # Digs' first build (2026.11.9-b16): BACKLOG.md, "Digs, the fifth family".
     **{
         ("digs", what): PARITY

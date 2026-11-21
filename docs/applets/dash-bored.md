@@ -501,6 +501,14 @@ does the same. A house without ZenOS has no column.
 - If the connection to Home Assistant is lost, a red line says so and since when. What
   is shown below it is how things stood at that time.
 - If Home Assistant refuses an action, a red line says which and why.
+- If a family can't be drawn at all, because of a fault in Dash-Bored, a red box says so in
+  its place, with since when and the error, and it tries again at the next change in the
+  house. The browser's console has the details. This applies to every family.
+- After Dash-Bored is updated, a page that was already open keeps running the old version
+  until it is reloaded. Home Assistant shows a Reload button for it. The Dash-Bored page
+  also reloads by itself once nobody has touched it for a minute, so a wall tablet picks up
+  the update with nobody there. A dashboard card waits for you to press Reload, because
+  you may be part-way through editing the dashboard.
 
 ## The Console
 
@@ -1026,8 +1034,14 @@ the screen says what it is and how it stands. A press on the chosen block switch
 and each press after that switches it again. A block stays chosen for eight seconds
 after the last press.
 
-- **A light** is a lamp on the ceiling. When it is on it lights the blocks round it in its
-  own room and the walls, but not the room next door. A dimmed lamp gives less light.
+- **A light** is drawn as the kind of lamp its name says. A name with "lamp", "floor
+  light" or "uplighter" in it is a standing lamp on the floor; "spot", "spotlight" or
+  "downlight" is a spotlight in the ceiling; "strip", "plinth" or "under cupboard" is a
+  strip of light under the ceiling; any other light is a pendant hanging from the
+  ceiling. Out of doors every light is a lantern on a post. The names are read in
+  English. When a light is on it casts a pool of light, and it lights the blocks round it
+  in its own room and the walls, but not the room next door. A dimmed lamp gives less
+  light.
 - **A blind or a curtain** is a window, with its slats as far down as it is closed. A room
   with a blind open is lighter by day.
 - **A lock** is a door, and so is a garage door or a gate.
@@ -1067,10 +1081,22 @@ Around the house:
   with the day, a picture of its weather and its high.
 - **Your scenes** are the buttons along the bottom: the house's and its floors'. The one
   set most recently has a white edge. A room's own scenes are in its chest.
-- **The people at home** are figures in the house, each with their name over their head.
-  Home Assistant knows only that somebody is at home, not which room they are in, so the
-  figures walk about in the rooms that have a light on, or on the ground floor when no
-  light is on. Somebody who is away is not drawn.
+- **The people** are figures with their first names over their heads. They walk from room to
+  room, climb the ladders, and go out through a door at each end of the ground floor
+  into the garden and over to the outbuildings, staying 10 to 40 seconds wherever they
+  get to. Home Assistant knows only that somebody is at home, not which room they are
+  in, so most of their trips end in a room with a light on, and nobody goes out of doors
+  after dark or in rain or snow. Somebody Home Assistant tracks is drawn while they are
+  at home: they walk off the left of the garden when they leave, and walk in from there
+  when they come back. Somebody it has no way of placing, such as a child with no phone,
+  is always drawn.
+- **Children** are drawn smaller when Casa Mia's People has their date of birth (see
+  the People guide): a child of 5 to 12 is shorter than a grown-up, and a child of 2 to
+  4 shorter still, walking more slowly. A baby sits, or crawls about the floor it is on,
+  never taking a ladder or going out of doors. On a person's birthday they wear a party
+  hat. Only
+  the age band and the birthday reach the page, never the date. Without Casa Mia
+  everybody is drawn grown.
 - **The signpost** in the garden, lettered DASH BORED, opens the choice of family. Two
   presses in the top right corner of the page do the same.
 
@@ -1081,6 +1107,21 @@ nothing in your house, hides no device's block and takes no press, and it does n
 happen while a room's list is open or where the browser asks for less movement. The
 first one comes twenty seconds after the page is opened, and the rest three to six
 minutes apart. It can't be turned off yet.
+
+The board lettered FOLLOW THE IMP, in the garden after the forecast's signs, sets the
+imp off at once: he has five goes one after another, anywhere in the house, and the
+view follows him. The board has a white edge while it is on. He puts his last crate
+down beside the board itself, which goes up with it, and that switches it off; the bot
+puts it back on its posts. The board isn't there where the browser asks for less
+movement.
+
+When nobody has touched the page for a minute, the view follows one of the people about
+the house, and goes over to whoever sets off when the one it follows stops. When the
+imp turns up the view goes to him, even if the page was touched in the last minute.
+While it is following someone, the line at the foot of the screen says whom. Any touch,
+scroll wheel or key gives the view back at once. It does this on the Dash-Bored page
+only, not on a dashboard's card or a room's card, and not where the browser asks for
+less movement.
 
 Digs does not yet have what a camera last saw, Casa Mia's presets, zoom and
 controls for a camera, a thermostat's modes or a player's source, an alarm's code on the

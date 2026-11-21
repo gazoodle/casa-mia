@@ -7,7 +7,7 @@ by tools/build_cards). It is the Dash-Bored entry in the sidebar, and shows one 
 dashboard at a time (the Gazette, Bakelite); each family is a dashboard card too. It reads areas, entities and states from the connection every Home
 Assistant page already has; all this side does is serve it, feed it Sensor Watch's
 alerts (alerts.py), the songs people rate (personal.py) and what the players have
-played (playing.py), take the photographs of what the cameras see (image.py), and have
+played (playing.py), Casa Mia People's ages (household.py), take the photographs of what the cameras see (image.py), and have
 a model write the agent's column where the house runs ZenOS-AI (column.py).
 
 An integration of its own, wholly in Home Assistant: it imports nothing from Casa Mia
@@ -30,7 +30,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.typing import ConfigType
 
-from . import alerts, column, personal, playing, settings, sightings
+from . import alerts, column, household, personal, playing, settings, sightings
 from .const import (
     CARDS_VERSION,
     CONF_COLUMN,
@@ -65,6 +65,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     playing.setup(hass)
     settings.setup(hass)
     column.setup(hass)
+    household.setup(hass)
     return True
 
 

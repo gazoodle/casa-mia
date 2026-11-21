@@ -73,4 +73,7 @@ register(INSTRUMENT, "Casa Mia Dash-Bored Console instrument", "One light, switc
 register(ROOM, "Casa Mia Dash-Bored Console room", "One room as a chassis on the Console, in the style of a decade: a lamp for its lights, a meter for its temperature, and a control for each of its devices.");
 register(LAMPS, "Casa Mia Dash-Bored Console warning lamps", "Sensor Watch's warnings as the Console's warning lamps, in the style of a decade, the worst first. A green lamp says when all is well.");
 register(METERS, "Casa Mia Dash-Bored Console meter panel", "An electricity meter as a chassis on the Console, in the style of a decade: a meter for each phase's voltage, current and power, and a register for each total of energy. Choose the meter's device; several make several chassis.");
-offerReload("Dash-Bored", "casa_mia_dash_bored/cards", VERSION);
+// Dash-Bored's page is often a wall tablet's, with nobody there to press Reload: it reloads
+// by itself once nobody has touched it for a minute. A dashboard may be half-way through an
+// edit, so a card alone never does.
+offerReload("Dash-Bored", "casa_mia_dash_bored/cards", VERSION, () => Shell.shown > 0);

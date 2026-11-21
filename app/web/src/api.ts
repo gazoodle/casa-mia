@@ -1,6 +1,8 @@
 /** The modules' admin APIs (/api/<module>/). Relative URLs: they resolve against
  * <base href> (ingress). */
 
+import type { About } from "./personStatus";
+
 export class ApiError extends Error {}
 
 async function send<T>(module: string, method: string, path: string, body?: unknown): Promise<T> {
@@ -46,9 +48,18 @@ export type Person = {
   gate: boolean;
   /** HA person id, if linked. */
   person: string | null;
+  /** FHIR's AdministrativeGender; null is unknown. */
+  gender: "female" | "male" | "other" | null;
+  /** All five forms, she/her/her/hers/herself; null reads as they/them. */
+  pronouns: string | null;
+  /** ISO 8601, as precise as known: 1984, 1984-03 or 1984-03-07; or vCard's --03-07, no year. */
+  born: string | null;
 };
 
-export type PeopleView = { people: Person[]; error: string | null };
+/** A person as the People page lists them: the record, and what the app says of it. */
+export type ListedPerson = Person & { about: About };
+
+export type PeopleView = { people: ListedPerson[]; error: string | null };
 
 export type HAPerson = { id: string; name: string; user_id: string | null };
 

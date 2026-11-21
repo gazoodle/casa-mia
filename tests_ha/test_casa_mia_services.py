@@ -10,21 +10,42 @@ from homeassistant.exceptions import HomeAssistantError
 APP = SimpleNamespace(url="http://app.invalid:8780")
 
 
-async def test_camera_picture_is_the_apps_answer_and_no_answer_is_an_error(
+async def test_an_ask_is_the_apps_answer_and_no_answer_is_an_error(
     hass, aioclient_mock
 ):
     held = {"picture": "cGljdHVyZQ==", "type": "image/jpeg", "age": 1.5}
     aioclient_mock.get(f"{APP.url}/compositor/picture", json=held)
+    params = {"camera": "camera.shed", "fresh": "5.0"}
 
-    got = await casa_mia._camera_picture(hass, APP, "camera.shed", 5.0)  # type: ignore[arg-type]
+    got = await casa_mia._ask_app(
+        hass, APP, "/compositor/picture", params, "No picture"
+    )  # type: ignore[arg-type]
     assert got == held
     (_method, url, _data, _headers), *_ = aioclient_mock.mock_calls
-    assert dict(url.query) == {"camera": "camera.shed", "fresh": "5.0"}
+    assert dict(url.query) == params
 
     aioclient_mock.clear_requests()
     aioclient_mock.get(f"{APP.url}/compositor/picture", status=500)
     with pytest.raises(HomeAssistantError, match="No picture: Casa Mia app"):
-        await casa_mia._camera_picture(hass, APP, "camera.shed", 5.0)  # type: ignore[arg-type]
+        await casa_mia._ask_app(hass, APP, "/compositor/picture", params, "No picture")  # type: ignore[arg-type]
+
+
+async def test_people_are_asked_by_ha_person_and_answered_with_entities(
+    hass, aioclient_mock
+):
+    hass.states.async_set("person.wren", "home", {"id": "wren1"})
+    answer = {
+        "people": [{"name": "Wren", "person": "wren1"}, {"name": "Ann", "person": None}]
+    }
+    aioclient_mock.get(f"{APP.url}/people/about", json=answer)
+
+    got = await casa_mia._people(hass, APP, "person.wren")  # type: ignore[arg-type]
+    assert [p["person"] for p in got["people"]] == ["person.wren", None]  # type: ignore[index]
+    (_method, url, _data, _headers), *_ = aioclient_mock.mock_calls
+    assert url.query["person"] == "wren1" and url.query["today"]
+
+    with pytest.raises(HomeAssistantError, match="not one of Home Assistant's people"):
+        await casa_mia._people(hass, APP, "person.nobody")  # type: ignore[arg-type]
 
 
 async def test_the_cameras_feed_says_them_now_and_at_each_change(
