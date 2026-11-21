@@ -12,7 +12,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, room as below, watchRoom } from "../ha.ts";
 import { ALARM, chest, said, shown } from "./digs/chest.ts";
 import { Tour } from "./digs/follow.ts";
-import { Prank } from "./digs/prank.ts";
+import { GOES, Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
 import { BUILDS, bg, figure, say, texture, type Shape } from "./digs/textures.ts";
@@ -383,7 +383,7 @@ export class Digs extends Family {
 
     const g = dark.getContext("2d")!;
     g.clearRect(0, 0, world.w, world.h);
-    shades(world, this._house.rooms, this._day).forEach((row, y) =>
+    shades(world, this._house.rooms, this._day, !this._prank.blown).forEach((row, y) =>
       row.forEach((a, x) => {
         if (a <= 0) return;
         g.fillStyle = `rgba(6,8,26,${a})`;
@@ -455,7 +455,13 @@ export class Digs extends Family {
 
     const tip = this._lost ? `No connection since ${clock(this._lost)}` : armed ? `Hit again to ${AGAIN[armed.kind]}` : hurt ? `${this._hurt + 1}/${hurts.length} ${hurt}` : this._told
       || (sel ? `${sel.room} ${sel.name}: ${said(sel)}` : picked ? `${picked.name}: ${lamps.filter((d) => d.on).length} of ${lamps.length} lights on` : this._touring(house) ?? "Press a block to name it, again to switch it");
-    // What stands in the garden: the signpost, the board that says what the house is missing, and the forecast's signs.
+    // What stands in the garden: the signpost, the board that says what the house is missing, the forecast's signs, and the
+    // board that has the view follow the imp (prank.ts chase), lit while it does and gone from its posts while it is in bits.
+    const chasing = this._prank.chasing;
+    const chase = () => {
+      if (!chasing) this._prank.chase();
+      this._point("", chasing ? `The imp has ${things(chasing, "go")} left` : `Following the imp for ${GOES} goes`);
+    };
     const garden = () => html`
         ${this.hasAttribute("panel")
           ? html`<button class="at board" style="${place(world.sign.x, world.sign.y, 2)};background-image:${bg("board")}" aria-label="Choose another Dash-Bored" @click=${() => fire(this, CHOOSE)}>${say("Dash")}${say("Bored")}</button>`
@@ -465,6 +471,9 @@ export class Digs extends Family {
               ${floorless ? say(`No floor ${floorless}`) : nothing}${loose ? say(`No area ${loose}`) : nothing}
             </button>`
           : nothing}
+        ${this._prank.blown || calm() || this._sample
+          ? nothing
+          : html`<button class="at board ${chasing ? "sel" : ""}" style="${place(world.chase.x, world.chase.y, 2)};background-image:${bg("board")}" aria-pressed=${!!chasing} aria-label="Follow the imp" @click=${chase}>${say("Follow")}${say("the imp")}</button>`}
         ${this._days.slice(0, world.signs.length).map((day, i) => {
           const { x, y } = world.signs[i];
           const [name, high] = [new Date(day.at).toLocaleDateString("en", { weekday: "short" }), `${Math.round(day.high)}°`];
@@ -481,10 +490,11 @@ export class Digs extends Family {
         ${alone
           ? nothing
           : repeat(this._walks.list(), (w) => w.id, (w) => {
-              // Feet on the floor whatever the height; a party hat on a birthday.
+              // Feet on the floor whatever the height; a party hat on a birthday. The first name only: two
+              // whole names side by side ran into each other on a tablet.
               const shape = this._shape(w.id), tall = BUILDS[shape].h / 16, birthday = !!this._aged.get(w.id)?.birthday;
               return html`<div class="at who ${shape} ${w.ms ? (w.climbing ? "climbing" : "walking") : ""} ${w.left ? "left" : ""} ${birthday ? "birthday" : ""}"
-                style="${place(w.at.x, w.at.y + 1 - tall, 1, tall)};--ms:${w.ms}ms;--fig:${figure(w.name, shape)}${birthday ? `;--hat:${bg("hat")}` : ""}">${say(w.name)}</div>`;
+                style="${place(w.at.x, w.at.y + 1 - tall, 1, tall)};--ms:${w.ms}ms;--fig:${figure(w.name, shape)}${birthday ? `;--hat:${bg("hat")}` : ""}">${say(w.name.split(" ")[0])}</div>`;
             })}
         <canvas class="dark" .width=${world.w} .height=${world.h}></canvas>
         ${sel && world.slots.has(sel.id) ? html`<div class="at tag" style=${place(world.slots.get(sel.id)!.x, world.slots.get(sel.id)!.y, world.slots.get(sel.id)!.w, world.slots.get(sel.id)!.h)}>${say(sel.name)}</div>` : nothing}

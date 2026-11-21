@@ -459,6 +459,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     credit, and its maker's terms do not allow its textures in other software). **Not
     built:** a way to turn it off. Seen on the harness in WebKit; `el._prank._begin()`
     in the console starts one at once.
+    **The board "Follow the imp"** (2026.11.11-b10; owner, 2026-11-20): `world.chase`,
+    two blocks after the forecast's signs, with free grass beside it. `Prank.chase` gives
+    `GOES` (5) pranks `SOON` (3 s) apart, anywhere in the house; the last goes down at
+    `chase.x + 2`, and `blown` hides the board from the bang until the bot has gone, which
+    ends the chase. One wait for the next prank at a time (`_next`, a turn number), so the
+    press can bring it forward. `spot` stays on the last crate between goes, so the view
+    doesn't swing back to someone in between. `boards(world)` is every board's blocks, for
+    the prank and the shading. Tested with a clock of the test's own (`digs.test.ts`).
   - **The household walks all over, and the view follows them** (2026.11.10-b1; owner,
     2026-11-20). `digs/walk.ts`: `route` is a breadth-first search over the blocks (floor
     rows, ladders, and since then a doorway in each end wall of the ground storey);
@@ -1116,6 +1124,12 @@ CLAUDE.md has them all. What trips agents here:
   names. Likewise **don't recreate entity ids** (a red herring in 2026-10-19's camera hunt).
 - **The restart Repair** reads the loaded version at import, so an entry reload can't clear
   it; it can need a page reload to appear.
+- **A page open across an update runs the old cards** until it is reloaded (custom elements
+  are defined once). `connection.ts` `offerReload` shows HA's toast; with `unattended`
+  (Dash-Bored passes `Shell.shown > 0`) it also reloads by itself after a minute with no
+  touch (2026.11.11-b10, after a wall tablet ran b5 for hours after b7 was installed).
+  Dash-Bored's `Family.update` catches a drawing error and shows it in a red `.broken` box
+  instead of leaving the page blank.
 - **Don't rewrite JSON or YAML through a parser** (`en.json`, `maturity.json`): it reformats
   them. Edit as text, and check the diff of any regex edit.
 - **Default-stripping editors:** a saved card keeps old values, so a changed default doesn't

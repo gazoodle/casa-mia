@@ -2,9 +2,12 @@
 // off and blows a hole in the place, and a repair bot flies in and mends it block by
 // block. It is a show and nothing else: it takes no press, covers no device's block, and
 // changes nothing in the house. The imp, the crate and the bot are our own drawings.
+// The board in the garden, "Follow the imp", gives him GOES goes one after another,
+// anywhere in the house, with the view after him; the last crate he puts down by the
+// board itself, which goes up with it and so is switched off (owner, 2026-11-20).
 import { html, nothing } from "lit";
 import { bg } from "./textures.ts";
-import type { World } from "./world.ts";
+import { boards, type World } from "./world.ts";
 
 export type Cell = { x: number; y: number };
 /** One prank: where the crate is put, where the imp runs to, and the blocks it breaks. */
@@ -16,6 +19,8 @@ const [SOONEST, LATEST] = [180_000, 360_000]; // ms: between one prank and the n
 // its laugh, the bot arrives, and how long the bot takes over each block.
 const [DOWN, BANG, LAUGHED, BOT, MEND] = [1200, 4200, 5000, 7000, 800];
 const RUN = 3; // blocks: how far the imp runs from its crate
+export const GOES = 5; // pranks the board asks for
+const SOON = 3000; // ms: between one of them and the next
 const DEBRIS = ["#b98a4e", "#868686", "#7a5536", "#9a3b2e", "#ffd83a", "#26262a", "#b98a4e", "#868686"];
 
 /** Where a prank happens. The crate stands on a room's floor or on the grass, where
@@ -26,7 +31,7 @@ export function plan(world: World, from: number, to: number, random: () => numbe
   const take = (x: number, y: number) => taken.add(`${x},${y}`);
   for (const { x, y, h, w = 1 } of world.slots.values()) for (let i = 0; i < h; i++) for (let k = 0; k < w; k++) take(x + k, y + i);
   for (const [, x, y] of world.deco) take(x, y);
-  for (const { x, y } of [world.sign, { ...world.sign, x: world.sign.x + 1 }, ...[0, 1, 2].map((i) => ({ ...world.notice, x: world.notice.x + i })), ...world.signs]) take(x, y);
+  for (const { x, y } of boards(world)) take(x, y);
 
   // Each place a crate can stand, with how far along its floor the imp can run.
   const open = Array.from({ length: world.w }, (_, x) => x).filter((x) => !world.blocks[world.ground - 1][x]);
@@ -56,6 +61,11 @@ export class Prank {
   private _plan?: Plan;
   private _stage = 0; // 0 nothing, 1 the imp has the crate, 2 it is down and lit, 3 it has gone off, 4 the dust settles, 5 the bot is mending
   private _mended = 0; // how many of the holes the bot has mended
+  private _chase = 0; // how many goes the board has still asked for
+  private _blows = false; // whether this prank's crate is the board's last, by the board
+  private _at?: Cell; // where the latest crate was put down: the view waits there between goes
+  private _turn = 0; // which wait for the next prank is the one that counts: the board's press puts it sooner
+  private _ends = 0; // ms: when the prank on now is over
   private _host: Host;
 
   constructor(host: Host) {
@@ -64,9 +74,34 @@ export class Prank {
 
   /** Begin again from nothing: the element is on the page. */
   start() {
-    this._plan = undefined;
-    this._stage = this._mended = 0;
-    this._host.after(FIRST, this._begin);
+    this._plan = this._at = undefined;
+    this._stage = this._mended = this._chase = this._ends = 0;
+    this._blows = false;
+    this._next(FIRST);
+  }
+
+  /** The board was pressed: GOES pranks, one after another, from as soon as the one on now is over. */
+  chase() {
+    if (this._chase) return;
+    this._chase = GOES;
+    this._next(Math.max(0, this._ends - Date.now()) + SOON);
+    this._host.requestUpdate();
+  }
+
+  /** How many goes the board has still asked for; one while its last is on, until it goes up. */
+  get chasing() {
+    return this._chase || (this._blows && this._stage > 0 && this._stage < 3 ? 1 : 0);
+  }
+
+  /** Whether the board is in bits: from the bang until the bot has gone. */
+  get blown() {
+    return this._blows && this._stage >= 3;
+  }
+
+  /** The next prank, after `ms`, in place of any wait before it. */
+  private _next(ms: number) {
+    const turn = ++this._turn;
+    this._host.after(ms, () => turn === this._turn && this._begin());
   }
 
   /** Whether the crate has just gone off: the world shakes. */
@@ -74,9 +109,10 @@ export class Prank {
     return this._stage === 3;
   }
 
-  /** Where the prank is, while there is one, for the view to follow (follow.ts): its crate. */
+  /** Where the prank is, while there is one, for the view to follow (follow.ts): its crate,
+   * and between the board's goes, where the last one was. */
   get spot() {
-    return this._stage ? this._plan?.tnt : undefined;
+    return this._stage || this._chase ? this._at : undefined;
   }
 
   private _set(stage: number, mended = this._mended) {
@@ -85,15 +121,23 @@ export class Prank {
     this._host.requestUpdate();
   }
 
-  /** One prank, as dates coming due. Nothing happens where less movement is asked for, or with nowhere for a crate. */
+  /** One prank, as dates coming due. Nothing happens where less movement is asked for, or with nowhere for a crate.
+   * One of the board's is anywhere in the house, and its last on the grass beside the board. */
   private _begin = () => {
     const world = this._host.world();
-    const found = world && !this._host.still() ? plan(world, ...this._host.seen(), Math.random) : undefined;
+    const last = this._chase === 1, by = world && world.chase.x + 2;
+    const where: [number, number] = !world ? [0, 0] : last ? [by!, by!] : this._chase ? [0, world.w - 1] : this._host.seen();
+    const found = world && !this._host.still() ? plan(world, ...where, Math.random) : undefined;
     const done = BOT + MEND * ((found?.holes.length ?? 0) + 2);
-    this._host.after((found ? done : 0) + SOONEST + Math.random() * (LATEST - SOONEST), this._begin);
+    const chased = !!found && this._chase > 0;
+    this._ends = Date.now() + (found ? done : 0);
+    this._next((found ? done : 0) + (chased && !last ? SOON : SOONEST + Math.random() * (LATEST - SOONEST)));
     if (!found) return;
 
+    if (chased) this._chase--;
+    this._blows = chased && last;
     this._plan = found;
+    this._at = found.tnt;
     this._set(1, 0);
     this._host.began();
     for (const [ms, stage] of [[DOWN, 2], [BANG, 3], [LAUGHED, 4], [BOT, 5]]) this._host.after(ms, () => this._set(stage));
@@ -101,6 +145,7 @@ export class Prank {
     // The bot flies off, and then there is nothing to show.
     this._host.after(done, () => {
       this._plan = undefined;
+      this._blows = false;
       this._set(0, 0);
     });
   };

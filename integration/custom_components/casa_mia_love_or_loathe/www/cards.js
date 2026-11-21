@@ -1,4 +1,10 @@
-function e(e, t) {
+//#region src/connection.ts
+var e = 6e4, t = [
+	"pointerdown",
+	"keydown",
+	"wheel"
+];
+function n(e, t) {
 	let n = (t) => console.error(`CASA-MIA CARDS: ${e} won't work: ${t}`), r = () => {
 		let e = window.hassConnection;
 		return e?.then(t, (e) => n(`Home Assistant's connection failed (${e})`)), !!e;
@@ -8,12 +14,12 @@ function e(e, t) {
 		r() ? clearInterval(a) : --i === 0 && (clearInterval(a), n("Home Assistant's connection never appeared"));
 	}, 100);
 }
-function t(t, n, r) {
-	r !== "dev" && e(`${t}'s offer to reload after an update`, ({ conn: e }) => {
-		e.addEventListener("ready", () => e.sendMessagePromise({ type: n }).then(({ version: e }) => {
-			e && e !== r && (console.warn(`CASA-MIA CARDS: ${t} ${r} running, ${e} served: reload to update`), document.querySelector("home-assistant")?.dispatchEvent(new CustomEvent("hass-notification", {
+function r(e, t, r, i) {
+	r !== "dev" && n(`${e}'s offer to reload after an update`, ({ conn: n }) => {
+		n.addEventListener("ready", () => n.sendMessagePromise({ type: t }).then(({ version: t }) => {
+			t && t !== r && (console.warn(`CASA-MIA CARDS: ${e} ${r} running, ${t} served: reload to update`), document.querySelector("home-assistant")?.dispatchEvent(new CustomEvent("hass-notification", {
 				detail: {
-					message: `${t} updated to ${e}: reload to use it`,
+					message: `${e} updated to ${t}: reload to use it`,
 					duration: -1,
 					dismissable: !0,
 					action: {
@@ -23,11 +29,26 @@ function t(t, n, r) {
 				},
 				bubbles: !0,
 				composed: !0
-			})));
+			})), i && a(e, i));
 		}, () => {}));
 	});
 }
-var n = {
+var i = !1;
+function a(n, r) {
+	if (i) return;
+	i = !0;
+	let a, o = () => {
+		clearTimeout(a), a = setTimeout(() => {
+			r() && (console.warn(`CASA-MIA CARDS: ${n} reloading itself to update, untouched for ${e / 1e3} s`), location.reload());
+		}, e);
+	};
+	for (let e of t) window.addEventListener(e, o, {
+		capture: !0,
+		passive: !0
+	});
+	o();
+}
+var o = {
 	about: "The layout options shared by the Camera Commander (drawn by the compositor, edited on the Camera Commander page) and the Tablet Layout (laid out in the browser, edited in Lovelace): one engine, two places (compositor.commander_layout, integration/cards/src/layout.ts, checked against tests/layout_cases.json). Each option: label, help ({item} is camera or card), default, and `for` when only one of them has it. Read by the compositor's defaults, the admin page and the cards' editors.",
 	main: {
 		gap: {
@@ -258,31 +279,31 @@ var n = {
 };
 //#endregion
 //#region src/ha.ts
-function r(e, t, n) {
+function s(e, t, n) {
 	e.dispatchEvent(new CustomEvent(t, {
 		detail: n,
 		bubbles: !0,
 		composed: !0
 	}));
 }
-var i = /* @__PURE__ */ new Set();
-function a(e) {
-	i.has(e) || console.warn(`CASA-MIA CARDS: ${e}`), i.add(e);
+var c = /* @__PURE__ */ new Set();
+function l(e) {
+	c.has(e) || console.warn(`CASA-MIA CARDS: ${e}`), c.add(e);
 }
-async function o() {
+async function u() {
 	customElements.get("ha-form") || (await (await (await window.loadCardHelpers()).createCardElement({
 		type: "entities",
 		entities: []
 	})).constructor.getConfigElement?.(), await customElements.whenDefined("ha-form"));
 }
-function s(e, t) {
+function d(e, t) {
 	if (!customElements.get(e)) try {
 		customElements.define(e, t);
 	} catch (t) {
 		console.error(`CASA-MIA CARDS failed: defining ${e}: ${t}`);
 	}
 }
-function c(e, t, n) {
+function ee(e, t, n) {
 	let r = window;
 	r.customCards ||= [], r.customCards.some((t) => t.type === e) || r.customCards.push({
 		type: e,
@@ -292,14 +313,14 @@ function c(e, t, n) {
 		documentationURL: "https://github.com/gazoodle/casa-mia-love-or-loathe"
 	});
 }
-var l = n.main, u = n.panel;
+var te = o.main, ne = o.panel;
 ({
-	...l,
-	...u
+	...te,
+	...ne
 });
-var d = (e) => e.parentElement ?? (e.getRootNode().host || null);
-function ee(e) {
-	for (let t = e; t; t = d(t)) if (t.tagName === "HUI-CARD-PICKER") return !0;
+var re = (e) => e.parentElement ?? (e.getRootNode().host || null);
+function ie(e) {
+	for (let t = e; t; t = re(t)) if (t.tagName === "HUI-CARD-PICKER") return !0;
 	return !1;
 }
 //#endregion
@@ -320,25 +341,25 @@ var f = globalThis, p = f.ShadowRoot && (f.ShadyCSS === void 0 || f.ShadyCSS.nat
 	toString() {
 		return this.cssText;
 	}
-}, te = (e) => new g(typeof e == "string" ? e : e + "", void 0, m), _ = (e, ...t) => new g(e.length === 1 ? e[0] : t.reduce((t, n, r) => t + ((e) => {
+}, ae = (e) => new g(typeof e == "string" ? e : e + "", void 0, m), _ = (e, ...t) => new g(e.length === 1 ? e[0] : t.reduce((t, n, r) => t + ((e) => {
 	if (!0 === e._$cssResult$) return e.cssText;
 	if (typeof e == "number") return e;
 	throw Error("Value passed to 'css' function must be a 'css' function result: " + e + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-})(n) + e[r + 1], e[0]), e, m), ne = (e, t) => {
+})(n) + e[r + 1], e[0]), e, m), oe = (e, t) => {
 	if (p) e.adoptedStyleSheets = t.map((e) => e instanceof CSSStyleSheet ? e : e.styleSheet);
 	else for (let n of t) {
 		let t = document.createElement("style"), r = f.litNonce;
 		r !== void 0 && t.setAttribute("nonce", r), t.textContent = n.cssText, e.appendChild(t);
 	}
-}, v = p ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((e) => {
+}, se = p ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((e) => {
 	let t = "";
 	for (let n of e.cssRules) t += n.cssText;
-	return te(t);
-})(e) : e, { is: re, defineProperty: ie, getOwnPropertyDescriptor: ae, getOwnPropertyNames: oe, getOwnPropertySymbols: se, getPrototypeOf: ce } = Object, y = globalThis, le = y.trustedTypes, ue = le ? le.emptyScript : "", de = y.reactiveElementPolyfillSupport, b = (e, t) => e, x = {
+	return ae(t);
+})(e) : e, { is: ce, defineProperty: le, getOwnPropertyDescriptor: ue, getOwnPropertyNames: de, getOwnPropertySymbols: fe, getPrototypeOf: pe } = Object, v = globalThis, y = v.trustedTypes, me = y ? y.emptyScript : "", he = v.reactiveElementPolyfillSupport, b = (e, t) => e, x = {
 	toAttribute(e, t) {
 		switch (t) {
 			case Boolean:
-				e = e ? ue : null;
+				e = e ? me : null;
 				break;
 			case Object:
 			case Array: e = e == null ? e : JSON.stringify(e);
@@ -363,7 +384,7 @@ var f = globalThis, p = f.ShadowRoot && (f.ShadyCSS === void 0 || f.ShadyCSS.nat
 		}
 		return n;
 	}
-}, S = (e, t) => !re(e, t), C = {
+}, S = (e, t) => !ce(e, t), C = {
 	attribute: !0,
 	type: String,
 	converter: x,
@@ -371,7 +392,7 @@ var f = globalThis, p = f.ShadowRoot && (f.ShadyCSS === void 0 || f.ShadyCSS.nat
 	useDefault: !1,
 	hasChanged: S
 };
-Symbol.metadata ??= Symbol("metadata"), y.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+Symbol.metadata ??= Symbol("metadata"), v.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 var w = class extends HTMLElement {
 	static addInitializer(e) {
 		this._$Ei(), (this.l ??= []).push(e);
@@ -382,11 +403,11 @@ var w = class extends HTMLElement {
 	static createProperty(e, t = C) {
 		if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
 			let n = Symbol(), r = this.getPropertyDescriptor(e, n, t);
-			r !== void 0 && ie(this.prototype, e, r);
+			r !== void 0 && le(this.prototype, e, r);
 		}
 	}
 	static getPropertyDescriptor(e, t, n) {
-		let { get: r, set: i } = ae(this.prototype, e) ?? {
+		let { get: r, set: i } = ue(this.prototype, e) ?? {
 			get() {
 				return this[t];
 			},
@@ -409,13 +430,13 @@ var w = class extends HTMLElement {
 	}
 	static _$Ei() {
 		if (this.hasOwnProperty(b("elementProperties"))) return;
-		let e = ce(this);
+		let e = pe(this);
 		e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
 	}
 	static finalize() {
 		if (this.hasOwnProperty(b("finalized"))) return;
 		if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(b("properties"))) {
-			let e = this.properties, t = [...oe(e), ...se(e)];
+			let e = this.properties, t = [...de(e), ...fe(e)];
 			for (let n of t) this.createProperty(n, e[n]);
 		}
 		let e = this[Symbol.metadata];
@@ -434,8 +455,8 @@ var w = class extends HTMLElement {
 		let t = [];
 		if (Array.isArray(e)) {
 			let n = new Set(e.flat(1 / 0).reverse());
-			for (let e of n) t.unshift(v(e));
-		} else e !== void 0 && t.push(v(e));
+			for (let e of n) t.unshift(se(e));
+		} else e !== void 0 && t.push(se(e));
 		return t;
 	}
 	static _$Eu(e, t) {
@@ -461,7 +482,7 @@ var w = class extends HTMLElement {
 	}
 	createRenderRoot() {
 		let e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-		return ne(e, this.constructor.elementStyles), e;
+		return oe(e, this.constructor.elementStyles), e;
 	}
 	connectedCallback() {
 		this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
@@ -556,32 +577,32 @@ var w = class extends HTMLElement {
 	updated(e) {}
 	firstUpdated(e) {}
 };
-w.elementStyles = [], w.shadowRootOptions = { mode: "open" }, w[b("elementProperties")] = /* @__PURE__ */ new Map(), w[b("finalized")] = /* @__PURE__ */ new Map(), de?.({ ReactiveElement: w }), (y.reactiveElementVersions ??= []).push("2.1.2");
+w.elementStyles = [], w.shadowRootOptions = { mode: "open" }, w[b("elementProperties")] = /* @__PURE__ */ new Map(), w[b("finalized")] = /* @__PURE__ */ new Map(), he?.({ ReactiveElement: w }), (v.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region node_modules/lit-html/lit-html.js
-var T = globalThis, E = (e) => e, D = T.trustedTypes, O = D ? D.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, k = "$lit$", A = `lit$${Math.random().toFixed(9).slice(2)}$`, j = "?" + A, fe = `<${j}>`, M = document, N = () => M.createComment(""), P = (e) => e === null || typeof e != "object" && typeof e != "function", F = Array.isArray, pe = (e) => F(e) || typeof e?.[Symbol.iterator] == "function", I = "[ 	\n\f\r]", L = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, R = /-->/g, z = />/g, B = RegExp(`>|${I}(?:([^\\s"'>=/]+)(${I}*=${I}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), me = /'/g, he = /"/g, ge = /^(?:script|style|textarea|title)$/i, V = ((e) => (t, ...n) => ({
+var T = globalThis, E = (e) => e, D = T.trustedTypes, O = D ? D.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, k = "$lit$", A = `lit$${Math.random().toFixed(9).slice(2)}$`, j = "?" + A, ge = `<${j}>`, M = document, N = () => M.createComment(""), P = (e) => e === null || typeof e != "object" && typeof e != "function", F = Array.isArray, _e = (e) => F(e) || typeof e?.[Symbol.iterator] == "function", I = "[ 	\n\f\r]", L = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, R = /-->/g, z = />/g, B = RegExp(`>|${I}(?:([^\\s"'>=/]+)(${I}*=${I}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), ve = /'/g, ye = /"/g, be = /^(?:script|style|textarea|title)$/i, V = ((e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
-}))(1), H = Symbol.for("lit-noChange"), U = Symbol.for("lit-nothing"), _e = /* @__PURE__ */ new WeakMap(), W = M.createTreeWalker(M, 129);
-function ve(e, t) {
+}))(1), H = Symbol.for("lit-noChange"), U = Symbol.for("lit-nothing"), xe = /* @__PURE__ */ new WeakMap(), W = M.createTreeWalker(M, 129);
+function Se(e, t) {
 	if (!F(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
 	return O === void 0 ? t : O.createHTML(t);
 }
-var ye = (e, t) => {
+var Ce = (e, t) => {
 	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = L;
 	for (let t = 0; t < n; t++) {
 		let n = e[t], s, c, l = -1, u = 0;
-		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === L ? c[1] === "!--" ? o = R : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = B) : (ge.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = B) : o = z : o === B ? c[0] === ">" ? (o = i ?? L, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? B : c[3] === "\"" ? he : me) : o === he || o === me ? o = B : o === R || o === z ? o = L : (o = B, i = void 0);
+		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === L ? c[1] === "!--" ? o = R : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = B) : (be.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = B) : o = z : o === B ? c[0] === ">" ? (o = i ?? L, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? B : c[3] === "\"" ? ye : ve) : o === ye || o === ve ? o = B : o === R || o === z ? o = L : (o = B, i = void 0);
 		let d = o === B && e[t + 1].startsWith("/>") ? " " : "";
-		a += o === L ? n + fe : l >= 0 ? (r.push(s), n.slice(0, l) + k + n.slice(l) + A + d) : n + A + (l === -2 ? t : d);
+		a += o === L ? n + ge : l >= 0 ? (r.push(s), n.slice(0, l) + k + n.slice(l) + A + d) : n + A + (l === -2 ? t : d);
 	}
-	return [ve(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
+	return [Se(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
 }, G = class e {
 	constructor({ strings: t, _$litType$: n }, r) {
 		let i;
 		this.parts = [];
-		let a = 0, o = 0, s = t.length - 1, c = this.parts, [l, u] = ye(t, n);
+		let a = 0, o = 0, s = t.length - 1, c = this.parts, [l, u] = Ce(t, n);
 		if (this.el = e.createElement(l, r), W.currentNode = this.el.content, n === 2 || n === 3) {
 			let e = this.el.content.firstChild;
 			e.replaceWith(...e.childNodes);
@@ -595,13 +616,13 @@ var ye = (e, t) => {
 						index: a,
 						name: r[2],
 						strings: n,
-						ctor: r[1] === "." ? xe : r[1] === "?" ? Se : r[1] === "@" ? Ce : J
+						ctor: r[1] === "." ? Te : r[1] === "?" ? Ee : r[1] === "@" ? De : J
 					}), i.removeAttribute(e);
 				} else e.startsWith(A) && (c.push({
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
-				if (ge.test(i.tagName)) {
+				if (be.test(i.tagName)) {
 					let e = i.textContent.split(A), t = e.length - 1;
 					if (t > 0) {
 						i.textContent = D ? D.emptyScript : "";
@@ -638,7 +659,7 @@ function K(e, t, n = e, r) {
 	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = P(t) ? void 0 : t._$litDirective$;
 	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = K(e, i._$AS(e, t.values), i, r)), t;
 }
-var be = class {
+var we = class {
 	constructor(e, t) {
 		this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = t;
 	}
@@ -655,7 +676,7 @@ var be = class {
 		for (; s !== void 0;) {
 			if (a === s.index) {
 				let t;
-				s.type === 2 ? t = new q(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new we(i, this, e)), this._$AV.push(t), s = n[++o];
+				s.type === 2 ? t = new q(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new Oe(i, this, e)), this._$AV.push(t), s = n[++o];
 			}
 			a !== s?.index && (i = W.nextNode(), a++);
 		}
@@ -683,7 +704,7 @@ var be = class {
 		return this._$AB;
 	}
 	_$AI(e, t = this) {
-		e = K(this, e, t), P(e) ? e === U || e == null || e === "" ? (this._$AH !== U && this._$AR(), this._$AH = U) : e !== this._$AH && e !== H && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? pe(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
+		e = K(this, e, t), P(e) ? e === U || e == null || e === "" ? (this._$AH !== U && this._$AR(), this._$AH = U) : e !== this._$AH && e !== H && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? _e(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
 	}
 	O(e) {
 		return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -695,16 +716,16 @@ var be = class {
 		this._$AH !== U && P(this._$AH) ? this._$AA.nextSibling.data = e : this.T(M.createTextNode(e)), this._$AH = e;
 	}
 	$(e) {
-		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = G.createElement(ve(n.h, n.h[0]), this.options)), n);
+		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = G.createElement(Se(n.h, n.h[0]), this.options)), n);
 		if (this._$AH?._$AD === r) this._$AH.p(t);
 		else {
-			let e = new be(r, this), n = e.u(this.options);
+			let e = new we(r, this), n = e.u(this.options);
 			e.p(t), this.T(n), this._$AH = e;
 		}
 	}
 	_$AC(e) {
-		let t = _e.get(e.strings);
-		return t === void 0 && _e.set(e.strings, t = new G(e)), t;
+		let t = xe.get(e.strings);
+		return t === void 0 && xe.set(e.strings, t = new G(e)), t;
 	}
 	k(t) {
 		F(this._$AH) || (this._$AH = [], this._$AR());
@@ -743,21 +764,21 @@ var be = class {
 	j(e) {
 		e === U ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
 	}
-}, xe = class extends J {
+}, Te = class extends J {
 	constructor() {
 		super(...arguments), this.type = 3;
 	}
 	j(e) {
 		this.element[this.name] = e === U ? void 0 : e;
 	}
-}, Se = class extends J {
+}, Ee = class extends J {
 	constructor() {
 		super(...arguments), this.type = 4;
 	}
 	j(e) {
 		this.element.toggleAttribute(this.name, !!e && e !== U);
 	}
-}, Ce = class extends J {
+}, De = class extends J {
 	constructor(e, t, n, r, i) {
 		super(e, t, n, r, i), this.type = 5;
 	}
@@ -769,7 +790,7 @@ var be = class {
 	handleEvent(e) {
 		typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
 	}
-}, we = class {
+}, Oe = class {
 	constructor(e, t, n) {
 		this.element = e, this.type = 6, this._$AN = void 0, this._$AM = t, this.options = n;
 	}
@@ -779,9 +800,9 @@ var be = class {
 	_$AI(e) {
 		K(this, e);
 	}
-}, Te = T.litHtmlPolyfillSupport;
-Te?.(G, q), (T.litHtmlVersions ??= []).push("3.3.3");
-var Ee = (e, t, n) => {
+}, ke = T.litHtmlPolyfillSupport;
+ke?.(G, q), (T.litHtmlVersions ??= []).push("3.3.3");
+var Ae = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
 		let e = n?.renderBefore ?? null;
@@ -798,7 +819,7 @@ var Ee = (e, t, n) => {
 	}
 	update(e) {
 		let t = this.render();
-		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = Ee(t, this.renderRoot, this.renderOptions);
+		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = Ae(t, this.renderRoot, this.renderOptions);
 	}
 	connectedCallback() {
 		super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -811,12 +832,12 @@ var Ee = (e, t, n) => {
 	}
 };
 X._$litElement$ = !0, X.finalized = !0, Y.litElementHydrateSupport?.({ LitElement: X });
-var De = Y.litElementPolyfillSupport;
-De?.({ LitElement: X }), (Y.litElementVersions ??= []).push("4.2.2");
+var je = Y.litElementPolyfillSupport;
+je?.({ LitElement: X }), (Y.litElementVersions ??= []).push("4.2.2");
 //#endregion
 //#region src/love-or-loathe/common.ts
-var Z = "casa_mia_love_or_loathe", Oe = new URL(import.meta.url).searchParams.get("v") || "dev", ke = `${Z}/cards`, Q = "casa-mia-love-or-loathe";
-function Ae(e, t, n, r) {
+var Z = "casa_mia_love_or_loathe", Me = new URL(import.meta.url).searchParams.get("v") || "dev", Ne = `${Z}/cards`, Q = "casa-mia-love-or-loathe";
+function Pe(e, t, n, r) {
 	let i = e.subscribeMessage((e) => r(e), {
 		type: `${Z}/song`,
 		entity_id: t,
@@ -824,14 +845,14 @@ function Ae(e, t, n, r) {
 	});
 	return i.catch((e) => r(void 0, e?.code === "unknown_command" ? "Love it or Loathe it isn't set up in Home Assistant" : e?.message ?? String(e))), () => void i.then((e) => e()).catch(() => void 0);
 }
-function je(e, t, n, r) {
+function Fe(e, t, n, r) {
 	return e.callService(Z, "rate", {
 		entity_id: t,
 		feeling: n,
 		...r ? { person: r } : {}
 	});
 }
-function Me(e, t, n) {
+function Ie(e, t, n) {
 	if (!n) return "No connection to Home Assistant";
 	if (!e) return t ?? "Waiting for Home Assistant";
 	if (!e.watched) return "Love it or Loathe it doesn't watch this player";
@@ -841,7 +862,7 @@ function Me(e, t, n) {
 }
 //#endregion
 //#region src/love-or-loathe/thumbs.ts
-var $ = "casa-mia-thumbs", Ne = class extends X {
+var $ = "casa-mia-thumbs", Le = class extends X {
 	constructor(...e) {
 		super(...e), this.connected = !0, this.quiet = !1, this._busy = !1;
 	}
@@ -867,8 +888,8 @@ var $ = "casa-mia-thumbs", Ne = class extends X {
 		this.isConnected && this.hass?.connection && e !== this._for && this._follow(e);
 	}
 	_follow(e) {
-		this._unfollow(), this._for = e, e && (this._off = Ae(this.hass.connection, this.entityId, this.person, (e, t) => {
-			[this._song, this._why] = [e, t], r(this, "cm-song", {
+		this._unfollow(), this._for = e, e && (this._off = Pe(this.hass.connection, this.entityId, this.person, (e, t) => {
+			[this._song, this._why] = [e, t], s(this, "cm-song", {
 				song: e,
 				why: t
 			});
@@ -881,9 +902,9 @@ var $ = "casa-mia-thumbs", Ne = class extends X {
 		if (this.hass && this.entityId) {
 			this._busy = !0;
 			try {
-				await je(this.hass, this.entityId, this._song?.feeling === e ? "clear" : e, this.person);
+				await Fe(this.hass, this.entityId, this._song?.feeling === e ? "clear" : e, this.person);
 			} catch (e) {
-				r(this, "hass-notification", {
+				s(this, "hass-notification", {
 					message: e?.message ?? String(e),
 					duration: 8e3
 				});
@@ -894,7 +915,7 @@ var $ = "casa-mia-thumbs", Ne = class extends X {
 	}
 	render() {
 		if (this.quiet && (!this._song?.watched || this._song.refused)) return U;
-		let e = Me(this._song, this._why, this.connected), t = (t, n, r, i) => {
+		let e = Ie(this._song, this._why, this.connected), t = (t, n, r, i) => {
 			let a = !e && this._song?.feeling === t, o = e ?? (a ? `${i}: tap to take that back` : r);
 			return V`<button class=${t} aria-pressed=${a} title=${o} aria-label=${o} ?disabled=${!!e || this._busy} @click=${() => this._rate(t)}>
         <ha-icon icon=${a ? n : `${n}-outline`}></ha-icon>
@@ -937,7 +958,7 @@ var $ = "casa-mia-thumbs", Ne = class extends X {
     }
   `;
 	}
-}, Pe = class extends X {
+}, Re = class extends X {
 	static {
 		this.properties = {
 			_config: { state: !0 },
@@ -976,8 +997,8 @@ var $ = "casa-mia-thumbs", Ne = class extends X {
 		let e = this._config, t = this._hass;
 		if (!e || !t) return U;
 		let n = e.entity;
-		if (!n) return V`<ha-card><div class="row"><div class="words"><span class="name">Love it or Loathe it</span><span class="song">${ee(this) ? "Thumbs for the song a player is playing" : "Choose a media player in the card's options"}</span></div></div></ha-card>`;
-		let r = t.states[n], i = t.connected !== !1, a = Me(this._song, this._why, i), o = r?.attributes.media_title, s = r?.attributes.media_artist, c = a && a !== "Nothing is playing" ? a : o && r?.state === "playing" ? `${o}${s ? ` by ${s}` : ""}` : "Nothing is playing";
+		if (!n) return V`<ha-card><div class="row"><div class="words"><span class="name">Love it or Loathe it</span><span class="song">${ie(this) ? "Thumbs for the song a player is playing" : "Choose a media player in the card's options"}</span></div></div></ha-card>`;
+		let r = t.states[n], i = t.connected !== !1, a = Ie(this._song, this._why, i), o = r?.attributes.media_title, s = r?.attributes.media_artist, c = a && a !== "Nothing is playing" ? a : o && r?.state === "playing" ? `${o}${s ? ` by ${s}` : ""}` : "Nothing is playing";
 		return V`<ha-card>
       <div class="row ${e.compact ? "compact" : ""}">
         ${e.compact ? U : V`<div class="words">
@@ -1034,10 +1055,10 @@ var $ = "casa-mia-thumbs", Ne = class extends X {
 };
 //#endregion
 //#region src/love-or-loathe/dialog.ts
-function Fe(e) {
+function ze(e) {
 	let t = e.shadowRoot, n = t?.querySelector($), r = t?.querySelector("[slot=\"headerTitle\"]"), i = e._entityId;
 	if (!t || !e.hass || !i?.startsWith("media_player.") || e._currView !== "info" || !r) {
-		t && i && !r && a("the entity dialog's header changed; no thumbs"), n?.remove();
+		t && i && !r && l("the entity dialog's header changed; no thumbs"), n?.remove();
 		return;
 	}
 	n || (n = document.createElement($), n.slot = "headerActionItems", n.quiet = !0, r.after(n)), n.hass = e.hass, n.connected = e.hass.connected !== !1, n.entityId = i;
@@ -1045,16 +1066,16 @@ function Fe(e) {
 customElements.whenDefined("ha-more-info-dialog").then(() => {
 	let e = customElements.get("ha-more-info-dialog").prototype, t = e.updated;
 	if (typeof t != "function") {
-		a("the entity dialog changed; no thumbs");
+		l("the entity dialog changed; no thumbs");
 		return;
 	}
 	e.updated = function(...e) {
-		t.apply(this, e), Fe(this);
+		t.apply(this, e), ze(this);
 	};
 });
 //#endregion
 //#region src/love-or-loathe/editor.ts
-var Ie = [
+var Be = [
 	{
 		name: "entity",
 		required: !0,
@@ -1072,17 +1093,17 @@ var Ie = [
 		name: "compact",
 		selector: { boolean: {} }
 	}
-], Le = {
+], Ve = {
 	entity: "Media player",
 	person: "Whose song it is",
 	name: "Name",
 	compact: "Only the thumbs"
-}, Re = {
+}, He = {
 	entity: "One that Love it or Loathe it watches.",
 	person: "Left empty: whoever is signed in, which suits a dashboard each person opens as themselves. Name a person for a shared screen such as a wall tablet, and give each person a card.",
 	name: "Instead of the player's own.",
 	compact: "No name and no song: for beside a media card that already shows them."
-}, ze = class extends X {
+}, Ue = class extends X {
 	constructor(...e) {
 		super(...e), this._ready = !1;
 	}
@@ -1097,22 +1118,22 @@ var Ie = [
 		this._config = e;
 	}
 	connectedCallback() {
-		super.connectedCallback(), o().then(() => this._ready = !0);
+		super.connectedCallback(), u().then(() => this._ready = !0);
 	}
 	render() {
 		return !this.hass || !this._config || !this._ready ? U : V`<ha-form
       .hass=${this.hass}
       .data=${this._config}
-      .schema=${Ie}
-      .computeLabel=${(e) => Le[e.name] ?? e.name}
-      .computeHelper=${(e) => Re[e.name]}
+      .schema=${Be}
+      .computeLabel=${(e) => Ve[e.name] ?? e.name}
+      .computeHelper=${(e) => He[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation();
 			let t = Object.fromEntries(Object.entries(e.detail.value).filter(([, e]) => e != null && e !== "" && e !== !1));
-			this._config = t, r(this, "config-changed", { config: t });
+			this._config = t, s(this, "config-changed", { config: t });
 		}}
     ></ha-form>`;
 	}
 };
-s($, Ne), s(Q, Pe), s(`${Q}-editor`, ze), c(Q, "Casa Mia Love it or Loathe it", "A thumb up and a thumb down for the song a media player is playing, for whoever is signed in."), t("Love it or Loathe it", ke, Oe);
+d($, Le), d(Q, Re), d(`${Q}-editor`, Ue), ee(Q, "Casa Mia Love it or Loathe it", "A thumb up and a thumb down for the song a media player is playing, for whoever is signed in."), r("Love it or Loathe it", Ne, Me);
 //#endregion

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.11-b10
+
+- **Dash-Bored Digs: a board in the garden, "Follow the imp".** Pressing it sets the imp off at once for five goes, one after another and anywhere in the house, with the view following him. His last crate goes down beside the board, which is blown up with it and so switched off, and the repair bot puts it back.
+- **Dash-Bored Digs: the people have only their first names over their heads**, so that two standing close together no longer run into each other.
+- **Dash-Bored: a family that fails to draw now says so.** A fault in drawing used to leave a blank page. It now shows a red box with the error and the time it started, and tries again at the next change.
+- **Dash-Bored: the page reloads itself after an update** once nobody has touched it for a minute, so a wall tablet stops running the old version with nobody there to press Reload. Dashboard cards still wait for the Reload button.
+
 ## 2026.11.11-b9
 
 - **People: a date of birth can be the year and month.** The year and month alone (`1984-03`) can now be saved, as well as the whole date, the year alone, or the day and month. A day without its month, or a month on its own, shows a warning saying what is missing, instead of only leaving Save greyed out.

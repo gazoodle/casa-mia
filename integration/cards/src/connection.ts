@@ -4,6 +4,8 @@
 // 2026-11-02): it ends at the first sight, or says what won't work and gives up.
 const EVERY_MS = 100;
 const ATTEMPTS = 600; // about a minute, for a slow tablet on a cold load
+const IDLE = 60_000; // ms: untouched this long, a page that may reloads itself after an update
+const TOUCHES = ["pointerdown", "keydown", "wheel"];
 
 /** Runs use with HA's connection once there is one; if there never is, says what is lost. */
 export function whenConnected(what: string, use: (connection: { conn: any }) => void): void {
@@ -30,8 +32,10 @@ export function whenConnected(what: string, use: (connection: { conn: any }) => 
  * once per page), which looks like a bug that isn't there. So at each reconnect (HA
  * restarts after an update) ask which version HA serves now (`command`, answering
  * {version}) and, if it isn't the one `running`, offer a reload in HA's own toast, as HA
- * does for its own frontend. Not in development (`running` "dev": no ?v= on the file). */
-export function offerReload(name: string, command: string, running: string): void {
+ * does for its own frontend. Not in development (`running` "dev": no ?v= on the file).
+ * `unattended`: whether the page may also reload itself, once nobody has touched it for
+ * IDLE; asked when the time is up, and a touch starts the wait again. */
+export function offerReload(name: string, command: string, running: string, unattended?: () => boolean): void {
   if (running === "dev") return;
   whenConnected(`${name}'s offer to reload after an update`, ({ conn }) => {
     const check = () =>
@@ -50,7 +54,28 @@ export function offerReload(name: string, command: string, running: string): voi
             composed: true,
           }),
         );
+        if (unattended) reloadWhenIdle(name, unattended);
       }, () => {}); // an older integration without the command: nothing to compare
     conn.addEventListener("ready", check);
   });
+}
+
+let idling = false;
+/** Reload once the page has gone IDLE without a touch, if `may` says so then. A date
+ * coming due, put off by each touch, not a poll: a page that may not reload waits for the
+ * next touch to start the wait again. Set once, however many reconnects find the update. */
+function reloadWhenIdle(name: string, may: () => boolean) {
+  if (idling) return;
+  idling = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const wait = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!may()) return;
+      console.warn(`CASA-MIA CARDS: ${name} reloading itself to update, untouched for ${IDLE / 1000} s`);
+      location.reload();
+    }, IDLE);
+  };
+  for (const type of TOUCHES) window.addEventListener(type, wait, { capture: true, passive: true });
+  wait();
 }

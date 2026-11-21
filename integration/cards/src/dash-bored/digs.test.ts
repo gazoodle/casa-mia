@@ -123,6 +123,42 @@ test("the imp's crate stands where nothing else is, on what is on the screen, an
   assert.ok(plan(build([]), 0, 10, rng(1))!.holes.length > 0);
 });
 
+test("the imp's board gives him five goes one after another, the last by the board, which goes up with it and is off", async () => {
+  const { GOES, Prank } = await import("./digs/prank.ts");
+  const world = build(house(), true);
+  // A clock of the test's own: each wait comes due in turn.
+  let now = 0, blown = false;
+  const due: { at: number; then: () => void }[] = [];
+  const crates: { x: number; y: number; at: number }[] = [];
+  const prank: InstanceType<typeof Prank> = new Prank({
+    after: (ms, then) => void due.push({ at: now + ms, then }),
+    requestUpdate: () => void (blown ||= prank.blown),
+    world: () => world,
+    seen: () => [0, 5],
+    still: () => false,
+    began: () => void crates.push({ ...prank.spot!, at: now }),
+  });
+  const until = (end: number) => {
+    for (let next; (next = due.filter((d) => d.at <= end).sort((a, b) => a.at - b.at)[0]); ) {
+      due.splice(due.indexOf(next), 1);
+      now = next.at;
+      next.then();
+    }
+  };
+
+  prank.start();
+  prank.chase();
+  assert.equal(prank.chasing, GOES);
+  until(170_000);
+  // The first go comes at once, not after the wait for the page's first prank; the next only minutes after the last.
+  assert.equal(crates.length, GOES);
+  assert.equal(crates[0].at, 3000);
+  assert.deepEqual({ x: crates.at(-1)!.x, y: crates.at(-1)!.y }, { x: world.chase.x + 2, y: world.ground - 1 });
+  assert.ok(blown, "the board went up with the last crate");
+  assert.equal(prank.chasing, 0);
+  assert.ok(!prank.blown, "and is back on its posts once the bot has gone");
+});
+
 test("a room's card is its room and no more: every block of it is inside the cut, indoors or out", () => {
   for (const r of house()) {
     const world = build([r]);

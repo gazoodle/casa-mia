@@ -75,7 +75,7 @@ export const STYLES = css`
   .lamp.strip::before { left: -50%; width: 200%; background: linear-gradient(rgba(255,233,160,.45), transparent); height: 120%; }
   .lamp.standing::before { top: 34%; height: 70%; }
   /* The block that is chosen: a white edge, and its name over it, in the light whatever the hour. */
-  .tag, .label.sel { outline: 3px solid #fff; outline-offset: -3px; }
+  .tag, .label.sel, .board.sel { outline: 3px solid #fff; outline-offset: -3px; }
   .tag { pointer-events: none; }
   .tag img { position: absolute; bottom: 100%; left: 50%; translate: -50% calc(var(--t) * -1); background: rgba(0,0,0,.6); padding: var(--t); }
   .who img { position: absolute; bottom: 100%; left: 50%; translate: -50% calc(var(--t) * -1); }

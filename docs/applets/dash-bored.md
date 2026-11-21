@@ -501,6 +501,14 @@ does the same. A house without ZenOS has no column.
 - If the connection to Home Assistant is lost, a red line says so and since when. What
   is shown below it is how things stood at that time.
 - If Home Assistant refuses an action, a red line says which and why.
+- If a family can't be drawn at all, because of a fault in Dash-Bored, a red box says so in
+  its place, with since when and the error, and it tries again at the next change in the
+  house. The browser's console has the details. This applies to every family.
+- After Dash-Bored is updated, a page that was already open keeps running the old version
+  until it is reloaded. Home Assistant shows a Reload button for it. The Dash-Bored page
+  also reloads by itself once nobody has touched it for a minute, so a wall tablet picks up
+  the update with nobody there. A dashboard card waits for you to press Reload, because
+  you may be part-way through editing the dashboard.
 
 ## The Console
 
@@ -1073,7 +1081,7 @@ Around the house:
   with the day, a picture of its weather and its high.
 - **Your scenes** are the buttons along the bottom: the house's and its floors'. The one
   set most recently has a white edge. A room's own scenes are in its chest.
-- **The people** are figures with their names over their heads. They walk from room to
+- **The people** are figures with their first names over their heads. They walk from room to
   room, climb the ladders, and go out through a door at each end of the ground floor
   into the garden and over to the outbuildings, staying 10 to 40 seconds wherever they
   get to. Home Assistant knows only that somebody is at home, not which room they are
@@ -1099,6 +1107,13 @@ nothing in your house, hides no device's block and takes no press, and it does n
 happen while a room's list is open or where the browser asks for less movement. The
 first one comes twenty seconds after the page is opened, and the rest three to six
 minutes apart. It can't be turned off yet.
+
+The board lettered FOLLOW THE IMP, in the garden after the forecast's signs, sets the
+imp off at once: he has five goes one after another, anywhere in the house, and the
+view follows him. The board has a white edge while it is on. He puts his last crate
+down beside the board itself, which goes up with it, and that switches it off; the bot
+puts it back on its posts. The board isn't there where the browser asks for less
+movement.
 
 When nobody has touched the page for a minute, the view follows one of the people about
 the house, and goes over to whoever sets off when the one it follows stops. When the

@@ -114,11 +114,15 @@ export class Shell extends LitElement {
   _choosing = false;
   private _last = 0; // ms: when the corner was last pressed
 
+  /** How many of Dash-Bored's pages are on the screen: the bundle reloads itself after an update only then (index.ts). */
+  static shown = 0;
+
   /** Home Assistant sets this on its page's element. Nothing in it is used. */
   set panel(_panel: unknown) {}
 
   connectedCallback() {
     super.connectedCallback();
+    Shell.shown++;
     try {
       // Bakelite was a family of its own before it was the Console's first era: a browser that chose it has the Console.
       const family = localStorage.getItem(REMEMBERED)?.replace(/^bakelite$/, "console");
@@ -135,6 +139,7 @@ export class Shell extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    Shell.shown--;
     this.removeEventListener("click", this._tap, true);
     this.removeEventListener(CHOOSE, this._asked);
   }
