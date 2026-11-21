@@ -17,8 +17,8 @@ ENTRIES = [
         "born": "1984-03-07",
     },
     {
-        "name": "Sam",
-        "person": "person.sam",
+        "name": "Wren",
+        "person": "person.wren",
         "age": 7,
         "days_to_birthday": 0,
         "born": "2018",
@@ -78,7 +78,7 @@ async def test_each_person_is_told_by_their_band_and_birthday_and_nothing_more(
         {
             "people": [
                 {"person": "person.robin", "band": None, "birthday": False},
-                {"person": "person.sam", "band": "child", "birthday": True},
+                {"person": "person.wren", "band": "child", "birthday": True},
                 {"person": "person.kit", "band": "toddler", "birthday": False},
                 {"person": "person.pip", "band": "baby", "birthday": False},
             ]
@@ -92,7 +92,7 @@ async def test_each_person_is_told_by_their_band_and_birthday_and_nothing_more(
     people_action(hass, answer)
     await hass.async_block_till_done()
     assert (await client.receive_json())["event"] == [
-        {"people": [{"person": "person.sam", "band": "child", "birthday": False}]}
+        {"people": [{"person": "person.wren", "band": "child", "birthday": False}]}
     ]
 
     # People stops answering: what was told stands.
@@ -101,7 +101,7 @@ async def test_each_person_is_told_by_their_band_and_birthday_and_nothing_more(
     await hass.async_block_till_done()
     _, again = await follow(hass, hass_ws_client)
     assert again == [
-        {"people": [{"person": "person.sam", "band": "child", "birthday": False}]}
+        {"people": [{"person": "person.wren", "band": "child", "birthday": False}]}
     ]
 
 

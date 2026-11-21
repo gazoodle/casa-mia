@@ -100,7 +100,7 @@ def test_api_add_edit_delete(tmp_path):
     assert p.check("+447700900123", "text")["allowed"]
 
     # One number, one person.
-    status, err = call(p, "POST", "", {"name": "Sam", "phone": "+447700900123"})
+    status, err = call(p, "POST", "", {"name": "Wren", "phone": "+447700900123"})
     assert status == 400 and "already belongs to Alex" in err["error"]
     for bad in ({"name": "", "phone": "07700900124"}, {"name": "X", "phone": "nope"}):
         assert call(p, "POST", "", bad)[0] == 400
@@ -137,7 +137,7 @@ def test_plates_and_gates(tmp_path):
     assert status == 201
     (alex,) = view["people"]
     assert alex["phone"] is None and alex["plates"] == ["ZZ00 ZZZ"]
-    assert call(p, "POST", "", {"name": "Sam", "plates": ["ZZ51 ZZZ"]})[0] == 201
+    assert call(p, "POST", "", {"name": "Wren", "plates": ["ZZ51 ZZZ"]})[0] == 201
 
     assert p.check_plate("ZZ00ZZZ") == {
         "allowed": True,
@@ -146,9 +146,9 @@ def test_plates_and_gates(tmp_path):
         "reason": None,
     }
     assert p.check_plate("ZZOO ZZZ")["allowed"]  # misread, still Alex
-    sam = p.check_plate("ZZ5I ZZZ")
-    assert not sam["allowed"] and sam["who"] == "Sam"
-    assert sam["reason"] == "not allowed to open the gates"
+    wren = p.check_plate("ZZ5I ZZZ")
+    assert not wren["allowed"] and wren["who"] == "Wren"
+    assert wren["reason"] == "not allowed to open the gates"
     assert p.check_plate("ZZ99 ZZZ")["reason"] == "unknown plate"
     assert p.check_plate("")["reason"] == "no plate read"
     assert call(p, "GET", "plate", query={"plate": ["ZZ00 ZZZ"]})[1]["allowed"]
@@ -255,7 +255,7 @@ def test_about_pronouns_default_to_they_and_the_query_picks_a_person(tmp_path):
     p, _ = make(
         tmp_path,
         [
-            {"id": "a", "name": "Sam", "phone": None, "person": "sam1"},
+            {"id": "a", "name": "Wren", "phone": None, "person": "wren1"},
             {
                 "id": "b",
                 "name": "Ann",
@@ -267,7 +267,7 @@ def test_about_pronouns_default_to_they_and_the_query_picks_a_person(tmp_path):
         ],
     )
     everyone = p.about(None, TODAY)["people"]
-    assert [x["name"] for x in everyone] == ["Ann", "Sam"]
+    assert [x["name"] for x in everyone] == ["Ann", "Wren"]
     assert "phone" not in everyone[0]
     assert everyone[0]["pronouns"] == {
         "subject": "she",
@@ -277,9 +277,9 @@ def test_about_pronouns_default_to_they_and_the_query_picks_a_person(tmp_path):
         "reflexive": "herself",
         "plural": False,
     }
-    (sam,) = p.about("sam1", TODAY)["people"]
-    assert sam["pronouns"]["subject"] == "they" and sam["pronouns"]["plural"]
-    assert sam["gender"] is None
+    (wren,) = p.about("wren1", TODAY)["people"]
+    assert wren["pronouns"]["subject"] == "they" and wren["pronouns"]["plural"]
+    assert wren["gender"] is None
     assert p.about("nobody", TODAY) == {"people": []}
 
 
@@ -299,7 +299,7 @@ def test_every_saved_change_is_announced_and_a_refused_one_is_not(tmp_path):
 
 def test_next_birthday_for_the_tile():
     people = [
-        {"name": "Sam", "born": "1990"},
+        {"name": "Wren", "born": "1990"},
         {"name": "Ann", "born": "--03-09"},
         {"name": "Alex", "born": "1984-03-09"},
         {"name": "Kim", "born": "2001-12-25"},
@@ -311,8 +311,8 @@ def test_next_birthday_for_the_tile():
 def test_the_list_carries_what_about_says_for_the_line_under_each_person(tmp_path):
     p, _ = make(
         tmp_path,
-        [{"id": "a", "name": "Sam", "phone": None, "person": "s", "born": "1990"}],
+        [{"id": "a", "name": "Wren", "phone": None, "person": "s", "born": "1990"}],
     )
-    (sam,) = p.view()["people"]
-    assert sam["about"]["pronouns"]["subject"] == "they"
-    assert sam["about"]["age"] == date.today().year - 1990
+    (wren,) = p.view()["people"]
+    assert wren["about"]["pronouns"]["subject"] == "they"
+    assert wren["about"]["age"] == date.today().year - 1990

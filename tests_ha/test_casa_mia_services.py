@@ -33,16 +33,16 @@ async def test_an_ask_is_the_apps_answer_and_no_answer_is_an_error(
 async def test_people_are_asked_by_ha_person_and_answered_with_entities(
     hass, aioclient_mock
 ):
-    hass.states.async_set("person.sam", "home", {"id": "sam1"})
+    hass.states.async_set("person.wren", "home", {"id": "wren1"})
     answer = {
-        "people": [{"name": "Sam", "person": "sam1"}, {"name": "Ann", "person": None}]
+        "people": [{"name": "Wren", "person": "wren1"}, {"name": "Ann", "person": None}]
     }
     aioclient_mock.get(f"{APP.url}/people/about", json=answer)
 
-    got = await casa_mia._people(hass, APP, "person.sam")  # type: ignore[arg-type]
-    assert [p["person"] for p in got["people"]] == ["person.sam", None]  # type: ignore[index]
+    got = await casa_mia._people(hass, APP, "person.wren")  # type: ignore[arg-type]
+    assert [p["person"] for p in got["people"]] == ["person.wren", None]  # type: ignore[index]
     (_method, url, _data, _headers), *_ = aioclient_mock.mock_calls
-    assert url.query["person"] == "sam1" and url.query["today"]
+    assert url.query["person"] == "wren1" and url.query["today"]
 
     with pytest.raises(HomeAssistantError, match="not one of Home Assistant's people"):
         await casa_mia._people(hass, APP, "person.nobody")  # type: ignore[arg-type]
