@@ -334,13 +334,19 @@ class People:
         return _json(404, {"error": "Not found."})
 
     def view(self) -> dict[str, Any]:
+        """The list for the People page: each record, and beside it what about() says
+        of it, which the page words as the line under the person."""
+        today = date.today()
         with self._lock:
             people = sorted(self.people, key=lambda p: p["name"].lower())
             # People saved before plates (2026.10.12-b7) have none, and no gates; before
             # 2026.11.11-b4, no gender, pronouns or date of birth.
             unset = {"plates": [], "gate": False, "gender": None, "pronouns": None}
             return {
-                "people": [{**unset, "born": None, **p} for p in people],
+                "people": [
+                    {**unset, "born": None, **p, "about": about(p, today)}
+                    for p in people
+                ],
                 "error": self._broken,
             }
 

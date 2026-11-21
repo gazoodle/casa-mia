@@ -115,9 +115,14 @@
     grid-row: 3;
   }
 
-  .row > .actions {
+  .row > .status {
     grid-column: 1 / -1;
     grid-row: 4;
+  }
+
+  .row > .actions {
+    grid-column: 1 / -1;
+    grid-row: 5;
     justify-content: flex-start;
   }
 
@@ -137,6 +142,14 @@
 
 .born input {
   width: 6em;
+}
+
+/* The line under a person, saying their age and birthday: the whole width of the row. */
+.status {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .checker {

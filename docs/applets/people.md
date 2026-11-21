@@ -60,6 +60,11 @@ Press **+ Add person** and enter:
   a birthday. A day without its month, or a month on its own, can't be saved, and the
   dialog says so.
 
+Under each person, a line says what their date of birth gives, worded with their
+pronouns: "She is 42, and turns 43 in 12 days, on 3 December", "It's their 21st birthday
+today", "He turns 43 this year" or "Her birthday is on 5 November". The number of days is
+given only when the birthday is within a month.
+
 A person needs a phone number, a number plate or a Home Assistant person. Press **Save**
 in the dialog.
 **Edit** changes the name, number, plates or link; the **Call**, **Text** and **Gates**

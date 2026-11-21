@@ -7,17 +7,12 @@ import css from "./people.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
 import { Select } from "./controls";
+import { bornParts } from "./personStatus";
 
 /** The pronouns offered as they are; anyone else's five forms are typed in. */
 const PRONOUNS = ["she/her/her/hers/herself", "he/him/his/his/himself", "they/them/their/theirs/themselves"];
 const TYPED = "typed";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-/** The year, month and day of a stored date of birth (1984, 1984-03, 1984-03-07 or --03-07). */
-function bornParts(born: string | null) {
-  const m = /^(\d{4}|-)(?:-(\d\d)(?:-(\d\d))?)?$/.exec(born ?? "");
-  return { year: m && m[1] !== "-" ? m[1] : "", month: m?.[2] ? String(+m[2]) : "", day: m?.[3] ? String(+m[3]) : "" };
-}
 
 /** Back to the stored form: null when nothing is given, or what is missing when the parts
  * given don't make a date (a day without its month, or a month alone). */

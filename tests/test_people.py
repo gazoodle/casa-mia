@@ -306,3 +306,13 @@ def test_next_birthday_for_the_tile():
     ]
     assert next_birthday(people, TODAY) == {"who": ["Alex", "Ann"], "days": 2}
     assert next_birthday(people[:1], TODAY) is None
+
+
+def test_the_list_carries_what_about_says_for_the_line_under_each_person(tmp_path):
+    p, _ = make(
+        tmp_path,
+        [{"id": "a", "name": "Sam", "phone": None, "person": "s", "born": "1990"}],
+    )
+    (sam,) = p.view()["people"]
+    assert sam["about"]["pronouns"]["subject"] == "they"
+    assert sam["about"]["age"] == date.today().year - 1990

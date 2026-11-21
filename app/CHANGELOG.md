@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.11-b11
+
+- **People: a line under each person says their age and birthday, with their pronouns.** For example "She is 42, and turns 43 in 12 days, on 3 December", "It's their 21st birthday today" or "Her birthday is on 5 November". It says only what the date of birth gives: with the year alone, "He turns 43 this year". Without pronouns it uses they/them, as the People action does.
+
 ## 2026.11.11-b10
 
 - **Dash-Bored Digs: a board in the garden, "Follow the imp".** Pressing it sets the imp off at once for five goes, one after another and anywhere in the house, with the view following him. His last crate goes down beside the board, which is blown up with it and so switched off, and the repair bot puts it back.

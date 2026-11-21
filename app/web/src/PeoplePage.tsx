@@ -3,8 +3,9 @@
  * Every change applies at once. */
 
 import { useCallback, useEffect, useState } from "react";
-import { api, type Person, type PeopleView, type HAPerson, type NumberCheck, type PlateCheck } from "./api";
+import { api, type ListedPerson, type Person, type PeopleView, type HAPerson, type NumberCheck, type PlateCheck } from "./api";
 import { PersonDialog, pretty } from "./PersonDialog";
+import { personStatus } from "./personStatus";
 import { PeopleIcon } from "./icons";
 import { AreaHead, Empty, Shell, Loading } from "./page";
 import { Toasts, type Toast } from "./ui";
@@ -125,6 +126,7 @@ export function PeoplePage() {
                     Remove
                   </button>
                 </span>
+                <Status person={p} />
               </div>
             ))}
           </div>
@@ -158,6 +160,12 @@ export function PeoplePage() {
       <Toasts toasts={toasts} />
     </Shell>
   );
+}
+
+/** The line under a person, the whole width of the row, when their date of birth says something. */
+function Status({ person }: { person: ListedPerson }) {
+  const line = personStatus(person.born, person.about);
+  return line && <span className={css.status}>{line}</span>;
 }
 
 function Checker() {
