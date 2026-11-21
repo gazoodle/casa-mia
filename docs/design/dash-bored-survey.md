@@ -38,6 +38,7 @@ source before relying on it, and replace it.
 | The forecast by the day | yes | yes | no | no | yes | no |
 | Who is at home | yes | no | yes | no | yes | no |
 | People's comings and goings, with times | yes | no | no | no | no | no |
+| Casa Mia People's ages and birthdays | no | no | no | no | yes | no |
 | What the players played lately | yes | no | no | no | no | no |
 | What is playing, and pause or play | yes | ? | ? | no | yes | part |
 | Which appliances are drawing power | yes | no | no | no | no | no |

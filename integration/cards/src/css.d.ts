@@ -7,3 +7,7 @@ declare module "*.css?inline" {
 // casa-mia-tablet-layout.js's version, as the marker tools/component_versions.py stamps
 // (vite.tablet-layout.config.ts): alone.ts.
 declare const __CM_STAMP__: string;
+
+// Where the bundle's cards send people for help, set by each bundle's build (vite.home.ts):
+// register in ha.ts.
+declare const __CM_HOME__: string;

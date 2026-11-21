@@ -922,8 +922,9 @@ notification also carries the phone's own sense of how much it matters:
 - **Both:** a sensor's next notification replaces its last, so being back replaces the
   alarm instead of adding to it.
 
-Other notify actions (email, Telegram) get the plain title and text. The integration replaces the file when it changes, so to change the
-blueprint itself, copy it under another name first.
+Other notify actions (email, Telegram) get the plain title and text. The integration keeps the blueprint's file up to date until you
+change it. If you change it, it is left as it is, and its lists of groups and notify
+actions are no longer kept up to date; delete it to have the current one again.
 
 <img src="../screenshots/sensor-watch-blueprint.webp" alt="An automation from the Notify on Sensor Watch blueprint: at this level or worse (Warning chosen), only this group (Flood Lights, from a dropdown), the notify action, a Home Assistant notification and say when it's back switched on, and anything else" width="800">
 

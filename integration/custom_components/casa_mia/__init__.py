@@ -26,6 +26,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import dt as dt_util
 
 from . import layout_resource, sensor_watch, topology
 from .children import discover_children, reload_children
@@ -51,6 +52,8 @@ SEND_SMS_SCHEMA = vol.Schema(
     }
 )
 CHECK_PLATE_SCHEMA = vol.Schema({vol.Required("plate"): cv.string})
+PEOPLE_SCHEMA = vol.Schema({vol.Optional("person"): cv.entity_domain("person")})
+SERVICES = ("send_sms", "check_plate", "people", "camera_picture")
 CAMERA_PICTURE_SCHEMA = vol.Schema(
     {
         vol.Required("entity_id"): cv.entity_id,
@@ -182,7 +185,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "send_sms", send_sms, schema=SEND_SMS_SCHEMA)
 
     async def check_plate(call: ServiceCall) -> ServiceResponse:
-        return await _check_plate(hass, coordinator, call.data["plate"])
+        # The list lives in the app, so an edit there applies to the next car.
+        plate = call.data["plate"]
+        return await _ask_app(
+            hass,
+            coordinator,
+            "/people/plate",
+            {"plate": plate},
+            f"Plate {plate} not checked",
+        )
 
     hass.services.async_register(
         DOMAIN,
@@ -192,9 +203,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         supports_response=SupportsResponse.ONLY,
     )
 
+    async def people(call: ServiceCall) -> ServiceResponse:
+        return await _people(hass, coordinator, call.data.get("person"))
+
+    hass.services.async_register(
+        DOMAIN,
+        "people",
+        people,
+        schema=PEOPLE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
     async def camera_picture(call: ServiceCall) -> ServiceResponse:
-        return await _camera_picture(
-            hass, coordinator, call.data["entity_id"], call.data["fresh"]
+        # From the app's compositor, which already fetches the cameras its commanders
+        # show: how another integration gets a photograph without asking the camera
+        # again (Dash-Bored's sightings do). `picture` is None, with `why`, when it
+        # holds none from the last `fresh` seconds.
+        camera = call.data["entity_id"]
+        return await _ask_app(
+            hass,
+            coordinator,
+            "/compositor/picture",
+            {"camera": camera, "fresh": str(call.data["fresh"])},
+            f"No picture of {camera}",
         )
 
     hass.services.async_register(
@@ -335,44 +366,49 @@ async def _send(
         ) from exc
 
 
-async def _check_plate(
-    hass: HomeAssistant, coordinator: CasaMiaCoordinator, plate: str
+async def _ask_app(
+    hass: HomeAssistant,
+    coordinator: CasaMiaCoordinator,
+    path: str,
+    params: dict[str, str],
+    failed: str,
 ) -> ServiceResponse:
-    """Ask the app, each time, whether this plate opens the gates: the list lives there,
-    so an edit applies to the next car. No answer is an error, never a refusal dressed
-    as one, so the automation's trace says why the gate stayed shut."""
+    """The app's answer to one of its reads, for a service that asks it each time. No
+    answer is an error, never an empty answer dressed as one, so an automation's trace
+    says why (the gate stayed shut, the message went without a name)."""
     try:
         async with async_get_clientsession(hass).get(
-            f"{coordinator.url}/people/plate",
-            params={"plate": plate},
+            f"{coordinator.url}{path}",
+            params=params,
             timeout=aiohttp.ClientTimeout(total=5),
         ) as response:
             response.raise_for_status()
             return await response.json()
     except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
-        _LOGGER.warning("plate %s not checked: the app did not answer: %s", plate, exc)
-        raise HomeAssistantError(f"Plate not checked: Casa Mia app: {exc}") from exc
+        _LOGGER.warning("%s: the app did not answer: %s", failed, exc)
+        raise HomeAssistantError(f"{failed}: Casa Mia app: {exc}") from exc
 
 
-async def _camera_picture(
-    hass: HomeAssistant, coordinator: CasaMiaCoordinator, entity_id: str, fresh: float
+async def _people(
+    hass: HomeAssistant, coordinator: CasaMiaCoordinator, entity_id: str | None
 ) -> ServiceResponse:
-    """A camera's picture from the app's compositor, which is already fetching the
-    cameras its commanders show: `picture` (base64), `type` and `age`, or `picture`
-    None and `why` when it holds none from the last `fresh` seconds. How another
-    integration gets a photograph without asking the camera again (Dash-Bored's
-    sightings do). No answer from the app is an error."""
-    try:
-        async with async_get_clientsession(hass).get(
-            f"{coordinator.url}/compositor/picture",
-            params={"camera": entity_id, "fresh": str(fresh)},
-            timeout=aiohttp.ClientTimeout(total=5),
-        ) as response:
-            response.raise_for_status()
-            return await response.json()
-    except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
-        _LOGGER.warning("no picture of %s: the app did not answer: %s", entity_id, exc)
-        raise HomeAssistantError(f"No picture: Casa Mia app: {exc}") from exc
+    """The People page's details for messages (gender, pronouns, age, birthday), for
+    everyone or for the entries linked to one HA person. The app links by HA's person
+    id; here each answer says the person's entity instead, as automations know them."""
+    ids = {s.attributes.get("id"): s.entity_id for s in hass.states.async_all("person")}
+    params = {"today": dt_util.now().date().isoformat()}
+    if entity_id is not None:
+        person = next((i for i, e in ids.items() if e == entity_id), None)
+        if person is None:
+            raise HomeAssistantError(
+                f"{entity_id} is not one of Home Assistant's people."
+            )
+        params["person"] = person
+
+    answer = await _ask_app(hass, coordinator, "/people/about", params, "No people")
+    for each in answer["people"]:  # type: ignore[index, union-attr]
+        each["person"] = ids.get(each["person"])
+    return answer
 
 
 def _pong(hass: HomeAssistant, coordinator: CasaMiaCoordinator):
@@ -408,6 +444,6 @@ async def async_remove_config_entry_device(
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hass.services.async_remove(DOMAIN, "send_sms")
-    hass.services.async_remove(DOMAIN, "check_plate")
+    for service in SERVICES:
+        hass.services.async_remove(DOMAIN, service)
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

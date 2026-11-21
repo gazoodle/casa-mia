@@ -1,8 +1,15 @@
 import json
+from datetime import date
 
 import pytest
 
-from casa_mia.modules.people import People, normalise, plate_key
+from casa_mia.modules.people import (
+    People,
+    about,
+    next_birthday,
+    normalise,
+    plate_key,
+)
 
 
 @pytest.mark.parametrize(
@@ -93,7 +100,7 @@ def test_api_add_edit_delete(tmp_path):
     assert p.check("+447700900123", "text")["allowed"]
 
     # One number, one person.
-    status, err = call(p, "POST", "", {"name": "Sam", "phone": "+447700900123"})
+    status, err = call(p, "POST", "", {"name": "Wren", "phone": "+447700900123"})
     assert status == 400 and "already belongs to Alex" in err["error"]
     for bad in ({"name": "", "phone": "07700900124"}, {"name": "X", "phone": "nope"}):
         assert call(p, "POST", "", bad)[0] == 400
@@ -130,7 +137,7 @@ def test_plates_and_gates(tmp_path):
     assert status == 201
     (alex,) = view["people"]
     assert alex["phone"] is None and alex["plates"] == ["ZZ00 ZZZ"]
-    assert call(p, "POST", "", {"name": "Sam", "plates": ["ZZ51 ZZZ"]})[0] == 201
+    assert call(p, "POST", "", {"name": "Wren", "plates": ["ZZ51 ZZZ"]})[0] == 201
 
     assert p.check_plate("ZZ00ZZZ") == {
         "allowed": True,
@@ -139,9 +146,9 @@ def test_plates_and_gates(tmp_path):
         "reason": None,
     }
     assert p.check_plate("ZZOO ZZZ")["allowed"]  # misread, still Alex
-    sam = p.check_plate("ZZ5I ZZZ")
-    assert not sam["allowed"] and sam["who"] == "Sam"
-    assert sam["reason"] == "not allowed to open the gates"
+    wren = p.check_plate("ZZ5I ZZZ")
+    assert not wren["allowed"] and wren["who"] == "Wren"
+    assert wren["reason"] == "not allowed to open the gates"
     assert p.check_plate("ZZ99 ZZZ")["reason"] == "unknown plate"
     assert p.check_plate("")["reason"] == "no plate read"
     assert call(p, "GET", "plate", query={"plate": ["ZZ00 ZZZ"]})[1]["allowed"]
@@ -152,7 +159,7 @@ def test_plates_and_gates(tmp_path):
     status, err = call(p, "POST", "", {"name": "Kim", "plates": ["ZZOO ZZZ"]})
     assert status == 400 and "already belongs to Alex" in err["error"]
     for bad in (
-        {"name": "Kim"},
+        {"name": "Kim"},  # no number, plate or HA person
         {"name": "Kim", "plates": ["!"]},
         {"name": "Kim", "plates": ["ZZ11 ZZZ", "zz11zzz"]},
         {"name": "Kim", "plates": "ZZ11 ZZZ"},
@@ -174,3 +181,138 @@ def test_persons_without_ha(tmp_path):
     p, _ = make(tmp_path)
     status, out = call(p, "GET", "persons")
     assert status == 200 and out["persons"] == [] and out["error"]
+
+
+def test_gender_pronouns_and_birth_are_kept_and_checked(tmp_path):
+    p, _ = make(tmp_path)
+    # Someone with no number or car, known by their HA person.
+    status, view = call(
+        p,
+        "POST",
+        "",
+        {
+            "name": "Robin",
+            "person": "robin1",
+            "gender": "other",
+            "pronouns": " Xe/Xem/Xyr/Xyrs/Xemself ",
+            "born": "--02-29",
+        },
+    )
+    assert status == 201
+    (robin,) = view["people"]
+    assert robin["pronouns"] == "xe/xem/xyr/xyrs/xemself"
+    assert (robin["gender"], robin["born"]) == ("other", "--02-29")
+
+    # Each optional; an entry from before them reads as unset.
+    _, view = call(p, "PUT", robin["id"], {"name": "Robin", "person": "robin1"})
+    assert {
+        k: view["people"][0][k] for k in ("gender", "pronouns", "born")
+    } == dict.fromkeys(("gender", "pronouns", "born"))
+
+    for born in ("1984", "1984-03", "1984-03-07"):
+        assert (
+            call(p, "POST", "", {"name": born, "person": "x", "born": born})[0] == 201
+        )
+    for bad in (
+        {"gender": "m"},
+        {"pronouns": "she/her"},
+        {"pronouns": "she/her/her/hers/her self"},
+        {"born": "07/03/1984"},
+        {"born": "1984-02-30"},
+        {"born": "--13-01"},
+        {"born": "-"},
+        {"born": "--03"},  # a month alone
+        {"born": "1984--07"},
+        {"born": "1850"},
+        {"born": "2999-01-01"},
+    ):
+        assert call(p, "POST", "", {"name": "Kim", "person": "k", **bad})[0] == 400, bad
+
+
+TODAY = date(2026, 3, 7)
+
+
+@pytest.mark.parametrize(
+    ("born", "age", "days"),
+    [
+        (None, None, None),
+        ("1984", 42, None),  # the age reached this year
+        ("1984-03-07", 42, 0),  # the day itself
+        ("1984-03-08", 41, 1),  # still to come
+        ("1984-03-06", 42, 364),  # just gone
+        ("--03-08", None, 1),
+        ("1984-03", 42, None),  # the birth month: taken from its start
+        ("1984-04", 41, None),
+        ("2000-02-29", 26, 359),  # 1 March 2027, not a leap year
+    ],
+)
+def test_about_age_and_birthday(born, age, days):
+    got = about({"name": "Alex", "born": born}, TODAY)
+    assert (got["age"], got["days_to_birthday"]) == (age, days)
+
+
+def test_about_pronouns_default_to_they_and_the_query_picks_a_person(tmp_path):
+    p, _ = make(
+        tmp_path,
+        [
+            {"id": "a", "name": "Wren", "phone": None, "person": "wren1"},
+            {
+                "id": "b",
+                "name": "Ann",
+                "phone": "+447700900123",
+                "person": None,
+                "gender": "female",
+                "pronouns": "she/her/her/hers/herself",
+            },
+        ],
+    )
+    everyone = p.about(None, TODAY)["people"]
+    assert [x["name"] for x in everyone] == ["Ann", "Wren"]
+    assert "phone" not in everyone[0]
+    assert everyone[0]["pronouns"] == {
+        "subject": "she",
+        "object": "her",
+        "determiner": "her",
+        "possessive": "hers",
+        "reflexive": "herself",
+        "plural": False,
+    }
+    (wren,) = p.about("wren1", TODAY)["people"]
+    assert wren["pronouns"]["subject"] == "they" and wren["pronouns"]["plural"]
+    assert wren["gender"] is None
+    assert p.about("nobody", TODAY) == {"people": []}
+
+
+def test_every_saved_change_is_announced_and_a_refused_one_is_not(tmp_path):
+    # Dash-Bored's household feed asks the People action again on CHANGED_EVENT.
+    changes = []
+    p = People(tmp_path / "people.json", on_change=lambda: changes.append(1))
+    status, view = call(p, "POST", body={"name": "Alex", "phone": "07700 900123"})
+    assert status == 201 and len(changes) == 1
+    who = view["people"][0]["id"]
+    assert call(p, "PUT", who, {"name": "Alex", "phone": "07700 900124"})[0] == 200
+    assert call(p, "DELETE", who)[0] == 200
+    assert len(changes) == 3
+    assert call(p, "DELETE", who)[0] == 404
+    assert len(changes) == 3
+
+
+def test_next_birthday_for_the_tile():
+    people = [
+        {"name": "Wren", "born": "1990"},
+        {"name": "Ann", "born": "--03-09"},
+        {"name": "Alex", "born": "1984-03-09"},
+        {"name": "Kim", "born": "2001-12-25"},
+    ]
+    assert next_birthday(people, TODAY) == {"who": ["Alex", "Ann"], "days": 2}
+    assert next_birthday(people[:1], TODAY) is None
+
+
+def test_the_list_carries_what_about_says_for_the_line_under_each_person(tmp_path):
+    p, _ = make(
+        tmp_path,
+        [{"id": "a", "name": "Wren", "phone": None, "person": "s", "born": "1990"}],
+    )
+    (wren,) = p.view()["people"]
+    assert wren["about"]["pronouns"]["subject"] == "they"
+    assert wren["about"]["age"] == date.today().year - 1990

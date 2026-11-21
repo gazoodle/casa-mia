@@ -73,6 +73,7 @@ export type World = {
   sign: { x: number; y: number }; // the signpost to the choice of family, two blocks wide
   notice: { x: number; y: number }; // the board that says what the house is missing, three blocks wide
   signs: { x: number; y: number }[]; // the forecast's signs: where each board is
+  chase: { x: number; y: number }; // the board that has the view follow the imp, two blocks wide, with grass beside it for his last crate (prank.ts)
 };
 
 /** What stands in a room. More than MANY lights are one chandelier, and more than MANY
@@ -139,9 +140,10 @@ export function build(rooms: Room[], forecast = false): World {
   const h = 4 * high + (tall ? 1 : 5) + EARTH;
   const ground = h - EARTH;
 
-  // Across: the pond, the tree, the signpost, the notice, the forecast, each place out of doors, each building.
+  // Across: the pond, the tree, the signpost, the notice, the forecast, the imp's board, each place out of doors, each building.
   const plots = outdoor.map((room) => ({ room, list: items(room), n: count(items(room)) })).map((p) => ({ ...p, w: Math.max(PLOT, Math.ceil((p.n.lamp + p.n.standing) / 2) + hung(p.n) + p.n.door + p.n.block) }));
-  const first = 12 + (forecast ? SIGNS + 1 : 0);
+  const chase = 12 + (forecast ? SIGNS + 1 : 0);
+  const first = chase + 3;
   const garden = plots.reduce((x, p) => x + p.w + 1, first);
   const w = spans.reduce((x, s) => x + s[0] + 4, garden);
 
@@ -149,7 +151,7 @@ export function build(rooms: Room[], forecast = false): World {
   const put = (x0: number, y0: number, x1: number, y1: number, t: string | (() => string)) => {
     for (let y = Math.max(0, y0); y <= y1; y++) for (let x = x0; x <= x1; x++) blocks[y][x] = typeof t === "function" ? t() : t;
   };
-  const world: World = { w, h, ground, blocks, deco: [], zones: [], plots: [], zone: [], slots: new Map(), sign: { x: 5, y: ground - 2 }, notice: { x: 8, y: ground - 2 }, signs: [] };
+  const world: World = { w, h, ground, blocks, deco: [], zones: [], plots: [], zone: [], slots: new Map(), sign: { x: 5, y: ground - 2 }, notice: { x: 8, y: ground - 2 }, signs: [], chase: { x: chase, y: ground - 2 } };
   const { deco, slots, zones } = world;
   const r = rng(3);
 
@@ -161,9 +163,9 @@ export function build(rooms: Room[], forecast = false): World {
   put(2, ground - 6, 4, ground - 4, "leaves");
   put(3, ground - 7, 3, ground - 7, "leaves");
 
-  // The garden: the signpost, the notice and the forecast's signs on their posts, then each place out of doors.
+  // The garden: the signpost, the notice, the forecast's signs and the imp's board on their posts, then each place out of doors.
   if (forecast) world.signs = Array.from({ length: SIGNS }, (_, i) => ({ x: 12 + i, y: ground - 2 }));
-  for (const x of [5, 6, 8, 10, ...world.signs.map((s) => s.x)]) deco.push(["post", x, ground - 1]);
+  for (const x of [5, 6, 8, 10, ...world.signs.map((s) => s.x), chase, chase + 1]) deco.push(["post", x, ground - 1]);
   let x = first;
   for (const { room, list, w: across } of plots) {
     world.plots.push({ id: room.id, name: room.name, x0: x, x1: x + across - 1, y: ground - 4 });
@@ -245,6 +247,14 @@ export function build(rooms: Room[], forecast = false): World {
   return world;
 }
 
+/** Every block the garden's boards stand in: no prank breaks them, and they are darkened as
+ * blocks are. `chase`: whether the imp's board is on its posts (not while it is in bits). */
+export const boards = (world: World, chase = true) => [
+  ...[0, 1].flatMap((i) => [{ ...world.sign, x: world.sign.x + i }, ...(chase ? [{ ...world.chase, x: world.chase.x + i }] : [])]),
+  ...[0, 1, 2].map((i) => ({ ...world.notice, x: world.notice.x + i })),
+  ...world.signs,
+];
+
 /** A world of one room cut down to that room, in blocks: its walls, the roof that has its
  * name on, and the earth under it. A place out of doors is cut the same way round its plot.
  * Nothing if the world has no room. For a room's card (room.ts). */
@@ -257,8 +267,8 @@ export function cutout(world: World): { x: number; y: number; w: number; h: numb
  * open sky shows. `day` is how much daylight there is, from 0 to 1. A lamp lights its own
  * room and the building's walls round it, never the room next door; a dimmed lamp is
  * dimmer, and a chandelier as bright as the share of its lights that are on; and a room
- * with its blind open takes the daylight. */
-export function shades(world: World, rooms: Room[], day: number): number[][] {
+ * with its blind open takes the daylight. `chase`: as in `boards`. */
+export function shades(world: World, rooms: Room[], day: number, chase = true): number[][] {
   const lit = (d: Device) => d.kind === "light" && d.on && !d.away;
   const lamps = rooms.flatMap((room) => {
     const lights = room.devices.filter((d) => d.kind === "light");
@@ -270,8 +280,7 @@ export function shades(world: World, rooms: Room[], day: number): number[][] {
   // A post is mostly sky: darkened as a block, it had a square of darker sky round it.
   for (const [t, x, y] of world.deco) if (t !== "post") filled[y][x] = true;
   for (const { x, y, h, w = 1 } of world.slots.values()) for (let i = 0; i < h; i++) for (let k = 0; k < w; k++) filled[y + i][x + k] = true;
-  const boards = [world.sign, { ...world.sign, x: world.sign.x + 1 }, ...[0, 1, 2].map((i) => ({ ...world.notice, x: world.notice.x + i })), ...world.signs];
-  for (const { x, y } of boards) filled[y][x] = true;
+  for (const { x, y } of boards(world, chase)) filled[y][x] = true;
   // How far open each room's blinds are, by the room's id: the most open of them.
   const open = new Map(rooms.map((r) => [r.id, Math.max(0, ...r.devices.filter((d) => d.kind === "cover" && !d.guarded && d.on && !d.away).map((d) => d.level ?? 100))]));
 

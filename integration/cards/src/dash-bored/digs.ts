@@ -12,19 +12,24 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, room as below, watchRoom } from "../ha.ts";
 import { ALARM, chest, said, shown } from "./digs/chest.ts";
 import { Tour } from "./digs/follow.ts";
-import { Prank } from "./digs/prank.ts";
+import { GOES, Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
-import { bg, figure, say, texture } from "./digs/textures.ts";
-import { Walks } from "./digs/walk.ts";
+import { BUILDS, bg, figure, say, texture, type Shape } from "./digs/textures.ts";
+import { Walks, about } from "./digs/walk.ts";
 import { CHEST, LAMPS, build, cutout, lamp, shades, type Slot, type World } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
-import type { Device, House, Kind, Room, Survey } from "./house.ts";
+import type { Device, House, Kind, Person, Room, Survey } from "./house.ts";
 import { CHOOSE } from "./shell.ts";
 import { NOMINAL, clock, flip, type Alert } from "./stories.ts";
 
 export const CARD = "dash-bored-digs";
+// The feed of what Casa Mia's People says of each person (household.py in the integration).
+const HOUSEHOLD = "casa_mia_dash_bored/household";
+type Aged = { person: string; band: "baby" | "toddler" | "child" | null; birthday: boolean };
+// How much longer each step takes than a grown-up's (walk.ts pace): a toddler toddles, a baby crawls.
+const PACES: Record<Shape, number> = { grown: 1, child: 1, toddler: 1.5, baby: 2.5 };
 const ARMED = 3000; // ms: how long a cracked block waits for its second hit
 const CHOSEN = 8000; // ms: how long a block stays chosen with nothing pressed
 const ROOM = "room:"; // before a room's id in `_sel`: its name is what is chosen
@@ -93,6 +98,7 @@ export class Digs extends Family {
       return scroll ? [Math.ceil(scroll.scrollLeft / this._b), Math.floor((scroll.scrollLeft + scroll.clientWidth) / this._b) - 1] : [0, 0];
     },
     still: () => this._sample || this._alone || !!this._open || calm(),
+    began: () => this._tour.imp(),
   });
   // The household walking about (digs/walk.ts), and the view following them when nobody is touching it (digs/follow.ts).
   private _walks = new Walks({
@@ -104,6 +110,8 @@ export class Digs extends Family {
     still: () => this._sample || calm(),
     arrived: (id) => this._tour.arrived(id),
     setOff: (id) => this._tour.setOff(id),
+    pace: (id) => PACES[this._shape(id)],
+    crawls: (id) => this._shape(id) === "baby",
   });
   private _tour = new Tour({
     scroller: () => this.renderRoot?.querySelector<HTMLElement>(".scroll"),
@@ -117,6 +125,8 @@ export class Digs extends Family {
     pick: (not) => this._walks.pick(not),
     requestUpdate: () => this.requestUpdate(),
   });
+  // What Casa Mia's People says of each person, by their person entity: empty without it.
+  private _aged = new Map<string, Aged>();
   private _synced?: [House | undefined, World | undefined]; // the house and world the walks were last told of
   private _hands?: AbortController; // the listeners for a touch, which hands the view back
 
@@ -177,6 +187,14 @@ export class Digs extends Family {
         for (const a of alerts) held.set(a.entity_id, a);
         this._alerts = [...held.values()];
       });
+    // The household's ages, for each figure's size: the whole household in each item.
+    if (!this._alone)
+      this._follow(HOUSEHOLD, "Casa Mia's People", (told: { people: Aged[] }[]) => {
+        const last = told.at(-1);
+        if (!last) return;
+        this._aged = new Map(last.people.map((p) => [p.person, p]));
+        this.requestUpdate();
+      });
   }
 
   /** The world is built once for a survey: the registries changed, not a state. */
@@ -192,6 +210,21 @@ export class Digs extends Family {
 
   protected _moved(d: Device) {
     if (this._armed === d.id) this._armed = "";
+  }
+
+  /** How somebody is drawn: by the band their age falls in, and grown without Casa Mia's People. */
+  private _shape(id: string): Shape {
+    return this._aged.get(id)?.band ?? "grown";
+  }
+
+  /** Who is about the house: everybody Home Assistant has at home, and everybody it can't
+   * place at all (walk.ts `about`). `house.people` leaves the second out, as the other
+   * families can't say where they are. */
+  private _household(): Person[] {
+    return (this._survey?.people ?? []).flatMap((id) => {
+      const state = this._hass?.states[id];
+      return about(state?.state) ? [{ id, name: state?.attributes.friendly_name ?? id, place: "home", since: 0 }] : [];
+    });
   }
 
   /** The rooms the household is most likely in: Home Assistant says only that somebody is
@@ -324,7 +357,7 @@ export class Digs extends Family {
     const [house, world] = this._synced ?? [];
     if (!this._alone && (!this._synced || house !== this._house || world !== this._world)) {
       this._synced = [this._house, this._world];
-      this._walks.sync(this._house?.people.filter((p) => p.place === "home") ?? []);
+      this._walks.sync(this._household());
     }
   }
 
@@ -350,7 +383,7 @@ export class Digs extends Family {
 
     const g = dark.getContext("2d")!;
     g.clearRect(0, 0, world.w, world.h);
-    shades(world, this._house.rooms, this._day).forEach((row, y) =>
+    shades(world, this._house.rooms, this._day, !this._prank.blown).forEach((row, y) =>
       row.forEach((a, x) => {
         if (a <= 0) return;
         g.fillStyle = `rgba(6,8,26,${a})`;
@@ -422,7 +455,13 @@ export class Digs extends Family {
 
     const tip = this._lost ? `No connection since ${clock(this._lost)}` : armed ? `Hit again to ${AGAIN[armed.kind]}` : hurt ? `${this._hurt + 1}/${hurts.length} ${hurt}` : this._told
       || (sel ? `${sel.room} ${sel.name}: ${said(sel)}` : picked ? `${picked.name}: ${lamps.filter((d) => d.on).length} of ${lamps.length} lights on` : this._touring(house) ?? "Press a block to name it, again to switch it");
-    // What stands in the garden: the signpost, the board that says what the house is missing, and the forecast's signs.
+    // What stands in the garden: the signpost, the board that says what the house is missing, the forecast's signs, and the
+    // board that has the view follow the imp (prank.ts chase), lit while it does and gone from its posts while it is in bits.
+    const chasing = this._prank.chasing;
+    const chase = () => {
+      if (!chasing) this._prank.chase();
+      this._point("", chasing ? `The imp has ${things(chasing, "go")} left` : `Following the imp for ${GOES} goes`);
+    };
     const garden = () => html`
         ${this.hasAttribute("panel")
           ? html`<button class="at board" style="${place(world.sign.x, world.sign.y, 2)};background-image:${bg("board")}" aria-label="Choose another Dash-Bored" @click=${() => fire(this, CHOOSE)}>${say("Dash")}${say("Bored")}</button>`
@@ -432,6 +471,9 @@ export class Digs extends Family {
               ${floorless ? say(`No floor ${floorless}`) : nothing}${loose ? say(`No area ${loose}`) : nothing}
             </button>`
           : nothing}
+        ${this._prank.blown || calm() || this._sample
+          ? nothing
+          : html`<button class="at board ${chasing ? "sel" : ""}" style="${place(world.chase.x, world.chase.y, 2)};background-image:${bg("board")}" aria-pressed=${!!chasing} aria-label="Follow the imp" @click=${chase}>${say("Follow")}${say("the imp")}</button>`}
         ${this._days.slice(0, world.signs.length).map((day, i) => {
           const { x, y } = world.signs[i];
           const [name, high] = [new Date(day.at).toLocaleDateString("en", { weekday: "short" }), `${Math.round(day.high)}°`];
@@ -447,7 +489,13 @@ export class Digs extends Family {
         ${this._prank.draw()}
         ${alone
           ? nothing
-          : repeat(this._walks.list(), (w) => w.id, (w) => html`<div class="at who ${w.ms ? (w.climbing ? "climbing" : "walking") : ""} ${w.left ? "left" : ""}" style="${place(w.at.x, w.at.y - 1, 1, 2)};--ms:${w.ms}ms;--fig:${figure(w.name)}">${say(w.name)}</div>`)}
+          : repeat(this._walks.list(), (w) => w.id, (w) => {
+              // Feet on the floor whatever the height; a party hat on a birthday. The first name only: two
+              // whole names side by side ran into each other on a tablet.
+              const shape = this._shape(w.id), tall = BUILDS[shape].h / 16, birthday = !!this._aged.get(w.id)?.birthday;
+              return html`<div class="at who ${shape} ${w.ms ? (w.climbing ? "climbing" : "walking") : ""} ${w.left ? "left" : ""} ${birthday ? "birthday" : ""}"
+                style="${place(w.at.x, w.at.y + 1 - tall, 1, tall)};--ms:${w.ms}ms;--fig:${figure(w.name, shape)}${birthday ? `;--hat:${bg("hat")}` : ""}">${say(w.name.split(" ")[0])}</div>`;
+            })}
         <canvas class="dark" .width=${world.w} .height=${world.h}></canvas>
         ${sel && world.slots.has(sel.id) ? html`<div class="at tag" style=${place(world.slots.get(sel.id)!.x, world.slots.get(sel.id)!.y, world.slots.get(sel.id)!.w, world.slots.get(sel.id)!.h)}>${say(sel.name)}</div>` : nothing}
       </div>`;
