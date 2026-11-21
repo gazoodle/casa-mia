@@ -1,6 +1,51 @@
 # Backlog
 
-Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done. The headline ideas are also in the README's "What does the future hold?": keep the two in step.
+Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done.
+
+## Jukebox (an idea, not started)
+
+The owner's idea, 2026-11-20: one place for both of the owners to manage the house's music
+across Sonos, Spotify and the local library, in place of Music Assistant. The name is final
+(owner, 2026-11-20).
+
+- **Jukebox adds no media players** (owner, 2026-11-20). Each room stays the single
+  entity that Home Assistant's Sonos integration makes. Jukebox's card, its services and
+  the Sonos app all drive that one entity. Why: Music Assistant wraps each speaker in a
+  player of its own, so a room such as "Den" appeared twice, as "Den" and "Den Sonos", and
+  nobody could tell which one was in control. It also brought features nobody asked for.
+- **The speakers hold the truth.** Queues, groups and volumes live on the Sonos system,
+  not in Jukebox, so the Sonos and Spotify apps always agree with it. Changes reach it as
+  state changes from HA's Sonos integration, which subscribes to the speakers' UPnP events
+  (RULE FOUR). A Sonos group is the coordinator's entity with its members, shown as one
+  tile, never a new "group player".
+- **Show who is in control:** each room shows what it is playing from (the Sonos queue,
+  Spotify Connect from someone's phone, the TV, line-in), which Sonos reports.
+- **In this order:**
+  1. **Announcements:** an `announce` service over `media_player.play_media` with
+     `announce: true`. On S2 speakers Sonos's audioClip ducks the music and restores it by
+     itself. Jukebox adds per-room volume, quiet hours, a queue so two announcements never
+     overlap, snapshot and restore for speakers without audioClip, and a logged, visible
+     failure when a speaker is offline.
+  2. **Groups and now playing:** a card with each group, its rooms (dragged together or
+     apart through `join`/`unjoin`), volume and saved presets ("Downstairs", "Everywhere").
+  3. **Search and play:** one search across Spotify, the local library and Sonos
+     favourites. Spotify plays through Sonos's own Spotify service (SoCo's share links),
+     not Spotify Connect, which often can't see a sleeping Sonos.
+  4. **Playlists:** editing Spotify playlists and saved tracks through the Web API, reusing
+     the token of HA's Spotify integration rather than a second login.
+  5. **Sonos versions in Sensor Watch:** each speaker's software version, flagging
+     speakers on different versions and speakers that are offline. Updates themselves stay
+     with Sonos's overnight auto-update; no supported local way to start one is known.
+- **The local library** stays Sonos's own SMB-indexed library, so the Sonos app can
+  browse it too. A library index of Jukebox's own only if Sonos's falls short (its track
+  limit, slow rescans, weak artwork).
+- **Open questions:**
+  - Two Spotify accounts: share-link playback uses one linked account. Check whether both
+    owners' accounts are linked to Sonos (Duo or Family).
+  - Spotify's 2024 API changes removed recommendations and audio features for new apps, so
+    no "smart" features built on them.
+  - Love it or Loathe it switches stations on the same Sonos entities. Jukebox must not
+    fight it, for example by restoring a snapshot over a station it has just switched to.
 
 ## Topology (an idea, not started)
 
@@ -76,6 +121,9 @@ the Gazette's own work is parked below it.
     belongs anywhere but a newspaper.
   - **The Fridge: a camera's presets, zoom and controls** (the test found this,
     2026-11-17).
+  - **Casa Mia People's ages and birthdays** (the household feed, 2026.11.11-b6) on the
+    five families other than Digs, which is the only one that draws people. A birthday
+    at least is news anywhere: a story in the Gazette, a note on the Fridge.
   - **Console, Fridge and Aurora: what the house is missing** (`house.gaps`) **and which
     appliances are drawing power** (`house.appliances`). Only the Gazette has them.
   - **Fill in the cells still marked `?`** from the source before starting on their rows.
@@ -121,9 +169,6 @@ the Gazette's own work is parked below it.
     `jewel`, a reading as a small meter, on the blanking plates that b9 fits. Never
     grows a chassis, and is chosen from the survey so that nothing moves with a state.
   - Not seen on the owner's house or on a tablet: only on a harness with an invented
-  - **Casa Mia People's ages and birthdays** (the household feed, 2026.11.11-b6) on the
-    five families other than Digs, which is the only one that draws people. A birthday
-    at least is news anywhere: a story in the Gazette, a note on the Fridge.
     house (Chromium and WebKit). The Fridge's sizes in `fridge/rows.ts` are estimates.
 - **Casa Mia's data on every family, what's left** (owner, 2026-11-16; the cameras are
   built for the Console and the Gazette in 2026.11.9-b11, see HANDOVER).
@@ -500,6 +545,39 @@ the Gazette's own work is parked below it.
 ## Sensor Watch (beta)
 
 Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
+
+- **Acknowledge, snooze and mute an incident** (asked 2026-11-21). Sensor Watch keeps
+  alerting on a failure everyone already knows about. For example, a Miele integration that
+  has been in `setup_retry` for days on HTTP 503s from Miele's cloud is reported again and
+  again, and nothing can quieten it.
+  - **One incident per continuous failure,** keyed by a stable monitor id, never by the
+    error text. Each incident records when it was first and last seen, how long it has lasted,
+    its state, the error and how many notifications it has sent. Recovery closes it, and a
+    failure after recovery opens a new one. Repeated `setup_retry` events, a Home Assistant
+    start, a reconnect and identical state changes add nothing to an open incident's
+    alerts.
+  - **Acknowledge** quietens the current incident until it recovers.
+  - **Snooze** quietens it for 1 hour, 8 hours, 24 hours, 7 days or a chosen time. When the
+    snooze ends, it notifies again if the problem is still there.
+  - **Mute** quietens an integration or monitor until someone turns it back on.
+  - **Unsnooze and unmute** restore notifications at once.
+  - Recovery notifications stay a choice of their own, even for an acknowledged or snoozed
+    incident.
+  - **Watching and notifying stay separate.** A quietened incident is still shown on Sensor
+    Watch's page and in its history, saying how it was quietened and until when. The
+    controls are on that page.
+  - Incidents, acknowledgements, snoozes and mutes survive a restart. Deadlines are stored as
+    timezone-aware timestamps.
+  - Existing notify targets and Notify on Sensor Watch automations keep working without
+    being set up again.
+  - Read the event path, notifications, storage and page first, and extend them rather
+    than adding a separate alert manager. Write down any migration.
+  - Tests cover restarts, recovery, a failure that recurs, a snooze running out and each
+    change of state.
+  - **Done when** someone can acknowledge or snooze the failing Miele integration and still
+    see its state, repeated `setup_retry` events send no more alerts, a failure after a
+    confirmed recovery is a new incident, and every quietening survives a restart.
+  - Leave the Miele integration alone: why it fails is a separate investigation.
 
 - **Stale, what's left** (built in 2026.11.5-b1: no report or no change for a time, per watch or profile; not yet seen working on a box). The library's profiles carry none: add sensible ones where a device reports on a schedule (battery sensors), and perhaps a scan default by device class. Escalation's "nominal for too long" (asked 2026-10-11) is not built. **The limit:** a Core restart re-stamps every restored entity, so a sensor that died before one is caught a full wait later; remembering each entity's last report across restarts would close it.
 
