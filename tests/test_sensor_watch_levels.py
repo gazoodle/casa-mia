@@ -180,16 +180,16 @@ def test_one_entitys_watch_for_the_eye_in_its_dialog():
 
 
 def test_home_assistants_own_health():
-    first_bad: dict[str, float] = {}
+    failing: dict[str, dict] = {}
     rows = levels.system_rows(
-        {"recorder", "history"}, [_entry("a", "loaded")], first_bad, 0.0
+        {"recorder", "history"}, [_entry("a", "loaded")], failing, 0.0
     )
     assert {k: r["level"] for k, r in rows.items()} == {
         "homeassistant.recorder": "nominal",
         "homeassistant.history": "nominal",
     }
     # The Recorder down (its database unreachable) takes History with it: both critical.
-    rows = levels.system_rows(set(), [], first_bad, 0.0)
+    rows = levels.system_rows(set(), [], failing, 0.0)
     assert (
         rows["homeassistant.recorder"]["level"]
         == rows["homeassistant.history"]["level"]
@@ -198,31 +198,91 @@ def test_home_assistants_own_health():
     assert "no history" in rows["homeassistant.recorder"]["message"]
 
 
+def _health(components, entries, failing, now, settings=None):
+    levels.track_failures(entries, failing, now)
+    return levels.system_rows(components, entries, failing, now, settings)
+
+
 def test_a_failing_integration_counts_after_it_has_had_time_to_set_up():
-    first_bad: dict[str, float] = {}
+    failing: dict[str, dict] = {}
     on = {"recorder", "history"}
     broken = [
         _entry("a", "setup_retry", reason="Cannot connect"),
         _entry("b", "setup_error", disabled=True),
     ]
-    assert "integration.a" not in levels.system_rows(
-        on, broken, first_bad, 0.0
-    )  # still settling
-    row = levels.system_rows(on, broken, first_bad, levels.SETTLE)["integration.a"]
+    assert "integration.a" not in _health(on, broken, failing, 0.0)  # still settling
+    row = _health(on, broken, failing, levels.SETTLE)["integration.a"]
     assert row == {
         "name": "Barn blinds (acme_hub)",
         "level": "error",
         "value": "setup_retry",
-        "message": "setup retry: Cannot connect",
+        "message": "not connecting: Cannot connect",
+        "since": "1970-01-01T00:00:00+00:00",
     }
-    assert "integration.b" not in levels.system_rows(
-        on, broken, first_bad, levels.SETTLE
+    assert "integration.b" not in _health(
+        on, broken, failing, levels.SETTLE
     )  # disabled: not a fault
     # Recovered: gone, and its clock starts again if it fails later.
-    assert "integration.a" not in levels.system_rows(
-        on, [_entry("a", "loaded")], first_bad, levels.SETTLE + 1
+    assert "integration.a" not in _health(
+        on, [_entry("a", "loaded")], failing, levels.SETTLE + 1
     )
-    assert first_bad == {}
+    assert failing == {}
+
+
+@pytest.mark.parametrize(
+    "between",
+    ["setup_in_progress", "unload_in_progress", "failed_unload"],
+)
+def test_only_loaded_ends_a_failure(between):
+    failing: dict[str, dict] = {}
+    levels.track_failures([_entry("a", "setup_retry", reason="503")], failing, 10.0)
+    was = {"a": {"since": 10.0, "state": "setup_retry", "reason": "503"}}
+    levels.track_failures([_entry("a", between)], failing, 900.0)
+    assert failing == was  # on the way somewhere: no proof, and nothing changed
+
+    levels.track_failures([_entry("a", "setup_error")], failing, 999.0)
+    assert failing["a"]["since"] == 10.0  # failing differently, for as long
+    levels.track_failures([], failing, 1000.0)
+    assert failing == {}  # deleted
+
+
+def test_setting_up_for_the_first_time_is_no_failure():
+    failing: dict[str, dict] = {}
+    levels.track_failures([_entry("a", "setup_in_progress")], failing, 0.0)
+    assert failing == {}
+
+
+def test_an_integrations_row_is_named_by_the_integration_first():
+    entry = _entry("a", "loaded")
+    named = levels.titled(entry | {"integration": "Acme Hub"})
+    assert named == "Acme Hub (Barn blinds)"
+    same = entry | {"integration": "Acme Hub", "title": "acme hub"}
+    assert levels.titled(same) == "acme hub"
+    assert levels.titled(entry) == "Barn blinds (acme_hub)"
+
+
+def test_the_rolled_up_are_sorted_as_people_count():
+    names = ["Plug 10", "Plug 2", "plug", "Attic fan", "Plug b"]
+    got = [r["name"] for r in sorted([{"name": n} for n in names], key=levels.by_name)]
+    assert got == ["Attic fan", "plug", "Plug 2", "Plug 10", "Plug b"]
+
+
+def test_rolled_up_sensors_count_as_their_integration():
+    now = _now(**{"integration.a": "error"}, oven="error", hob="task", salt="task")
+    for eid in ("oven", "hob"):
+        now[eid]["under"] = "integration.a"
+    found = levels.summary(now)
+    assert (found["error"], found["task"], found["rolled_up"]) == (1, 1, 2)
+
+    rows = levels.listing(now)
+    assert [r["entity_id"] for r in rows] == ["integration.a", "salt"]
+    assert [s["entity_id"] for s in rows[0]["sensors"]] == ["hob", "oven"]
+
+    # A group's, though the integration is in none: its row, with the group's own.
+    group = levels.in_group({"hob": {"group": "Kitchen"}}, now, "Kitchen")
+    assert levels.summary(group)["worst"] == "error"
+    [row] = levels.listing(group)
+    assert [s["entity_id"] for s in row["sensors"]] == ["hob"]
 
 
 @pytest.mark.parametrize(
@@ -247,19 +307,21 @@ def test_ignored_discoveries_and_the_pages_settings():
     late = levels.SETTLE
     ignored_discovery = _entry("d", "not_loaded") | {"source": "ignore"}
     really_broken = _entry("e", "not_loaded") | {"source": "user"}
-    first_bad: dict[str, float] = {}
-    levels.system_rows(on, [ignored_discovery, really_broken], first_bad, 0.0)
-    rows = levels.system_rows(on, [ignored_discovery, really_broken], first_bad, late)
+    failing: dict[str, dict] = {}
+    _health(on, [ignored_discovery, really_broken], failing, 0.0)
+    rows = _health(on, [ignored_discovery, really_broken], failing, late)
     assert (
         "integration.d" not in rows and "integration.e" in rows
     )  # Ignore pressed: never a fault
     # The page's settings: one integration left out, then all of them, then the Recorder too.
-    assert "integration.e" not in levels.system_rows(
-        on, [really_broken], first_bad, late, {"ignore": ["e"]}
+    assert "integration.e" not in _health(
+        on, [really_broken], failing, late, {"ignore": ["e"]}
     )
-    assert "integration.e" not in levels.system_rows(
-        on, [really_broken], first_bad, late, {"integrations": False}
+    assert "integration.e" not in _health(
+        on, [really_broken], failing, late, {"integrations": False}
     )
+    # Watch again: it has been failing all along.
+    assert "integration.e" in _health(on, [really_broken], failing, late)
     assert (
         levels.system_rows(set(), [], {}, 0.0, {"core": False, "integrations": False})
         == {}
@@ -499,9 +561,10 @@ def test_a_stale_sensors_message():
 def test_device_triggers_match_the_events_that_count():
     m = levels.trigger_matches
     assert m("reached", "error") == [
-        {"initial": False, "level": "error"},
+        {"initial": False, "for_group": False, "level": "error"},
         {
             "initial": False,
+            "for_group": False,
             "level": "critical",
         },  # or worse: a jump straight there counts
     ]
@@ -517,7 +580,7 @@ def test_device_triggers_match_the_events_that_count():
     assert m("escalated", group="Water") == [
         {"initial": False, "group": "Water", "escalated": True}
     ]
-    assert m("back") == [{"initial": False, "level": "nominal"}]
+    assert m("back") == [{"initial": False, "for_group": False, "level": "nominal"}]
     with pytest.raises(ValueError):
         m("louder")
 

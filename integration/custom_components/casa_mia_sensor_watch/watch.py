@@ -31,17 +31,20 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
 from .const import EVENT
+from .kept import Kept
 from .levels import (
     UNAVAILABLE,
     UNAVAILABLE_HOLD,
     displayed,
     escalation,
+    is_gone,
     level_of,
     rank,
     reading,
     summary,
 )
 from .records.store import merged
+from .rollup import RollUp
 from .stale import Stale
 from .swap import Rule, same, shown
 
@@ -70,13 +73,15 @@ class _Rows(dict[str, dict[str, Any]]):
 
 
 class Watcher:
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, kept: Kept) -> None:
         self.hass = hass
+        self.kept = kept
         self.records: dict[str, dict[str, Any]] = {}
         # entity -> {level, message, value, since, name}: its level now, as counted;
         # escalated (levels.escalation), also `real`, the level its reading gives, and
         # `escalated`; `since` is always the real level's. `stale`: the level is its
-        # record's stale rule's, not its reading's (stale.py).
+        # record's stale rule's, not its reading's (stale.py). `gone`: for the entity
+        # being unavailable. `under`: the failed integration it is rolled up into.
         self.now = _Rows()
         # Which entities have stopped reporting: it has us consider one when that changes.
         self.stale = Stale(hass, self._consider)
@@ -100,12 +105,14 @@ class Watcher:
         self._summary: dict[str, Any] | None = None  # cached until the next change
         self._telling: CALLBACK_TYPE | None = None  # the TELL after a write
         self._more = False  # changes since that write, to write when it ends
-        # Keys of Home Assistant's own rows (apply_system).
-        self._system: set[str] = set()
+        # Home Assistant's own rows, and what is rolled up into them.
+        self.rollup = RollUp(
+            hass, kept, self.now, lambda: self.records, self._fire, self._tell
+        )
         # The page's settings for Home Assistant's own health (levels.system_rows), and
         # what checks it again (system.start_checks), when they change.
         self.system_settings: dict[str, Any] = {}
-        self.recheck: Callable[[], None] | None = None
+        self.recheck: Callable[[bool], None] | None = None  # found
 
     def listen(self, told: Callable[[], None]) -> Callable[[], None]:
         """Be told after each change of level (the entities write their state)."""
@@ -115,7 +122,8 @@ class Watcher:
     def summary(self) -> dict[str, Any]:
         if self._summary is None:
             # `watching`: the sensors given bands, not Home Assistant's own rows
-            found = summary(self.now) | {"watching": len(self.records)}
+            found: dict[str, Any] = summary(self.now)
+            found["watching"] = len(self.records)
             for key, rows in found.items():  # the lists of culprits, as shown
                 if key.endswith("_list"):
                     found[key] = [shown(self.swap, r) for r in rows]
@@ -146,13 +154,17 @@ class Watcher:
         """The records as the store now has them (its outgoing(): every one, or those
         changed and removed by a save), and the page's settings for Home Assistant's own
         health."""
-        self._apply(merged(self.records, msg))
+        # The settings first: which failures count decides what its sensors are.
         system = msg["system"]
         if system != self.system_settings:
             self.system_settings = system
             _LOGGER.info("Home Assistant's own health: %s", system)
             if self.recheck:
-                self.recheck()
+                self.recheck(True)
+        records = merged(self.records, msg)
+        if msg["whole"]:
+            self.rollup.prune(records)
+        self._apply(records)
 
     @callback
     def _apply(self, records: dict[str, dict[str, Any]]) -> None:
@@ -177,6 +189,9 @@ class Watcher:
         for eid in changed:
             self.stale.watch(eid, records[eid])
             self._consider(eid, initial=True)
+        for eid in changed | gone:
+            if eid not in self.now and eid not in self._pending:
+                self.rollup.left(eid, removed=eid in gone)
         _LOGGER.info(
             "watching %d sensors (%d new or changed, %d no longer watched)",
             len(records),
@@ -224,7 +239,8 @@ class Watcher:
             return
         state = self.hass.states.get(eid)
         current = self.now.get(eid)
-        real = current and _real(current)  # an escalated level isn't the reading's
+        # An escalated level isn't the reading's.
+        real = _real(current) if current else None
         # A stale row's level isn't its reading's either: nothing for the reading's
         # accuracy to hold on to, and its message is to go when the sensor reports.
         was_stale = bool(current and current.get("stale"))
@@ -252,6 +268,11 @@ class Watcher:
 
         if level is None or (current is not None and real == level and not was_stale):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
+            # The same level for another reason: unavailable, or there with a fault.
+            if level is not None and current is not None and not was_stale:
+                absent = is_gone(record, state.state if state else None)
+                if absent != bool(current.get("gone")):
+                    self._reworded(eid, message, state, absent)
             return
         there = state is not None and state.state not in UNAVAILABLE
         # As found, at once: at the start, or its first real reading after it started
@@ -284,7 +305,8 @@ class Watcher:
         # dialogs show it), so a level's "since" is the moment it began.
         wait = hold - (dt_util.utcnow() - began).total_seconds()
         if wait <= 0:
-            self._commit(eid, level, message, state, since=began)
+            # Already past its wait as it was looked at: found, not a change.
+            self._commit(eid, level, message, state, initial=initial, since=began)
             return
         _LOGGER.debug("%s: %s for %.0f s more before it counts", eid, level, wait)
         # @callback: on HA's loop. A bare lambda runs in a worker thread, where firing
@@ -311,7 +333,9 @@ class Watcher:
         state = self.hass.states.get(eid)
         current = self.now.get(eid)
         now, message = level_of(
-            record, reading(record, state, dt_util.now()), current and _real(current)
+            record,
+            reading(record, state, dt_util.now()),
+            _real(current) if current else None,
         )
         if now == level:
             self._commit(eid, level, message, state, since=began)
@@ -341,10 +365,15 @@ class Watcher:
         name = record.get("name") or (state.name if state else eid)
         before = self.now.get(eid) or {}
         previous = before.get("level")
+        absent = not stale and is_gone(record, state.state if state else None)
+        kept = self.kept.said.get(eid, {}) if absent and level != "nominal" else {}
         precision = self._precision(eid, record)
         value = displayed(reading(record, state, dt_util.now()), precision)
         unit = _unit(record, state)
-        if since is None:
+        if kept:
+            # Unavailable since before this start, or Refresh state: not since then.
+            since = datetime.fromisoformat(kept["since"])
+        elif since is None:
             since = state.last_changed if initial and state else dt_util.utcnow()
         # Worse on its own: the ladder starts again from this level's time, but what's
         # shown mustn't drop. Better: escalation's done with (recovery resets it).
@@ -366,8 +395,15 @@ class Watcher:
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
             **({"days_until": True} if record.get("days_until") else {}),
             **({"stale": True} if stale else {}),
+            **({"gone": True} if absent else {}),
+            **({"under": before["under"]} if before.get("under") else {}),
         }
         self._escalate(eid)
+        if not before and (told := kept.get("told")):
+            # Said at this level before, and still so: found again, not a change.
+            initial = initial or rank(self.now[eid]["level"]) <= rank(told)
+        if self.rollup.place(eid, initial):
+            return
         if initial:
             # Found at a level (Home Assistant's start, a watch edited, Refresh state):
             # said, so an automation hears of a problem that was there before the
@@ -379,6 +415,23 @@ class Watcher:
             self._tell()  # its reading's level moved, not what's shown
             return
         self._fire(eid, self.now[eid], previous)
+
+    def _reworded(
+        self, eid: str, message: str | None, state: State | None, absent: bool
+    ) -> None:
+        """At the level it had, for another reason. Why: it went on saying "unavailable"
+        of a sensor that was back with a fault, which a roll-up would then hide."""
+        record, row = self.records[eid], self.now[eid]
+        value = reading(record, state, dt_util.now())
+        row["message"] = message
+        row["value"] = displayed(value, row.get("precision"))
+        if absent:
+            row["gone"] = True
+        else:
+            row.pop("gone", None)
+        self.now[eid] = row
+        if not self.rollup.place(eid):
+            self._tell()
 
     def _precision(self, eid: str, record: dict[str, Any]) -> int | None:
         """A sensor's display precision in Home Assistant (yours, else its
@@ -439,50 +492,8 @@ class Watcher:
                 row["real"],
                 dt_util.utcnow() - datetime.fromisoformat(row["since"]),
             )
-            self._fire(eid, row, previous)
-
-    @callback
-    def apply_system(self, rows: dict[str, dict[str, Any]]) -> None:
-        """Home Assistant's own health (levels.system_rows), counted beside the sensors:
-        a change of level fires the event as a sensor's does; an integration that
-        recovers is told as nominal, then no longer listed."""
-        for key in self._system - set(rows):
-            gone = self.now.pop(key)
-            dropped = not self._still_watched(key)
-            self._fire(
-                key,
-                gone
-                | {
-                    "level": "nominal",
-                    "value": "no longer watched" if dropped else "loaded",
-                    "message": "ignored on the Sensor Watch page" if dropped else None,
-                },
-                gone["level"],
-            )
-        changed = set(rows) != self._system
-        for key, row in rows.items():
-            old = self.now.get(key)
-            if old is not None and old["level"] == row["level"]:
-                continue
-            changed = True
-            self.now[key] = row | {"since": dt_util.utcnow().isoformat()}
-            if old is not None or row["level"] != "nominal":
-                self._fire(
-                    key, self.now[key], old and old["level"], initial=old is None
-                )
-        self._system = set(rows)
-        if changed:
-            self._tell()
-
-    def _still_watched(self, key: str) -> bool:
-        """Is this row of Home Assistant's own health still wanted by the page's settings
-        (not ignored, its kind not switched off)?"""
-        s = self.system_settings
-        if key.startswith("integration."):
-            return s.get("integrations", True) and key.split(".", 1)[1] not in (
-                s.get("ignore") or []
-            )
-        return s.get("core", True)
+            if not self.rollup.place(eid):
+                self._fire(eid, row, previous)
 
     @callback
     def _started(self, _hass: HomeAssistant) -> None:
@@ -490,10 +501,12 @@ class Watcher:
         says where it is now. Not when that's where it was, or when it had no level
         before and is nominal now (as found at the start, nominal goes unsaid)."""
         self._waiting = None
+        if self.recheck:
+            self.recheck(False)  # so what is rolled up is known before anything is said
         held, self._unsaid = self._unsaid, {}
         for eid, (previous, initial) in held.items():
             row = self.now.get(eid)  # none: no longer watched
-            if row is None or row["level"] == previous:
+            if row is None or row["level"] == previous or row.get("under"):
                 continue
             if previous is None and row["level"] == "nominal":
                 continue
@@ -505,11 +518,13 @@ class Watcher:
         row: dict[str, Any],
         previous: str | None,
         initial: bool = False,
+        group: str | None = None,
     ) -> None:
         """Log a change of level, fire the event (with its group, area and attribute,
         for a notification to say), and have the entities write. `initial`: found at
         that level, not changed to it. Held until Home Assistant has started: an event
-        before then reaches no automation."""
+        before then reaches no automation. `group`: a failed integration's event again,
+        for a group with sensors rolled up into it (`for_group`)."""
         if self.hass.state is not CoreState.running:
             # One event per watch for the whole start, said by _started. Each change on
             # its own let out a storm: in 2026.11.2-b26 every light not yet loaded fired
@@ -520,9 +535,10 @@ class Watcher:
             self._tell()
             return
         _LOGGER.info(
-            "%s (%s): %s -> %s at %s (%s)",
+            "%s (%s)%s: %s -> %s at %s (%s)",
             row["name"],
             eid,
+            f" for group {group}" if group else "",
             "found" if initial else previous or "nothing",
             row["level"],
             row["value"],
@@ -541,7 +557,8 @@ class Watcher:
                     "precision": row.get("precision"),  # its value's, as HA shows it
                     "unit": row.get("unit"),
                     "message": row["message"],
-                    "group": (self.records.get(eid) or {}).get("group"),
+                    "group": group or (self.records.get(eid) or {}).get("group"),
+                    "for_group": group is not None,
                     "area": self._area(eid),
                     "attribute": (self.records.get(eid) or {}).get("attribute"),
                     # Escalated: the level its reading gives, since when.
@@ -555,6 +572,8 @@ class Watcher:
                 },
             ),
         )
+        if group is None:
+            self.rollup.told(eid, row)
         self._tell()
 
     def _area(self, eid: str) -> str | None:

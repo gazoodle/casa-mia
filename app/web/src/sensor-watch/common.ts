@@ -163,6 +163,8 @@ export type Live = {
   name: string;
   real?: Level;
   escalated?: boolean;
+  /** Rolled up into a failed integration (its row's id): not counted by itself. */
+  under?: string;
 };
 /** Every watch's level, as the levels feed keeps it; `error`: why there are none (Sensor
  * Watch isn't running, the connection is lost). */

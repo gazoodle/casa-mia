@@ -18,6 +18,7 @@ from custom_components.casa_mia_dash_bored.const import (
     RATED_EVENT,
     SETTINGS,
     WATCH_EVENT,
+    WATCH_WITHDRAWN,
 )
 from homeassistant.components import frontend
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
@@ -134,6 +135,30 @@ async def test_when_a_level_began_is_sensor_watchs_own_word(hass, hass_ws_client
 
     _, (alert,) = await feed(hass, hass_ws_client)
     assert alert["at"] == alert["began"] == 1794564000
+
+
+async def test_a_withdrawn_alert_leaves_without_being_said_to_be_back(
+    hass, hass_ws_client
+):
+    await set_up(hass)
+    hass.bus.async_fire(WATCH_EVENT, FREEZER)
+    await hass.async_block_till_done()
+    client, held = await feed(hass, hass_ws_client)
+    assert len(held) == 1
+
+    hass.bus.async_fire(WATCH_WITHDRAWN, {"entity_id": FREEZER["entity_id"]})
+    [pushed] = (await client.receive_json())["event"]
+    assert pushed["withdrawn"] and pushed["level"] == "warning"
+    assert (await feed(hass, hass_ws_client))[1] == []
+
+
+async def test_an_integrations_alert_said_again_for_a_group_is_one_story(
+    hass, hass_ws_client
+):
+    await set_up(hass)
+    hass.bus.async_fire(WATCH_EVENT, {**FREEZER, "group": "Cold", "for_group": True})
+    await hass.async_block_till_done()
+    assert (await feed(hass, hass_ws_client))[1] == []
 
 
 async def test_an_alert_is_pushed_to_a_page_that_is_open(hass, hass_ws_client):

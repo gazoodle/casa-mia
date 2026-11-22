@@ -23,7 +23,7 @@ import { lights, type Options, type Room, type Survey } from "./house.ts";
 import type { Row } from "./record.ts";
 import { choosing } from "./choices.ts";
 import { CHOOSE } from "./shell.ts";
-import { NOMINAL, RANK, clock, pressing, turning, zooming, type Alert } from "./stories.ts";
+import { NOMINAL, RANK, clock, heard, pressing, turning, zooming, type Alert } from "./stories.ts";
 
 export const CARD = "dash-bored-aurora";
 const REMEMBERED = "dash-bored-aurora-skin"; // this browser's choice of skin
@@ -133,9 +133,7 @@ export class Aurora extends Controls {
     // Sensor Watch's tile is on the home screen, which a room's card has not.
     if (!this._alone)
       this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-        for (const a of alerts) held.set(a.entity_id, a);
-        this._alerts = [...held.values()];
+        this._alerts = heard(this._alerts, alerts);
       });
     this._watch();
   }

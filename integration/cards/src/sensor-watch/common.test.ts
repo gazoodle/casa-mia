@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { type Band, DEFAULTS, along, arcPath, arcs, columns, due, levelColour, parts, reading, scale, since, stateColor, tidy, watchPath } from "./common.ts";
+import { type Band, DEFAULTS, along, arcPath, arcs, columns, due, levelColour, parts, reading, scale, since, stateColor, tidy, watchPath, tapped } from "./common.ts";
 
 test("how long a level has stood", () => {
   const now = Date.parse("2026-10-11T12:00:00Z");
@@ -109,4 +109,12 @@ test("the number a gauge places is the one its watch reads", () => {
   assert.equal(reading({ state: "" }, {}, now), undefined);
   assert.equal(reading(st, { attribute: "none" }, now), undefined);
   assert.equal(reading(undefined, {}, now), undefined);
+});
+
+test("a failed integration's row opens its sensors, and is never asked about as an entity", () => {
+  const oven = { entity_id: "binary_sensor.oven", name: "Oven", level: "error" as const, value: "unavailable", message: "unavailable", since: "" };
+  assert.equal(tapped({ entity_id: "integration.abc", sensors: [oven] }), "unfold");
+  assert.equal(tapped({ entity_id: "integration.abc" }), undefined);
+  assert.equal(tapped({ entity_id: "homeassistant.recorder" }), undefined);
+  assert.equal(tapped(oven), "details");
 });

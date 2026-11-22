@@ -390,23 +390,23 @@ var m = globalThis, h = m.ShadowRoot && (m.ShadyCSS === void 0 || m.ShadyCSS.nat
 		}
 		return n;
 	}
-}, ve = (e, t) => !le(e, t), ye = {
+}, S = (e, t) => !le(e, t), ve = {
 	attribute: !0,
 	type: String,
 	converter: x,
 	reflect: !1,
 	useDefault: !1,
-	hasChanged: ve
+	hasChanged: S
 };
 Symbol.metadata ??= Symbol("metadata"), y.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-var S = class extends HTMLElement {
+var C = class extends HTMLElement {
 	static addInitializer(e) {
 		this._$Ei(), (this.l ??= []).push(e);
 	}
 	static get observedAttributes() {
 		return this.finalize(), this._$Eh && [...this._$Eh.keys()];
 	}
-	static createProperty(e, t = ye) {
+	static createProperty(e, t = ve) {
 		if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
 			let n = Symbol(), r = this.getPropertyDescriptor(e, n, t);
 			r !== void 0 && ue(this.prototype, e, r);
@@ -432,7 +432,7 @@ var S = class extends HTMLElement {
 		};
 	}
 	static getPropertyOptions(e) {
-		return this.elementProperties.get(e) ?? ye;
+		return this.elementProperties.get(e) ?? ve;
 	}
 	static _$Ei() {
 		if (this.hasOwnProperty(b("elementProperties"))) return;
@@ -519,7 +519,7 @@ var S = class extends HTMLElement {
 	requestUpdate(e, t, n, r = !1, i) {
 		if (e !== void 0) {
 			let a = this.constructor;
-			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? ve)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
+			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? S)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
 			this.C(e, t, n);
 		}
 		!1 === this.isUpdatePending && (this._$ES = this._$EP());
@@ -583,25 +583,25 @@ var S = class extends HTMLElement {
 	updated(e) {}
 	firstUpdated(e) {}
 };
-S.elementStyles = [], S.shadowRootOptions = { mode: "open" }, S[b("elementProperties")] = /* @__PURE__ */ new Map(), S[b("finalized")] = /* @__PURE__ */ new Map(), _e?.({ ReactiveElement: S }), (y.reactiveElementVersions ??= []).push("2.1.2");
+C.elementStyles = [], C.shadowRootOptions = { mode: "open" }, C[b("elementProperties")] = /* @__PURE__ */ new Map(), C[b("finalized")] = /* @__PURE__ */ new Map(), _e?.({ ReactiveElement: C }), (y.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region node_modules/lit-html/lit-html.js
-var C = globalThis, be = (e) => e, w = C.trustedTypes, xe = w ? w.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Se = "$lit$", T = `lit$${Math.random().toFixed(9).slice(2)}$`, Ce = "?" + T, we = `<${Ce}>`, E = document, D = () => E.createComment(""), O = (e) => e === null || typeof e != "object" && typeof e != "function", k = Array.isArray, Te = (e) => k(e) || typeof e?.[Symbol.iterator] == "function", A = "[ 	\n\f\r]", j = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ee = /-->/g, De = />/g, M = RegExp(`>|${A}(?:([^\\s"'>=/]+)(${A}*=${A}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), Oe = /'/g, N = /"/g, ke = /^(?:script|style|textarea|title)$/i, Ae = (e) => (t, ...n) => ({
+var w = globalThis, ye = (e) => e, T = w.trustedTypes, be = T ? T.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, xe = "$lit$", E = `lit$${Math.random().toFixed(9).slice(2)}$`, Se = "?" + E, Ce = `<${Se}>`, D = document, O = () => D.createComment(""), k = (e) => e === null || typeof e != "object" && typeof e != "function", A = Array.isArray, we = (e) => A(e) || typeof e?.[Symbol.iterator] == "function", j = "[ 	\n\f\r]", M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Te = /-->/g, Ee = />/g, N = RegExp(`>|${j}(?:([^\\s"'>=/]+)(${j}*=${j}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), De = /'/g, Oe = /"/g, ke = /^(?:script|style|textarea|title)$/i, Ae = (e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
-}), P = Ae(1), je = Ae(2), F = Symbol.for("lit-noChange"), I = Symbol.for("lit-nothing"), Me = /* @__PURE__ */ new WeakMap(), L = E.createTreeWalker(E, 129);
+}), P = Ae(1), je = Ae(2), F = Symbol.for("lit-noChange"), I = Symbol.for("lit-nothing"), Me = /* @__PURE__ */ new WeakMap(), L = D.createTreeWalker(D, 129);
 function Ne(e, t) {
-	if (!k(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-	return xe === void 0 ? t : xe.createHTML(t);
+	if (!A(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+	return be === void 0 ? t : be.createHTML(t);
 }
 var Pe = (e, t) => {
-	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = j;
+	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = M;
 	for (let t = 0; t < n; t++) {
 		let n = e[t], s, c, l = -1, u = 0;
-		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === j ? c[1] === "!--" ? o = Ee : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = M) : (ke.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = M) : o = De : o === M ? c[0] === ">" ? (o = i ?? j, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? M : c[3] === "\"" ? N : Oe) : o === N || o === Oe ? o = M : o === Ee || o === De ? o = j : (o = M, i = void 0);
-		let d = o === M && e[t + 1].startsWith("/>") ? " " : "";
-		a += o === j ? n + we : l >= 0 ? (r.push(s), n.slice(0, l) + Se + n.slice(l) + T + d) : n + T + (l === -2 ? t : d);
+		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === M ? c[1] === "!--" ? o = Te : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = N) : (ke.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = N) : o = Ee : o === N ? c[0] === ">" ? (o = i ?? M, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? N : c[3] === "\"" ? Oe : De) : o === Oe || o === De ? o = N : o === Te || o === Ee ? o = M : (o = N, i = void 0);
+		let d = o === N && e[t + 1].startsWith("/>") ? " " : "";
+		a += o === M ? n + Ce : l >= 0 ? (r.push(s), n.slice(0, l) + xe + n.slice(l) + E + d) : n + E + (l === -2 ? t : d);
 	}
 	return [Ne(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
 }, R = class e {
@@ -615,8 +615,8 @@ var Pe = (e, t) => {
 		}
 		for (; (i = L.nextNode()) !== null && c.length < s;) {
 			if (i.nodeType === 1) {
-				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(Se)) {
-					let t = u[o++], n = i.getAttribute(e).split(T), r = /([.?@])?(.*)/.exec(t);
+				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(xe)) {
+					let t = u[o++], n = i.getAttribute(e).split(E), r = /([.?@])?(.*)/.exec(t);
 					c.push({
 						type: 1,
 						index: a,
@@ -624,45 +624,45 @@ var Pe = (e, t) => {
 						strings: n,
 						ctor: r[1] === "." ? Ie : r[1] === "?" ? Le : r[1] === "@" ? Re : V
 					}), i.removeAttribute(e);
-				} else e.startsWith(T) && (c.push({
+				} else e.startsWith(E) && (c.push({
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
 				if (ke.test(i.tagName)) {
-					let e = i.textContent.split(T), t = e.length - 1;
+					let e = i.textContent.split(E), t = e.length - 1;
 					if (t > 0) {
-						i.textContent = w ? w.emptyScript : "";
-						for (let n = 0; n < t; n++) i.append(e[n], D()), L.nextNode(), c.push({
+						i.textContent = T ? T.emptyScript : "";
+						for (let n = 0; n < t; n++) i.append(e[n], O()), L.nextNode(), c.push({
 							type: 2,
 							index: ++a
 						});
-						i.append(e[t], D());
+						i.append(e[t], O());
 					}
 				}
 			} else if (i.nodeType === 8) {
-				if (i.data === Ce) c.push({
+				if (i.data === Se) c.push({
 					type: 2,
 					index: a
 				});
 				else {
 					let e = -1;
-					for (; (e = i.data.indexOf(T, e + 1)) !== -1;) c.push({
+					for (; (e = i.data.indexOf(E, e + 1)) !== -1;) c.push({
 						type: 7,
 						index: a
-					}), e += T.length - 1;
+					}), e += E.length - 1;
 				}
 			}
 			a++;
 		}
 	}
 	static createElement(e, t) {
-		let n = E.createElement("template");
+		let n = D.createElement("template");
 		return n.innerHTML = e, n;
 	}
 };
 function z(e, t, n = e, r) {
 	if (t === F) return t;
-	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = O(t) ? void 0 : t._$litDirective$;
+	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = k(t) ? void 0 : t._$litDirective$;
 	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = z(e, i._$AS(e, t.values), i, r)), t;
 }
 var Fe = class {
@@ -676,7 +676,7 @@ var Fe = class {
 		return this._$AM._$AU;
 	}
 	u(e) {
-		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? E).importNode(t, !0);
+		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? D).importNode(t, !0);
 		L.currentNode = r;
 		let i = L.nextNode(), a = 0, o = 0, s = n[0];
 		for (; s !== void 0;) {
@@ -686,7 +686,7 @@ var Fe = class {
 			}
 			a !== s?.index && (i = L.nextNode(), a++);
 		}
-		return L.currentNode = E, r;
+		return L.currentNode = D, r;
 	}
 	p(e) {
 		let t = 0;
@@ -710,7 +710,7 @@ var Fe = class {
 		return this._$AB;
 	}
 	_$AI(e, t = this) {
-		e = z(this, e, t), O(e) ? e === I || e == null || e === "" ? (this._$AH !== I && this._$AR(), this._$AH = I) : e !== this._$AH && e !== F && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? Te(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
+		e = z(this, e, t), k(e) ? e === I || e == null || e === "" ? (this._$AH !== I && this._$AR(), this._$AH = I) : e !== this._$AH && e !== F && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? we(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
 	}
 	O(e) {
 		return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -719,7 +719,7 @@ var Fe = class {
 		this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
 	}
 	_(e) {
-		this._$AH !== I && O(this._$AH) ? this._$AA.nextSibling.data = e : this.T(E.createTextNode(e)), this._$AH = e;
+		this._$AH !== I && k(this._$AH) ? this._$AA.nextSibling.data = e : this.T(D.createTextNode(e)), this._$AH = e;
 	}
 	$(e) {
 		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = R.createElement(Ne(n.h, n.h[0]), this.options)), n);
@@ -734,15 +734,15 @@ var Fe = class {
 		return t === void 0 && Me.set(e.strings, t = new R(e)), t;
 	}
 	k(t) {
-		k(this._$AH) || (this._$AH = [], this._$AR());
+		A(this._$AH) || (this._$AH = [], this._$AR());
 		let n = this._$AH, r, i = 0;
-		for (let a of t) i === n.length ? n.push(r = new e(this.O(D()), this.O(D()), this, this.options)) : r = n[i], r._$AI(a), i++;
+		for (let a of t) i === n.length ? n.push(r = new e(this.O(O()), this.O(O()), this, this.options)) : r = n[i], r._$AI(a), i++;
 		i < n.length && (this._$AR(r && r._$AB.nextSibling, i), n.length = i);
 	}
 	_$AR(e = this._$AA.nextSibling, t) {
 		for (this._$AP?.(!1, !0, t); e !== this._$AB;) {
-			let t = be(e).nextSibling;
-			be(e).remove(), e = t;
+			let t = ye(e).nextSibling;
+			ye(e).remove(), e = t;
 		}
 	}
 	setConnected(e) {
@@ -760,10 +760,10 @@ var Fe = class {
 	}
 	_$AI(e, t = this, n, r) {
 		let i = this.strings, a = !1;
-		if (i === void 0) e = z(this, e, t, 0), a = !O(e) || e !== this._$AH && e !== F, a && (this._$AH = e);
+		if (i === void 0) e = z(this, e, t, 0), a = !k(e) || e !== this._$AH && e !== F, a && (this._$AH = e);
 		else {
 			let r = e, o, s;
-			for (e = i[0], o = 0; o < i.length - 1; o++) s = z(this, r[n + o], t, o), s === F && (s = this._$AH[o]), a ||= !O(s) || s !== this._$AH[o], s === I ? e = I : e !== I && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
+			for (e = i[0], o = 0; o < i.length - 1; o++) s = z(this, r[n + o], t, o), s === F && (s = this._$AH[o]), a ||= !k(s) || s !== this._$AH[o], s === I ? e = I : e !== I && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
 		}
 		a && !r && this.j(e);
 	}
@@ -806,16 +806,16 @@ var Fe = class {
 	_$AI(e) {
 		z(this, e);
 	}
-}, Be = C.litHtmlPolyfillSupport;
-Be?.(R, B), (C.litHtmlVersions ??= []).push("3.3.3");
+}, Be = w.litHtmlPolyfillSupport;
+Be?.(R, B), (w.litHtmlVersions ??= []).push("3.3.3");
 var Ve = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
 		let e = n?.renderBefore ?? null;
-		r._$litPart$ = i = new B(t.insertBefore(D(), e), e, void 0, n ?? {});
+		r._$litPart$ = i = new B(t.insertBefore(O(), e), e, void 0, n ?? {});
 	}
 	return i._$AI(e), i;
-}, H = globalThis, U = class extends S {
+}, H = globalThis, U = class extends C {
 	constructor() {
 		super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
 	}
@@ -906,39 +906,42 @@ function tt(e, t, n) {
 	], o = i === "inactive" ? "var(--state-inactive-color)" : "var(--state-icon-color)";
 	return a.reduceRight((e, t) => `var(${t}, ${e})`, o);
 }
-function nt(e, t) {
+function nt(e) {
+	return e.sensors?.length ? "unfold" : e.entity_id && !/^(integration|homeassistant)\./.test(e.entity_id) ? "details" : void 0;
+}
+function rt(e, t) {
 	let n = e ? Date.parse(e) : NaN;
 	return Number.isNaN(n) ? t ? `${t} days` : "" : new Date(n).toLocaleDateString(void 0, {
 		day: "numeric",
 		month: "short"
 	});
 }
-function rt(e, t) {
+function it(e, t) {
 	let n = Math.max(0, (t - Date.parse(e)) / 1e3);
 	return n < 60 ? "now" : n < 3600 ? `${Math.floor(n / 60)} min` : n < 86400 ? `${Math.floor(n / 3600)} h` : `${Math.floor(n / 86400)} d`;
 }
-var it = `${G}/entity`;
-function at(e, t, n) {
+var at = `${G}/entity`;
+function ot(e, t, n) {
 	let r = e.subscribeMessage((e) => "error" in e ? n(void 0, e.error) : n(e), {
-		type: it,
+		type: at,
 		entity_id: t
 	});
 	return r.catch((e) => {
 		e?.code !== "unknown_command" && e?.code !== "not_running" && console.warn(`CASA-MIA CARDS: can't ask Sensor Watch about ${t} (${e?.message ?? e})`), n(void 0, e?.code === "unknown_command" ? "Sensor Watch isn't set up in Home Assistant" : e?.message ?? String(e));
 	}), () => void r.then((e) => e()).catch(() => {});
 }
-var ot = "sensor-watch", q = (e, t) => `/${ot}?watch=${encodeURIComponent(e)}&at=${t}`, st = {
+var st = "sensor-watch", q = (e, t) => `/${st}?watch=${encodeURIComponent(e)}&at=${t}`, ct = {
 	nominal: "var(--success-color, #43a047)",
 	task: "var(--info-color, #039be5)",
 	warning: "var(--warning-color, #ffa600)",
 	error: "var(--error-color, #db4437)",
 	critical: "var(--error-color, #db4437)"
 };
-function ct(e, t) {
+function lt(e, t) {
 	let n = e && t?.[e.entity_id];
-	if (n?.platform === "casa_mia_sensor_watch" && n?.translation_key === "status") return st[e.state];
+	if (n?.platform === "casa_mia_sensor_watch" && n?.translation_key === "status") return ct[e.state];
 }
-function lt(e, t, n) {
+function ut(e, t, n) {
 	if (!e) return;
 	let r = t.attribute ? e.attributes?.[t.attribute] : e.state;
 	if (r == null || r === "") return;
@@ -949,7 +952,7 @@ function lt(e, t, n) {
 	let i = Number(r);
 	return Number.isNaN(i) ? void 0 : i;
 }
-function ut(e, t = {}) {
+function dt(e, t = {}) {
 	let n = e.flatMap((e) => [e.from, e.to]).filter((e) => e !== null), [r, i] = [0, 100];
 	if (t.unit !== "%" && n.length) {
 		r = Math.min(...n), i = Math.max(...n);
@@ -961,7 +964,7 @@ function ut(e, t = {}) {
 function J(e, [t, n]) {
 	return Math.min(1, Math.max(0, (e - t) / (n - t)));
 }
-function dt(e, t) {
+function ft(e, t) {
 	return e.map((e) => ({
 		from: J(e.from ?? t[0], t),
 		to: J(e.to ?? t[1], t),
@@ -973,15 +976,15 @@ var Y = {
 	cy: 100,
 	r: 80
 };
-function ft(e, t) {
+function pt(e, t) {
 	let n = (e) => {
 		let t = Math.PI * (1 - e);
 		return `${(Y.cx + Y.r * Math.cos(t)).toFixed(1)} ${(Y.cy - Y.r * Math.sin(t)).toFixed(1)}`;
 	};
 	return `M ${n(e)} A ${Y.r} ${Y.r} 0 0 1 ${n(t)}`;
 }
-var pt = (e) => String(Number(e.toPrecision(4)));
-function mt(e, t) {
+var mt = (e) => String(Number(e.toPrecision(4)));
+function ht(e, t) {
 	let n = new Date(e), r = n.toLocaleTimeString(void 0, {
 		hour: "2-digit",
 		minute: "2-digit"
@@ -993,7 +996,7 @@ function mt(e, t) {
 }
 //#endregion
 //#region src/sensor-watch/card.ts
-var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISOString(), gt = [
+var gt = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISOString(), _t = [
 	{
 		entity_id: "",
 		name: "Plug 3 voltage",
@@ -1018,16 +1021,17 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 		message: "Top up the salt",
 		since: X(50)
 	}
-], Z = _(Object.entries(st).map(([e, t]) => `.${e} { --cm-level: ${t}; }`).join("\n")), _t = class extends U {
+], Z = _(Object.entries(ct).map(([e, t]) => `.${e} { --cm-level: ${t}; }`).join("\n")), vt = class extends U {
 	constructor(...e) {
-		super(...e), this._editing = !1, this._seen = null;
+		super(...e), this._editing = !1, this._open = /* @__PURE__ */ new Set(), this._seen = null;
 	}
 	static {
 		this.properties = {
 			_config: { state: !0 },
 			_rows: { state: !0 },
 			_problem: { state: !0 },
-			_editing: { state: !0 }
+			_editing: { state: !0 },
+			_open: { state: !0 }
 		};
 	}
 	static getStubConfig() {
@@ -1064,7 +1068,7 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 		this._editing = e, this._showOrHide();
 	}
 	_later() {
-		clearTimeout(this._timer), this._timer = window.setTimeout(() => this._ask(), ht);
+		clearTimeout(this._timer), this._timer = window.setTimeout(() => this._ask(), gt);
 	}
 	async _ask() {
 		let e = this._hass, t = {
@@ -1115,22 +1119,30 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 			...this._config
 		};
 		if (p(this) && (this._problem !== void 0 || this._rows !== void 0 && !this._rows.length)) return P`<ha-card .header=${e.title || "Needs looking at"}>
-        ${gt.map((e) => this._row(e, e.value ?? "", Date.now()))}
+        ${_t.map((e) => this._row(e, e.value ?? "", Date.now()))}
         <p class="note">An example: hidden when all is well.</p>
       </ha-card>`;
 		let t = (this._rows ?? []).slice(0, e.max), n = (this._rows?.length ?? 0) - t.length, r = Date.now();
 		return P`<ha-card .header=${e.title || void 0}>
       ${this._problem ? P`<p class="note problem">${this._problem}</p>` : I}
       ${!this._problem && this._rows && !t.length ? P`<p class="note">${e.when_clear === "message" ? e.clear_message : "All well: nothing to list, so this card is hidden on the dashboard."}</p>` : I}
-      ${t.map((e) => {
-			let t = this._hass?.states[e.entity_id];
-			if (e.days_until) return this._row(e, nt(e.attribute ? String(t?.attributes?.[e.attribute] ?? "") : t?.state, e.value), r);
-			if (e.attribute) return this._row(e, String(t?.attributes?.[e.attribute] ?? e.value ?? ""), r);
-			let n = t?.attributes?.unit_of_measurement ?? "", i = t && (this._hass?.formatEntityState?.(t) ?? `${t.state}${n ? ` ${n}` : ""}`);
-			return this._row(e, i || (e.value ?? ""), r);
-		})}
+      ${t.map((e) => [this._live(e, r), this._open.has(e.entity_id) && e.sensors?.length ? P`<div class="under">${e.sensors.map((e) => this._live(e, r))}</div>` : I])}
       ${n > 0 ? P`<p class="note">and ${n} more</p>` : I}
     </ha-card>`;
+	}
+	_live(e, t) {
+		if (e.sensors?.length) return this._row(e, `${e.sensors.length} sensor${e.sensors.length === 1 ? "" : "s"} ${this._open.has(e.entity_id) ? "▴" : "▾"}`, t);
+		let n = this._hass?.states[e.entity_id];
+		if (e.days_until) return this._row(e, rt(e.attribute ? String(n?.attributes?.[e.attribute] ?? "") : n?.state, e.value), t);
+		if (e.attribute) return this._row(e, String(n?.attributes?.[e.attribute] ?? e.value ?? ""), t);
+		let r = n?.attributes?.unit_of_measurement ?? "", i = n && (this._hass?.formatEntityState?.(n) ?? `${n.state}${r ? ` ${r}` : ""}`);
+		return this._row(e, i || (e.value ?? ""), t);
+	}
+	_tap(e) {
+		let t = nt(e);
+		if (t === "details" && s(this, "hass-more-info", { entityId: e.entity_id }), t !== "unfold") return;
+		let n = new Set(this._open);
+		n.delete(e.entity_id) || n.add(e.entity_id), this._open = n;
 	}
 	_row(e, t, n) {
 		let r = {
@@ -1140,7 +1152,8 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 		return P`<button
       class="row ${e.level}"
       style="grid-template-columns:${$e(i)}"
-      @click=${() => e.entity_id && s(this, "hass-more-info", { entityId: e.entity_id })}
+      aria-expanded=${e.sensors?.length ? String(this._open.has(e.entity_id)) : I}
+      @click=${() => this._tap(e)}
     >
       ${Ze(i).map((o) => {
 			switch (o) {
@@ -1153,7 +1166,7 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
             ${i.filter((e) => e === "name" || e === "message").map((t) => t === "name" ? P`<span class="name">${e.name}</span>` : e.message ? P`<span class="message">${e.message}</span>` : I)}
           </span>`;
 				case "value": return P`<span class="value">${t}</span>`;
-				case "since": return P`<span class="since">${rt(e.since, n)}</span>`;
+				case "since": return P`<span class="since">${it(e.since, n)}</span>`;
 				default: return I;
 			}
 		})}
@@ -1200,6 +1213,14 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
       display: grid;
       min-width: 0;
     }
+    /* What is rolled up into the failed integration above it. */
+    .under {
+      padding-inline-start: 24px;
+    }
+    /* An error's text wraps, a long address in it too. */
+    .message {
+      overflow-wrap: anywhere;
+    }
     .name {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1224,14 +1245,14 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
   `
 		];
 	}
-}, vt = {
+}, yt = {
 	icon: "Icon",
 	level: "Level",
 	name: "Name",
 	message: "Message",
 	value: "Value (its state now)",
 	since: "How long"
-}, yt = (e) => [
+}, bt = (e) => [
 	{
 		name: "title",
 		selector: { text: {} }
@@ -1293,7 +1314,7 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 			reorder: !0,
 			options: Xe.map((e) => ({
 				value: e,
-				label: vt[e]
+				label: yt[e]
 			}))
 		} }
 	},
@@ -1303,15 +1324,15 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 			mode: "dropdown",
 			options: Ye.map((e) => ({
 				value: e,
-				label: bt[e]
+				label: xt[e]
 			}))
 		} }
 	}
-], bt = {
+], xt = {
 	level: "The level's colour",
 	state: "Its state's colour, as a tile",
 	none: "None"
-}, xt = {
+}, St = {
 	title: "Title",
 	group: "Group",
 	levels: "Levels to list",
@@ -1320,11 +1341,11 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 	clear_message: "Its message",
 	show: "Each row shows",
 	icon_color: "Icon colour"
-}, St = {
+}, Ct = {
 	title: "Or none, and give its panel a garnish heading (it hides with the card).",
 	group: "Only one group's members (from Casa Mia's Sensor Watch page), or every watched sensor.",
 	show: "Drag to reorder; the name and message share a place, where the first of them is."
-}, Ct = class extends U {
+}, wt = class extends U {
 	constructor(...e) {
 		super(...e), this._ready = !1, this._groups = [], this._asked = !1;
 	}
@@ -1363,9 +1384,9 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 			...K,
 			...this._config
 		}}
-      .schema=${yt(this._groups)}
-      .computeLabel=${(e) => xt[e.name] ?? e.name}
-      .computeHelper=${(e) => St[e.name]}
+      .schema=${bt(this._groups)}
+      .computeLabel=${(e) => St[e.name] ?? e.name}
+      .computeHelper=${(e) => Ct[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation();
 			let t = {
@@ -1376,7 +1397,7 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 		}}
     ></ha-form>`);
 	}
-}, Q = "casa-mia-watch-eye", wt = class extends U {
+}, Q = "casa-mia-watch-eye", Tt = class extends U {
 	static {
 		this.properties = {
 			entityId: {},
@@ -1392,7 +1413,7 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 	_subscribe() {
 		this._unsubscribe();
 		let e = this.hass?.connection;
-		this._for = this.entityId, this.entityId && e && (this._off = at(e, this.entityId, (e) => this._watch = e));
+		this._for = this.entityId, this.entityId && e && (this._off = ot(e, this.entityId, (e) => this._watch = e));
 	}
 	_unsubscribe() {
 		this._off?.(), this._off = void 0, this._watch = void 0;
@@ -1451,7 +1472,7 @@ var ht = 300, X = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISO
 		];
 	}
 };
-function Tt(e) {
+function Et(e) {
 	let t = e.shadowRoot, n = t?.querySelector(Q), r = t?.querySelector("[slot=\"headerTitle\"]");
 	if (!t || !e.hass?.user?.is_admin || !e._entityId || e._currView !== "info" || !r) {
 		t && e._entityId && !r && l("the entity dialog's header changed; no eye"), n?.remove();
@@ -1466,7 +1487,7 @@ customElements.whenDefined("ha-more-info-dialog").then(() => {
 		return;
 	}
 	e.updated = function(...e) {
-		t.apply(this, e), Tt(this);
+		t.apply(this, e), Et(this);
 	};
 });
 //#endregion
@@ -1509,11 +1530,11 @@ var $ = {
 			}
 		]
 	}
-}, Et = {
+}, Dt = {
 	binary: "It is watched by on and off, so there are no bands to draw.",
 	state: "It is watched by its states, so there are no bands to draw.",
 	available: "It is watched for being there at all, so there are no bands to draw."
-}, Dt = class extends U {
+}, Ot = class extends U {
 	static {
 		this.properties = {
 			_config: { state: !0 },
@@ -1548,7 +1569,7 @@ var $ = {
 		this.isConnected && this._hass?.connection && e !== this._for && this._follow(e);
 	}
 	_follow(e) {
-		this._unfollow(), this._for = e, e && (this._off = at(this._hass.connection, e, (e, t) => {
+		this._unfollow(), this._for = e, e && (this._off = ot(this._hass.connection, e, (e, t) => {
 			e ? [this._watch, this._lapsed] = [e, void 0] : this._lapsed ??= {
 				why: t ?? "Sensor Watch isn't answering",
 				since: Date.now()
@@ -1574,7 +1595,7 @@ var $ = {
 		if (!e) return p(this) ? this._face($.name, $.watch, $.value, `${$.value} ${$.unit}`, $.unit) : P`<ha-card><p class="note">Choose an entity that Sensor Watch watches.</p></ha-card>`;
 		let n = this._config.name || t?.attributes?.friendly_name || e, r = this._watch;
 		if (!r) return P`<ha-card><p class="name">${n}</p>${this._lapsed ? P`<p class="note problem">${this._lapsed.why}.</p>` : I}</ha-card>`;
-		let i = t ? lt(t, r, Date.now()) : void 0, a = r.days_until ? "days" : r.attribute ? "" : t?.attributes?.unit_of_measurement ?? "", o = t ? r.days_until ? i === void 0 ? String(t.state) : `${i.toFixed(1)} days` : r.attribute ? String(t.attributes?.[r.attribute] ?? "no such attribute") : this._hass?.formatEntityState?.(t) ?? `${t.state}${a ? ` ${a}` : ""}` : "not in Home Assistant";
+		let i = t ? ut(t, r, Date.now()) : void 0, a = r.days_until ? "days" : r.attribute ? "" : t?.attributes?.unit_of_measurement ?? "", o = t ? r.days_until ? i === void 0 ? String(t.state) : `${i.toFixed(1)} days` : r.attribute ? String(t.attributes?.[r.attribute] ?? "no such attribute") : this._hass?.formatEntityState?.(t) ?? `${t.state}${a ? ` ${a}` : ""}` : "not in Home Assistant";
 		return this._face(n, r, i, o, a, e);
 	}
 	_face(e, t, n, r, i, a) {
@@ -1594,25 +1615,25 @@ var $ = {
               ${t.message ? P`<span class="message">${t.message}</span>` : I}
             </span>` : I}
       </button>
-      ${t.watched ? t.disabled ? P`<p class="note">Its watch is switched off in Sensor Watch.</p>` : t.bands ? c ? I : P`<p class="note">No level yet: Sensor Watch is waiting out its hold-off.</p>` : P`<p class="note">${Et[t.kind ?? ""] ?? "Its watch has no bands to draw."}</p>` : P`<p class="note">
+      ${t.watched ? t.disabled ? P`<p class="note">Its watch is switched off in Sensor Watch.</p>` : t.bands ? c ? I : P`<p class="note">No level yet: Sensor Watch is waiting out its hold-off.</p>` : P`<p class="note">${Dt[t.kind ?? ""] ?? "Its watch has no bands to draw."}</p>` : P`<p class="note">
             Sensor Watch doesn't watch this.
             ${o && a ? P`<a href=${q(a, 0)} @click=${(e) => (e.preventDefault(), u(q(a, Date.now())))}>Watch it</a>` : I}
           </p>`}
-      ${d ? P`<p class="note problem">${d.why}: its level is not current since ${mt(d.since, Date.now())}.</p>` : I}
+      ${d ? P`<p class="note problem">${d.why}: its level is not current since ${ht(d.since, Date.now())}.</p>` : I}
       ${a ? I : P`<p class="note">An example: the bands come from the sensor's watch.</p>`}
     </ha-card>`;
 	}
 	_dial(e, t, n) {
-		let r = ut(e.bands, {
+		let r = dt(e.bands, {
 			min: this._config?.min,
 			max: this._config?.max,
 			unit: n
 		}), i = t === void 0 ? 0 : J(t, r) * 180 - 90;
 		return P`<svg viewBox="0 0 200 122" aria-hidden="true">
-      <path class="band ${e.otherwise ?? "error"}" d=${ft(0, 1)} />
-      ${dt(e.bands, r).map((e) => je`<path class="band ${e.level}" d=${ft(e.from, e.to)} />`)}
-      <text class="end" x=${Y.cx - Y.r} y="118" text-anchor="middle">${pt(r[0])}</text>
-      <text class="end" x=${Y.cx + Y.r} y="118" text-anchor="middle">${pt(r[1])}</text>
+      <path class="band ${e.otherwise ?? "error"}" d=${pt(0, 1)} />
+      ${ft(e.bands, r).map((e) => je`<path class="band ${e.level}" d=${pt(e.from, e.to)} />`)}
+      <text class="end" x=${Y.cx - Y.r} y="118" text-anchor="middle">${mt(r[0])}</text>
+      <text class="end" x=${Y.cx + Y.r} y="118" text-anchor="middle">${mt(r[1])}</text>
       ${t === void 0 ? I : je`<g class="needle" style="transform: rotate(${i.toFixed(1)}deg)">
             <path d="M ${Y.cx - 3} ${Y.cy} L ${Y.cx} ${Y.cy - Y.r + 14} L ${Y.cx + 3} ${Y.cy} Z" />
             <circle cx=${Y.cx} cy=${Y.cy} r="6" />
@@ -1712,7 +1733,7 @@ var $ = {
     `
 		];
 	}
-}, Ot = [
+}, kt = [
 	{
 		name: "entity",
 		required: !0,
@@ -1739,17 +1760,17 @@ var $ = {
 			} }
 		}]
 	}
-], kt = {
+], At = {
 	entity: "Entity",
 	name: "Name",
 	min: "Arc starts at",
 	max: "Arc ends at"
-}, At = {
+}, jt = {
 	entity: "One that Sensor Watch watches by bands (a number). Its bands colour the arc, and follow the watch when it is edited.",
 	name: "Instead of the entity's own.",
 	min: "Left empty: from the bands (0 for a percentage).",
 	max: "Left empty: from the bands (100 for a percentage)."
-}, jt = class extends U {
+}, Mt = class extends U {
 	constructor(...e) {
 		super(...e), this._ready = !1;
 	}
@@ -1770,9 +1791,9 @@ var $ = {
 		return !this.hass || !this._config || !this._ready ? I : P`<ha-form
       .hass=${this.hass}
       .data=${this._config}
-      .schema=${Ot}
-      .computeLabel=${(e) => kt[e.name] ?? e.name}
-      .computeHelper=${(e) => At[e.name]}
+      .schema=${kt}
+      .computeLabel=${(e) => At[e.name] ?? e.name}
+      .computeHelper=${(e) => jt[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation();
 			let t = Object.fromEntries(Object.entries(e.detail.value).filter(([, e]) => e != null && e !== ""));
@@ -1780,8 +1801,8 @@ var $ = {
 		}}
     ></ha-form>`;
 	}
-}, Mt = () => document.querySelector("home-assistant")?.hass?.entities;
-function Nt(e) {
+}, Nt = () => document.querySelector("home-assistant")?.hass?.entities;
+function Pt(e) {
 	let t = [document];
 	for (let n; n = t.pop();) for (let r of n.querySelectorAll("*")) r.localName === e && r.requestUpdate?.(), r.shadowRoot && t.push(r.shadowRoot);
 }
@@ -1790,9 +1811,9 @@ customElements.whenDefined("ha-state-icon").then(() => {
 	if (typeof t != "function") return l("ha-state-icon changed; the Status sensor keeps HA's colour");
 	e.updated = function(...e) {
 		t.apply(this, e);
-		let n = ct(this.stateObj, this._entities ?? this.hass?.entities ?? Mt());
+		let n = lt(this.stateObj, this._entities ?? this.hass?.entities ?? Nt());
 		n ? (this.style.color !== n && (this.style.color = n), this.cmLevelColour = !0) : this.cmLevelColour &&= (this.style.removeProperty("color"), !1);
-	}, Nt("ha-state-icon");
+	}, Pt("ha-state-icon");
 });
 for (let e of [
 	"hui-tile-card",
@@ -1804,10 +1825,10 @@ for (let e of [
 		if (!this.cmLevelColour) {
 			this.cmLevelColour = !0;
 			let t = this._computeStateColor;
-			typeof t == "function" ? this._computeStateColor = (e, n) => !n && ct(e, this.hass?.entities) || t(e, n) : l(`${e} changed; the Status sensor keeps HA's colour`);
+			typeof t == "function" ? this._computeStateColor = (e, n) => !n && lt(e, this.hass?.entities) || t(e, n) : l(`${e} changed; the Status sensor keeps HA's colour`);
 		}
 		return n.apply(this, t);
-	}, Nt(e);
+	}, Pt(e);
 });
-f("casa-mia-sensor-watch", _t), f("casa-mia-sensor-watch-editor", Ct), f("casa-mia-sensor-watch-gauge", Dt), f("casa-mia-sensor-watch-gauge-editor", jt), f(Q, wt), ee("casa-mia-sensor-watch-gauge", "Casa Mia Sensor Watch gauge", "One watched number on an arc coloured by its Sensor Watch bands, which follow the watch when it is edited."), r("Sensor Watch", Ke, Ge), ee("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
+f("casa-mia-sensor-watch", vt), f("casa-mia-sensor-watch-editor", wt), f("casa-mia-sensor-watch-gauge", Ot), f("casa-mia-sensor-watch-gauge-editor", Mt), f(Q, Tt), ee("casa-mia-sensor-watch-gauge", "Casa Mia Sensor Watch gauge", "One watched number on an arc coloured by its Sensor Watch bands, which follow the watch when it is edited."), r("Sensor Watch", Ke, Ge), ee("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
 //#endregion

@@ -72,6 +72,7 @@ class StatusSensor(WatchEntity, SensorEntity):
         s = self.watcher.summary()
         return {
             "watching": s["watching"],
+            "rolled_up": s["rolled_up"],
             **{f"{lv}_list": s[f"{lv}_list"] for lv in LEVELS[1:]},
         }
 

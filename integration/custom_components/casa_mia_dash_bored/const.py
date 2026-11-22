@@ -38,6 +38,8 @@ HOUSEHOLD = f"{DOMAIN}/household"  # the feed of the household's ages (household
 # here and not imported: the two integrations meet only through Home Assistant, and each
 # works without the other.
 WATCH_EVENT = "casa_mia_sensor_watch"
+# And its event that what it said of a sensor no longer stands, though it isn't back.
+WATCH_WITHDRAWN = f"{WATCH_EVENT}_withdrawn"
 NOMINAL = "nominal"
 # Love it or Loathe it's bus event for a song somebody rated: named, not imported, as above.
 RATED_EVENT = "casa_mia_love_or_loathe_rated"

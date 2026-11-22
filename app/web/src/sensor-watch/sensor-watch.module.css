@@ -125,6 +125,8 @@
   display: grid;
   gap: 2px;
   min-width: 0;
+  /* An integration's error can be one long address: it wraps, never off a phone's edge. */
+  overflow-wrap: anywhere;
 }
 
 .what code,
@@ -687,7 +689,7 @@
 /* Not the page's full-width input (styles.css): a tick of its own size. */
 @media (max-width: 640px) {
   .row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .rowActions {

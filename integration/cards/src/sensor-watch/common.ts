@@ -74,9 +74,16 @@ export function stateColor(entityId: string, state: string, deviceClass?: string
   return names.reduceRight((inner, n) => `var(${n}, ${inner})`, last);
 }
 
-/** One row of the `list` service's answer. */
-/** A row as the list service gives it; `attribute`: the attribute watched, not the state. */
-export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string; days_until?: boolean };
+/** A row as the list service gives it; `attribute`: the attribute watched, not the state.
+ * `sensors`: a failed integration's, the watched sensors rolled up into it. */
+export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string; days_until?: boolean; sensors?: Row[] };
+
+/** What a tap on a row does: open the sensors rolled up into it, or the entity's details.
+ * Home Assistant's own rows (a failed integration, the Recorder) are no entities. */
+export function tapped(r: Pick<Row, "entity_id" | "sensors">): "unfold" | "details" | undefined {
+  if (r.sensors?.length) return "unfold";
+  return r.entity_id && !/^(integration|homeassistant)\./.test(r.entity_id) ? "details" : undefined;
+}
 
 /** A due date as people read it ("25 Oct"), or the days the integration gave. */
 export function due(state: string | undefined, days: string | null): string {

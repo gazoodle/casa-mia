@@ -16,6 +16,8 @@ const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
 const MANUAL = "Manual"; // the heading for those watched one by one, not by a group
 const DISABLED = "Disabled"; // the heading for those kept but not watched, last
 const ATTENTION = "Needs attention"; // the heading for those above nominal, first
+// The heading's start for those rolled up into a failed integration, folded until opened.
+const ROLLED = "Rolled up: ";
 /** Does a watched sensor pass the filters (and every word of the search)? `skip`: a
  * filter left out, to offer what the others leave (the devices, say). */
 function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
@@ -113,6 +115,9 @@ export function WatchedList({
   };
   const [shown, setShown] = useState(PAGE);
   const levelOf = (r: WatchRecord) => live?.levels[r.entity_id]?.level;
+  const underOf = (r: WatchRecord) => (r.disabled ? undefined : live?.levels[r.entity_id]?.under);
+  // As counted: one rolled up is counted as its integration, not by itself.
+  const countedAs = (r: WatchRecord) => (underOf(r) ? undefined : levelOf(r));
 
   // Each filter offers what the others leave, so the choices narrow as you go.
   const options: ChipOptions = useMemo(() => {
@@ -139,7 +144,7 @@ export function WatchedList({
 
   const matched = useMemo(() => records.filter((r) => passes(r, filters)), [records, filters]);
   const counts = matched.reduce<Record<string, number>>((n, r) => {
-    const l = levelOf(r);
+    const l = countedAs(r);
     return l ? { ...n, [l]: (n[l] ?? 0) + 1 } : n;
   }, {});
   const rank = (r: WatchRecord) => {
@@ -150,22 +155,34 @@ export function WatchedList({
   // Disabled ones apart (grouped or not), out of their groups. Grouped, so are those above
   // nominal, whatever their group: a problem in the last group was a screen or two down.
   // (Ungrouped and sorted by level they lead the list as it is.)
-  const section = (r: WatchRecord) =>
-    r.disabled ? DISABLED : !grouped ? "" : rank(r) > 0 ? ATTENTION : (r.group && groupName.get(r.group)) || MANUAL;
-  const headed = (r: WatchRecord) => grouped || !!r.disabled;
-  // Needs attention first, Manual, then the groups by name, Disabled last; the sort
-  // applies within each.
-  const place = (s: string) => (s === ATTENTION ? -1 : s === MANUAL ? 0 : s === DISABLED ? 2 : 1);
+  // Those rolled up are apart too, or one failed cloud hides what else needs attention.
+  const rolled = (key: string) => `${ROLLED}${live?.levels[key]?.name ?? "waiting for their integration"}`;
+  const section = (r: WatchRecord) => {
+    if (r.disabled) return DISABLED;
+    const under = underOf(r);
+    if (under) return rolled(under);
+    return !grouped ? "" : rank(r) > 0 ? ATTENTION : (r.group && groupName.get(r.group)) || MANUAL;
+  };
+  const headed = (r: WatchRecord) => grouped || !!r.disabled || !!underOf(r);
+  // Needs attention first, what is rolled up, Manual, then the groups by name, Disabled
+  // last; the sort applies within each. Ungrouped, what is rolled up follows the list.
+  const place = (s: string) =>
+    s === ATTENTION ? -1 : s.startsWith(ROLLED) ? (grouped ? -0.5 : 1.5) : s === MANUAL ? 0 : s === DISABLED ? 2 : 1;
   const sectionOrder = (a: string, b: string) => place(a) - place(b) || a.localeCompare(b);
   const rows = matched
-    .filter((r) => levels.size === 0 || levels.has(levelOf(r) as Level))
+    .filter((r) => levels.size === 0 || levels.has(countedAs(r) as Level))
     .sort((a, b) => sectionOrder(section(a), section(b)) || (sort === "level" ? rank(b) - rank(a) : 0) || (a.label ?? "").localeCompare(b.label ?? ""));
   const inSection = rows.reduce<Record<string, number>>((n, r) => ({ ...n, [section(r)]: (n[section(r)] ?? 0) + 1 }), {});
   const first = (r: WatchRecord, i: number, list: WatchRecord[]) => i === 0 || section(list[i - 1]) !== section(r);
-  const isFolded = (r: WatchRecord) => headed(r) && folded.has(section(r));
+  const filtering = levels.size > 0 || Object.values(filters).some(Boolean);
+  // What is rolled up starts folded (remembered as opened), but a search still finds it.
+  const isFolded = (r: WatchRecord) => {
+    if (!headed(r)) return false;
+    const s = section(r);
+    return s.startsWith(ROLLED) ? !filtering && !folded.has(s) : folded.has(s);
+  };
   // A folded group keeps its first row, to carry its heading.
   const visible = rows.filter((r, i) => !isFolded(r) || first(r, i, rows));
-  const filtering = levels.size > 0 || Object.values(filters).some(Boolean);
 
   return (
     <>

@@ -56,6 +56,9 @@ Each sensor gets a level:
 | **Error** | Something is wrong. | The freezer is at −8 °C, or its sensor is unavailable. |
 | **Critical** | Drop everything. | A leak sensor is wet. |
 
+A sensor that is unavailable because its integration failed to set up is counted as that
+integration: see [A failed integration is one problem](#a-failed-integration-is-one-problem).
+
 A sensor that goes **unavailable** is part of this, not an afterthought: by default it
 counts as an error, because a sensor that has stopped reporting is often the first sign
 of a broken integration or a flat battery. It counts only once it has been unavailable for
@@ -836,9 +839,10 @@ says all is well while Home Assistant is broken:
   starts (a database on another machine that was down): the Recorder doesn't try again
   by itself, so fix the database, then restart Home Assistant.
 - An **integration that has failed to set up** (setup error, retrying, migration error,
-  or not loaded), for more than five minutes: **error**, named by its title and
-  integration, with Home Assistant's reason. Disabled integrations don't count. When it
-  recovers, the event says so (level nominal) and it leaves the list.
+  or not loaded), for more than five minutes: **error**, named by its integration and
+  title, with Home Assistant's reason. A retry isn't a recovery: it stays failed, since
+  the first failure, until Home Assistant says it has loaded. Then the event says so
+  (level nominal) and it leaves the list. Disabled integrations don't count.
 
 A discovery you told Home Assistant to **Ignore** is kept as an entry that never loads,
 by design, so it never counts.
@@ -852,6 +856,35 @@ These are checked once Home Assistant has started, and again the moment Home Ass
 says an integration's state changed or a component loaded (no waiting on a timer). In the event
 and the List action their `entity_id` is `homeassistant.recorder`,
 `homeassistant.history` or `integration.<its entry id>`.
+
+#### A failed integration is one problem
+
+When an integration has failed to set up, its watched sensors that are unavailable are
+rolled up into its row. The row says how many ("not connecting, 4 watched sensors
+unavailable: 503 Service Unavailable"), and counts once in Status, Problem and the counts.
+There is one event and one notification for it. Nothing needs setting up: Home Assistant
+knows which integration each entity belongs to.
+
+- **They are still shown.** Tap the row on the card to list them. On the page they are
+  under their own **Rolled up** heading, folded until you open it, and under the
+  integration in Home Assistant itself. Each keeps its own level and how long it has been
+  down.
+- **One at critical is never rolled up**, whether it is set critical when unavailable or
+  has escalated to it. Set that for any sensor you always want to hear of by itself.
+- **A bad reading is never rolled up.** A sensor that is there with a fault has a row of
+  its own.
+- **When the integration recovers**, its sensors have five minutes to come back. Any still
+  unavailable then get rows of their own, and are said.
+- **A group still hears of it.** A card or List action for a group shows the integration
+  when one of the group's sensors is rolled up into it. The event is fired again for each
+  such group, with `group` and with `for_group` true, so the blueprint and the device
+  triggers narrowed to that group work as they did. An automation of your own on every
+  event can leave out those with `for_group`.
+- **Ignore** on the integration lists those sensors by themselves again. It doesn't hide
+  them.
+
+It works only while Home Assistant says the integration failed. An integration that stays
+loaded while its entities go unavailable has a row for each of them.
 
 There is no entity per watched sensor: the summary, the event and the action below tell
 the rest of Home Assistant which ones they are.
@@ -881,13 +914,23 @@ when it has them; and `escalated` (true when it's shown a level up for having st
 `real` (the level its reading gives) and `since` (when that level began). `stale` is
 true when the level is for having gone quiet (Stale, under Over time), not for its value;
 `value` is then the last one it sent. The List action's rows carry it too.
+`for_group` is true when it is a failed integration's event again for one group
+([why](#a-failed-integration-is-one-problem)).
+
+When what was said no longer stands and it isn't back to nominal (rolled up into its
+integration, ignored, or no longer watched), `casa_mia_sensor_watch_withdrawn` fires
+instead, with `entity_id` and `reason`. It is an event of its own so that no automation
+takes it for a recovery. If yours keeps something for each alert, such as a light left on,
+clear it on this event as well as on nominal.
 
 A sensor found at a level other than nominal, rather than changed to it, fires it too,
 with `initial` true and no `previous`: at Home Assistant's start (held until it has
 started, so automations hear it), and when its watch is edited or Refresh state is
 pressed. A restart clears Home Assistant's own notifications, so this is how a problem
 that was there before it is raised again. The blueprint raises its notification in the
-sidebar again for it, but doesn't send it to a phone.
+sidebar again for it, but doesn't send it to a phone. Sensor Watch remembers what it said
+of a failed integration and an unavailable sensor, and since when, across restarts. One
+that failed during the restart is new, so it isn't `initial` and does reach the phone.
 
 **The easy way: the blueprint.** The integration installs **Notify on Sensor Watch**
 (Settings → Automations & scenes → Blueprints; it's in
@@ -967,6 +1010,8 @@ actions:
 ```
 
 Add `group: Mains voltage` to ask about one group only (and its own worst level).
+A failed integration's row has `sensors`: those rolled up into it, which aren't rows of
+their own.
 
 Until 2026.11.3 these two actions were `casa_mia.sensor_watch_list` and
 `casa_mia.sensor_watch_refresh`. Those names still work for now, with a warning in the
@@ -980,7 +1025,8 @@ log, and will be removed.
 
 **Casa Mia Sensor Watch** (in the card picker) lists what isn't nominal, worst first,
 each with its level, message, value (live from the entity) and how long it has stood;
-tap a row for the entity's details. Options: a title, a **group** (chosen from your
+tap a row for the entity's details, or a failed integration's to list the sensors
+rolled up into it. Options: a title, a **group** (chosen from your
 groups, ✕ for every watched sensor), the levels to list, at most how many, what to do
 when all is well (**hide**, the default, or say so), and what **each row shows**: the
 entity's icon, its level, name, message, value and how long, any of them, in the order

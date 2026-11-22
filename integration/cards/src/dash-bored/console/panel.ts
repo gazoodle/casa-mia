@@ -12,7 +12,7 @@ import { follow, type Watch } from "../../sensor-watch/common.ts";
 import { ALERTS, Family, SIGHTINGS } from "../family.ts";
 import { DEGREES, scenes, sighted, type Control, type Device, type Options, type Room, type Scene, type Seen, type Sighting } from "../house.ts";
 import { recorded, type Change } from "../record.ts";
-import { NOMINAL, RANK, clock, flip, pressing, turning, zooming, type Alert, type Press } from "../stories.ts";
+import { NOMINAL, RANK, clock, flip, heard, pressing, turning, zooming, type Alert, type Press } from "../stories.ts";
 import { columns, laid, racks as fitted, type Load } from "./balance.ts";
 import { face, type Kit } from "./kit.ts";
 import { metered, sized } from "./metered.ts";
@@ -144,9 +144,7 @@ export class Panel extends Family {
     const view = this._view;
     if (view === "panel" || view === "lamps")
       this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-        for (const a of alerts) held.set(a.entity_id, a);
-        this._alerts = [...held.values()];
+        this._alerts = heard(this._alerts, alerts);
         this._heard = true;
       });
     if (view === "meters") this._consult();

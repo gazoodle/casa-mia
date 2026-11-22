@@ -6,7 +6,7 @@
 import { LitElement, css, html, nothing, unsafeCSS } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Column, type Config, DEFAULTS, EVENT, LEVEL_COLOR, type Row, SERVICE, columns, due, own, parts, since, stateColor } from "./common.ts";
+import { type Column, type Config, DEFAULTS, EVENT, LEVEL_COLOR, type Row, SERVICE, columns, due, own, parts, since, stateColor, tapped } from "./common.ts";
 
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
@@ -26,11 +26,12 @@ export const LEVEL_TONES = unsafeCSS(
 );
 
 export class SensorWatchCard extends LitElement {
-  static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true } };
+  static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true }, _open: { state: true } };
   _config?: Config;
   _rows?: Row[];
   _problem?: string;
   _editing = false;
+  _open = new Set<string>(); // the failed integrations showing their sensors
   private _hass?: Hass;
   private _seen: string | null = null; // the integration's entities, as last seen: a change asks again (null: never seen, so ask)
   private _timer?: number;
@@ -157,17 +158,33 @@ export class SensorWatchCard extends LitElement {
       ${!this._problem && this._rows && !rows.length
         ? html`<p class="note">${o.when_clear === "message" ? o.clear_message : "All well: nothing to list, so this card is hidden on the dashboard."}</p>`
         : nothing}
-      ${rows.map((r) => {
-        const st = this._hass?.states[r.entity_id];
-        if (r.days_until) return this._row(r, due(r.attribute ? String(st?.attributes?.[r.attribute] ?? "") : st?.state, r.value), now);
-        if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
-        // As HA shows it: rounded to its display precision, with its unit (formatEntityState).
-        const unit = st?.attributes?.unit_of_measurement ?? "";
-        const shown = st && (this._hass?.formatEntityState?.(st) ?? `${st.state}${unit ? ` ${unit}` : ""}`);
-        return this._row(r, shown || (r.value ?? ""), now);
-      })}
+      ${rows.map((r) => [
+        this._live(r, now),
+        this._open.has(r.entity_id) && r.sensors?.length ? html`<div class="under">${r.sensors.map((sensor) => this._live(sensor, now))}</div>` : nothing,
+      ])}
       ${more > 0 ? html`<p class="note">and ${more} more</p>` : nothing}
     </ha-card>`;
+  }
+
+  /** A row with its value as it is now. */
+  private _live(r: Row, now: number) {
+    if (r.sensors?.length) return this._row(r, `${r.sensors.length} sensor${r.sensors.length === 1 ? "" : "s"} ${this._open.has(r.entity_id) ? "▴" : "▾"}`, now);
+    const st = this._hass?.states[r.entity_id];
+    if (r.days_until) return this._row(r, due(r.attribute ? String(st?.attributes?.[r.attribute] ?? "") : st?.state, r.value), now);
+    if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
+    // As HA shows it: rounded to its display precision, with its unit (formatEntityState).
+    const unit = st?.attributes?.unit_of_measurement ?? "";
+    const shown = st && (this._hass?.formatEntityState?.(st) ?? `${st.state}${unit ? ` ${unit}` : ""}`);
+    return this._row(r, shown || (r.value ?? ""), now);
+  }
+
+  private _tap(r: Row) {
+    const does = tapped(r);
+    if (does === "details") fire(this, "hass-more-info", { entityId: r.entity_id });
+    if (does !== "unfold") return;
+    const open = new Set(this._open);
+    if (!open.delete(r.entity_id)) open.add(r.entity_id);
+    this._open = open;
   }
 
   private _row(r: Row, value: string, now: number) {
@@ -200,7 +217,8 @@ export class SensorWatchCard extends LitElement {
     return html`<button
       class="row ${r.level}"
       style="grid-template-columns:${columns(show)}"
-      @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}
+      aria-expanded=${r.sensors?.length ? String(this._open.has(r.entity_id)) : nothing}
+      @click=${() => this._tap(r)}
     >
       ${parts(show).map(part)}
     </button>`;
@@ -245,6 +263,14 @@ export class SensorWatchCard extends LitElement {
     .what {
       display: grid;
       min-width: 0;
+    }
+    /* What is rolled up into the failed integration above it. */
+    .under {
+      padding-inline-start: 24px;
+    }
+    /* An error's text wraps, a long address in it too. */
+    .message {
+      overflow-wrap: anywhere;
     }
     .name {
       overflow: hidden;

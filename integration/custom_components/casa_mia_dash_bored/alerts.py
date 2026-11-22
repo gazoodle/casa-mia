@@ -19,7 +19,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
-from .const import ALERTS, DOMAIN, NOMINAL, WATCH_EVENT
+from .const import ALERTS, DOMAIN, NOMINAL, WATCH_EVENT, WATCH_WITHDRAWN
 from .feed import Send, follow
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,6 +44,8 @@ class Alerts:
         if not isinstance(eid, str):
             _LOGGER.warning("A Sensor Watch event with no entity_id was ignored")
             return
+        if event.data.get("for_group"):
+            return  # a failed integration's, said again for a group: one story
 
         # When the trouble began outlives an escalation, and the recovery says it too.
         was = self.latest.get(eid)
@@ -71,11 +73,23 @@ class Alerts:
         for feed in list(self.feeds):
             feed(alert)
 
+    @callback
+    def withdraw(self, event: Event) -> None:
+        """Rolled up into its failed integration, ignored, or no longer watched: gone
+        from the pages, and no "back to normal" story, since it isn't."""
+        eid = event.data.get("entity_id")
+        if not isinstance(eid, str) or (held := self.latest.pop(eid, None)) is None:
+            return
+        _LOGGER.debug("Alert for %s: withdrawn", eid)
+        for feed in list(self.feeds):
+            feed(held | {"withdrawn": True})
+
 
 def setup(hass: HomeAssistant) -> None:
     """Once per Home Assistant run."""
     alerts = hass.data[DOMAIN] = Alerts()
     hass.bus.async_listen(WATCH_EVENT, alerts.take)
+    hass.bus.async_listen(WATCH_WITHDRAWN, alerts.withdraw)
     websocket_api.async_register_command(hass, _ws_alerts)
 
 

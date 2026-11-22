@@ -12,8 +12,8 @@
     "version": "2026.11.9"
   },
   "casa_mia_dash_bored": {
-    "digest": "6a9c26946a98b321c9e79b2bbecd717eaee9b47076f440ec3a266ba598661d33",
-    "version": "2026.11.11"
+    "digest": "c91563853bf2743f9eba97a0b84061e59b02c3a8ce49ce4cd617c75321a88e9b",
+    "version": "2026.11.12-b1"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",
@@ -32,7 +32,7 @@
     "version": "2026.11.2-b21"
   },
   "casa_mia_sensor_watch": {
-    "digest": "01ed92f947e69000195a290cca539b655b9703b4ab0ed10fe294afffef25df50",
-    "version": "2026.11.11"
+    "digest": "ff31cad279bdecb82f96998e594f389fc275cc159f2354972a9e2cc30d51274a",
+    "version": "2026.11.12-b1"
   }
 }

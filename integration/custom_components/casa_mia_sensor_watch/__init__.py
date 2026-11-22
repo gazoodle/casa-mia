@@ -41,7 +41,8 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from . import admin, blueprint, panel
 from .const import DOMAIN, INSTALLED_EVENT, LIST, REFRESH, SWAP, SWAP_ASK
-from .levels import LEVELS, listing, summary
+from .kept import Kept, forget_all
+from .levels import LEVELS, in_group, listing, summary
 from .migrate import take_over
 from .restart_notice import async_check_restart, manifest_version
 from .swap import same, shown
@@ -81,12 +82,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Before the platforms: its entities can change hands only while not loaded.
     take_over(hass, entry)
-    watcher = Watcher(hass)
+    kept = await Kept(hass).load()
+    entry.async_on_unload(kept.save)
+    watcher = Watcher(hass, kept)
     entry.runtime_data = watcher
     entry.async_on_unload(watcher.unload)
+    # Before the records: a failed integration is known before its sensors are judged.
+    entry.async_on_unload(start_checks(hass, watcher))
     entry.async_on_unload(await admin.start(hass, watcher))
     await panel.show(hass, LOADED_VERSION)
-    entry.async_on_unload(start_checks(hass, watcher))
     await follow_blueprint(hass, entry, watcher)
     entry.async_on_unload(async_track_time_interval(hass, watcher.tick, DAYS_EVERY))
 
@@ -104,12 +108,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         group = call.data.get("group")
         now = watcher.now
         if group:
-            now = {
-                e: n
-                for e, n in now.items()
-                if (watcher.records.get(e) or {}).get("group") == group
-            }
-        rows = [shown(watcher.swap, r) for r in listing(now, call.data.get("levels"))]
+            now = in_group(watcher.records, now, group)
+        rows = []
+        for row in listing(now, call.data.get("levels")):
+            if sensors := row.get("sensors"):
+                row["sensors"] = [shown(watcher.swap, s) for s in sensors]
+            rows.append(shown(watcher.swap, row))
         _LOGGER.debug(
             "list (%s%s): %d sensors",
             ",".join(call.data.get("levels") or []) or "not nominal",
@@ -167,8 +171,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Deleted: its page leaves the sidebar. The records stay in Home Assistant's
-    storage, for the day it is added again."""
+    storage, for the day it is added again; how long faults have lasted does not."""
     panel.hide(hass)
+    await forget_all(hass)
     _LOGGER.info("Sensor Watch removed; its records are kept")
 
 

@@ -108,6 +108,23 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
   services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
   Watch** (still at `blueprints/automation/casa_mia/`, so automations made from it carry
   on).
+- **A failed integration is one problem** (owner, 2026-11-22; 2026.11.12-b1). Why: one
+  cloud's outage took every row of every card and of Status's list, and the newer, real
+  fault sorted below all of them. `rollup.py` owns HA's own rows and puts unavailable
+  sensors `under` their failed integration. All that counts, lists or tells leaves those
+  with `under` out, so anything new that reads `watcher.now` must do the same.
+  - **Never rolled up:** critical, a bad reading, or one already said until the
+    integration's row stands in for it.
+  - **Only `loaded` ends a failure** (`levels.track_failures`): a retry passes through
+    setup in progress.
+  - **`initial` means known before,** by what `kept.py` saved (storage key
+    `casa_mia_sensor_watch_kept`), not "has no row yet". Why: new failures never reached
+    a phone, and old ones did at every restart.
+  - **Never fire nominal for anything that isn't proved well.** What no longer stands is
+    `casa_mia_sensor_watch_withdrawn`, and whatever keeps a copy of the alerts drops it on
+    that (Dash-Bored's `alerts.py`).
+  - **Groups:** the integration's event is fired again per group (`for_group`), so a
+    group's automations still hear. Snooze is the next build (BACKLOG).
 - **Page:** a custom panel in HA's sidebar (`panel.py`, `/sensor-watch`, in an iframe),
   built by `tools/build_web` from `app/web/src/sensor-watch/` (entry `panel.tsx`, config
   `vite.panel.config.ts`) into its `www/`. It stays through a reload and leaves when the
@@ -893,8 +910,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   Assistant lets only admins subscribe to a custom bus event, and a wall tablet's login
   is not one. `alerts.py` listens for `casa_mia_sensor_watch`, keeps the latest per
   sensor for this run (Sensor Watch says them all again at each start), and feeds any
-  signed-in page (`casa_mia_dash_bored/alerts`). The two integrations name each other's
-  event and nothing else.
+  signed-in page (`casa_mia_dash_bored/alerts`). It drops an alert on
+  `casa_mia_sensor_watch_withdrawn` (not a recovery, so no story). The two integrations
+  name each other's events and nothing else.
 - **Seen on the test VM** (2026-11-13, Home Assistant 2026.11.1): set up through its
   flow, the page in the sidebar at tablet and phone widths, and Sensor Watch's real alerts
   from the invented house as breaking news, ranked. **Not seen:** rooms and devices from
@@ -1457,6 +1475,10 @@ CLAUDE.md has them all. What trips agents here:
   included. DuraSpeed is off on every Tab M9 (2026-10-31), but the last two haven't been
   rebooted since, which clears Android's mark against KS. Kiosk Mode was switched off on the fleet leader for the setup walk: check it is back on.
   What's left, the after-reboot routine and the helper app idea are in BACKLOG.
+- **Sensor Watch's roll-up (2026.11.12-b1) is built, not yet run on the box.** After it
+  is installed and Home Assistant restarted, look at a failed integration there: one row,
+  one notification, Status's `rolled_up`, and no change of the error count at its retries.
+  Then build Snooze (BACKLOG).
 - **Sensor Watch** is Beta and released, in daily use on the box. A camera group watches
   every camera channel (Available, a task) with a 0 hold-off the owner set for testing; the
   level is to be revisited. Confirm b31's `…` fix after an HA restart.

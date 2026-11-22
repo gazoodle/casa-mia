@@ -78,6 +78,11 @@ Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built
 mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
 the Gazette's own work is parked below it.
 
+- **An open page keeps an alert that ended while it was disconnected** (found in the code
+  2026-11-22, not seen). Each page adds what the feed holds on reconnecting to what it
+  had, so one withdrawn or long mended meanwhile stays until a reload. A copy of the other
+  side's state (RULE FIVE): the feed should say which message is the whole of it.
+
 - **The Console's meter panel, what's left** (asked 2026-11-18; the plan, with each step's
   detail, is `docs/design/console-meter-panel.md`; steps 1 and 2 were built in
   2026.11.9-b23):
@@ -546,39 +551,34 @@ the Gazette's own work is parked below it.
 
 Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
 
-- **Acknowledge, snooze and mute an incident** (asked 2026-11-21). Sensor Watch keeps
-  alerting on a failure everyone already knows about. For example, a Miele integration that
-  has been in `setup_retry` for days on HTTP 503s from Miele's cloud is reported again and
-  again, and nothing can quieten it.
-  - **One incident per continuous failure,** keyed by a stable monitor id, never by the
-    error text. Each incident records when it was first and last seen, how long it has lasted,
-    its state, the error and how many notifications it has sent. Recovery closes it, and a
-    failure after recovery opens a new one. Repeated `setup_retry` events, a Home Assistant
-    start, a reconnect and identical state changes add nothing to an open incident's
-    alerts.
-  - **Acknowledge** quietens the current incident until it recovers.
-  - **Snooze** quietens it for 1 hour, 8 hours, 24 hours, 7 days or a chosen time. When the
-    snooze ends, it notifies again if the problem is still there.
-  - **Mute** quietens an integration or monitor until someone turns it back on.
-  - **Unsnooze and unmute** restore notifications at once.
-  - Recovery notifications stay a choice of their own, even for an acknowledged or snoozed
-    incident.
-  - **Watching and notifying stay separate.** A quietened incident is still shown on Sensor
-    Watch's page and in its history, saying how it was quietened and until when. The
-    controls are on that page.
-  - Incidents, acknowledgements, snoozes and mutes survive a restart. Deadlines are stored as
-    timezone-aware timestamps.
-  - Existing notify targets and Notify on Sensor Watch automations keep working without
-    being set up again.
-  - Read the event path, notifications, storage and page first, and extend them rather
-    than adding a separate alert manager. Write down any migration.
-  - Tests cover restarts, recovery, a failure that recurs, a snooze running out and each
-    change of state.
-  - **Done when** someone can acknowledge or snooze the failing Miele integration and still
-    see its state, repeated `setup_retry` events send no more alerts, a failure after a
-    confirmed recovery is a new incident, and every quietening survives a restart.
-  - Leave the Miele integration alone: why it fails is a separate investigation.
-
+- **Snooze** (agreed 2026-11-22; replaces "Acknowledge, snooze and mute an incident" of
+  2026-11-21). The second build: the first, 2026.11.12-b1, made a failed integration one
+  row (`rollup.py`), which is what there is to snooze. See that build running first.
+  - **One control, "Snooze for":** 1 day, 1 week, 30 days or until a date. No Acknowledge
+    and no Mute. Why: either can hide a fault for ever, and Ignore already says "never".
+  - **A snoozed fault leaves Status, Problem, the counts, the card's list and the
+    sidebar,** not only notifications. Why: with notifications alone quietened, a known
+    outage still held Status at error and filled the cards and Status's list, and a new
+    fault changed nothing anyone could see.
+  - **It is never out of sight:** the card, the page and the Home tile keep a dimmed line
+    ("1 snoozed: Acme Cloud, down 9 days, back Friday"), and the card doesn't hide while
+    there is one.
+  - **What breaks through:** a worse real level (not escalation by time alone, or every
+    snooze wakes itself), and a different kind of failure (retrying turned into a setup or
+    migration error: a 503 becoming "sign in again" needs someone). Not a change of the
+    error's text. A sensor at critical is never snoozed with its integration.
+  - **Recovery ends it, once it has held for 15 minutes,** so a flapping cloud doesn't
+    cancel it and next month's fault isn't hidden.
+  - **It always ends:** the deadline is kept across restarts (`kept.py`), and when it runs
+    out it says "still failing, down 16 days". Unsnooze puts it back at once.
+  - **Existing automations go quiet unedited:** the event is withheld, never flagged
+    "snoozed". What was said is withdrawn (`casa_mia_sensor_watch_withdrawn`), never said
+    to be back to nominal.
+  - Tests: a restart, the deadline, recovery and a flap, each thing that breaks through,
+    and an edited blueprint copy.
+- **Rolled up only when Home Assistant says the integration failed** (2026-11-22). One
+  that stays loaded with all its entities unavailable still has a row each. Left until it
+  is seen to happen. See Availability rules and Dependencies below.
 - **Stale, what's left** (built in 2026.11.5-b1: no report or no change for a time, per watch or profile; not yet seen working on a box). The library's profiles carry none: add sensible ones where a device reports on a schedule (battery sensors), and perhaps a scan default by device class. Escalation's "nominal for too long" (asked 2026-10-11) is not built. **The limit:** a Core restart re-stamps every restored entity, so a sensor that died before one is caught a full wait later; remembering each entity's last report across restarts would close it.
 
 - **The gauge card, what's left** (built in 2026.11.5-b1 as `custom:casa-mia-sensor-watch-gauge`, drawing its own arc). Seen only injected into a page on the test VM: look at it on a real dashboard, in the card picker and its editor, in a dark theme and on a wall tablet. The eye and `tools/dev_cards` with Sensor Watch's bundle were changed in the same build and not looked at either.
@@ -609,7 +609,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 - **No watching itself: the indirect loop** (asked 2026-10-11; the direct case is refused since b19). A template helper reading Sensor Watch's entities, then watched; or an automation on its event changing a watched entity. Each change of level can feed the next, and an inverted mapping oscillates for ever. Ideas: warn in the watch dialog when a template helper mentions `casa_mia_sensor_watch`; a circuit breaker in the integration (more than N level changes in M minutes holds the worst level, logged, message "flapping"); a line in the guide's "What it won't do".
 - **Escalation, what's left** (built in 2026.10.11-b15; not yet seen on the box).
   - **Review the algorithm** (owner, 2026-10-27: "OK for now"): after living with it, check whether time at each level is right, or whether escalating by count or by how far out earns a place.
-  - **Acknowledging** (owner: "nice, not sure"): "I know" stops it climbing until the level changes or for a while. Decide first whether it should exist: it can hide what escalation is for.
+  - **Acknowledging:** decided against (2026-11-22). Snooze, above, has an end.
   - **The Escalation handler blueprint and the remedy tools** (`docs/never-silently-stuck.md`), on the events it sends.
 - **Watch a template** (asked 2026-10-11): some faults show only between sensors (a downstream meter's voltage differing from the upstream one). A **+ From a template** choice in the Watch dialog creates an HA template helper (through "Entities Casa Mia makes") and opens the bands editor on it. A real entity, so it has history.
 - **Dependencies** (asked 2026-10-11): a record names an upstream sensor and counts only while that one is nominal, so a supply drop raises one alert, not one per meter. Think through chains, what the summary shows for a suppressed sensor, and loops. The owner's ESPHome generator knows each meter's upstream link and could produce the difference sensors and dependencies; Sensor Watch takes them as they come.

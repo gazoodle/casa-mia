@@ -5,7 +5,7 @@ import type { Open, Shot } from "../clipping.ts";
 import type { Column } from "../column.ts";
 import { ALERTS, Family, PAGE, SIGHTINGS } from "../family.ts";
 import { sighted, type Device, type Options, type Seen, type Sighting } from "../house.ts";
-import { NOMINAL, RECOVERED, flavourOf, type Alert, type Played, type Rated } from "../stories.ts";
+import { heard, NOMINAL, RECOVERED, flavourOf, type Alert, type Played, type Rated } from "../stories.ts";
 import { STYLES } from "../styles.ts";
 import { VOICES } from "../voices.ts";
 
@@ -134,19 +134,19 @@ export class Page extends Family {
   }
 
   protected _take(alerts: Alert[]) {
-    const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
+    const sent: Alert[] = [];
     for (const raw of alerts) {
       // The feed counts in seconds, and knows nothing of what sort of sensor it is.
       const alert = { ...raw, at: raw.at * 1000, began: raw.began * 1000, flavour: flavourOf(this._hass?.states[raw.entity_id]?.attributes.device_class) };
-      held.set(alert.entity_id, alert);
-      if (!this._primed) continue;
+      sent.push(alert);
+      if (!this._primed || alert.withdrawn) continue; // withdrawn: no longer said, and no story
 
       this._note({ time: alert.at, alert });
       if (alert.level !== NOMINAL) this.scrollIntoView({ block: "start", behavior: "smooth" }); // breaking news is no use below the fold
       else this._later(RECOVERED);
     }
     this._primed = true;
-    this._alerts = [...held.values()];
+    this._alerts = heard(this._alerts, sent);
   }
 
   /** Draw the page again once `ms` have passed. A date coming due, not a poll: a recovery

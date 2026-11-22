@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.12-b1
+
+- **Breaking:** Sensor Watch no longer sends an event for each sensor that is unavailable because its integration failed to set up, and no longer counts each one in Status and the counts. The integration has one event and counts once. An automation that waits for one of those sensors by its entity should follow the integration's event or the sensor's group, or have that sensor critical when unavailable, which is never rolled up.
+- **Sensor Watch: a failed integration is one problem.** Its unavailable watched sensors are rolled up into one row, "not connecting, 4 watched sensors unavailable", on the card, the page, Status and the notifications, so one cloud that is down no longer hides every other fault. Tap the card's row to list them. A sensor at critical stays on its own row, as does one that is there with a bad reading, and one still unavailable five minutes after the integration recovers gets its own row again. A group's card, automation and device triggers still hear of a failure that took its sensors.
+- **Sensor Watch: a retry is no longer a recovery.** An integration that kept retrying was said to be back at each try and to fail again five minutes later. It now stays failed until it has loaded.
+- **Sensor Watch: a failed integration reaches your phone.** Every new failure was marked as found at Home Assistant's start, which the Notify on Sensor Watch blueprint and the device triggers leave out. A new one is now said as a change.
+- **Sensor Watch: old faults don't tell your phone again.** A sensor already known to be unavailable sent another notification after each restart and each Refresh state. It now raises only the sidebar's again. How long it and a failed integration have been down also survives a restart, timed from this update on.
+- **Sensor Watch: Ignore is no longer good news.** It said "Back to nominal". Now the notification in the sidebar goes and nothing is said to be back. The same goes for an integration you disable or delete.
+- **Sensor Watch: a sensor back with a fault says so.** When it went from unavailable to a bad reading at the same level, it went on saying "unavailable".
+- **Sensor Watch: a failed integration is named by the integration**, with its entry's title after, as a cloud's entry is often just "Home Assistant Cloud". Its message's wording changed with it, for an automation that matches the text.
+- **Dash-Bored: an alert Sensor Watch withdraws leaves the pages** without a "back to normal" story.
+
 ## 2026.11.11
 
 - **People: gender, pronouns and date of birth.** Each person can have them, all optional, so messages can be worded to fit the person. Pronouns are she/her, he/him, they/them, or any others with all five forms typed in; when they aren't set, they/them is used, never a guess from the gender. The date of birth can be the whole date, the year alone, the year and month, or the day and month. A day without its month, or a month on its own, shows a warning saying what is missing.
