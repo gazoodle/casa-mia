@@ -1,6 +1,6 @@
 """What must outlive a restart of Home Assistant, kept in its storage: which integrations
-are failing and since when, and for each lasting fault (an integration, the Recorder, an
-unavailable sensor) since when, and what was said of it.
+are failing and since when, for each lasting fault (an integration, the Recorder, an
+unavailable sensor) since when and what was said of it, and what is snoozed (snooze.py).
 
 Why: a restart stamps every entity as just changed, so an outage of days said it began at
 the restart; and with nothing remembered, "found" and "new" couldn't be told apart, so a
@@ -32,20 +32,29 @@ class Kept:
         # row key -> {since (ISO), told: the level last said, or None for one only
         # rolled up, groups: those it was said for}.
         self.said: dict[str, dict[str, Any]] = {}
+        # row key -> {until (ISO), by: who, or None, level, kind: what was snoozed
+        # (levels.fault), clear (ISO): gone or nominal, and over if still so then}.
+        self.snoozed: dict[str, dict[str, Any]] = {}
 
     async def load(self) -> Kept:
         try:
             data = await self._store.async_load() or {}
             failing, said = data.get("failing", {}), data.get("said", {})
+            snoozed = data.get("snoozed", {})
             for failure in failing.values():
                 if (
                     not isinstance(failure["since"], int | float)
                     or not failure["state"]
                 ):
                     raise ValueError(f"not a failure: {failure}")
-            for row in said.values():
-                if datetime.fromisoformat(row["since"]).tzinfo is None:
-                    raise ValueError(f"a time with no zone: {row['since']}")
+            times = [row["since"] for row in said.values()]
+            for snooze in snoozed.values():
+                if not snooze["level"] or "kind" not in snooze:
+                    raise ValueError(f"not a snooze: {snooze}")
+                times += [snooze["until"], *filter(None, [snooze.get("clear")])]
+            for time in times:
+                if datetime.fromisoformat(time).tzinfo is None:
+                    raise ValueError(f"a time with no zone: {time}")
         except (
             HomeAssistantError,
             AttributeError,
@@ -54,11 +63,12 @@ class Kept:
             ValueError,
         ) as exc:
             _LOGGER.warning(
-                "can't read how long faults have lasted, so each is timed from now: %s",
+                "can't read how long faults have lasted or what is snoozed, so each is "
+                "timed from now and nothing is snoozed: %s",
                 exc,
             )
             return self
-        self.failing, self.said = failing, said
+        self.failing, self.said, self.snoozed = failing, said, snoozed
         return self
 
     def note(self, key: str, **fields: Any) -> None:
@@ -79,7 +89,11 @@ class Kept:
         await self._store.async_save(self._data())
 
     def _data(self) -> dict[str, Any]:
-        return {"failing": dict(self.failing), "said": dict(self.said)}
+        return {
+            "failing": dict(self.failing),
+            "said": dict(self.said),
+            "snoozed": dict(self.snoozed),
+        }
 
 
 async def forget_all(hass: HomeAssistant) -> None:

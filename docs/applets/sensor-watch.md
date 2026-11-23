@@ -379,6 +379,10 @@ watched one by one; the sort applies within each. Grouped, the list starts with 
 attention**: every sensor at a level other than nominal, whichever group it is in, so a
 problem in the last group isn't a screen or two down.
 
+A row that needs attention has **Snooze…**, for a fault you know about and can't fix yet:
+see [Snooze](#snooze). Those snoozed are listed dimmed under their own **Snoozed** heading,
+each with **Unsnooze**, and aren't counted in the chips.
+
 **Stop watching** is in a sensor's editor, at the foot. Under the list, **Levels from…**
 gives the sensors shown a profile's levels, and while a filter is set **Stop watching
 these N** stops the ones it leaves. Without a filter the button is **Stop watching all**.
@@ -806,7 +810,9 @@ The **Sensor Watch** device has:
   colours no sensor by its state, so Sensor Watch does. Its
   attributes hold `watching` (how many sensors) and, for each level, the ten longest
   standing culprits (`task_list`, `warning_list`, `error_list`, `critical_list`: each
-  with its entity, name, value, message and since when).
+  with its entity, name, value, message and since when). `snoozed` is how many are
+  [snoozed](#snooze), which none of the levels count, and `snoozed_list` names them, each
+  with its level, `until` and `by`.
 - **Tasks**, **Warnings**, **Errors** and **Critical:** how many sensors are at each level.
 - **Problem:** on while any sensor is at warning or worse (a task alone isn't a problem).
 
@@ -889,6 +895,66 @@ loaded while its entities go unavailable has a row for each of them.
 There is no entity per watched sensor: the summary, the event and the action below tell
 the rest of Home Assistant which ones they are.
 
+### Snooze
+
+Some faults you already know about and can't fix today: a cloud service that is down, a
+sensor waiting for a spare part. While one of them counts, Status stays at its level, so
+another fault at that level or below changes nothing you would notice. Snooze puts such a
+fault out of the way until a time you choose.
+
+A snoozed fault:
+
+- is left out of Status, Problem, the counts, the card's list and the List action's
+  `sensors`.
+- has its notification in the sidebar taken away, and no event is sent for it, so your
+  automations go quiet without being changed. What was said of it is withdrawn
+  (`casa_mia_sensor_watch_withdrawn`, with the reason `snoozed`). It is not said to be
+  back to nominal.
+- is still shown. The card keeps a line for it ("1 snoozed until 30 Nov 09:09: Acme
+  Cloud, error for 9 d"), the page lists it dimmed under **Snoozed**, Casa Mia's Home tile
+  counts it, and Status has `snoozed` and `snoozed_list`. Each says who snoozed it and
+  until when.
+
+**To snooze,** on the page choose **Snooze…** on a row that needs attention, or on a
+failed integration under Home Assistant itself: 1 day, 1 week, 30 days, or until a date
+and time. **Unsnooze** puts it back at once. The card can do the same when **Snooze from
+this card** is on in its options: a tap on a row then offers 1 day, 1 week or 30 days. That
+option is off by default, because a dashboard is often on a tablet that anyone can reach.
+
+A snooze ends by itself:
+
+- **At its time.** The fault is said again, as a change, so a phone hears of it, with how
+  long it has lasted: "still failing, down 16 days: not connecting…". The time is kept
+  across restarts.
+- **When the fault gets worse** by its reading: a warning that becomes an error.
+  Escalation doesn't count, as that is only time passing.
+- **When it becomes another kind of fault:** an integration that was retrying and now
+  needs you to sign in again, or a sensor that was unavailable and is back with a bad
+  reading. A change in the words of the error doesn't count.
+- **When the fault has been gone for 15 minutes.** A cloud that comes back for a minute
+  and fails again stays snoozed. One that fails again next month is a new fault.
+
+Critical can't be snoozed. If a critical fault is one you can live with for a week, its
+level is wrong. A sensor rolled up into its failed integration can't be snoozed by itself
+either: snooze the integration. Any of its sensors that is critical, or back with a bad
+reading, still has a row of its own and is still said.
+
+**From an automation:** `casa_mia_sensor_watch.snooze` takes `entity_id` (as the event and
+the List action give it, so `integration.<its entry id>` for an integration) and either
+`duration` or `until`. `casa_mia_sensor_watch.unsnooze` takes `entity_id`.
+
+```yaml
+actions:
+  - action: casa_mia_sensor_watch.snooze
+    data:
+      entity_id: "{{ trigger.event.data.entity_id }}"
+      duration: { days: 1 }
+```
+
+A button on a notification can snooze the fault it tells you about that way. If you send
+Sensor Watch's events to a notification tool that has a snooze of its own, use this one
+instead: theirs hides the message, and Status here would stay at the fault's level.
+
 ### Device triggers
 
 The quickest way to build on Sensor Watch: in a new automation, **+ Add trigger → Device →
@@ -918,7 +984,7 @@ true when the level is for having gone quiet (Stale, under Over time), not for i
 ([why](#a-failed-integration-is-one-problem)).
 
 When what was said no longer stands and it isn't back to nominal (rolled up into its
-integration, ignored, or no longer watched), `casa_mia_sensor_watch_withdrawn` fires
+integration, snoozed, ignored, or no longer watched), `casa_mia_sensor_watch_withdrawn` fires
 instead, with `entity_id` and `reason`. It is an event of its own so that no automation
 takes it for a recovery. If yours keeps something for each alert, such as a light left on,
 clear it on this event as well as on nominal.
@@ -1011,7 +1077,8 @@ actions:
 
 Add `group: Mains voltage` to ask about one group only (and its own worst level).
 A failed integration's row has `sensors`: those rolled up into it, which aren't rows of
-their own.
+their own. Those [snoozed](#snooze) are apart, in `snoozed`, each with its `snoozed`
+(`until` and `by`): `sensors` holds only what counts.
 
 Until 2026.11.3 these two actions were `casa_mia.sensor_watch_list` and
 `casa_mia.sensor_watch_refresh`. Those names still work for now, with a warning in the
@@ -1037,6 +1104,11 @@ it, or none.
 
 Hidden, it takes its panel with it in a Tablet Layout: put it in a side panel with a
 garnish heading ("Needs looking at") and the panel appears only when something does.
+
+What is [snoozed](#snooze) isn't in the list. The card keeps one line for it at the foot,
+which opens to show each with who snoozed it and until when, and the card doesn't hide
+while there is one. With **Snooze from this card** on, a tap on a row offers to snooze it
+(and **Details** for the entity's dialog), and each snoozed one has **Unsnooze**.
 
 ### The gauge card
 

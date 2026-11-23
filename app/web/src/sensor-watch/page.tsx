@@ -173,6 +173,7 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
             groups={view.groups ?? []}
             filters={filters}
             setFilters={setFilters}
+            say={toast}
             onFollow={(rs, p) =>
               change(() => swApi.post<WatchView>(`profiles/${p.id}/apply`, { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors follow ${p.name}`)
             }
@@ -226,7 +227,7 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
         }}
       />
 
-      <SystemSection system={view.system} live={live} change={change} />
+      <SystemSection system={view.system} live={live} change={change} say={toast} />
 
       {picking && (
         <PickDialog

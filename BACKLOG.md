@@ -20,12 +20,41 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   tile, never a new "group player".
 - **Show who is in control:** each room shows what it is playing from (the Sonos queue,
   Spotify Connect from someone's phone, the TV, line-in), which Sonos reports.
+- **A standalone integration that Casa Mia delivers** (owner, 2026-11-23), as Love it or
+  Loathe it is: wholly in Home Assistant, nothing imported from `casa_mia`, bundled with
+  the app and installed by it at each start. Its domain is `casa_mia_jukebox` and its
+  action `casa_mia_jukebox.announce` (owner, 2026-11-23). Its brand is drawn: a 1980s
+  boom box in front of the house (`tools/brand_children.py`).
+- **S1 systems are to be supported, with less, but later** (owner, 2026-11-22). Why:
+  Jukebox is to be useful to everyone, not only this house. The first builds are for S2.
+  Until S1 is built, an announcement to an S1 speaker is refused with a message that says
+  why, never dropped silently. An S1 speaker has no audioClip, so its announcement will be
+  snapshot, play and restore. The owner has no S1 speaker (checked 2026-11-22: every
+  speaker reports `swGen` 2 and `AUDIO_CLIP`), so that path can only be tested against a
+  stand-in until someone with S1 tries it.
 - **In this order:**
   1. **Announcements:** an `announce` service over `media_player.play_media` with
      `announce: true`. On S2 speakers Sonos's audioClip ducks the music and restores it by
      itself. Jukebox adds per-room volume, quiet hours, a queue so two announcements never
      overlap, snapshot and restore for speakers without audioClip, and a logged, visible
      failure when a speaker is offline.
+     Measured on a real S2 speaker, 2026-11-23 (two clips a second apart, over a radio
+     station):
+     - **The queue is needed.** The second clip cut the first off (the speaker reported
+       it `INTERRUPTED`); Sonos doesn't line clips up.
+     - **Home Assistant can't say when a clip ends.** `play_media` answers within 0.1 s,
+       before the clip plays. The speaker's own websocket (port 1443, `audioClip`
+       namespace) pushes `ACTIVE`, `DONE` and `INTERRUPTED` for each clip.
+     - **A clip doesn't touch the entity.** No state change reached Home Assistant and the
+       volume was the same afterwards, so Love it or Loathe it never sees one.
+     - **The queue waits on the speaker** (owner, 2026-11-23: a chime before the speech
+       is wanted, so the queue is there from the start). Sending the second clip when
+       the first reported `DONE` played both whole, on an old Play:1 as well.
+     - **On subscribing, the speaker first reports its last clip**, already `DONE`, from
+       whenever that was. Jukebox must wait for a clip it has not seen before; Home
+       Assistant doesn't hand back the id of the one it sent.
+     - **`extra.volume` sets the clip's loudness** (the owner heard a clip at 7 play
+       quieter than one at 15, 2026-11-23), and a clip plays with the speaker at volume 0.
   2. **Groups and now playing:** a card with each group, its rooms (dragged together or
      apart through `join`/`unjoin`), volume and saved presets ("Downstairs", "Everywhere").
   3. **Search and play:** one search across Spotify, the local library and Sonos
@@ -551,31 +580,16 @@ the Gazette's own work is parked below it.
 
 Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
 
-- **Snooze** (agreed 2026-11-22; replaces "Acknowledge, snooze and mute an incident" of
-  2026-11-21). The second build: the first, 2026.11.12-b1, made a failed integration one
-  row (`rollup.py`), which is what there is to snooze. See that build running first.
-  - **One control, "Snooze for":** 1 day, 1 week, 30 days or until a date. No Acknowledge
-    and no Mute. Why: either can hide a fault for ever, and Ignore already says "never".
-  - **A snoozed fault leaves Status, Problem, the counts, the card's list and the
-    sidebar,** not only notifications. Why: with notifications alone quietened, a known
-    outage still held Status at error and filled the cards and Status's list, and a new
-    fault changed nothing anyone could see.
-  - **It is never out of sight:** the card, the page and the Home tile keep a dimmed line
-    ("1 snoozed: Acme Cloud, down 9 days, back Friday"), and the card doesn't hide while
-    there is one.
-  - **What breaks through:** a worse real level (not escalation by time alone, or every
-    snooze wakes itself), and a different kind of failure (retrying turned into a setup or
-    migration error: a 503 becoming "sign in again" needs someone). Not a change of the
-    error's text. A sensor at critical is never snoozed with its integration.
-  - **Recovery ends it, once it has held for 15 minutes,** so a flapping cloud doesn't
-    cancel it and next month's fault isn't hidden.
-  - **It always ends:** the deadline is kept across restarts (`kept.py`), and when it runs
-    out it says "still failing, down 16 days". Unsnooze puts it back at once.
-  - **Existing automations go quiet unedited:** the event is withheld, never flagged
-    "snoozed". What was said is withdrawn (`casa_mia_sensor_watch_withdrawn`), never said
-    to be back to nominal.
-  - Tests: a restart, the deadline, recovery and a flap, each thing that breaks through,
-    and an edited blueprint copy.
+- **Snooze, what's left** (built in 2026.11.12-b2; its rules are in HANDOVER).
+  - A snooze whose time came while Home Assistant was down ends, but the fault is then
+    found at the start like any other: the sidebar's notification, not the phone.
+  - The eye in an entity's dialog and the gauge card don't say a watch is snoozed.
+  - **Heads Up** (github.com/Seyphaton/ha-heads-up; the owner offered Sensor Watch as its
+    source of events on its forum topic, 2026-11-19): a second blueprint could send each
+    event to `heads_up.notify` with the entity as its `id`, clear it on nominal and on
+    withdrawn, turn its own snooze off, and give it a button that calls
+    `casa_mia_sensor_watch.snooze`. Why its own snooze off: it hides the message while
+    Status here stays at the fault's level.
 - **Rolled up only when Home Assistant says the integration failed** (2026-11-22). One
   that stays loaded with all its entities unavailable still has a row each. Left until it
   is seen to happen. See Availability rules and Dependencies below.

@@ -113,6 +113,8 @@ export const MODULES: Record<string, ModuleInfo> = {
               ? order.filter((l) => counts[l]).map((l) => `${counts[l]} ${counts[l] === 1 ? l : (plural[l] ?? l)}`).join(" · ") || "all nominal"
               : undefined,
         ],
+        // Out of the counts above, never out of sight.
+        ["Snoozed", h.snoozed ? `${h.snoozed}, not counted` : undefined],
         ["Worst", (h.worst as string | null) ?? undefined],
       ];
     },

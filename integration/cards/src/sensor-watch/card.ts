@@ -6,9 +6,31 @@
 import { LitElement, css, html, nothing, unsafeCSS } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Column, type Config, DEFAULTS, EVENT, LEVEL_COLOR, type Row, SERVICE, columns, due, own, parts, since, stateColor, tapped } from "./common.ts";
+import {
+  type Column,
+  type Config,
+  DEFAULTS,
+  DOMAIN,
+  EVENT,
+  LEVEL_COLOR,
+  type Row,
+  SERVICE,
+  SNOOZE_FOR,
+  clock,
+  columns,
+  detailed,
+  due,
+  own,
+  parts,
+  since,
+  snoozable,
+  snoozedLine,
+  stateColor,
+  tapped,
+} from "./common.ts";
 
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
+const SNOOZED = "snoozed"; // in `_open`: the snoozed rows are showing
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 /** In HA's card picker with nothing to list: how it looks when something is. */
 const EXAMPLE: Row[] = [
@@ -26,12 +48,22 @@ export const LEVEL_TONES = unsafeCSS(
 );
 
 export class SensorWatchCard extends LitElement {
-  static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true }, _open: { state: true } };
+  static properties = {
+    _config: { state: true },
+    _rows: { state: true },
+    _snoozed: { state: true },
+    _problem: { state: true },
+    _refused: { state: true },
+    _editing: { state: true },
+    _open: { state: true },
+  };
   _config?: Config;
   _rows?: Row[];
+  _snoozed: Row[] = []; // out of the list and the counts, but never out of sight
   _problem?: string;
+  _refused?: string; // why a snooze or unsnooze wasn't done
   _editing = false;
-  _open = new Set<string>(); // the failed integrations showing their sensors
+  _open = new Set<string>(); // the rows showing what is under them, and SNOOZED
   private _hass?: Hass;
   private _seen: string | null = null; // the integration's entities, as last seen: a change asks again (null: never seen, so ask)
   private _timer?: number;
@@ -114,26 +146,53 @@ export class SensorWatchCard extends LitElement {
         return_response: true,
       });
       this._rows = (got?.response?.sensors ?? []) as Row[];
+      this._snoozed = (got?.response?.snoozed ?? []) as Row[];
       this._problem = undefined;
     } catch (err) {
       this._rows = [];
+      this._snoozed = [];
       this._problem = `Sensor Watch isn't answering (${(err as Error)?.message ?? err}): is it switched on in the Casa Mia app, and Home Assistant restarted since?`;
       console.warn(`CASA-MIA CARDS: sensor watch: ${this._problem}`);
     }
     this._showOrHide();
   }
 
-  /** Hidden with nothing to list (unless asked to say so, or being edited). */
+  /** Snooze a row for some days, or put a snoozed one back; a refusal is said on the
+   * card. The integration's entities write when it's done, which asks for the list again. */
+  private async _snooze(r: Row, days?: number) {
+    const service_data = { entity_id: r.entity_id, ...(days ? { duration: { days } } : {}) };
+    try {
+      await this._hass?.callWS({ type: "call_service", domain: DOMAIN, service: days ? "snooze" : "unsnooze", service_data });
+      this._refused = undefined;
+      const open = new Set(this._open);
+      open.delete(r.entity_id);
+      this._open = open;
+      this._ask();
+    } catch (err) {
+      this._refused = `${r.name} wasn't ${days ? "snoozed" : "unsnoozed"}: ${(err as Error)?.message ?? err}`;
+      console.warn(`CASA-MIA CARDS: sensor watch: ${this._refused}`);
+    }
+  }
+
+  /** Hidden with nothing to list (unless asked to say so, or being edited). Never while
+   * something is snoozed: that is to stay in sight. */
   private _showOrHide() {
     const o = { ...DEFAULTS, ...this._config };
-    const hide = !this._editing && !(this.isConnected && inPicker(this)) && !this._problem && this._rows !== undefined && this._rows.length === 0 && o.when_clear === "hide";
+    const hide =
+      !this._editing &&
+      !(this.isConnected && inPicker(this)) &&
+      !this._problem &&
+      this._rows !== undefined &&
+      this._rows.length === 0 &&
+      this._snoozed.length === 0 &&
+      o.when_clear === "hide";
     if (hide === this.hidden) return;
     this.hidden = hide;
     fire(this, "card-visibility-changed", { value: !hide });
   }
 
   getCardSize() {
-    return 1 + Math.min(this._rows?.length ?? 1, { ...DEFAULTS, ...this._config }.max);
+    return 1 + Math.min(this._rows?.length ?? 1, { ...DEFAULTS, ...this._config }.max) + (this._snoozed.length ? 1 : 0);
   }
 
   getGridOptions() {
@@ -155,15 +214,42 @@ export class SensorWatchCard extends LitElement {
     const now = Date.now();
     return html`<ha-card .header=${o.title || undefined}>
       ${this._problem ? html`<p class="note problem">${this._problem}</p>` : nothing}
-      ${!this._problem && this._rows && !rows.length
+      ${this._refused ? html`<p class="note problem">${this._refused}</p>` : nothing}
+      ${!this._problem && this._rows && !rows.length && (o.when_clear === "message" || !this._snoozed.length)
         ? html`<p class="note">${o.when_clear === "message" ? o.clear_message : "All well: nothing to list, so this card is hidden on the dashboard."}</p>`
         : nothing}
-      ${rows.map((r) => [
-        this._live(r, now),
-        this._open.has(r.entity_id) && r.sensors?.length ? html`<div class="under">${r.sensors.map((sensor) => this._live(sensor, now))}</div>` : nothing,
-      ])}
+      ${rows.map((r) => this._unfolding(r, now, o.snooze))}
       ${more > 0 ? html`<p class="note">and ${more} more</p>` : nothing}
+      ${this._snoozed.length
+        ? html`<button class="snoozed" aria-expanded=${String(this._open.has(SNOOZED))} @click=${() => this._toggle(SNOOZED)}>
+              ${snoozedLine(this._snoozed, now)} ${this._open.has(SNOOZED) ? "▴" : "▾"}
+            </button>
+            ${this._open.has(SNOOZED) ? html`<div class="dim">${this._snoozed.map((r) => this._unfolding(r, now, o.snooze))}</div>` : nothing}`
+        : nothing}
     </ha-card>`;
+  }
+
+  /** A row, and when it is open what is under it: the offer to snooze it (or, snoozed,
+   * until when and by whom, and to put it back), then the sensors rolled up into it. */
+  private _unfolding(r: Row, now: number, snooze: boolean) {
+    const open = this._open.has(r.entity_id);
+    return [
+      this._live(r, now),
+      r.snoozed
+        ? html`<div class="acts">
+            <span class="note">until ${clock(Date.parse(r.snoozed.until), now)}${r.snoozed.by ? ` · snoozed by ${r.snoozed.by}` : ""}</span>
+            ${snooze ? html`<button class="cm-chip" @click=${() => this._snooze(r)}>Unsnooze</button>` : nothing}
+          </div>`
+        : nothing,
+      open && snooze && snoozable(r)
+        ? html`<div class="acts">
+            <span class="note">Snooze for</span>
+            ${SNOOZE_FOR.map(([label, days]) => html`<button class="cm-chip" @click=${() => this._snooze(r, days)}>${label}</button>`)}
+            ${detailed(r) ? html`<button class="cm-chip cm-quiet" @click=${() => fire(this, "hass-more-info", { entityId: r.entity_id })}>Details</button>` : nothing}
+          </div>`
+        : nothing,
+      open && r.sensors?.length ? html`<div class="under">${r.sensors.map((sensor) => this._live(sensor, now))}</div>` : nothing,
+    ];
   }
 
   /** A row with its value as it is now. */
@@ -179,11 +265,14 @@ export class SensorWatchCard extends LitElement {
   }
 
   private _tap(r: Row) {
-    const does = tapped(r);
+    const does = tapped(r, { ...DEFAULTS, ...this._config }.snooze);
     if (does === "details") fire(this, "hass-more-info", { entityId: r.entity_id });
-    if (does !== "unfold") return;
+    if (does === "unfold") this._toggle(r.entity_id);
+  }
+
+  private _toggle(key: string) {
     const open = new Set(this._open);
-    if (!open.delete(r.entity_id)) open.add(r.entity_id);
+    if (!open.delete(key)) open.add(key);
     this._open = open;
   }
 
@@ -267,6 +356,37 @@ export class SensorWatchCard extends LitElement {
     /* What is rolled up into the failed integration above it. */
     .under {
       padding-inline-start: 24px;
+    }
+    /* What a row offers when open: to snooze it, or to put a snoozed one back. */
+    .acts {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px 8px 20px;
+    }
+    .acts .note {
+      margin: 0;
+    }
+    /* What is snoozed: out of the list, never out of sight. */
+    .snoozed {
+      display: block;
+      width: 100%;
+      padding: 6px 16px;
+      border: 0;
+      background: none;
+      color: var(--secondary-text-color);
+      font: inherit;
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+      overflow-wrap: anywhere;
+    }
+    .snoozed:hover {
+      background: var(--secondary-background-color);
+    }
+    .dim .row {
+      opacity: 0.55;
     }
     /* An error's text wraps, a long address in it too. */
     .message {

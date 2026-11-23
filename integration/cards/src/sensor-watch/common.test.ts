@@ -1,6 +1,26 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { type Band, DEFAULTS, along, arcPath, arcs, columns, due, levelColour, parts, reading, scale, since, stateColor, tidy, watchPath, tapped } from "./common.ts";
+import {
+  type Band,
+  DEFAULTS,
+  type Row,
+  along,
+  arcPath,
+  arcs,
+  columns,
+  due,
+  levelColour,
+  parts,
+  reading,
+  scale,
+  since,
+  snoozable,
+  snoozedLine,
+  stateColor,
+  tidy,
+  watchPath,
+  tapped,
+} from "./common.ts";
 
 test("how long a level has stood", () => {
   const now = Date.parse("2026-10-11T12:00:00Z");
@@ -117,4 +137,26 @@ test("a failed integration's row opens its sensors, and is never asked about as 
   assert.equal(tapped({ entity_id: "integration.abc" }), undefined);
   assert.equal(tapped({ entity_id: "homeassistant.recorder" }), undefined);
   assert.equal(tapped(oven), "details");
+});
+
+test("with snooze on, a tap on a row offers it; never for one at critical or snoozed already", () => {
+  const pump: Row = { entity_id: "sensor.pump", name: "Pump", level: "warning", value: "3", message: "Low", since: "" };
+  assert.equal(tapped(pump), "details"); // off, as a card is by default
+  assert.equal(tapped(pump, true), "unfold");
+  assert.equal(tapped({ ...pump, level: "critical" }, true), "details");
+  const snoozed = { ...pump, snoozed: { until: "2026-12-01T09:00:00Z", by: "Sam" } };
+  assert.equal(tapped(snoozed, true), "details");
+  assert.equal(snoozable(pump), true);
+  assert.equal(snoozable(snoozed), false);
+  assert.equal(snoozable({ level: "nominal" }), false);
+  assert.equal(tapped({ entity_id: "integration.abc", level: "error" }, true), "unfold");
+});
+
+test("what is snoozed stays in sight: one named, more counted", () => {
+  const now = Date.parse("2026-11-23T12:00:00Z");
+  const cloud: Row = { entity_id: "integration.abc", name: "Acme Cloud", level: "error", value: "setup_retry", message: "not connecting", since: "2026-11-14T12:00:00Z", snoozed: { until: "2026-11-27T09:00:00Z" } };
+  const line = snoozedLine([cloud], now);
+  assert.match(line, /^1 snoozed until .*27.*: Acme Cloud, error for 9 d$/);
+  assert.equal(snoozedLine([cloud, cloud, cloud], now), "3 snoozed");
+  assert.match(snoozedLine([{ ...cloud, since: "2026-11-23T11:59:40Z" }], now), /error just now$/);
 });

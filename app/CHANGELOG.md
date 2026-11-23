@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.12-b2
+
+- **Sensor Watch: Snooze.** A fault you know about and can't fix yet, such as a cloud that is down, can be snoozed for 1 day, 1 week, 30 days or until a date. It then leaves Status, Problem, the counts, the card's list and the sidebar's notifications, so a fault that comes after it shows. It stays in sight: the card keeps a line for it, the page lists it dimmed under Snoozed, and Status has `snoozed` and `snoozed_list`, each with who snoozed it and until when. Snooze is on each row that needs attention on the page, and on the card when **Snooze from this card** is on in its options.
+- **Sensor Watch: a snooze ends by itself.** At its time the fault is said again, with how long it has lasted ("still failing, down 16 days"), and a phone hears of it. It also ends when the fault gets worse, when it becomes another kind of fault (retrying turns into "sign in again"), and once the fault has been gone for 15 minutes. Critical can't be snoozed. The time is kept across restarts.
+- **Sensor Watch: new actions `casa_mia_sensor_watch.snooze` and `unsnooze`**, for automations and for a button on a notification. The List action answers those snoozed apart, in `snoozed`; `sensors` holds what counts.
+- **Sensor Watch: automations go quiet for a snoozed fault without being changed.** No event is sent for it; what was said is withdrawn (`casa_mia_sensor_watch_withdrawn`, reason `snoozed`), never said to be back to nominal.
+
 ## 2026.11.12-b1
 
 - **Breaking:** Sensor Watch no longer sends an event for each sensor that is unavailable because its integration failed to set up, and no longer counts each one in Status and the counts. The integration has one event and counts once. An automation that waits for one of those sensors by its entity should follow the integration's event or the sensor's group, or have that sensor critical when unavailable, which is never rolled up.

@@ -4,6 +4,7 @@ retry loop, its registries, and the Notify on Sensor Watch blueprint telling a p
 Why these: to 2026.11.11 every retry was said as a recovery, a new failure never reached a
 phone, and one failed cloud filled every card, hiding the fault that came after it."""
 
+from copy import deepcopy
 from datetime import datetime
 
 import pytest
@@ -84,13 +85,14 @@ class House:
         self.cloud_up = False
         self.revived = [OVEN, HOB, FRIDGE, FREEZER]
         self.reason = "503 Service Unavailable"
+        self.fault = ConfigEntryNotReady  # how it fails: retrying, unless a test says
         self.phone = async_mock_service(hass, "notify", "mobile_app_test")
         self.kitchen = async_mock_service(hass, "notify", "mobile_app_kitchen")
         self.events = async_capture_events(hass, DOMAIN)
 
         async def setup(hass, entry):
             if not self.cloud_up:
-                raise ConfigEntryNotReady(self.reason)
+                raise self.fault(self.reason)
             for eid in self.revived:
                 hass.states.async_set(eid, "off")
             return True
@@ -209,7 +211,8 @@ async def house(hass, freezer, hass_storage, tmp_path):
     hass_storage[admin.DATA] = {
         "version": 1,
         "key": admin.DATA,
-        "data": {"records": RECORDS, "groups": {"kitchen": GROUP}},
+        # Its own copy: a test that changes a record mustn't change the next test's.
+        "data": {"records": deepcopy(RECORDS), "groups": {"kitchen": GROUP}},
     }
 
     class Flow(config_entries.ConfigFlow):

@@ -165,6 +165,8 @@ export type Live = {
   escalated?: boolean;
   /** Rolled up into a failed integration (its row's id): not counted by itself. */
   under?: string;
+  /** Snoozed until a time, by whoever asked (none: an automation): not counted. */
+  snoozed?: { until: string; by?: string | null };
 };
 /** Every watch's level, as the levels feed keeps it; `error`: why there are none (Sensor
  * Watch isn't running, the connection is lost). */

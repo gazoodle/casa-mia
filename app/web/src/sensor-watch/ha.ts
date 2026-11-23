@@ -71,6 +71,16 @@ export const swApi = {
   del: <T>(path: string) => send<T>("DELETE", path),
 };
 
+/** One of Sensor Watch's actions in Home Assistant (snooze, unsnooze), called as whoever
+ * is signed in. A refusal is thrown with the integration's own words for why. */
+export async function act(service: string, data: object): Promise<void> {
+  try {
+    await ha().sendMessagePromise({ type: "call_service", domain: "casa_mia_sensor_watch", service, service_data: data });
+  } catch (err) {
+    throw new ApiError(why(err));
+  }
+}
+
 /** Follow a feed until the function returned is called (an effect's cleanup). `failed`
  * is told why if Home Assistant refuses it, and its code ("unknown_command": nothing in
  * Home Assistant serves the feed). */

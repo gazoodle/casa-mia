@@ -3,6 +3,12 @@
 export const DOMAIN = "casa_mia_sensor_watch";
 export const EVENT = DOMAIN;
 export const SERVICE = { domain: DOMAIN, service: "list" };
+/** What a card with `snooze` offers a row, in days (the page has "until a date" too). */
+export const SNOOZE_FOR: readonly [string, number][] = [
+  ["1 day", 1],
+  ["1 week", 7],
+  ["30 days", 30],
+];
 /** This file's version (the ?v= the integration loads it with; none in development), and
  * the command that says which one the integration serves now (its _ws_cards). */
 export const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
@@ -33,6 +39,9 @@ export type Config = {
   show?: Column[];
   /** The icon's colour: the row's level, the entity's own state colour (as a tile), or none. */
   icon_color?: IconColor;
+  /** A tap on a row offers to snooze it, and what is snoozed can be put back. Off by
+   * default: a dashboard is often a tablet on a wall that anyone can reach. */
+  snooze?: boolean;
 };
 
 export const ICON_COLORS = ["level", "state", "none"] as const;
@@ -42,7 +51,7 @@ export type IconColor = (typeof ICON_COLORS)[number];
 export const COLUMNS = ["icon", "level", "name", "message", "value", "since"] as const;
 export type Column = (typeof COLUMNS)[number];
 
-export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well.", show: COLUMNS.filter((c) => c !== "icon") as Column[], icon_color: "level" } as const;
+export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well.", show: COLUMNS.filter((c) => c !== "icon") as Column[], icon_color: "level", snooze: false } as const;
 
 /** The row's parts in order, the name and message as one (`what`, where the first of
  * them is), each once. */
@@ -75,14 +84,46 @@ export function stateColor(entityId: string, state: string, deviceClass?: string
 }
 
 /** A row as the list service gives it; `attribute`: the attribute watched, not the state.
- * `sensors`: a failed integration's, the watched sensors rolled up into it. */
-export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string; days_until?: boolean; sensors?: Row[] };
+ * `sensors`: a failed integration's, the watched sensors rolled up into it. `snoozed`:
+ * until when and by whom (the list's `snoozed`, apart from what counts). */
+export type Row = {
+  entity_id: string;
+  name: string;
+  level: Level;
+  value: string | null;
+  message: string | null;
+  since: string;
+  attribute?: string;
+  days_until?: boolean;
+  sensors?: Row[];
+  snoozed?: { until: string; by?: string | null };
+};
 
-/** What a tap on a row does: open the sensors rolled up into it, or the entity's details.
- * Home Assistant's own rows (a failed integration, the Recorder) are no entities. */
-export function tapped(r: Pick<Row, "entity_id" | "sensors">): "unfold" | "details" | undefined {
-  if (r.sensors?.length) return "unfold";
-  return r.entity_id && !/^(integration|homeassistant)\./.test(r.entity_id) ? "details" : undefined;
+/** Has the row an entity, with details to open? Home Assistant's own rows (a failed
+ * integration, the Recorder) have none. */
+export function detailed(r: Pick<Row, "entity_id">): boolean {
+  return !!r.entity_id && !/^(integration|homeassistant)\./.test(r.entity_id);
+}
+
+/** Can the row be snoozed? Never one at critical (the integration refuses it too). */
+export function snoozable(r: Partial<Pick<Row, "level" | "snoozed">>): boolean {
+  return !r.snoozed && !!r.level && r.level !== "critical" && r.level !== "nominal";
+}
+
+/** What a tap on a row does: open what is under it (the sensors rolled up into it, and
+ * with `snooze` the offer to snooze it), or the entity's details. */
+export function tapped(r: Pick<Row, "entity_id" | "sensors"> & Partial<Pick<Row, "level" | "snoozed">>, snooze = false): "unfold" | "details" | undefined {
+  if (r.sensors?.length || (snooze && snoozable(r))) return "unfold";
+  return detailed(r) ? "details" : undefined;
+}
+
+/** The line that keeps what is snoozed in sight: one named, with how long it has been
+ * so and when its snooze ends; more as a count, to open. */
+export function snoozedLine(rows: readonly Row[], now: number): string {
+  if (rows.length !== 1) return `${rows.length} snoozed`;
+  const [r] = rows;
+  const lasted = since(r.since, now);
+  return `1 snoozed until ${clock(Date.parse(r.snoozed!.until), now)}: ${r.name}, ${r.level} ${lasted === "now" ? "just now" : `for ${lasted}`}`;
 }
 
 /** A due date as people read it ("25 Oct"), or the days the integration gave. */

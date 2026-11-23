@@ -104,8 +104,8 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
   escalation); `stale.py` holds one deadline per entity with a stale rule, set from its
   last report and looked at when due (a restart re-stamps every entity, so the message
   then says only "since Home Assistant started"); `watch.py` tracks states, hold-offs and timers, fires
-  `casa_mia_sensor_watch`; status, counts and problem entities; the `list` and `refresh`
-  services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
+  `casa_mia_sensor_watch`; status, counts and problem entities; the `list`, `refresh`,
+  `snooze` and `unsnooze` services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
   Watch** (still at `blueprints/automation/casa_mia/`, so automations made from it carry
   on).
 - **A failed integration is one problem** (owner, 2026-11-22; 2026.11.12-b1). Why: one
@@ -124,7 +124,31 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
     `casa_mia_sensor_watch_withdrawn`, and whatever keeps a copy of the alerts drops it on
     that (Dash-Bored's `alerts.py`).
   - **Groups:** the integration's event is fired again per group (`for_group`), so a
-    group's automations still hear. Snooze is the next build (BACKLOG).
+    group's automations still hear.
+- **Snooze** (owner, 2026-11-23; 2026.11.12-b2; `snooze.py`). Why: the roll-up made one
+  cloud one row, but that row still held Status at error, so a fault after it changed
+  nothing anyone could see. A snoozed row is marked `snoozed` ({until, by}) and, like
+  `under`, is left out by all that counts, lists or tells.
+  - **One control, until a time.** No Acknowledge and no Mute. Why: either can hide a
+    fault for ever, and Ignore already says "never". Heads Up's Acknowledge (looked at
+    2026-11-23) leaves the banner at its severity, which is the masking this removes.
+  - **Any row below critical,** a sensor's as well as an integration's; never one rolled
+    up (snooze its integration).
+  - **Never out of sight:** the card's line (the card doesn't hide while there is one),
+    the page's Snoozed section, the Home tile, Status's `snoozed` and `snoozed_list`.
+  - **It ends by itself** (`Snooze.judge`): at its time, said as "still failing, down 16
+    days" and as a change; on a worse real level (not escalation, which is time alone, or
+    every snooze would wake itself); on another kind of fault (`levels.fault`; "not
+    loaded" is no kind, as every reload passes through it); and once the fault has been
+    gone 15 minutes, so a flapping cloud doesn't cancel it and next month's isn't hidden.
+  - **Automations go quiet unedited:** `watch._fire` withholds every event for a snoozed
+    key, its recovery included, and what was said is withdrawn, never said to be back.
+  - **Safe by construction:** every row set passes `watch._Rows`, which has `judge` mark
+    it, so no path sets a row unjudged; and a row set after its time ends the snooze even
+    if the timer was lost. Kept across restarts in `kept.py`.
+  - **An action** (`snooze`, `unsnooze`), called as the signed-in user, so the row says
+    who. The card offers it only with its `snooze` option, off by default: a dashboard is
+    often a wall tablet anyone can reach.
 - **Page:** a custom panel in HA's sidebar (`panel.py`, `/sensor-watch`, in an iframe),
   built by `tools/build_web` from `app/web/src/sensor-watch/` (entry `panel.tsx`, config
   `vite.panel.config.ts`) into its `www/`. It stays through a reload and leaves when the
@@ -1475,10 +1499,14 @@ CLAUDE.md has them all. What trips agents here:
   included. DuraSpeed is off on every Tab M9 (2026-10-31), but the last two haven't been
   rebooted since, which clears Android's mark against KS. Kiosk Mode was switched off on the fleet leader for the setup walk: check it is back on.
   What's left, the after-reboot routine and the helper app idea are in BACKLOG.
-- **Sensor Watch's roll-up (2026.11.12-b1) is built, not yet run on the box.** After it
-  is installed and Home Assistant restarted, look at a failed integration there: one row,
-  one notification, Status's `rolled_up`, and no change of the error count at its retries.
-  Then build Snooze (BACKLOG).
+- **Sensor Watch's roll-up (2026.11.12-b1) has run on the box since 2026-11-22:** a
+  failed cloud's sensors as one row and one notification.
+- **Sensor Watch's Snooze (2026.11.12-b2) is built, not yet run on the box.** Seen in a
+  local Home Assistant with an invented house: the card, the page at desk and phone
+  widths, both actions. After it is installed and Home Assistant restarted, snooze the
+  failed integration from the page: Status should drop to the next worst, the card keep
+  its "1 snoozed" line, and the sidebar's notification go. Not yet seen: the Home tile's
+  Snoozed line, Dash-Bored's alert leaving, a wall tablet.
 - **Sensor Watch** is Beta and released, in daily use on the box. A camera group watches
   every camera channel (Available, a task) with a 0 hold-off the owner set for testing; the
   level is to be revisited. Confirm b31's `…` fix after an HA restart.

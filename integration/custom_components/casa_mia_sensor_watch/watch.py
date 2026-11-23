@@ -45,6 +45,7 @@ from .levels import (
 )
 from .records.store import merged
 from .rollup import RollUp
+from .snooze import Snooze
 from .stale import Stale
 from .swap import Rule, same, shown
 
@@ -57,17 +58,21 @@ TELL = 0.2
 class _Rows(dict[str, dict[str, Any]]):
     """The levels now, noting each entity whose row is set or taken away (`touched`), so
     what follows them (the page) is sent those alone. A row changed in place must be
-    set again to be noted."""
+    set again to be noted. Each row set or taken away is first given to `judge`
+    (snooze.py), which marks it snoozed or not: here, so no way of setting one misses."""
 
     def __init__(self) -> None:
         super().__init__()
         self.touched: set[str] = set()
+        self.judge: Callable[[str, dict[str, Any] | None], None] = lambda *_: None
 
     def __setitem__(self, eid: str, row: dict[str, Any]) -> None:
+        self.judge(eid, row)
         self.touched.add(eid)
         super().__setitem__(eid, row)
 
     def pop(self, eid: str, *default: Any) -> Any:
+        self.judge(eid, None)
         self.touched.add(eid)
         return super().pop(eid, *default)
 
@@ -82,6 +87,7 @@ class Watcher:
         # `escalated`; `since` is always the real level's. `stale`: the level is its
         # record's stale rule's, not its reading's (stale.py). `gone`: for the entity
         # being unavailable. `under`: the failed integration it is rolled up into.
+        # `snoozed`: {until, by}, not counted or said until then (snooze.py).
         self.now = _Rows()
         # Which entities have stopped reporting: it has us consider one when that changes.
         self.stale = Stale(hass, self._consider)
@@ -109,6 +115,8 @@ class Watcher:
         self.rollup = RollUp(
             hass, kept, self.now, lambda: self.records, self._fire, self._tell
         )
+        self.snooze = Snooze(hass, kept, self.now, self.rollup, self._tell)
+        self.now.judge = self.snooze.judge
         # The page's settings for Home Assistant's own health (levels.system_rows), and
         # what checks it again (system.start_checks), when they change.
         self.system_settings: dict[str, Any] = {}
@@ -210,6 +218,7 @@ class Watcher:
         for eid in list(self._steps):
             self._unstep(eid)
         self.stale.unload()
+        self.snooze.unload()
         if self._waiting:
             self._waiting()
             self._waiting = None
@@ -524,7 +533,11 @@ class Watcher:
         for a notification to say), and have the entities write. `initial`: found at
         that level, not changed to it. Held until Home Assistant has started: an event
         before then reaches no automation. `group`: a failed integration's event again,
-        for a group with sensors rolled up into it (`for_group`)."""
+        for a group with sensors rolled up into it (`for_group`). Nothing is said of
+        one that is snoozed, its recovery included: what was said of it was withdrawn."""
+        if self.snooze.quiet(eid):
+            self._tell()
+            return
         if self.hass.state is not CoreState.running:
             # One event per watch for the whole start, said by _started. Each change on
             # its own let out a storm: in 2026.11.2-b26 every light not yet loaded fired

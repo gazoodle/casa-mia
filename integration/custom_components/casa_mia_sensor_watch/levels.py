@@ -291,19 +291,58 @@ def watching(
     return watch
 
 
+def fault(key: str, row: dict[str, Any]) -> str | None:
+    """The kind of fault a row has, so a snooze can tell another kind from the one it was
+    given: an integration's state (retrying, or an error that needs someone), a sensor's
+    being unavailable, having stopped reporting, or what it reads. None for an
+    integration that isn't loaded: it passes through that at each reload, which says
+    nothing of what is wrong with it."""
+    if key.startswith(INTEGRATION):
+        return None if row["value"] == "not_loaded" else str(row["value"])
+    return "gone" if row.get("gone") else "stale" if row.get("stale") else "reading"
+
+
+def still(key: str, row: dict[str, Any], now: datetime) -> str:
+    """What a fault says as its snooze runs out: "still failing, down 16 days: ..."."""
+    lasted = span((now - datetime.fromisoformat(row["since"])).total_seconds())
+    said = (
+        f"still failing, down {lasted}"
+        if key.startswith(INTEGRATION)
+        else f"still so after {lasted}"
+    )
+    return f"{said}: {row['message']}" if row.get("message") else said
+
+
 def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """The worst level, a count per level, and the culprits per level (worst first,
     then longest standing), from each entity's current {level, message, value, since,
     name}. Entities with no level (ignored while unavailable) don't count, nor do those
-    rolled up into a failed integration (`rolled_up`: how many): its row is their one."""
+    rolled up into a failed integration (`rolled_up`: how many): its row is their one.
+    Nor do those snoozed (`snoozed`, and `snoozed_list`, the first to end first): a
+    known fault held the worst level, and what came after it changed nothing."""
     counted = {
-        e: n for e, n in now.items() if n.get("level") in LEVELS and not n.get("under")
+        e: n
+        for e, n in now.items()
+        if n.get("level") in LEVELS and not n.get("under") and not n.get("snoozed")
     }
     worst = max((n["level"] for n in counted.values()), key=rank, default="nominal")
+    snoozed = sorted(
+        (e for e, n in now.items() if n.get("snoozed") and not n.get("under")),
+        key=lambda e: now[e]["snoozed"]["until"],
+    )
     out: dict[str, Any] = {
         "worst": worst,
         "watching": len(now),
         "rolled_up": sum(1 for n in now.values() if n.get("under")),
+        "snoozed": len(snoozed),
+        "snoozed_list": [
+            {
+                "entity_id": e,
+                **{k: now[e].get(k) for k in ("name", "level", "message", "since")},
+                **now[e]["snoozed"],
+            }
+            for e in snoozed[:MAX_LISTED]
+        ],
     }
     for level in LEVELS[1:]:
         these = sorted(

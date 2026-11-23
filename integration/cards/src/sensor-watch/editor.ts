@@ -36,6 +36,7 @@ const schema = (groups: string[]) => [
   // Chips to drag into order, as a tile's state content: a row shows them in this order.
   { name: "show", selector: { select: { multiple: true, reorder: true, options: COLUMNS.map((c) => ({ value: c, label: SHOWN[c] })) } } },
   { name: "icon_color", selector: { select: { mode: "dropdown", options: ICON_COLORS.map((c) => ({ value: c, label: COLOURS[c] })) } } },
+  { name: "snooze", selector: { boolean: {} } },
 ];
 const COLOURS: Record<string, string> = { level: "The level's colour", state: "Its state's colour, as a tile", none: "None" };
 const LABELS: Record<string, string> = {
@@ -47,11 +48,13 @@ const LABELS: Record<string, string> = {
   clear_message: "Its message",
   show: "Each row shows",
   icon_color: "Icon colour",
+  snooze: "Snooze from this card",
 };
 const HELP: Record<string, string> = {
   title: "Or none, and give its panel a garnish heading (it hides with the card).",
   group: "Only one group's members (from Casa Mia's Sensor Watch page), or every watched sensor.",
   show: "Drag to reorder; the name and message share a place, where the first of them is.",
+  snooze: "A tap on a row then offers to snooze it for a day, a week or 30 days, and what is snoozed can be put back. Leave it off on a tablet that anyone can reach: the Sensor Watch page can always snooze.",
 };
 
 export class SensorWatchEditor extends LitElement {

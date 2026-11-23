@@ -11,6 +11,8 @@ import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 import { confirmBox } from "../confirm";
 import { Select } from "../controls";
+import type { Toast } from "../ui";
+import { SnoozeControl, snoozable, snoozedUntil } from "./snooze";
 
 const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
 const MANUAL = "Manual"; // the heading for those watched one by one, not by a group
@@ -18,6 +20,7 @@ const DISABLED = "Disabled"; // the heading for those kept but not watched, last
 const ATTENTION = "Needs attention"; // the heading for those above nominal, first
 // The heading's start for those rolled up into a failed integration, folded until opened.
 const ROLLED = "Rolled up: ";
+const SNOOZED = "Snoozed"; // the heading for those out of the counts until a time
 /** Does a watched sensor pass the filters (and every word of the search)? `skip`: a
  * filter left out, to offer what the others leave (the devices, say). */
 function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
@@ -59,6 +62,7 @@ export function WatchedList({
   onEdit,
   onEnable,
   onStopMany,
+  say,
 }: {
   records: WatchRecord[];
   live?: LevelsView;
@@ -75,6 +79,8 @@ export function WatchedList({
   onEnable: (r: WatchRecord) => void;
   /** Stop watching these (already confirmed by the user). */
   onStopMany: (rs: WatchRecord[]) => void;
+  /** Say what a snooze did, or why it was refused. */
+  say: (text: string, tone?: Toast["tone"]) => void;
 }) {
   const [levels, setLevels] = useState<Set<Level>>(new Set());
   const [sort, setSort] = useState<"level" | "name">("level");
@@ -116,8 +122,10 @@ export function WatchedList({
   const [shown, setShown] = useState(PAGE);
   const levelOf = (r: WatchRecord) => live?.levels[r.entity_id]?.level;
   const underOf = (r: WatchRecord) => (r.disabled ? undefined : live?.levels[r.entity_id]?.under);
-  // As counted: one rolled up is counted as its integration, not by itself.
-  const countedAs = (r: WatchRecord) => (underOf(r) ? undefined : levelOf(r));
+  const snoozedOf = (r: WatchRecord) => (r.disabled ? undefined : live?.levels[r.entity_id]?.snoozed);
+  // As counted: one rolled up is counted as its integration, not by itself, and one
+  // snoozed not at all.
+  const countedAs = (r: WatchRecord) => (underOf(r) || snoozedOf(r) ? undefined : levelOf(r));
 
   // Each filter offers what the others leave, so the choices narrow as you go.
   const options: ChipOptions = useMemo(() => {
@@ -161,13 +169,15 @@ export function WatchedList({
     if (r.disabled) return DISABLED;
     const under = underOf(r);
     if (under) return rolled(under);
+    if (snoozedOf(r)) return SNOOZED;
     return !grouped ? "" : rank(r) > 0 ? ATTENTION : (r.group && groupName.get(r.group)) || MANUAL;
   };
-  const headed = (r: WatchRecord) => grouped || !!r.disabled || !!underOf(r);
-  // Needs attention first, what is rolled up, Manual, then the groups by name, Disabled
-  // last; the sort applies within each. Ungrouped, what is rolled up follows the list.
+  const headed = (r: WatchRecord) => grouped || !!r.disabled || !!underOf(r) || !!snoozedOf(r);
+  // Needs attention first, what is rolled up, what is snoozed, Manual, then the groups by
+  // name, Disabled last; the sort applies within each. Ungrouped, what is rolled up and
+  // what is snoozed follow the list.
   const place = (s: string) =>
-    s === ATTENTION ? -1 : s.startsWith(ROLLED) ? (grouped ? -0.5 : 1.5) : s === MANUAL ? 0 : s === DISABLED ? 2 : 1;
+    s === ATTENTION ? -1 : s.startsWith(ROLLED) ? (grouped ? -0.5 : 1.5) : s === SNOOZED ? (grouped ? -0.25 : 1.6) : s === MANUAL ? 0 : s === DISABLED ? 2 : 1;
   const sectionOrder = (a: string, b: string) => place(a) - place(b) || a.localeCompare(b);
   const rows = matched
     .filter((r) => levels.size === 0 || levels.has(countedAs(r) as Level))
@@ -244,7 +254,10 @@ export function WatchedList({
                     </h4>
                   )}
                   {!isFolded(r) && (
-                <div className={`${css.row} ${css.editable} ${css.compact} ${r.disabled ? css.off : ""}`} onClick={opens(() => onEdit(r))}>
+                <div
+                  className={`${css.row} ${css.editable} ${css.compact} ${r.disabled ? css.off : ""} ${snoozedOf(r) ? css.snoozed : ""}`}
+                  onClick={opens(() => onEdit(r))}
+                >
                   {r.disabled ? (
                     <button
                       type="button"
@@ -266,6 +279,7 @@ export function WatchedList({
                       {r.attribute && <span className={css.note}> · its {r.attribute}</span>}
                     </span>
                     <span className={css.note}>
+                      {now && snoozedOf(r) && `${snoozedUntil(now)} · `}
                       {now && !r.disabled ? `${r.days_until && now.value ? dueValue(now.value) : (now.value ?? "?")}${now.message ? ` · ${now.message}` : ""} · ` : ""}
                       {now?.escalated && now.real && !r.disabled && `escalated from ${LEVEL_NAMES[now.real]} (${ago(now.since) ?? "a while"}) · `}
                       {summary(r)}
@@ -275,6 +289,11 @@ export function WatchedList({
                       {r.group && section(r) !== groupName.get(r.group) && ` · in ${groupName.get(r.group) ?? "a group"}`}
                     </span>
                   </span>
+                  {now && !r.disabled && (now.snoozed || snoozable(now)) && (
+                    <span className={css.rowActions}>
+                      <SnoozeControl row={now} say={say} />
+                    </span>
+                  )}
                 </div>
                   )}
                 </Fragment>

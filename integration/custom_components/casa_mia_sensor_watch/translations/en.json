@@ -40,9 +40,25 @@
       "name": "Refresh state",
       "description": "Judge every watch afresh, as at the start. For when a level looks stuck."
     },
+    "snooze": {
+      "name": "Snooze",
+      "description": "Put a fault you know about out of the way until a time. It leaves Status, Problem, the counts, the lists and the notifications, and stays in sight as snoozed. It ends by itself at that time, when the fault gets worse or turns into another kind, or once it has been gone for 15 minutes. Critical can't be snoozed.",
+      "fields": {
+        "entity_id": { "name": "What", "description": "The row to snooze, as the event and the list name it (`entity_id`): a watched entity, or a failed integration's `integration.` id." },
+        "duration": { "name": "For", "description": "How long from now. Give this or Until." },
+        "until": { "name": "Until", "description": "The time it ends. Give this or For." }
+      }
+    },
+    "unsnooze": {
+      "name": "Unsnooze",
+      "description": "End a snooze now: the fault counts again at once.",
+      "fields": {
+        "entity_id": { "name": "What", "description": "The snoozed row, as the list names it (`entity_id`)." }
+      }
+    },
     "list": {
       "name": "List",
-      "description": "Every watched entity at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template.",
+      "description": "Every watched entity at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template. Those snoozed are apart, in `snoozed`.",
       "fields": {
         "levels": { "name": "Levels", "description": "Which levels to list. Leave empty for everything that isn't nominal." },
         "group": { "name": "Group", "description": "Only the members of this group (as named on the Sensor Watch page), and its own worst level. Leave empty for every watched entity." }

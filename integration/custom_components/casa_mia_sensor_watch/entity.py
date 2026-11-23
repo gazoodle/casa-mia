@@ -55,7 +55,8 @@ class WatchEntity(Entity):
 
 class StatusSensor(WatchEntity, SensorEntity):
     """The worst level of all the watched sensors. Attributes: how many are watched,
-    and per level its culprits (`warning_list`...: entity, name, value, message, since)."""
+    per level its culprits (`warning_list`...: entity, name, value, message, since), and
+    those snoozed, which don't count (`snoozed`, `snoozed_list`: also until, by)."""
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(LEVELS)
@@ -73,7 +74,9 @@ class StatusSensor(WatchEntity, SensorEntity):
         return {
             "watching": s["watching"],
             "rolled_up": s["rolled_up"],
+            "snoozed": s["snoozed"],
             **{f"{lv}_list": s[f"{lv}_list"] for lv in LEVELS[1:]},
+            "snoozed_list": s["snoozed_list"],
         }
 
 

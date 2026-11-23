@@ -3,7 +3,8 @@
  * each failing integration. */
 
 import { AreaHead, Empty } from "../page";
-import { Switch } from "../ui";
+import { Switch, type Toast } from "../ui";
+import { SnoozeControl, snoozedUntil } from "./snooze";
 import { LEVEL_NAMES, swApi, type LevelsView, type SystemSettings, type WatchView } from "./common";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
@@ -15,10 +16,13 @@ export function SystemSection({
   system,
   live,
   change,
+  say,
 }: {
   system: SystemSettings;
   live?: LevelsView;
   change: (action: () => Promise<WatchView>, done: string) => Promise<boolean>;
+  /** Say what a snooze did, or why it was refused. */
+  say: (text: string, tone?: Toast["tone"]) => void;
 }) {
   // Ignored or switched off here: gone at once, before the integration has caught up.
   const shown = (key: string) =>
@@ -64,11 +68,12 @@ export function SystemSection({
             const entryId = r.entity_id.startsWith("integration.") ? r.entity_id.slice("integration.".length) : null;
             const sensors = under(r.entity_id);
             return (
-              <div key={r.entity_id} className={css.row}>
+              <div key={r.entity_id} className={`${css.row} ${r.snoozed ? css.snoozed : ""}`}>
                 <span className={`${css.level} ${css[`lv_${r.level}`]}`}>{LEVEL_NAMES[r.level]}</span>
                 <span className={css.what}>
                   <strong>{r.name}</strong>
                   <span className={css.note}>
+                    {r.snoozed && `${snoozedUntil(r)}, so not counted · `}
                     {r.message ?? r.value} · since {new Date(r.since).toLocaleString()}
                   </span>
                   {sensors.length > 0 && (
@@ -87,6 +92,7 @@ export function SystemSection({
                   )}
                 </span>
                 <span className={css.rowActions}>
+                  <SnoozeControl row={r} say={say} />
                   {entryId && (
                     <button
                       className={`${ui.button} ${ui.small}`}

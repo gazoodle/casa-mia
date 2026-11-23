@@ -86,6 +86,28 @@ class RollUp:
         if row.get("gone") or eid.startswith(OWN):
             self.kept.note(eid, since=row["since"], told=row["level"])
 
+    def said(self, key: str) -> bool:
+        """Is it said, by itself, as things stand?"""
+        return key in self._told
+
+    def unsay(self, key: str, why: str) -> None:
+        """What was said of it is taken back (it is snoozed): as never said, so that it
+        is said afresh, to each group too, when it counts again."""
+        if self._told.pop(key, None):
+            self._withdraw(key, why)
+        self._out.discard(key)
+        self._found.discard(key)
+        self._groups.pop(key, None)
+        if key in self.kept.said:  # how long it has lasted is kept
+            self.kept.note(key, told=None, groups=[])
+
+    def say(self, key: str, initial: bool, message: str | None = None) -> None:
+        """A row's event, unasked by any change in it (its snooze is over), and again
+        for each group with sensors under it. `message`: said in place of its own."""
+        row = self.now[key] | ({"message": message} if message else {})
+        self._fire(key, row, None, initial)
+        self._say_groups(key, row, initial)
+
     def place(self, eid: str, initial: bool = False) -> bool:
         """A sensor's row was set: put it under its failed integration, or take it out.
         True when that has said all there is to say, so the caller fires nothing."""
@@ -124,7 +146,8 @@ class RollUp:
                 _LOGGER.info("%s (%s): rolled up into %s", row["name"], eid, key)
         if key:
             self._recount(key)
-            self._say_group(key, (self._records().get(eid) or {}).get("group"))
+            group = (self._records().get(eid) or {}).get("group")
+            self._say_group(key, group, self.now.get(key) or {})
         else:
             self._out_of_it(eid, row, before, initial)
         self._tell()
@@ -199,13 +222,9 @@ class RollUp:
                     self.place(eid, found)
         for key in over:
             self._ended(key, loaded.get(key))
-        records = self._records()
         for key, previous, initial in news:
             self._fire(key, self.now[key], previous, initial)
-            children = self._children.get(key, ())
-            groups = {(records.get(eid) or {}).get("group") for eid in children}
-            for group in sorted(g for g in groups if g):
-                self._say_group(key, group)
+            self._say_groups(key, self.now[key])
         if moved:
             self._tell()
 
@@ -249,7 +268,16 @@ class RollUp:
         if row["message"] != message:
             self.now[key] = row | {"message": message}
 
-    def _say_group(self, key: str, group: str | None) -> None:
+    def _say_groups(self, key: str, row: dict[str, Any], initial: bool = False) -> None:
+        records = self._records()
+        children = self._children.get(key, ())
+        groups = {(records.get(eid) or {}).get("group") for eid in children}
+        for group in sorted(g for g in groups if g):
+            self._say_group(key, group, row, initial)
+
+    def _say_group(
+        self, key: str, group: str | None, row: dict[str, Any], initial: bool = False
+    ) -> None:
         """An integration's event again for a group with sensors under it, so what
         follows one group (the blueprint, a device trigger) still hears of them. Once
         its own has been said, and once for each group."""
@@ -260,8 +288,8 @@ class RollUp:
             return
         said.add(group)
         before = set(self.kept.said.get(key, {}).get("groups", []))
-        initial = key in self._found or group in before
-        self._fire(key, self.now[key], None, initial, group)
+        initial = initial or key in self._found or group in before
+        self._fire(key, row, None, initial, group)
         self.kept.note(key, groups=sorted(before | said))
 
     def _ended(self, key: str, back: dict[str, Any] | None) -> None:

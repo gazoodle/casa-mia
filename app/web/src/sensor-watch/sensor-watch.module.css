@@ -281,6 +281,17 @@
   --tone: var(--accent);
 }
 
+/* Snoozed: out of the counts and dimmed, but for its way back. */
+.snoozed > :not(.rowActions) {
+  opacity: 0.55;
+}
+
+/* The date and time a snooze is to end, beside its buttons. */
+.snoozeWhen {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
 .compact {
   gap: 10px;
   padding: 5px 8px;

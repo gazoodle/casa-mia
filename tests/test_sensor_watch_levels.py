@@ -1,6 +1,8 @@
 """Sensor Watch's levels, as the integration works them out (levels.py, loaded by path):
 bands, on/off, exact states, the summary, and Home Assistant's own health."""
 
+from datetime import UTC, datetime
+
 import pytest
 
 from sensor_watch_fakes import (
@@ -283,6 +285,54 @@ def test_rolled_up_sensors_count_as_their_integration():
     assert levels.summary(group)["worst"] == "error"
     [row] = levels.listing(group)
     assert [s["entity_id"] for s in row["sensors"]] == ["hob"]
+
+
+def test_the_snoozed_dont_count_but_are_listed_apart():
+    """A known fault held the worst level, so what came after it changed nothing."""
+    now = _now(**{"integration.a": "error"}, oven="error", pump="warning", salt="task")
+    now["oven"]["under"] = "integration.a"
+    now["integration.a"]["snoozed"] = {
+        "until": "2026-12-02T09:00:00+00:00",
+        "by": "Sam",
+    }
+    now["pump"]["snoozed"] = {"until": "2026-12-01T09:00:00+00:00", "by": None}
+    found = levels.summary(now)
+    assert (found["worst"], found["error"], found["warning"]) == ("task", 0, 0)
+    assert (found["snoozed"], found["rolled_up"]) == (2, 1)
+    assert found["error_list"] == []
+    # The first to end first, each with who and until when.
+    first, second = found["snoozed_list"]
+    assert (first["entity_id"], first["level"], first["by"]) == (
+        "pump",
+        "warning",
+        None,
+    )
+    assert (second["entity_id"], second["until"]) == (
+        "integration.a",
+        "2026-12-02T09:00:00+00:00",
+    )
+
+
+def test_a_snooze_tells_one_kind_of_fault_from_another():
+    row = {"value": "setup_retry"}
+    assert levels.fault("integration.a", row) == "setup_retry"
+    assert levels.fault("integration.a", {"value": "setup_error"}) == "setup_error"
+    # Each reload passes through this: it says nothing of what is wrong.
+    assert levels.fault("integration.a", {"value": "not_loaded"}) is None
+    assert levels.fault("sensor.pump", {"gone": True}) == "gone"
+    assert levels.fault("sensor.pump", {"stale": True}) == "stale"
+    assert levels.fault("sensor.pump", {"value": "3"}) == "reading"
+
+
+def test_what_is_said_as_a_snooze_runs_out():
+    now = datetime(2026, 12, 17, 9, 0, tzinfo=UTC)
+    row = {"since": "2026-12-01T09:00:00+00:00", "message": "not connecting: 503"}
+    assert levels.still("integration.a", row, now) == (
+        "still failing, down 16 days: not connecting: 503"
+    )
+    assert levels.still("sensor.pump", row | {"message": None}, now) == (
+        "still so after 16 days"
+    )
 
 
 @pytest.mark.parametrize(
