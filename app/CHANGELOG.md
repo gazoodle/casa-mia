@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.12-b5
+
+- **Love it or Loathe it: a station is chosen from the players' favourites, and keeps its name and picture.** **+ Add a station** on the page now lists the favourites of the entry's players (on a Sonos, your Sonos favourites) in place of **Take it from a player**, which copied the address of whatever the player happened to be on. A station chosen there is played as the favourite, so the speaker shows its name and logo after a switch. A player is also switched back to the station it was on as a favourite, when it is one. Before, both went by the stream's address, which carries no name or picture, so the logo was missing after every switch. A station that is no favourite can still be given by its address, and **Make it a station** saves a favourite by its name when the player is on one. Stations you already have are kept as they are: to get the logo, remove one and add it again from the list.
+- **Fixed: Love it or Loathe it: a player that reports no address for what it is playing was taken to be on the first station in the list.**
+
 ## 2026.11.12-b4
 
 - Love it or Loathe it: its engine's code is in smaller files. Nothing it does has changed.

@@ -17,15 +17,15 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .. import trail
-from ..const import (
-    DOMAIN,
-)
+from ..const import DOMAIN, SOURCE
 from ..pure import Group
 from .common import (
     ID,
     LONGEST_SONG,
     TYPE,
     Player,
+    Station,
+    favourite,
 )
 from .volume import Volumes
 
@@ -67,10 +67,8 @@ class Stations(Volumes):
         station is playing something loathed, mute this track instead."""
         away, now = player.away, state.attributes.get(ID)
         tried = list(away["tried"]) if away else []
-        here = next(
-            (s for s in self.stations if now in (s.media[ID], self.learned.get(s.id))),
-            None,
-        )
+        source = favourite(state)
+        here = next((s for s in self.stations if self._is(s, now, source)), None)
         if here and here.id not in tried:
             tried.append(here.id)
         station = next((s for s in self.stations if s.id not in tried), None)
@@ -79,11 +77,14 @@ class Stations(Volumes):
                 entity, player, group, state
             )
 
-        await self._call("play_media", entity, **station.media)
+        await self._play(entity, station.media)
         if away is None:
-            # Where to go back to: the station it was on, or whatever the player says it
-            # was playing. A player that says nothing can't be switched back.
+            # Where to go back to: the station it was on, else the one of its own
+            # sources it was on, else the address it says it was playing. A player that
+            # says nothing can't be switched back.
             origin = here.media if here else None
+            if origin is None and source:
+                origin = {ID: source, TYPE: SOURCE}
             if origin is None and now:
                 origin = {ID: now, TYPE: state.attributes.get(TYPE) or "music"}
             until = dt_util.utcnow() + timedelta(minutes=group.act.minutes)
@@ -197,7 +198,7 @@ class Stations(Volumes):
                 )
             return False
         try:
-            await self._call("play_media", entity, **origin)
+            await self._play(entity, origin)
         except HomeAssistantError as exc:
             away["due"] = True
             await self._save()
@@ -210,6 +211,23 @@ class Stations(Volumes):
         await self._save()
         self._note(trail.RETURN, f"Switched back to {self._named(origin)}", entity)
         return True
+
+    async def _play(self, entity: str, media: dict[str, str]) -> None:
+        """Put a station on: one of the player's own sources by its name, which a Sonos
+        then plays as the favourite it is, with the station's name and picture; any
+        other by its address, which arrives bare (the logo was missing after every
+        switch, 2026.11.12)."""
+        if media[TYPE] == SOURCE:
+            await self._call("select_source", entity, source=media[ID])
+        else:
+            await self._call("play_media", entity, **media)
+
+    def _is(self, station: Station, now: str | None, source: str | None) -> bool:
+        """Whether a player on the address `now`, and on `source` of its own sources,
+        is on this station."""
+        if station.media[TYPE] == SOURCE and station.media[ID] == source:
+            return True
+        return bool(now) and now in (station.media[ID], self.learned.get(station.id))
 
     def _named(self, media: dict[str, str]) -> str:
         """A station's name for what a player is to play, else what it is."""

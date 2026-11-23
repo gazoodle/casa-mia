@@ -33,6 +33,10 @@ CONF_ORDER = "order"
 # Subentry types: a group of songs, and a station to switch to.
 GROUP = "group"
 STATION = "station"
+# A station's media content type when it is one of the player's own sources, by name
+# (a speaker's favourites): put on with select_source, not play_media. Ours, not Home
+# Assistant's.
+SOURCE = "source"
 
 # A group's fields. Its feeling is what its select shows (select.py), kept here so that
 # the form, the select and the rate action all change the one thing.

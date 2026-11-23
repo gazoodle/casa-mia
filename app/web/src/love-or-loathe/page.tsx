@@ -11,7 +11,7 @@ import { Segmented, Switch, Toasts, type Toast } from "../ui";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import css from "./love-or-loathe.module.css";
-import { FEELINGS, HEAD, IN_HA, KINDS, TONE, change, holds, inShort, nameOf, rate, songs, type Entry, type Fed, type Feeling, type Group, type Playing, type Station, type View } from "./common";
+import { FEELINGS, HEAD, SOURCE, IN_HA, KINDS, TONE, change, holds, inShort, nameOf, rate, songs, type Entry, type Fed, type Feeling, type Group, type Playing, type Station, type View } from "./common";
 import { GroupDialog, PlayersDialog, StationDialog, type StationBody } from "./dialogs";
 
 /** Do something in Home Assistant; whether it was done. Refused, the reason is shown. */
@@ -96,7 +96,6 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
         station={s}
         from={from}
         entry={entry}
-        view={view}
         onClose={close}
         onSave={(body) => save("save_station", { ...body, ...(s ? { subentry_id: s.id } : {}) }, `${body.name} saved`)}
       />,
@@ -206,7 +205,7 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
               <Mover at={at} of={entry.stations.length} name={s.name} onMove={(by) => move(entry.stations, at, by)} />
               <span className={css.main}>
                 <span className={css.title}>{s.name}</span>
-                <span className={guest.rowMeta}>{s.media_content_id}</span>
+                <span className={guest.rowMeta}>{s.media_content_type === SOURCE ? "A favourite of the players" : s.media_content_id}</span>
               </span>
               <button className={`${ui.danger} ${ui.small}`} onClick={() => remove(s, `Remove the station ${s.name}?`)}>
                 Remove
@@ -298,7 +297,7 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
           const group = entry.groups.find((g) => g.id === playing.group);
           const struck = playing.group === "";
           const away = entry.away[id];
-          const known = entry.stations.some((s) => s.media_content_id === playing.media_content_id);
+          const known = entry.stations.some((s) => (s.media_content_type === SOURCE ? s.media_content_id === playing.source : s.media_content_id === playing.media_content_id));
           return (
             <li key={id} className={`${css.row} ${css.fixed}`}>
               <span className={css.main}>
@@ -343,7 +342,14 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
                     <button
                       className={`${ui.button} ${ui.small}`}
                       title="Add what this player is on as a station to switch to"
-                      onClick={() => station({ name: "", media_content_id: playing.media_content_id!, media_content_type: playing.media_content_type || "music" })}
+                      onClick={() =>
+                        // As the favourite it is, when it is one; else by its address.
+                        station(
+                          playing.source
+                            ? { name: playing.source, media_content_id: playing.source, media_content_type: SOURCE }
+                            : { name: "", media_content_id: playing.media_content_id!, media_content_type: playing.media_content_type || "music" },
+                        )
+                      }
                     >
                       Make it a station
                     </button>

@@ -134,7 +134,7 @@ There are two places to change them, and both change the same thing:
 | Add a group of songs | **Add a group of songs** | **+ Add a group** |
 | Change a group | The group's menu → **Reconfigure** | Click the group |
 | Change a group's feeling | The group's select, or its form | Love, Loathe or Ignore on its row |
-| Add a station | **Add a station**, which browses for it | **+ Add a station**, taken from what a player is on |
+| Add a station | **Add a station**, which browses for it | **+ Add a station**, from the players' favourites or by an address |
 | Remove a group or a station | Its menu → Delete | **Remove** |
 | Put groups or stations in order | Not possible: they stay in the order made | The up and down buttons |
 | Switch an entry off | Its **Watching** switch | The switch beside its name |
@@ -175,9 +175,17 @@ made on the page is the same group on Home Assistant's screens, with the same se
 and a save is refused for the same reasons. Adding the integration, adding it again for
 other players and deleting an entry are done in Home Assistant.
 
-The page can't browse for a station. Tune a player to the station and use **Make it a
-station**, or add the station from the integration's page in Home Assistant, which can
-browse.
+**+ Add a station** lists the favourites of the entry's players (their sources, as Home
+Assistant calls them: on a Sonos these are your Sonos favourites). Choose one and it is
+saved by its name. When a player is switched to it, the speaker is asked for that
+favourite, so it shows the station's name and picture as it does when you choose the
+favourite yourself. A player is switched back the same way when the station it was on is
+one of its favourites.
+
+A station that is not a favourite can be given by its address: choose **Another station,
+by its address…**, or tune a player to it and use **Make it a station**. The integration's
+page in Home Assistant can browse for one too. A station given by an address plays, but a
+Sonos then shows no name or picture for it, because the address carries neither.
 
 ## Groups of songs
 

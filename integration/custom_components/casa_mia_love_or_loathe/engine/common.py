@@ -99,6 +99,18 @@ def _speakers(state: State) -> list[str]:
     return [state.entity_id, *(m for m in members if m != state.entity_id)]
 
 
+def favourite(state: State) -> str | None:
+    """The one of the player's own sources that it is on, as its source list names it,
+    or None. A Sonos reports no source for a favourite, only the channel, and adds the
+    show's name to that ("Harbour FM • Breakfast")."""
+    sources = state.attributes.get("source_list") or []
+    for said in (state.attributes.get("source"), state.attributes.get("media_channel")):
+        for name in (said, str(said).split(" • ")[0]):
+            if name in sources:
+                return name
+    return None
+
+
 def _on(speakers: Any) -> str:
     """ " on 2 speakers", for an action on more than the player."""
     return f" on {len(speakers)} speakers" if len(speakers) > 1 else ""

@@ -220,6 +220,11 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
+  A station whose media type is `source` (`const.SOURCE`, ours) is one of the player's
+  own sources by name, put on with `select_source` (`Stations._play`): a Sonos plays
+  that as the favourite, with its name and picture, where an address arrives bare
+  (2026.11.12-b5). `common.favourite` says which source a player is on, from its
+  channel (a Sonos adds " • " and the show). The page's dialog lists `sources`.
   A volume is read with `_level`, never straight from the state: a speaker reports a
   volume late, so for `REPORT_LAG` after a change made here a report still showing the
   old volume is taken as late (2026.11.12-b3; consecutive ducked tracks halved it each

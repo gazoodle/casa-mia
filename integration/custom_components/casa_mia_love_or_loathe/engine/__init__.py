@@ -14,7 +14,7 @@ has not turned up yet after a restart or refuses the call, is kept as due and ma
 the player next plays.
 """
 
-from .common import ID, TYPE, ordered, store_key
+from .common import ID, TYPE, favourite, ordered, store_key
 from .engine import Engine
 
-__all__ = ["ID", "TYPE", "Engine", "ordered", "store_key"]
+__all__ = ["ID", "TYPE", "Engine", "favourite", "ordered", "store_key"]
