@@ -1,5 +1,6 @@
 // The big player: what one group is playing, over its own artwork, with its queue
-// (queue.ts), the rooms it plays in (each with its own volume) and the Sonos favourites. It covers the whole screen, on
+// (queue.ts), the rooms it plays in (each with its own volume), the Sonos favourites and a
+// search of the music library and Spotify (find.ts). It covers the whole screen, on
 // the document itself, so it looks the same opened from the page or from a card on any
 // dashboard, and it follows the house by itself. A phone gets the rooms and favourites as
 // a sheet over the player; a wall tablet gets them beside it.
@@ -9,11 +10,12 @@ import { type Favourite, type Group, type House, ask, average, colours, favourit
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
-type Tab = "queue" | "rooms" | "favourites";
+type Tab = "queue" | "rooms" | "favourites" | "search";
 const TABS: [Tab, string][] = [
   ["queue", "Queue"],
   ["rooms", "Rooms"],
   ["favourites", "Favourites"],
+  ["search", "Search"],
 ];
 const REPEAT = { off: "all", all: "one", one: "off" } as const;
 
@@ -218,6 +220,15 @@ export class Big extends LitElement {
     this._confirm = { warn: "This deletes the playlist", text: `"${playlist.title}" will be gone from Sonos for good. The queue is left as it is.`, keep: "Keep the playlist", go: "Delete it", run };
   }
 
+  private _waiting = (key: string) => this._busy.on(key);
+
+  private _search(group: Group) {
+    return html`${this._head("Search", "The music library and Spotify. Press + to play something or add it to the queue.")}
+      <div class="scroll">
+        <casa-mia-jukebox-find .hass=${this.hass} .room=${group.id} .waiting=${this._waiting} .changes=${this._busy.changes} @jb-choose=${(e: CustomEvent) => this._choose(group, e.detail)}></casa-mia-jukebox-find>
+      </div>`;
+  }
+
   private _queue(group: Group) {
     const none = group.queue_size === 0;
     return html`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
@@ -325,7 +336,7 @@ export class Big extends LitElement {
     const picture = group.picture ? `--pic:url('${(this.hass.hassUrl?.(group.picture) ?? group.picture).replace(/'/g, "%27")}');` : "";
     return html`<div class="big" style="--a:${a};--b:${b};${picture}">
       ${this._now(house, group)}
-      <div class="side ${this.tab ? "up" : ""}">${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : this._favouritesPanel(group)}</div>
+      <div class="side ${this.tab ? "up" : ""}">${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : shown === "search" ? this._search(group) : this._favouritesPanel(group)}</div>
       ${this._sheets(group)}
       <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
     </div>`;

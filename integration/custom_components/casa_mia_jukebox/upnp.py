@@ -53,8 +53,7 @@ ABOUT = (
     "RINCON_AssociatedZPUDN</desc></item></DIDL-Lite>"
 )
 ERROR = ".//{urn:schemas-upnp-org:control-1-0}errorCode"
-# How many favourites are read at once.
-# ponytail: one page. Read on from the answer's TotalMatches if a house saves more.
+# How many of anything a speaker lists are read at once (_listed).
 PAGE = 500
 
 
@@ -94,6 +93,35 @@ async def call(
     return {part.tag: part.text or "" for part in answer} if answer is not None else {}
 
 
+async def _listed(
+    session: aiohttp.ClientSession, host: str, what: str, name: str
+) -> tuple[list[Element], int]:
+    """What a speaker lists under `what` (its queue, favourites or playlists): each
+    thing listed, a favourite or a song as an item and a playlist as a container, and
+    how many there are in all."""
+    found = await call(
+        session,
+        host,
+        "ContentDirectory",
+        "Browse",
+        ObjectID=what,
+        BrowseFlag="BrowseDirectChildren",
+        Filter="*",
+        StartingIndex=0,
+        # ponytail: the first page only, and the caller is told how many there are in
+        # all. Read on from StartingIndex when a list is longer than this.
+        RequestedCount=PAGE,
+        SortCriteria="",
+    )
+    try:
+        listed = [
+            e for e in fromstring(found.get("Result") or "<none/>") if e.get("id")
+        ]
+    except (ParseError, ValueError) as err:
+        raise HomeAssistantError(f"The speaker's {name} couldn't be read") from err
+    return listed, int(found.get("TotalMatches") or len(listed))
+
+
 def _about(item: Element) -> str:
     """What the queue is told about a playlist. A favourite carries its own description
     (`resMD`); a playlist has none, so it is written as Sonos's own apps write it."""
@@ -115,24 +143,10 @@ async def queue_favourite(
     must be its group's coordinator: straight after song number `after`, or at the end
     when that is None. The queue is otherwise left as it is, and nothing starts or
     stops. Gives how many songs were added."""
-    found = await call(
-        session,
-        host,
-        "ContentDirectory",
-        "Browse",
-        ObjectID=favourite.rpartition("/")[0] or SAVED_QUEUES,
-        BrowseFlag="BrowseDirectChildren",
-        Filter="*",
-        StartingIndex=0,
-        RequestedCount=PAGE,
-        SortCriteria="",
+    listed, _ = await _listed(
+        session, host, favourite.rpartition("/")[0] or SAVED_QUEUES, "favourites"
     )
-    try:
-        # A favourite is an item in the answer, a playlist a container.
-        items = fromstring(found.get("Result") or "<none/>").iter()
-        item = next((i for i in items if i.get("id") == favourite), None)
-    except (ParseError, ValueError) as err:
-        raise HomeAssistantError("The speaker's favourites couldn't be read") from err
+    item = next((i for i in listed if i.get("id") == favourite), None)
     address = item.findtext(f"{DIDL}res") if item is not None else None
     if item is None or not address:
         raise HomeAssistantError("Sonos doesn't have that favourite any more")
@@ -163,24 +177,7 @@ def _seconds(length: str | None) -> int | None:
 async def queue(session: aiohttp.ClientSession, host: str) -> dict[str, object]:
     """The queue of the speaker at `host`, in order: each song's title, artist, album
     and length in seconds, and how many songs there are in all."""
-    found = await call(
-        session,
-        host,
-        "ContentDirectory",
-        "Browse",
-        ObjectID=QUEUE,
-        BrowseFlag="BrowseDirectChildren",
-        Filter="*",
-        StartingIndex=0,
-        # ponytail: the first page only, and the page is told how many there are in
-        # all. Read on from StartingIndex when someone queues more than this.
-        RequestedCount=PAGE,
-        SortCriteria="",
-    )
-    try:
-        items = list(fromstring(found.get("Result") or "<none/>").iter(f"{DIDL}item"))
-    except (ParseError, ValueError) as err:
-        raise HomeAssistantError("The speaker's queue couldn't be read") from err
+    items, total = await _listed(session, host, QUEUE, "queue")
     songs = [
         {
             "title": item.findtext(f"{DC}title") or "",
@@ -194,7 +191,18 @@ async def queue(session: aiohttp.ClientSession, host: str) -> dict[str, object]:
         }
         for item in items
     ]
-    return {"songs": songs, "total": int(found.get("TotalMatches") or len(songs))}
+    return {"songs": songs, "total": total}
+
+
+async def playlists(session: aiohttp.ClientSession, host: str) -> list[dict[str, str]]:
+    """The Sonos playlists as the speaker has them now: each one's id (`SQ:3`) and
+    title. Home Assistant's own list of them is renewed only when a favourite changes,
+    so a playlist saved or deleted since isn't in it (seen 2026-11-23)."""
+    listed, _ = await _listed(session, host, SAVED_QUEUES, "playlists")
+    return [
+        {"id": item.get("id") or "", "title": item.findtext(f"{DC}title") or ""}
+        for item in listed
+    ]
 
 
 async def move(session: aiohttp.ClientSession, host: str, song: int, to: int) -> None:

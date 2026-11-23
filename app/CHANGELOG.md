@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.12-b13
+
+- New: Search in Jukebox's player. One box searches the Sonos music library and
+  Spotify together, and anything found can be played, played next or added to the end
+  of the queue. With the box empty you can browse the library and Spotify. Spotify
+  needs Home Assistant's Spotify integration to be set up; if a source can't be
+  searched, the player says why and still shows the other's results.
+- Jukebox's page: to move a player, rest a finger on it until it lifts, then drag it.
+  The page scrolls when you carry it to the top or bottom of the screen. This replaces
+  the arrows button, which couldn't reach a player that was off the screen.
+- Fixed: a playlist saved from Jukebox's queue didn't appear in Favourites, and a
+  deleted one would have stayed. Home Assistant's list of Sonos playlists is renewed
+  only when a favourite changes, so Jukebox now reads them from the speaker.
+
 ## 2026.11.12-b12
 
 - New in Jukebox's player: clear the queue, and save the queue as a Sonos playlist,

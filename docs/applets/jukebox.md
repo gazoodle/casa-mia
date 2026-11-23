@@ -7,8 +7,8 @@ volume for each room and quiet hours.
 
 Jukebox is meant to become one place to manage the house's music across Sonos, Spotify
 and a local library. Built so far: its page with the players, rooms and favourites, a
-small card, and announcements. Search, and a lock that stops guests changing the music
-at a party, are planned.
+small card, search, and announcements. A lock that stops guests changing the music at a
+party is planned.
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -47,9 +47,9 @@ who is signed in. There is nothing to configure: the page shows every speaker of
 Sonos integration.
 
 - **A player for each thing playing**, with its picture, the rooms it is playing in,
-  pause, skip and one volume for all of those rooms. With more than one, the arrows
-  button in the heading lets you drag them into the order you want, which is kept for
-  every screen in the house.
+  pause, skip and one volume for all of those rooms. To change their order, rest a
+  finger on a player until it lifts, then drag it to its new place. The order is kept
+  for every screen in the house.
 - **Quiet rooms** are listed below. Tap one to choose a favourite to play there.
 - **A speaker that isn't answering** is listed too, so you know why it is missing.
 
@@ -70,7 +70,17 @@ Tap a player to open it over the whole screen. There you have:
   the queue**, which asks again before the queue is lost. A Sonos playlist also has
   **Delete this playlist**, which removes it from Sonos for good and asks first.
 
-On a phone the queue, rooms and favourites open as a sheet over the player. On a wide screen,
+- **Search:** one box searches the Sonos music library and Spotify together, and shows
+  what each found under its own heading. Press **+** beside a result to play it, play
+  it next or add it to the end of the queue. An album, an artist or a playlist can be
+  opened to see what is in it. While the box is empty you can browse the music library
+  and Spotify instead. Spotify is searched through Home Assistant's
+  [Spotify integration](https://www.home-assistant.io/integrations/spotify), which
+  must be set up and signed in, and Spotify must be linked to Sonos as a music
+  service for its music to play. If one of the two can't be searched, the player says
+  why and still shows the other's results.
+
+On a phone the queue, rooms, favourites and search open as a sheet over the player. On a wide screen,
 such as a wall tablet, they sit beside it.
 
 The page's heading has a back button and a home button, because a wall tablet running

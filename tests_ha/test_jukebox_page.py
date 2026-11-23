@@ -3,10 +3,14 @@ and what the page asks to be done. The speakers are stand-ins: entities register
 Sonos's, and media player services that record what they were sent."""
 
 import logging
+from types import SimpleNamespace as Of
 from xml.sax.saxutils import escape
 
 import pytest
 from custom_components.casa_mia_jukebox.const import DOMAIN
+from custom_components.casa_mia_jukebox.page import (
+    BROWSE as BROWSING,
+)
 from custom_components.casa_mia_jukebox.page import (
     CARDS_VERSION,
     DO,
@@ -15,6 +19,7 @@ from custom_components.casa_mia_jukebox.page import (
     ORDER,
     PANEL,
     QUEUE,
+    SEARCH,
 )
 from homeassistant.components import frontend
 from homeassistant.core import SupportsResponse
@@ -153,7 +158,7 @@ async def test_a_refusal_goes_back_to_the_page_with_its_reason(
 
 
 async def test_the_favourites_come_as_one_list_with_their_folders(
-    hass, hass_ws_client, sent
+    hass, hass_ws_client, sent, aioclient_mock
 ):
     def item(title, id, play=True, kind="playlist", **more):
         return {
@@ -172,7 +177,8 @@ async def test_the_favourites_come_as_one_list_with_their_folders(
         ],
         "lists": [
             item("Garden Party", "FV:1", thumbnail="/picture"),
-            item("Friday Night", "SQ:3"),
+            item("Friday Night", "SQ:3", thumbnail="/friday"),
+            item("Deleted since", "SQ:4"),
         ],
         "radio": [
             item("Harbour FM", "FV:2", kind="genre"),
@@ -186,16 +192,30 @@ async def test_the_favourites_come_as_one_list_with_their_folders(
     hass.services.async_register(
         "media_player", "browse_media", browse, supports_response=SupportsResponse.ONLY
     )
+    # Home Assistant's list of the Sonos playlists is renewed only when a favourite
+    # changes: it still has one deleted since, and not one saved since. The speaker is
+    # asked for them, and Home Assistant's are used only for their pictures.
+    kept = (
+        '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"'
+        ' xmlns:dc="http://purl.org/dc/elements/1.1/">'
+        '<container id="SQ:3"><dc:title>Friday Night</dc:title></container>'
+        '<container id="SQ:9"><dc:title>Saved just now</dc:title></container>'
+        "</DIDL-Lite>"
+    )
+    aioclient_mock.post(
+        BROWSE, text=answered("ContentDirectory", "Browse", Result=kept)
+    )
     client = await hass_ws_client(hass)
     found = (await ask(client, FAVOURITES, entity_id=KITCHEN))["result"]
     assert [(f["folder"], f["title"], f["picture"], f["live"]) for f in found] == [
+        ("Playlists", "Friday Night", "/friday", False),
+        ("Playlists", "Saved just now", None, False),
         ("Playlists", "Garden Party", "/picture", False),
-        ("Playlists", "Friday Night", None, False),
         ("Radio", "Harbour FM", None, True),
     ]
-    assert found[0]["media_content_id"] == "FV:1"
+    assert [f["media_content_id"] for f in found] == ["SQ:3", "SQ:9", "FV:1", "FV:2"]
     # Only a playlist of Sonos's own can be deleted from the page.
-    assert [f["playlist"] for f in found] == [False, True, False]
+    assert [f["playlist"] for f in found] == [True, True, False, False]
 
 
 SPEAKER = "http://192.0.2.7:1400"  # where a_player says every stand-in speaker is
@@ -268,7 +288,8 @@ async def test_a_favourite_is_lined_up_by_the_speaker_and_the_queue_is_kept(
     assert "<DesiredFirstTrackNumberEnqueued>5<" in body and "<EnqueueAsNext>1<" in body
     assert not sent
 
-    # Replacing the queue, which the page asks about first, is Home Assistant's to do.
+    # Replacing the queue with a favourite, which the page asks about first, is Home
+    # Assistant's to do.
     await ask(
         client,
         DO,
@@ -320,6 +341,46 @@ async def test_a_sonos_playlist_is_found_where_the_speaker_keeps_those(
     # Its description is written for it, and escaped once more to travel as text.
     assert 'item id="SQ:3" parentID="SQ:"' in queued
     assert "&lt;dc:title&gt;Friday &amp;amp; Night&lt;/dc:title&gt;" in queued
+
+
+async def test_a_sonos_playlist_replaces_the_queue_without_home_assistant(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    """Home Assistant plays a playlist from its own list of them, which doesn't have
+    one saved since it was last renewed. So the queue is emptied, filled and started
+    by the speaker and Home Assistant's own "play the queue"."""
+    client = await hass_ws_client(hass)
+    started = []
+
+    async def play_queue(call):
+        started.append(dict(call.data))
+
+    hass.services.async_register("sonos", "play_queue", play_queue)
+    playlists = (
+        '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
+        f'<container id="SQ:9"><res>{PLAYLIST}</res></container></DIDL-Lite>'
+    )
+    aioclient_mock.post(
+        BROWSE, text=answered("ContentDirectory", "Browse", Result=playlists)
+    )
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+
+    answer = await ask(
+        client,
+        DO,
+        action="play_media",
+        entity_id=GARDEN,
+        enqueue="replace",
+        media_content_id="SQ:9",
+        media_content_type="favorite_item_id",
+    )
+    assert answer["success"] and not sent
+    asked = [
+        call[3]["SOAPACTION"].split("#")[1].strip('"')
+        for call in aioclient_mock.mock_calls
+    ]
+    assert asked == ["RemoveAllTracksFromQueue", "Browse", "AddURIToQueue"]
+    assert started == [{"entity_id": KITCHEN, "queue_position": 0}]
 
 
 async def test_a_favourite_that_cant_be_lined_up_says_why(
@@ -462,3 +523,168 @@ async def test_the_players_order_is_kept_and_sent_to_every_page(
     # And it is kept for the next start.
     await hass.async_block_till_done()
     assert hass_storage["casa_mia_jukebox.order"]["data"] == {"rooms": [PORCH, KITCHEN]}
+
+
+def node(title, id, kind="track", play=True, expand=False):
+    """One thing as Home Assistant's browsing or searching gives it."""
+    return {
+        "title": title,
+        "media_content_id": id,
+        "media_content_type": kind,
+        "can_play": play,
+        "can_expand": expand,
+        "thumbnail": None,
+    }
+
+
+@pytest.fixture
+def library(hass, sent):
+    """Home Assistant's search of the Sonos music library, and its browsing."""
+
+    async def search(call):
+        kind, query = call.data["media_content_type"], call.data["search_query"]
+        if query == "broken":
+            raise HomeAssistantError("the library is being indexed")
+        found = {"track": [node("Paper Lanterns", "x-file-cifs://nas.example/a.mp3")]}
+        found["album"] = [
+            node("Slow Sunday", "A:ALBUM/Slow%20Sunday", "album", expand=True)
+        ]
+        return {KITCHEN: {"result": found.get(kind, [])}}
+
+    async def browse(call):
+        if "media_content_type" not in call.data:
+            top = [
+                node("Favorites", "", "favorites", play=False, expand=True),
+                node("Music Library", "", "library", play=False, expand=True),
+            ]
+            return {KITCHEN: {"title": "Sonos", "children": top}}
+        songs = [node("Paper Lanterns", "x-file-cifs://nas.example/a.mp3")]
+        return {KITCHEN: {"title": "Slow Sunday", "children": songs}}
+
+    for service, answers in (("search_media", search), ("browse_media", browse)):
+        hass.services.async_register(
+            "media_player", service, answers, supports_response=SupportsResponse.ONLY
+        )
+
+
+def a_spotify(hass, monkeypatch, search):
+    """Home Assistant's Spotify integration, signed in, whose client searches with
+    `search`. Only its place among the loaded entries is stood in for: a real entry
+    would have Home Assistant load the integration itself."""
+    entry = Of(
+        entry_id="0123abc",
+        runtime_data=Of(coordinator=Of(client=Of(search=search))),
+    )
+    loaded = hass.config_entries.async_loaded_entries
+    monkeypatch.setattr(
+        hass.config_entries,
+        "async_loaded_entries",
+        lambda domain: [entry] if domain == "spotify" else loaded(domain),
+    )
+    return entry
+
+
+async def test_the_library_and_spotify_are_searched_together(
+    hass, hass_ws_client, library, caplog, monkeypatch
+):
+    asked = []
+
+    async def search(query, kinds, limit):
+        asked.append((query, kinds))
+        artist = Of(name="The Marigolds", uri="spotify:artist:1", artists=[])
+        picture = [Of(url="https://images.example/cover.jpg")]
+        return Of(
+            tracks=[Of(name="Paper Lanterns", uri="spotify:track:2", artists=[artist])],
+            albums=[
+                Of(
+                    name="Slow Sunday",
+                    uri="spotify:album:3",
+                    artists=[artist],
+                    images=picture,
+                )
+            ],
+            # Spotify leaves a gap for a playlist it has withdrawn.
+            playlists=[
+                None,
+                Of(
+                    name="Garden Party",
+                    uri="spotify:playlist:4",
+                    owner=Of(display_name="Sam"),
+                    images=[],
+                ),
+            ],
+            artists=None,
+        )
+
+    entry = a_spotify(hass, monkeypatch, search)
+    client = await hass_ws_client(hass)
+    caplog.set_level(logging.INFO)
+    found = (await ask(client, SEARCH, entity_id=KITCHEN, query="paper"))["result"]
+
+    ours, spotify = found["sources"]
+    assert (ours["name"], ours["why"]) == ("Music library", None)
+    assert [(i["folder"], i["title"], i["can_expand"]) for i in ours["items"]] == [
+        ("Songs", "Paper Lanterns", False),
+        ("Albums", "Slow Sunday", True),
+    ]
+    # A Spotify result has the address Spotify's own browsing gives, so Sonos browses
+    # and plays it the same way.
+    assert (spotify["name"], spotify["why"]) == ("Spotify", None)
+    assert asked == [("paper", ["track", "album", "playlist", "artist"])]
+    assert [(i["folder"], i["title"], i["by"]) for i in spotify["items"]] == [
+        ("Songs", "Paper Lanterns", "The Marigolds"),
+        ("Albums", "Slow Sunday", "The Marigolds"),
+        ("Playlists", "Garden Party", "Sam"),
+    ]
+    song, album, _ = spotify["items"]
+    assert song["media_content_id"] == f"spotify://{entry.entry_id}/spotify:track:2"
+    assert (song["media_content_type"], song["can_expand"]) == (
+        "spotify://track",
+        False,
+    )
+    assert (
+        album["picture"] == "https://images.example/cover.jpg" and album["can_expand"]
+    )
+    assert "searched for 'paper': 2 in Music library, 3 in Spotify" in caplog.text
+
+
+async def test_one_source_failing_never_hides_the_other(
+    hass, hass_ws_client, library, monkeypatch
+):
+    client = await hass_ws_client(hass)
+
+    # No Spotify integration: the library's results come, and Spotify says why not.
+    ours, spotify = (await ask(client, SEARCH, entity_id=KITCHEN, query="paper"))[
+        "result"
+    ]["sources"]
+    assert len(ours["items"]) == 2 and not spotify["items"]
+    assert "isn't set up" in spotify["why"]
+
+    # Spotify's library raising anything at all, and the library failing too.
+    async def search(query, kinds, limit):
+        raise RuntimeError("401 from Spotify")
+
+    a_spotify(hass, monkeypatch, search)
+    ours, spotify = (await ask(client, SEARCH, entity_id=KITCHEN, query="broken"))[
+        "result"
+    ]["sources"]
+    assert ours["why"] == "the library is being indexed" and not ours["items"]
+    assert spotify["why"] == "Spotify didn't answer: 401 from Spotify"
+
+
+async def test_browsing_starts_without_the_favourites_and_opens_a_place(
+    hass, hass_ws_client, library
+):
+    client = await hass_ws_client(hass)
+    top = (await ask(client, BROWSING, entity_id=KITCHEN))["result"]
+    assert [i["title"] for i in top["items"]] == ["Music Library"]
+
+    inside = await ask(
+        client,
+        BROWSING,
+        entity_id=KITCHEN,
+        media_content_type="album",
+        media_content_id="A:ALBUM/Slow%20Sunday",
+    )
+    assert inside["result"]["title"] == "Slow Sunday"
+    assert [i["title"] for i in inside["result"]["items"]] == ["Paper Lanterns"]

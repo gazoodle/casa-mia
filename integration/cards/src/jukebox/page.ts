@@ -53,32 +53,122 @@ export class Following extends LitElement {
   }
 }
 
+/** How long a finger rests on a player before it lifts to be dragged (ms), how far it may
+ * wander meanwhile (px: more is a scroll, or a slip), and how near the top or bottom of
+ * the screen a drag scrolls the page (px). */
+const HOLD = 450;
+const SLIP = 10;
+const EDGE = 70;
+
+/** What scrolls the page: the nearest thing around it that can, or the window. */
+function scroller(from: Node): Element {
+  for (let node: any = from; node; node = node.parentNode ?? node.host)
+    if (node instanceof Element && node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)) return node;
+  return document.scrollingElement ?? document.documentElement;
+}
+
 export class Page extends Following {
-  static properties = { ...Following.properties, _arranging: { state: true }, _drag: { state: true }, _failed: { state: true } };
-  /** The players can be dragged into another order. */
-  _arranging = false;
-  /** The player being dragged: which, over which, how far, and where each one was drawn
-   * when the drag began. */
-  _drag?: { from: number; to: number; x: number; y: number; dx: number; dy: number; slots: DOMRect[] };
+  static properties = { ...Following.properties, _drag: { state: true }, _failed: { state: true } };
+  /** The player being dragged: which, over which, where the finger began, how far the
+   * player has moved, how far the page was scrolled when it was lifted, and how far it can
+   * be scrolled (measured then: the player being carried stretches the page as it goes). */
+  _drag?: { from: number; to: number; x: number; y: number; dx: number; dy: number; top: number; end: number };
   _failed?: string;
+  /** A finger resting on a player, which lifts it if it stays. */
+  private _hold?: { x: number; y: number; timer: ReturnType<typeof setTimeout> };
+  private _at = { x: 0, y: 0 };
+  private _scroller?: Element;
+  private _frame = 0;
+  /** A drag has just ended: the tap that ends it is not a tap on the player. */
+  private _dragged = false;
+
+  connectedCallback() {
+    super.connectedCallback();
+    // A finger that moves scrolls the page, unless it is carrying a player. Only a
+    // listener that isn't passive may say so.
+    this.addEventListener("touchmove", this._touch, { passive: false });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener("touchmove", this._touch);
+    this._drop();
+  }
+
+  private _touch = (e: Event) => {
+    if (this._drag) e.preventDefault();
+  };
 
   private _down(e: PointerEvent, from: number) {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    const slots = [...this.renderRoot.querySelectorAll(".slot")].map((slot) => slot.getBoundingClientRect());
-    this._drag = { from, to: from, x: e.clientX, y: e.clientY, dx: 0, dy: 0, slots };
+    // Not from a slider, which is held and dragged for its own purpose.
+    if (e.button || e.composedPath().some((node) => (node as Element).localName === "casa-mia-jukebox-slider")) return;
+    const [slot, pointer] = [e.currentTarget as HTMLElement, e.pointerId];
+    this._drop();
+    this._dragged = false;
+    const lift = () => {
+      const { x, y } = this._hold!;
+      this._hold = undefined;
+      slot.setPointerCapture(pointer);
+      this._scroller = scroller(this);
+      this._at = { x, y };
+      const page = this._scroller;
+      this._drag = { from, to: from, x, y, dx: 0, dy: 0, top: page.scrollTop, end: page.scrollHeight - page.clientHeight };
+      navigator.vibrate?.(15);
+      this._frame = requestAnimationFrame(this._edge);
+    };
+    this._hold = { x: e.clientX, y: e.clientY, timer: setTimeout(lift, HOLD) };
   }
 
   private _moved = (e: PointerEvent) => {
+    const hold = this._hold;
+    if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > SLIP) this._drop();
+    if (!this._drag) return;
+    this._at = { x: e.clientX, y: e.clientY };
+    this._place();
+  };
+
+  /** Where the dragged player is and which place it is over, from where the finger is and
+   * how far the page has scrolled since it was lifted. */
+  private _place() {
     const drag = this._drag;
     if (!drag) return;
-    const over = drag.slots.findIndex((r) => e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
-    this._drag = { ...drag, dx: e.clientX - drag.x, dy: e.clientY - drag.y, to: over < 0 ? drag.to : over };
+    const { x, y } = this._at;
+    const [dx, dy] = [x - drag.x, y - drag.y + this._scroller!.scrollTop - drag.top];
+    const over = [...this.renderRoot.querySelectorAll(".slot")].findIndex((slot, i) => {
+      const r = slot.getBoundingClientRect();
+      // Its own place is where it was drawn before it was moved.
+      const [left, top] = i === drag.from ? [r.left - drag.dx, r.top - drag.dy] : [r.left, r.top];
+      return x >= left && x <= left + r.width && y >= top && y <= top + r.height;
+    });
+    this._drag = { ...drag, dx, dy, to: over < 0 ? drag.to : over };
+  }
+
+  /** Each frame of a drag: near the top or bottom of the screen the page scrolls, faster
+   * the nearer, so a player can be carried to a place that was out of sight. */
+  private _edge = () => {
+    if (!this._drag) return;
+    const [y, page] = [this._at.y, this._scroller!];
+    const by = y < EDGE ? -Math.ceil((EDGE - y) / 5) : y > innerHeight - EDGE ? Math.ceil((y - innerHeight + EDGE) / 5) : 0;
+    const was = page.scrollTop;
+    if (by) page.scrollTop = Math.min(this._drag.end, was + by);
+    if (page.scrollTop !== was) this._place();
+    this._frame = requestAnimationFrame(this._edge);
+  };
+
+  /** Let go of everything, moving nothing: the finger went elsewhere, or the browser took
+   * the touch for itself. */
+  private _drop = () => {
+    clearTimeout(this._hold?.timer);
+    cancelAnimationFrame(this._frame);
+    this._hold = this._drag = undefined;
   };
 
   private _up = () => {
     const [drag, house] = [this._drag, this._house];
-    this._drag = undefined;
-    if (!drag || !house || drag.to === drag.from) return;
+    this._drop();
+    if (!drag) return;
+    this._dragged = true;
+    if (!house || drag.to === drag.from) return;
     const playing = house.groups.filter((g) => !g.quiet);
     playing.splice(drag.to, 0, ...playing.splice(drag.from, 1));
     // The players' rooms in their new order, then every other room as it was. The house
@@ -90,6 +180,17 @@ export class Page extends Following {
     );
   };
 
+  /** The tap that ends a drag would otherwise open the player it was let go over. */
+  private _tap = {
+    capture: true,
+    handleEvent: (e: Event) => {
+      if (!this._dragged) return;
+      this._dragged = false;
+      e.stopPropagation();
+      e.preventDefault();
+    },
+  };
+
   render() {
     const hass = this._hass;
     if (!hass) return nothing;
@@ -98,28 +199,33 @@ export class Page extends Following {
     const quiet = house?.groups.filter((g) => g.quiet) ?? [];
     const silent = Object.values(house?.rooms ?? {}).filter((r) => !r.available);
     const trouble = this._trouble ?? this._failed;
-    const arranging = this._arranging && playing.length > 1;
     const drag = this._drag;
     return html`<div class="page">
       <div class="nav">
         ${this.narrow ? html`<button class="ib" @click=${() => fire(this, "hass-toggle-menu")} aria-label="Home Assistant's menu">${icon("menu")}</button>` : nothing}
         <button class="ib" @click=${() => history.back()} aria-label="Back">${icon("back")}</button>
         <h1>Music</h1>
-        ${playing.length > 1
-          ? html`<button class="ib ${arranging ? "on" : ""}" @click=${() => (this._arranging = !arranging)} aria-label=${arranging ? "Finish arranging the players" : "Arrange the players"}>${icon(arranging ? "check" : "sort")}</button>`
-          : nothing}
         <button class="ib" @click=${() => navigate("/")} aria-label="Home">${icon("home")}</button>
       </div>
       ${trouble ? html`<p class="trouble" role="status">${trouble}</p>` : nothing}
-      ${arranging ? html`<p class="hint">Drag a player to where you want it. The order is kept for every screen in the house.</p>` : nothing}
       <div class="minis">
         ${playing.map(
-          (g, i) => html`<div class="slot ${drag?.from === i ? "held" : ""} ${drag && drag.to === i && drag.from !== i ? "here" : ""}" style=${drag?.from === i ? `transform:translate(${drag.dx}px,${drag.dy}px)` : ""}>
+          (g, i) => html`<div
+            class="slot ${drag?.from === i ? "held" : ""} ${drag && drag.to === i && drag.from !== i ? "here" : ""}"
+            style=${drag?.from === i ? `transform:translate(${drag.dx}px,${drag.dy}px) scale(1.03)` : ""}
+            @pointerdown=${(e: PointerEvent) => this._down(e, i)}
+            @pointermove=${this._moved}
+            @pointerup=${this._up}
+            @pointercancel=${this._drop}
+            @click=${this._tap}
+            @contextmenu=${(e: Event) => e.preventDefault()}
+            @dragstart=${(e: Event) => e.preventDefault()}
+          >
             <casa-mia-jukebox-mini .hass=${hass} .house=${house} .group=${g}></casa-mia-jukebox-mini>
-            ${arranging ? html`<div class="grip" @pointerdown=${(e: PointerEvent) => this._down(e, i)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${icon("drag")}</div>` : nothing}
           </div>`,
         )}
       </div>
+      ${playing.length > 1 ? html`<p class="hint">To move a player, rest a finger on it until it lifts, then drag it.</p>` : nothing}
       ${house && !playing.length ? html`<p class="none">Nothing is playing anywhere.</p>` : nothing}
       ${quiet.length
         ? html`<h2>Quiet rooms: tap one to play something there</h2>
@@ -138,15 +244,12 @@ export class Page extends Following {
       .nav h1 { flex: 1; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
       .nav .ib { background: var(--card-background-color); border: 1px solid var(--divider-color); }
       .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; }
-      .nav .ib.on { background: var(--primary-color); border-color: var(--primary-color); color: var(--text-primary-color, #fff); }
-      .hint { margin: 0 0 12px; color: var(--secondary-text-color); }
-      .slot { position: relative; min-width: 0; border-radius: 18px; }
-      .slot.held { z-index: 2; box-shadow: 0 12px 30px rgb(0 0 0 / 40%); }
+      .hint { margin: 10px 2px 0; font-size: 12px; color: var(--secondary-text-color); }
+      /* A long press is for lifting a player: not for selecting its words, or the menu a
+         phone offers for a picture. */
+      .slot { position: relative; min-width: 0; border-radius: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+      .slot.held { z-index: 2; box-shadow: 0 16px 40px rgb(0 0 0 / 45%); cursor: grabbing; }
       .slot.here { outline: 2px dashed var(--primary-color); outline-offset: 3px; }
-      /* Over the whole player while arranging, so its own buttons can't be pressed, and it
-         takes the finger for itself so a drag moves the player and not the page. */
-      .grip { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 18px; background: color-mix(in srgb, var(--card-background-color, #fff) 60%, transparent); cursor: grab; touch-action: none; }
-      .grip svg { width: 34px; height: 34px; }
       h2 { margin: 22px 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--secondary-text-color); }
       .chips { display: flex; flex-wrap: wrap; gap: 8px; }
       .chips button { display: flex; align-items: center; gap: 6px; padding: 8px 14px 8px 10px; border-radius: 999px; border: 1px solid var(--divider-color); background: var(--card-background-color); font-weight: 600; }

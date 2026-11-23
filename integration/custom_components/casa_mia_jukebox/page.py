@@ -16,6 +16,7 @@ from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
+from . import find
 from .const import DOMAIN, TITLE, URL
 from .feed import ACTIONS, ENQUEUE, Feed, do, favourites, queue
 
@@ -27,6 +28,8 @@ DO = f"{DOMAIN}/do"
 FAVOURITES = f"{DOMAIN}/favourites"
 QUEUE = f"{DOMAIN}/queue"
 ORDER = f"{DOMAIN}/order"
+SEARCH = f"{DOMAIN}/search"
+BROWSE = f"{DOMAIN}/browse"
 FEED = f"{DOMAIN}_feed"  # hass.data
 VERSION = f"{DOMAIN}_version"
 
@@ -44,6 +47,8 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
         _ws_favourites,
         _ws_queue,
         _ws_order,
+        _ws_search,
+        _ws_browse,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -172,3 +177,47 @@ async def _ws_order(
     page is sent the house again, in the new order."""
     await hass.data[FEED].arrange(connection.user.name or "someone", msg["rooms"])
     connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): SEARCH,
+        vol.Required(ATTR_ENTITY_ID): str,
+        vol.Required("query"): vol.All(str, vol.Length(min=1, max=100)),
+    }
+)
+@websocket_api.async_response
+async def _ws_search(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """The music library and Spotify, searched together. A source that fails comes
+    back with its reason beside the other's results (find.search)."""
+    who = connection.user.name or "someone"
+    found = await find.search(hass, who, msg[ATTR_ENTITY_ID], msg["query"])
+    connection.send_result(msg["id"], found)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): BROWSE,
+        vol.Required(ATTR_ENTITY_ID): str,
+        vol.Optional("media_content_type"): str,
+        vol.Optional("media_content_id"): str,
+    }
+)
+@websocket_api.async_response
+async def _ws_browse(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """One place in what a speaker can play, and what is in it."""
+    try:
+        found = await find.browse(
+            hass,
+            msg[ATTR_ENTITY_ID],
+            msg.get("media_content_type"),
+            msg.get("media_content_id"),
+        )
+    except HomeAssistantError as err:
+        connection.send_error(msg["id"], "failed", str(err))
+        return
+    connection.send_result(msg["id"], found)

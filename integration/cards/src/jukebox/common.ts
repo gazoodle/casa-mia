@@ -37,6 +37,11 @@ export type Favourite = {
   live: boolean;
   /** One of Sonos's own playlists, which can be deleted. */
   playlist: boolean;
+  /** Who it is by, where a search or a place being browsed says. */
+  by?: string;
+  /** A favourite can always be played; something found may only hold more to open. */
+  can_play?: boolean;
+  can_expand?: boolean;
   picture: string | null;
   media_content_id: string;
   media_content_type: string;
@@ -68,6 +73,20 @@ export function favourites(hass: Asking, room: string): Promise<Favourite[]> {
  * many there are in all. */
 export function queue(hass: Asking, room: string): Promise<{ songs: Song[]; total: number }> {
   return hass.connection.sendMessagePromise({ type: `${DOMAIN}/queue`, entity_id: room });
+}
+
+/** What one source of a search found, or why it found nothing. */
+export type Source = { name: string; items: Favourite[]; why: string | null };
+
+/** Search the music library and Spotify together, for the group `room` is in. */
+export function search(hass: Asking, room: string, query: string): Promise<{ sources: Source[] }> {
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/search`, entity_id: room, query });
+}
+
+/** What is in one place of what a speaker can play: the top when `at` is none. */
+export function browse(hass: Asking, room: string, at?: Favourite): Promise<{ title: string; items: Favourite[] }> {
+  const where = at ? { media_content_type: at.media_content_type, media_content_id: at.media_content_id } : {};
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/browse`, entity_id: room, ...where });
 }
 
 /** Keep the order the page's players were dragged into, for every screen in the house. The

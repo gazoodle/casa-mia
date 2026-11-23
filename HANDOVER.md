@@ -230,7 +230,20 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   The queue is read, and a song moved or removed, here too (`queue.ts` on the page);
   jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
   the feed's `queue_size` or `queue_position` changes, and after each change of its own.
-- **The players' order** is the owner's, dragged on the page: `Feed.order`, a list of
+- **Search and browse** (`find.py`, `find.ts`): the library through HA's
+  `media_player.search_media` on a Sonos entity, Spotify through the Spotify
+  integration's own signed-in client (`entry.runtime_data.coordinator.client.search`:
+  another integration's inside, so its shape is checked and its absence said). Each
+  source answers by itself, with its results or its reason. A Spotify result is given
+  the address Spotify's browsing gives (`spotify://<entry>/<uri>`), so Sonos browses and
+  plays it, and HA's `play_media` honours `enqueue` for these (not for favourites).
+  Not yet seen against the owner's library or Spotify account.
+- **The playlists in Favourites are read from the speaker** (`upnp.playlists`), and one
+  is played in place of the queue by the speaker too. HA renews its list of Sonos
+  playlists only when a favourite changes, so it misses one saved or deleted since
+  (owner saw this, 2026-11-23). HA's list is used only for the pictures.
+- **The players' order** is the owner's, dragged on the page (rest a finger, then drag;
+  an "arrange" mode couldn't reach a player off the screen, owner 2026-11-23): `Feed.order`, a list of
   rooms kept in HA's storage (`casa_mia_jukebox.order`) and applied in `house.house`.
   It is set by its own websocket command (`/order`), not `do`: no speaker is asked.
 - **A button waits visibly** (`Busy` in `parts.ts`, the `.busy` class): an arc runs

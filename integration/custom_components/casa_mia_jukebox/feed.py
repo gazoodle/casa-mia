@@ -24,7 +24,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
-from . import house, upnp
+from . import find, house, upnp
 from .announce import address, room_name
 from .const import DOMAIN
 from .house import QUEUE
@@ -38,6 +38,8 @@ ENQUEUE = ("next", "add", "replace", "play")
 # the queue that leave the rest of it alone.
 FAVOURITE = "favorite_item_id"
 LINED_UP = ("next", "add")
+# The folder Home Assistant puts a favourite playlist in, and Jukebox the Sonos playlists.
+PLAYLISTS = "Playlists"
 
 
 class Feed:
@@ -203,8 +205,16 @@ class _Doing:
         """A favourite, as the speaker's own browsing named it. Without `enqueue` it
         plays now, and a playlist then takes the queue's place: the page asks first."""
         enqueue = self.data.get("enqueue")
-        if self._value("media_content_type") == FAVOURITE and enqueue in LINED_UP:
+        favourite = self._value("media_content_type") == FAVOURITE
+        if favourite and enqueue in LINED_UP:
             await self._line_up(enqueue == "next")
+            return
+        if favourite and self._value("media_content_id").startswith(upnp.SAVED_QUEUES):
+            # A Sonos playlist in place of the queue. Home Assistant can't be asked: it
+            # doesn't know of a playlist saved since its list was last renewed.
+            await upnp.clear(*self._speaker())
+            await self._line_up(next=False)
+            await self._play_from(1)
             return
 
         extra = {"enqueue": enqueue} if enqueue else {}
@@ -228,10 +238,14 @@ class _Doing:
 
     # The queue, which the group's coordinator keeps. Songs are numbered from 1.
     async def queue_play(self) -> None:
+        await self._play_from(self._song())
+
+    async def _play_from(self, song: int) -> None:
+        """Play the queue from song number `song`, whatever was playing."""
         await self.hass.services.async_call(
             SONOS,
             "play_queue",
-            {ATTR_ENTITY_ID: self.group["id"], "queue_position": self._song() - 1},
+            {ATTR_ENTITY_ID: self.group["id"], "queue_position": song - 1},
             blocking=True,
         )
 
@@ -354,42 +368,63 @@ async def queue(feed: Feed, entity: str) -> dict[str, Any]:
 
 
 async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
-    """The Sonos favourites, as one list: each with the folder Sonos keeps it in
-    (playlists, radio, tracks), its picture, and the address `play_media` takes back."""
+    """The Sonos favourites and playlists, as one list: each with the folder Sonos keeps
+    it in (playlists, radio, tracks), its picture, and the address `play_media` takes
+    back. The favourites are Home Assistant's; the playlists are read from the speaker,
+    since Home Assistant's list of those goes out of date (upnp.playlists)."""
 
     async def browse(**what: str) -> list[dict[str, Any]]:
-        answer = await hass.services.async_call(
-            PLAYER,
-            "browse_media",
-            {ATTR_ENTITY_ID: entity, **what},
-            blocking=True,
-            return_response=True,
-        )
-        found: Any = (answer or {}).get(entity)
-        found = found.as_dict() if hasattr(found, "as_dict") else found or {}
-        return found.get("children") or []
+        node = await find.ask(hass, entity, "browse_media", **what)
+        return node.get("children") or []
 
-    items = []
+    def one(folder: str, title: str, id: str, **more: Any) -> dict[str, Any]:
+        return {
+            "folder": folder,
+            "title": title,
+            "live": False,
+            "playlist": False,
+            "picture": None,
+            "media_content_id": id,
+            "media_content_type": FAVOURITE,
+            **more,
+        }
+
+    items, pictures = [], {}
     for folder in await browse(media_content_type="favorites", media_content_id=""):
         for item in await browse(
             media_content_type=folder["media_content_type"],
             media_content_id=folder["media_content_id"],
         ):
-            if item.get("can_play"):
+            id = item["media_content_id"]
+            if id.startswith(upnp.SAVED_QUEUES):
+                # A playlist as Home Assistant last knew it: only its picture is kept.
+                pictures[id] = item.get("thumbnail")
+            elif item.get("can_play"):
                 items.append(
-                    {
-                        "folder": folder["title"],
-                        "title": item["title"],
+                    one(
+                        folder["title"],
+                        item["title"],
+                        id,
                         # A station (Sonos files those as a genre) plays at once and
                         # leaves the queue alone; the rest is lined up in it.
-                        "live": item["media_class"] == "genre",
-                        # One of Sonos's own playlists, which can be deleted.
-                        "playlist": item["media_content_id"].startswith(
-                            upnp.SAVED_QUEUES
-                        ),
-                        "picture": item.get("thumbnail"),
-                        "media_content_id": item["media_content_id"],
-                        "media_content_type": item["media_content_type"],
-                    }
+                        live=item["media_class"] == "genre",
+                        picture=item.get("thumbnail"),
+                        media_content_type=item["media_content_type"],
+                    )
                 )
-    return items
+
+    host = address(hass, entity)
+    if host is None:
+        raise Refused("Home Assistant has no address for this speaker")
+    playlists = [
+        one(
+            PLAYLISTS, p["title"], p["id"], playlist=True, picture=pictures.get(p["id"])
+        )
+        for p in await upnp.playlists(async_get_clientsession(hass), host)
+    ]
+    # The playlists lead, in their folder with any favourite that is a playlist too.
+    return (
+        playlists
+        + [item for item in items if item["folder"] == PLAYLISTS]
+        + [item for item in items if item["folder"] != PLAYLISTS]
+    )

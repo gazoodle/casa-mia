@@ -17,7 +17,8 @@ const PATHS = {
   drag: "M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z",
   save: "M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z",
   trash: "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z",
-  sort: "M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z",
+  search: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
+  chevron: "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z",
   rooms: "M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 1.99 2 1.99L17 22c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 2c1.1 0 2 .9 2 2s-.9 2-2 2c-1.11 0-2-.9-2-2s.89-2 2-2zm0 16c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z",
   favourites: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z",
   down: "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z",
@@ -71,12 +72,16 @@ try {
  * done or refused. */
 export class Busy {
   private waiting = new Map<string, number>();
+  /** Goes up at every change, for an element that is handed `on` and must be told when to
+   * draw again. */
+  changes = 0;
   constructor(private host: ReactiveControllerHost) {}
 
   /** Show `key` as waiting until `work` is settled. Gives `work` back. */
   during<T>(key: string, work: Promise<T>): Promise<T> {
     const count = (by: number) => {
       this.waiting.set(key, (this.waiting.get(key) ?? 0) + by);
+      this.changes++;
       this.host.requestUpdate();
     };
     count(1);
