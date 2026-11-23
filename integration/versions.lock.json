@@ -23,6 +23,10 @@
     "digest": "9dfd466e3fe56a9c0b991e477a6996a8862ea87351828bf920425e90ccaba923",
     "version": "2026.11.2-b20"
   },
+  "casa_mia_jukebox": {
+    "digest": "a864c6f73d404f16093036309ad27be6221148f03e00133022bcfd8e5512a70e",
+    "version": "2026.11.12-b6"
+  },
   "casa_mia_love_or_loathe": {
     "digest": "b98ffa4bd677082c05dc03d9eb8d5217dd763b6b37054c3b80aab0e04d79b2e6",
     "version": "2026.11.12-b5"

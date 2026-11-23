@@ -1,0 +1,108 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Jukebox",
+        "description": "Adds the `announce` action, which plays a chime and a message on your Sonos speakers. Choose the rooms, the voice and quiet hours afterwards, under Configure."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Jukebox is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Jukebox",
+        "data": {
+          "players": "Rooms",
+          "tts": "Voice",
+          "chime": "Chime",
+          "quiet": "Quiet hours"
+        },
+        "data_description": {
+          "players": "The Sonos speakers an announcement goes to when the action names none. Each gets a number for its announcement volume.",
+          "tts": "The text-to-speech voice that says a message.",
+          "chime": "The sound played before each announcement: a web address or a media id. Jukebox's own is filled in; empty the box for none.",
+          "quiet": "While this is on, announcements are not played unless they have priority. A schedule helper suits it."
+        }
+      }
+    }
+  },
+  "entity": {
+    "number": {
+      "volume": {
+        "name": "{room} announcement volume"
+      }
+    },
+    "sensor": {
+      "last": {
+        "name": "Last announcement",
+        "state": {
+          "played": "Played",
+          "partly": "Played in some rooms",
+          "nothing": "Not played"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_set_up": {
+      "message": "Jukebox isn't set up. Add it under Settings, Devices & services."
+    },
+    "nothing_to_play": {
+      "message": "Give the announcement a message, a sound, or both."
+    },
+    "no_voice": {
+      "message": "Jukebox has no voice to say a message with. Choose one in its Configure dialog."
+    },
+    "no_players": {
+      "message": "No rooms to announce in. Name some in the action, or choose them in Jukebox's Configure dialog."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Jukebox",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Jukebox integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "announce": {
+      "name": "Announce",
+      "description": "Plays a chime, then a sound, then a message, over whatever each room is playing, and puts nothing out of place. Announcements to one speaker are played one after another. The answer names each room's result.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "Words to say, with the voice chosen in Jukebox's Configure dialog."
+        },
+        "media": {
+          "name": "Sound",
+          "description": "A sound to play: a web address or a media id. Played before the message when both are given."
+        },
+        "players": {
+          "name": "Rooms",
+          "description": "The Sonos speakers to announce on. Leave it out for all the rooms chosen in the Configure dialog."
+        },
+        "chime": {
+          "name": "Chime",
+          "description": "Whether the chime is played first."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "A volume for this announcement in every room, in place of each room's own announcement volume."
+        },
+        "priority": {
+          "name": "Priority",
+          "description": "Play it in quiet hours too."
+        }
+      }
+    }
+  }
+}

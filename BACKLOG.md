@@ -2,7 +2,7 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done.
 
-## Jukebox (an idea, not started)
+## Jukebox (in development)
 
 The owner's idea, 2026-11-20: one place for both of the owners to manage the house's music
 across Sonos, Spotify and the local library, in place of Music Assistant. The name is final
@@ -32,8 +32,14 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   snapshot, play and restore. The owner has no S1 speaker (checked 2026-11-22: every
   speaker reports `swGen` 2 and `AUDIO_CLIP`), so that path can only be tested against a
   stand-in until someone with S1 tries it.
+- **Announcements were built in 2026.11.12-b6** (HANDOVER, "Jukebox"). Left to do:
+  - See it on the box: the dialogs, the chime reaching a speaker, a whole announcement.
+  - Its tile and picture in the README.
+  - S1 (above), and players that aren't Sonos, which are refused today.
+  - Rooms next to each other play slightly out of step: each speaker gets its own clip.
 - **In this order:**
-  1. **Announcements:** an `announce` service over `media_player.play_media` with
+  1. **Announcements** (built; this is the design they were built to): an `announce`
+     service over `media_player.play_media` with
      `announce: true`. On S2 speakers Sonos's audioClip ducks the music and restores it by
      itself. Jukebox adds per-room volume, quiet hours, a queue so two announcements never
      overlap, snapshot and restore for speakers without audioClip, and a logged, visible

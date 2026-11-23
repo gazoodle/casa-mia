@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.12-b6
+
+- **New: Jukebox, with its first part, announcements.** A new integration, added under **Settings → Devices & services → Add integration → Jukebox**. Its action `casa_mia_jukebox.announce` plays a chime, then a sound or a message in the voice you choose, on your Sonos speakers, over whatever each is playing. Each room has a number for its announcement volume, which is separate from the volume of its music. While the quiet-hours entity you choose is on, only an announcement marked `priority` is played. Announcements to one speaker are played one after another, never over each other, and one kept waiting more than 30 seconds is dropped. The action answers with each room's result, and the same is in the `casa_mia_jukebox_announced` event and on the **Last announcement** sensor, so a speaker that was off or didn't answer is seen. For Sonos S2 speakers: an S1 speaker, or any other player, is refused with a result that says why. In development: see its guide, `docs/applets/jukebox.md`.
+
 ## 2026.11.12-b5
 
 - **Love it or Loathe it: a station is chosen from the players' favourites, and keeps its name and picture.** **+ Add a station** on the page now lists the favourites of the entry's players (on a Sonos, your Sonos favourites) in place of **Take it from a player**, which copied the address of whatever the player happened to be on. A station chosen there is played as the favourite, so the speaker shows its name and logo after a switch. A player is also switched back to the station it was on as a favourite, when it is one. Before, both went by the stream's address, which carries no name or picture, so the logo was missing after every switch. A station that is no favourite can still be given by its address, and **Make it a station** saves a favourite by its name when the player is on one. Stations you already have are kept as they are: to get the logo, remove one and add it again from the list.

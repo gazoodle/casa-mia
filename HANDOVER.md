@@ -26,6 +26,7 @@ keys in brackets; some keep older names):
   `camera_dashboard_enabled`): see "The camera modules" below.
 - **Sensor Watch:** see "Sensor Watch" below. Beta.
 - **Love it or Loathe it:** see "Love it or Loathe it" below. Alpha.
+- **Jukebox:** see "Jukebox" below. In development.
 - **Guest login** (`guest_login_enabled`): see "Guest login" below. Security is by limiting
   what a code is worth (closed, signed out), not by locking HA down; the guide says why
   (xkcd).
@@ -181,6 +182,38 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
     shows only when Sensor Watch answers.
 - **Tests:** `tests/test_sensor_watch_*.py` (no HA), and `tests_ha/` inside a real Home
   Assistant: added by hand, the handover, the old names.
+
+## Jukebox
+
+Its own integration, `casa_mia_jukebox`, since 2026.11.12-b6 (plan agreed with the owner,
+2026-11-22 and 23; the rest of it is in `BACKLOG.md`). Standalone as Love it or Loathe it
+is: wholly in Home Assistant, nothing imported from `casa_mia`, no app option, one entry.
+Guide: `docs/applets/jukebox.md`. Only announcements are built.
+
+- **It adds no media players** (owner, 2026-11-20): every room stays the Sonos
+  integration's own entity.
+- **`announce`** (`__init__.py`): chime, then `media`, then `message` as speech, to the
+  rooms named or the entry's. It answers with each room's result (`pure.py` has the
+  words), fires `casa_mia_jukebox_announced`, and the Last announcement sensor shows it.
+- **`announce.py`:** `Jukebox` holds a lock per speaker (`_turn`, 30 s to wait, then
+  `too_late`). A clip is `media_player.play_media` with `announce: true` and the room's
+  volume in `extra.volume`; a room's volume is its number entity (`number.py`).
+- **`speaker.py` listens to the speaker itself**, on port 1443, for the length of a
+  clip. Why: Home Assistant's `play_media` answers before a clip has played, and a clip
+  sent during another cuts it off (measured 2026-11-23; `pure.py`'s docstring has the
+  measurements). The speaker's first report is an old clip, which `pure.Watch` passes over.
+- **A clip changes nothing on the entity** (measured), so nothing is saved or restored,
+  and Love it or Loathe it never sees an announcement. That stops being true for S1,
+  which will need snapshot and restore (BACKLOG).
+- **The chime** is `www/chime.wav`, made by `tools/jukebox_chime.py`, served at
+  `/casa_mia_jukebox/chime.wav`.
+- **Tests:** `tests/test_jukebox.py` (pure), `tests_ha/test_jukebox.py` (the action, with
+  stand-ins for the speakers). A test that holds a clip must use plain asyncio tasks and
+  its `settle()`: `async_block_till_done` waits for the held clip and hangs.
+- **Not seen in a real Home Assistant yet** (2026-11-23): the tests and a run of
+  `speaker.py` against a real speaker (subscribing only) are all there is. Not checked:
+  the config and options dialogs, the chime's address reaching a speaker, and a whole
+  announcement end to end.
 
 ## Love it or Loathe it
 
