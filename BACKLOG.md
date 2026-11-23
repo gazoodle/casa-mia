@@ -32,6 +32,12 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   snapshot, play and restore. The owner has no S1 speaker (checked 2026-11-22: every
   speaker reports `swGen` 2 and `AUDIO_CLIP`), so that path can only be tested against a
   stand-in until someone with S1 tries it.
+- **The page, its players, rooms and favourites, and the small card were built in
+  2026.11.12-b9.** Left of the brief below, in this order: the queue (reorder, remove,
+  jump), search and browse, the party lock with its sensors, Love it or Loathe it's
+  thumbs on the big player, lyrics. Also left: a phone's back button should close the
+  big player; the page's heading can't be turned off yet; the group's one volume sets
+  each room in turn (the speakers have a group volume of their own).
 - **Announcements were built in 2026.11.12-b6** (HANDOVER, "Jukebox"). Left to do:
   - See it on the box: the dialogs, the chime reaching a speaker, a whole announcement.
   - Its tile and picture in the README.
@@ -48,9 +54,41 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   - It stops other people's changes from the Sonos app sticking.
   - It works with Love it or Loathe it.
   - It offers sensors, so an automation can turn on a disco ball and lights.
+  - The mock-up (`docs/design/jukebox-mockup.html`) was agreed as the look and the flow
+    (owner, 2026-11-23).
+  - **A page of Jukebox's own, plus one small card** (owner, 2026-11-23), as Sensor Watch
+    has a page. The page is drawn by Jukebox from top to bottom, finds the Sonos rooms and
+    what is playing by itself, and changes none of the owner's dashboards. Its heading has
+    a back and a home button, which can be left off: a phone has Home Assistant's top bar,
+    but a wall tablet has no top bar and no sidebar. The card is the mini player alone
+    (artwork, title, rooms, pause, next, volume) for a dashboard that already exists, and
+    opens the big player. Why not cards to lay out: on a dashboard the player took on the
+    dashboard's look, and the owner didn't want it built in Lovelace.
   - Turned down the same day: the community Sonos card (too complex for the people who
     will use this), and a lock that leaves the queue to be filled and changed in other
     apps (the owner wants it done in Jukebox's card).
+- **Measured for the player, 2026-11-23** (one S2 speaker, paused throughout, nothing
+  played):
+  - **Search:** Home Assistant's `media_player/search_media` works on a Sonos entity and
+    returns songs from the Sonos music library. Browsing gives the Sonos favourites
+    (playlists, radio, tracks) and the library. Spotify is linked to the Sonos system as a
+    service, and the owner added Home Assistant's Spotify integration for the search
+    (2026-11-23). Searching Spotify, and adding a song found that way to a Sonos queue,
+    are not measured yet.
+  - **The queue can be edited without playing:** adding through `play_media` with
+    `enqueue: add`; moving and removing through the speaker's UPnP AVTransport
+    (`ReorderTracksInQueue`, `RemoveTrackFromQueue`, `RemoveAllTracksFromQueue`, port
+    1400), which Home Assistant has no action for. `sonos.get_queue` reads it back.
+  - **A change to the queue is pushed within 0.1 s while the queue is what the speaker
+    plays from.** The entity's `queue_size` changes, and the speaker's websocket
+    (`playback` namespace) reports a new `queueVersion` for every change, one deep in the
+    queue included. `queue_size` alone misses a move or a swap, so the lock watches
+    `queueVersion` and then reads the queue.
+  - **While a radio station is the source, queue changes are reported by neither.** The
+    lock must read the queue again when the source returns to it.
+  - Volume changes arrive from both within 0.1 s (`playerVolume`, `groupVolume`: the
+    speaker has a group volume of its own).
+  - `sonos.snapshot` and `sonos.restore` put the source back after the test.
 - **In this order:**
   1. **Announcements** (built; this is the design they were built to): an `announce`
      service over `media_player.play_media` with

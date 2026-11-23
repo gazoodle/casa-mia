@@ -59,3 +59,61 @@ def test_quiet_rooms_dont_make_an_announcement_partial():
     assert pure.summary({"a": pure.PLAYED, "b": pure.UNAVAILABLE}) == pure.PARTLY
     assert pure.summary({"a": pure.QUIET}) == pure.NOTHING
     assert pure.summary({"a": pure.NO_ANSWER}) == pure.NOTHING
+
+
+# ---- The house's music, as the page shows it (house.py) ----
+
+house = load_component_file("casa_mia_jukebox", "house")
+
+KITCHEN, GARDEN, PORCH, SHED = (
+    f"media_player.{room}" for room in ("kitchen", "garden", "porch", "shed")
+)
+RADIO = {"media_title": "A song", "media_channel": "Harbour FM", "volume_level": 0.2}
+
+
+def test_a_group_is_drawn_once_from_its_coordinator_and_a_lone_idle_room_is_quiet():
+    together = {**RADIO, "group_members": [KITCHEN, GARDEN]}
+    model = house.house(
+        {
+            GARDEN: ("Garden", "playing", {**together, "volume_level": 0.31}),
+            KITCHEN: ("Kitchen", "playing", together),
+            PORCH: ("Porch", "idle", {"group_members": [PORCH]}),
+            SHED: ("Shed", "unavailable", {}),
+        }
+    )
+
+    playing, quiet = model["groups"]
+    assert (playing["id"], playing["rooms"]) == (KITCHEN, [KITCHEN, GARDEN])
+    assert (playing["state"], playing["kind"]) == ("playing", house.RADIO)
+    assert not playing["quiet"]
+    assert (quiet["id"], quiet["quiet"], quiet["kind"]) == (PORCH, True, house.NOTHING)
+
+    # Each room keeps its own volume. One that isn't answering is listed, in no group.
+    assert model["rooms"][GARDEN] == {
+        "name": "Garden",
+        "volume": 31,
+        "muted": False,
+        "available": True,
+    }
+    assert not model["rooms"][SHED]["available"]
+    assert house.group_of(model, GARDEN) is playing
+    assert house.group_of(model, SHED) is None
+
+
+def test_what_a_speaker_is_playing_from():
+    assert house.kind({"media_title": "A song"}) == house.QUEUE
+    assert house.kind(RADIO) == house.RADIO
+    assert house.kind({"media_content_id": "x-sonos-htastream:R:spdif"}) == house.TV
+    assert house.kind({"media_content_id": "x-rincon-stream:R"}) == house.LINE_IN
+    assert house.kind({}) == house.NOTHING
+
+
+def test_a_groups_one_slider_moves_every_room_by_the_same_amount():
+    # The slider shows the average, 20; moved to 30, each room goes up by 10.
+    assert house.shifted({KITCHEN: 30, GARDEN: 10}, 30) == {KITCHEN: 40, GARDEN: 20}
+    # No room goes below nothing or above full, and one with no volume is left alone.
+    assert house.shifted({KITCHEN: 95, GARDEN: 5, SHED: None}, 60) == {
+        KITCHEN: 100,
+        GARDEN: 15,
+    }
+    assert house.shifted({SHED: None}, 60) == {}

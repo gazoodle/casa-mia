@@ -1,4 +1,9 @@
-"""Jukebox: the house's music in one place. This build has its first part, announcements.
+"""Jukebox: the house's music in one place. Built so far: announcements, and a page of
+its own with a small card for a dashboard.
+
+The page (page.py, /jukebox in the sidebar) shows what every Sonos room is playing, with
+a big player for each: play, pause and skip, each room's volume, rooms joined and taken
+out, and the Sonos favourites. Everything it does goes through feed.py.
 
 The `announce` action plays a chime, a sound, some words, or all three in that order, in
 the rooms asked for, each at its own announcement volume (number.py). It respects quiet
@@ -36,7 +41,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
-from . import pure
+from . import page, pure
 from .announce import Jukebox
 from .const import (
     ANNOUNCE,
@@ -118,10 +123,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         schema=SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
     )
-    # The chime that comes with Jukebox, where a speaker can fetch it.
+    # The chime that comes with Jukebox, where a speaker can fetch it, and the page's
+    # bundle. Not cached by the path: the bundle's address changes with each version.
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(URL, str(Path(__file__).parent / "www"), True)]
+        [StaticPathConfig(URL, str(Path(__file__).parent / "www"), False)]
     )
+    page.setup(hass, LOADED_VERSION)
     return True
 
 
@@ -144,6 +151,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.runtime_data = Jukebox(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await page.show(hass)
     entry.async_on_unload(entry.add_update_listener(_reload))
     _LOGGER.info("Jukebox %s started", LOADED_VERSION)
     return True
@@ -151,6 +159,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    page.hide(hass)
 
 
 async def _reload(hass: HomeAssistant, entry: ConfigEntry) -> None:

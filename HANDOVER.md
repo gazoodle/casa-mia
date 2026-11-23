@@ -192,7 +192,9 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
 Its own integration, `casa_mia_jukebox`, since 2026.11.12-b6 (plan agreed with the owner,
 2026-11-22 and 23; the rest of it is in `BACKLOG.md`). Standalone as Love it or Loathe it
 is: wholly in Home Assistant, nothing imported from `casa_mia`, no app option, one entry.
-Guide: `docs/applets/jukebox.md`. Only announcements are built.
+Guide: `docs/applets/jukebox.md`. Built: announcements (b6), and the page with its players,
+rooms and favourites, and the small card (b9). The owner's brief for the rest (queue,
+search, the party lock, sensors) and what was measured for it are in `BACKLOG.md`.
 
 - **It adds no media players** (owner, 2026-11-20): every room stays the Sonos
   integration's own entity.
@@ -209,15 +211,34 @@ Guide: `docs/applets/jukebox.md`. Only announcements are built.
 - **A clip changes nothing on the entity** (measured), so nothing is saved or restored,
   and Love it or Loathe it never sees an announcement. That stops being true for S1,
   which will need snapshot and restore (BACKLOG).
+- **The page** (`page.py`): a panel, `/jukebox`, for every signed-in user, not in a frame,
+  and the same bundle (`www/cards.js`, from `integration/cards/src/jukebox`) loaded into
+  every HA page for the card. The owner agreed the look from a mock-up
+  (`docs/design/jukebox-mockup.html`); it is a page of Jukebox's own and not cards to lay
+  out (owner, 2026-11-23).
+- **`house.py`** (no HA imports) turns the Sonos entities' states into the page's model:
+  groups by coordinator, every room in exactly one, a lone idle room `quiet`.
+  **`feed.py`** pushes it (`Feed`: one listener on HA's state events while anyone is
+  listening, one model for a burst) and carries out what the page asks (`do`, a dict of
+  actions). The rooms are every Sonos media player in the entity registry; nothing is
+  listed in the options.
+- **Everything the page does goes through `do`,** never straight to a media player: the
+  party lock will tell a guest's change from the owners' by that. Keep it so.
+- **The big player** (`big.ts`) is appended to the document, not drawn inside the card,
+  so a dashboard's layout can't trap it, and it follows the feed by itself.
+- **The page was looked at in a browser against a pretend `hass`** (screenshots, phone
+  and tablet widths), not in a real Home Assistant.
 - **The chime** is `www/chime.wav`, made by `tools/jukebox_chime.py`, served at
   `/casa_mia_jukebox/chime.wav`.
 - **Tests:** `tests/test_jukebox.py` (pure), `tests_ha/test_jukebox.py` (the action, with
-  stand-ins for the speakers). A test that holds a clip must use plain asyncio tasks and
+  stand-ins for the speakers), `tests_ha/test_jukebox_page.py` (the panel, feed and `do`),
+  `integration/cards/src/jukebox/common.test.ts`. A test that holds a clip must use plain asyncio tasks and
   its `settle()`: `async_block_till_done` waits for the held clip and hangs.
 - **Not seen in a real Home Assistant yet** (2026-11-23): the tests and a run of
   `speaker.py` against a real speaker (subscribing only) are all there is. Not checked:
-  the config and options dialogs, the chime's address reaching a speaker, and a whole
-  announcement end to end.
+  the config and options dialogs, the chime's address reaching a speaker, a whole
+  announcement end to end, and the page: joining rooms, a favourite's address played
+  back through `play_media`, and artwork through HA's proxy.
 
 ## Love it or Loathe it
 

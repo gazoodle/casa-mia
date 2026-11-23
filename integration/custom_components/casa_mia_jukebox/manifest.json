@@ -4,12 +4,12 @@
   "after_dependencies": ["media_player", "sonos", "tts"],
   "codeowners": ["@gazoodle"],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
   "documentation": "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/jukebox.md",
   "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/gazoodle/casa-mia/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2026.11.12-b6"
+  "version": "2026.11.12-b9"
 }

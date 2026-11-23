@@ -34,7 +34,7 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Intercom](applets/intercom.md): A call for each doorbell, shared by every screen in the house, so only one person talks to the door at a time.
 - [UniFi Protect talkback](applets/protect-talkback.md): Talk through UniFi Protect doorbells and cameras from Home Assistant.
 - [Love it or Loathe it](applets/love-or-loathe.md): Boosts the volume for a song you love, and changes the radio station for one you loathe.
-- [Jukebox](applets/jukebox.md): Announcements on Sonos speakers, with a chime, a volume for each room and quiet hours. The first part of one place for the house's music.
+- [Jukebox](applets/jukebox.md): A page for the music on your Sonos speakers, with a player for each thing playing, rooms, volumes and favourites, and announcements with a chime and quiet hours.
 - [Dash-Bored](applets/dash-bored.md): A dashboard that writes itself from your areas and devices, in eighteen styles. A newspaper, a control panel, a fridge door and a page of glass tiles are built, and the rest are mock-ups.
 
 ## Maturity

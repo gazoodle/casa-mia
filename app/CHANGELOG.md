@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.12-b9
+
+- New: Jukebox has a page of its own, "Jukebox" in the sidebar, for Sonos speakers. It
+  shows a player for each thing playing in the house and the rooms that are quiet. A
+  tap on a player opens it over the whole screen, with play, pause and skip, a volume
+  for each room, rooms added or taken out with one tap, and the favourites saved in
+  Sonos. It finds the speakers by itself and changes none of your dashboards.
+- New: Jukebox's card, the small player by itself, for a dashboard you already have.
+- Jukebox: playing a favourite in place of the queue asks first, in large letters.
+
 ## 2026.11.12-b8
 
 - **Breaking:** Auto Dashboards no longer makes a page for each commander. A camera dashboard deployed before this build keeps its commander pages until its next **Deploy live**, which removes them. Before you deploy, put each commander on a dashboard of your own with the Camera Commander card, and point any button or kiosk that opened a commander's page at that dashboard.

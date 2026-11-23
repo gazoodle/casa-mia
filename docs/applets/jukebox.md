@@ -1,12 +1,14 @@
 # Jukebox
 
-Announcements on Sonos speakers, with a chime, a volume for each room and quiet hours.
+A page for the music on your Sonos speakers, and announcements on them with a chime, a
+volume for each room and quiet hours.
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
 Jukebox is meant to become one place to manage the house's music across Sonos, Spotify
-and a local library. Announcements are the first part of it and the only part built so
-far. Groups, search and playlists are planned.
+and a local library. Built so far: its page with the players, rooms and favourites, a
+small card, and announcements. Editing the queue, search, and a lock that stops guests
+changing the music at a party are planned.
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -37,6 +39,45 @@ Mia.
 Each room you choose gets a number, **announcement volume**, on Jukebox's device page.
 It starts at 25%. It is separate from the volume of the room's music: a clip carries its
 own volume, and the speaker's volume is left as it was.
+
+## The page
+
+Once Jukebox is set up, **Jukebox** appears in Home Assistant's sidebar for everyone
+who is signed in. There is nothing to configure: the page shows every speaker of the
+Sonos integration.
+
+- **A player for each thing playing**, with its picture, the rooms it is playing in,
+  pause, skip and one volume for all of those rooms.
+- **Quiet rooms** are listed below. Tap one to choose a favourite to play there.
+- **A speaker that isn't answering** is listed too, so you know why it is missing.
+
+Tap a player to open it over the whole screen. There you have:
+
+- **Play, pause, skip, shuffle and repeat**, and a slider to move within a song.
+- **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
+  room in the group has its own volume. A room that is playing something else is
+  brought over to this music.
+- **Favourites:** the stations, playlists and songs saved as favourites in Sonos. A
+  station plays at once and leaves the queue as it is. For a playlist or a song you
+  choose **Play next**, **Add to the end of the queue**, or **Play now and replace
+  the queue**, which asks again before the queue is lost.
+
+On a phone the rooms and favourites open as a sheet over the player. On a wide screen,
+such as a wall tablet, they sit beside it.
+
+The page's heading has a back button and a home button, because a wall tablet running
+without Home Assistant's sidebar has no other way to leave. To reach the page from a
+tablet's dashboard, add any button that navigates to `/jukebox`.
+
+Everything the page does goes through Jukebox and is written to Home Assistant's log
+with the name of who did it.
+
+## The card
+
+**Casa Mia Jukebox**, in the card picker, is the small player by itself, for a
+dashboard you already have. Choose a room and it always shows that room's music. With
+no room chosen it shows a player for each thing playing in the house. A tap on it
+opens the same big player.
 
 ## Announcing
 
