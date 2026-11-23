@@ -7,8 +7,8 @@ volume for each room and quiet hours.
 
 Jukebox is meant to become one place to manage the house's music across Sonos, Spotify
 and a local library. Built so far: its page with the players, rooms and favourites, a
-small card, search, and announcements. A lock that stops guests changing the music at a
-party is planned.
+small card, search, a lock that stops guests changing the music at a party, and
+announcements.
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -89,6 +89,53 @@ tablet's dashboard, add any button that navigates to `/jukebox`.
 
 Everything the page does goes through Jukebox and is written to Home Assistant's log
 with the name of who did it.
+
+## The party lock
+
+Anyone on the house's network can change the music with the Sonos app, and Sonos has no
+way to stop them. The party lock doesn't stop them either: it puts back what they
+change.
+
+Press **Party** at the top of the big player. While it is on for those rooms:
+
+- **The queue** is kept as you made it. A song a guest adds is taken out, one they take
+  out is put back in its place, and songs they move go back to their order.
+- **What is playing from** is kept. If a guest starts music from another app, the
+  speakers are returned to the queue, at the song they were on.
+- **The rooms** are kept. A room taken out of the group is brought back, and one added
+  is taken out.
+- **The volume** of each room is kept, including a change made with the buttons on a
+  speaker.
+
+Everything is still yours to change from Jukebox's page and card, by anyone signed in
+to Home Assistant. A change is put back about three seconds after it is made, and each
+one is listed with its time when you press **Party on**. End the party from the same
+place.
+
+Skipping a song, pausing and moving within a song are left alone, because they can't be
+told from the music moving on by itself.
+
+For automations there are two entities and an event:
+
+| Entity or event | What it says |
+|---|---|
+| **Party** (binary sensor) | On while a party is on anywhere. Its `rooms` attribute lists each party's rooms. |
+| **Changes put back** (sensor) | How many changes have been put back since Home Assistant started, with the last one and when. |
+| `casa_mia_jukebox_put_back` (event) | Fired for each change put back, with `rooms` and `what`. |
+
+For example, to run a disco ball for as long as the party lasts, switch it on when
+**Party** turns on and off when it turns off.
+
+Limits:
+
+- A party ends when Home Assistant restarts.
+- The room that leads the group (the one the party was started from, in Sonos's terms
+  the coordinator) can't be taken out of the group until the party is ended.
+- Songs moved in another app are noticed through the leading speaker's own report of
+  its queue. If that is lost, the player says since when, and a move is then noticed
+  only at the next change it does hear of.
+- While a radio station is playing, a speaker doesn't report changes to its queue, so
+  those are put back when the next thing happens that it does report.
 
 ## The card
 

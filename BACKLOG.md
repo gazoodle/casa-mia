@@ -34,11 +34,16 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   stand-in until someone with S1 tries it.
 - **The page, its players, rooms and favourites, and the small card were built in
   2026.11.12-b9, and the queue (jump to a song, move one, take one out) in b11.** Left
-  of the brief below, in this order: the party lock with its
-  sensors, Love it or Loathe it's thumbs on the big player, lyrics. Also left:
+  of the brief below, in this order: Love it or Loathe it's thumbs on the big player, lyrics. Also left:
   - Built in b12, asked for by the owner on 2026-11-23: the players' order, clear the
     queue, save the queue as a playlist, delete a playlist, and the light round a
     button while a speaker is asked.
+  - The party lock and its entities were built in b14, from the mock-up. Left: it has
+    not met real speakers (a guest's change from the Sonos app, another app's stream);
+    a party isn't kept across a restart of Home Assistant; the leading room can't be
+    taken out during one; skips and pauses aren't guarded; the volume is put back even
+    for the buttons on a speaker (as the mock-up, though the first notes spoke of a
+    volume limit: ask the owner after a real party).
   - Search and browse over the Sonos music library and Spotify (owner, 2026-11-23)
     were built in b13. A library result shows no artist (Home Assistant's search gives
     a title only), a Spotify song no picture, and only the first Spotify account is

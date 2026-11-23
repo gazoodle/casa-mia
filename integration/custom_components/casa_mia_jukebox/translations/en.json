@@ -30,6 +30,11 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "party": {
+        "name": "Party"
+      }
+    },
     "number": {
       "volume": {
         "name": "{room} announcement volume"
@@ -43,6 +48,9 @@
           "partly": "Played in some rooms",
           "nothing": "Not played"
         }
+      },
+      "put_back": {
+        "name": "Changes put back"
       }
     }
   },

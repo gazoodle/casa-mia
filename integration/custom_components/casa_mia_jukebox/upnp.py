@@ -15,7 +15,7 @@ from __future__ import annotations
 # The standard library's reader: what it reads comes from the owner's own speaker, and
 # Home Assistant's Python has expat's guard against entity bombs. defusedxml would be
 # the first requirement of any Casa Mia component.
-from xml.etree.ElementTree import Element, ParseError, fromstring
+from xml.etree.ElementTree import Element, ParseError, fromstring, tostring
 from xml.sax.saxutils import escape, quoteattr
 
 import aiohttp
@@ -42,6 +42,8 @@ UPNP = "{urn:schemas-upnp-org:metadata-1-0/upnp/}"
 # Where a speaker keeps the Sonos playlists.
 SAVED_QUEUES = "SQ:"
 QUEUE = "Q:0"
+# How a speaker names its own queue as what it plays from.
+OWN_QUEUE = "x-rincon-queue:"
 ABOUT = (
     '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"'
     ' xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"'
@@ -253,3 +255,81 @@ async def delete_playlist(
 ) -> None:
     """Delete a Sonos playlist (`SQ:3`) from the system, for good."""
     await call(session, host, "ContentDirectory", "DestroyObject", ObjectID=playlist)
+
+
+# ---- For the party lock (party.py): what a speaker is playing from, and each song of its
+# queue with enough of it kept to put the song back.
+
+
+async def source(session: aiohttp.ClientSession, host: str) -> tuple[str, str]:
+    """What the speaker at `host` plays from, as it names it: its own queue
+    (`x-rincon-queue:…`), a station, a line-in, or another app's stream. With it, the
+    description the speaker needs to be given it back."""
+    told = await call(session, host, "AVTransport", "GetMediaInfo", InstanceID=0)
+    return told.get("CurrentURI", ""), told.get("CurrentURIMetaData", "")
+
+
+async def track(session: aiohttp.ClientSession, host: str) -> int:
+    """The number of the song the speaker is at in its queue, from 1."""
+    told = await call(session, host, "AVTransport", "GetPositionInfo", InstanceID=0)
+    try:
+        return int(told.get("Track") or 0)
+    except ValueError:
+        return 0
+
+
+async def play_from(
+    session: aiohttp.ClientSession, host: str, uri: str, about: str, song: int
+) -> None:
+    """Make the speaker play from `uri` again (see `source`), and when that is its
+    queue, from song number `song`."""
+    await call(
+        session,
+        host,
+        "AVTransport",
+        "SetAVTransportURI",
+        InstanceID=0,
+        CurrentURI=uri,
+        CurrentURIMetaData=about,
+    )
+    if uri.startswith(OWN_QUEUE) and song:
+        await call(
+            session,
+            host,
+            "AVTransport",
+            "Seek",
+            InstanceID=0,
+            Unit="TRACK_NR",
+            Target=song,
+        )
+    await call(session, host, "AVTransport", "Play", InstanceID=0, Speed=1)
+
+
+async def songs(session: aiohttp.ClientSession, host: str) -> list[tuple[str, str]]:
+    """The queue as (address, description) for each song, in order: what `insert`
+    needs to put one back."""
+    listed, _ = await _listed(session, host, QUEUE, "queue")
+    return [
+        (
+            item.findtext(f"{DIDL}res") or "",
+            f'<DIDL-Lite xmlns="{DIDL[1:-1]}">{tostring(item, encoding="unicode")}</DIDL-Lite>',
+        )
+        for item in listed
+    ]
+
+
+async def insert(
+    session: aiohttp.ClientSession, host: str, song: tuple[str, str], at: int
+) -> None:
+    """Put a song (from `songs`) into the queue as number `at`."""
+    await call(
+        session,
+        host,
+        "AVTransport",
+        "AddURIToQueue",
+        InstanceID=0,
+        EnqueuedURI=song[0],
+        EnqueuedURIMetaData=song[1],
+        DesiredFirstTrackNumberEnqueued=at,
+        EnqueueAsNext=0,
+    )

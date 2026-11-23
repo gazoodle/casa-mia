@@ -45,7 +45,7 @@ export class Mini extends LitElement {
     return html`<div class="mini" style="--a:${colours(title)[0]}">
       <button class="pic" @click=${show} aria-label="Open the player">${art(hass, group.picture, title)}</button>
       <button class="meta" @click=${show}>
-        <b>${title}</b><span>${by}</span><small>${names(house, group)}</small>
+        <b>${title}</b><span>${by}</span><small>${names(house, group)}${group.party ? " · Party" : ""}</small>
       </button>
       <span class="tp">
         <button class="ib ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play", "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>

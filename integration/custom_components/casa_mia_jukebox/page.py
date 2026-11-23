@@ -12,7 +12,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components import frontend, panel_custom, websocket_api
-from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.const import ATTR_ENTITY_ID, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
@@ -38,7 +38,8 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
     """Once per Home Assistant run. ?v= changes with each update, so browsers fetch the
     new copy."""
     hass.data[VERSION] = version
-    hass.data[FEED] = Feed(hass)
+    hass.data[FEED] = feed = Feed(hass)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, feed.parties.stop_all)
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={version}")
     for command in (
         _ws_cards,

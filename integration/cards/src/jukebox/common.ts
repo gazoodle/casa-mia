@@ -28,7 +28,12 @@ export type Group = {
   repeat: "off" | "all" | "one";
   queue_size: number | null;
   queue_position: number | null;
+  /** The party lock, while it is on for this group. */
+  party: Party | null;
 };
+/** A party: since when, what was put back (the newest first; `failed` when it couldn't be),
+ * and since when a song moved in another app isn't being noticed (none while it is). */
+export type Party = { since: string; undone: { at: string; what: string; failed: boolean }[]; unwatched: string | null };
 export type House = { groups: Group[]; rooms: Record<string, Room> };
 export type Favourite = {
   folder: string;
@@ -124,6 +129,9 @@ export function position(group: Group, now: number): number | null {
   const since = group.state === "playing" && group.position_at ? Math.max(0, (now - Date.parse(group.position_at)) / 1000) : 0;
   return Math.min(group.duration, Math.floor(group.position + since));
 }
+
+/** A time of day, as 21:05. */
+export const clock = (iso: string): string => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
 export const mmss = (seconds: number): string => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 

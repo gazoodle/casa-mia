@@ -28,6 +28,7 @@ from . import find, house, upnp
 from .announce import address, room_name
 from .const import DOMAIN
 from .house import QUEUE
+from .party import Parties
 
 _LOGGER = logging.getLogger(__name__)
 PLAYER = "media_player"
@@ -54,6 +55,7 @@ class Feed:
         self._rooms: frozenset[str] | None = None
         self._last: dict[str, Any] | None = None
         self._due = False
+        self.parties = Parties(hass, self._changed)
         # The order the owner arranged the page's players in, kept across restarts.
         self._store: Store[dict[str, list[str]]] = Store(hass, 1, f"{DOMAIN}.order")
         self.order: list[str] = []
@@ -92,7 +94,11 @@ class Feed:
                 state.state if state else "unavailable",
                 state.attributes if state else {},
             )
-        return house.house(players, self.order)
+        model = house.house(players, self.order)
+        for group in model["groups"]:
+            party = self.parties.led_by(group["id"])
+            group["party"] = party.view() if party else None
+        return model
 
     @callback
     def listen(self, heard: Callable[[dict[str, Any]], None]) -> Callable[[], None]:
@@ -158,13 +164,24 @@ class _Doing:
     """One thing asked for: the group it is for, and how each action is carried out."""
 
     def __init__(
-        self, hass: HomeAssistant, model: dict[str, Any], entity: str, data: dict
+        self,
+        hass: HomeAssistant,
+        model: dict[str, Any],
+        entity: str,
+        data: dict,
+        parties: Parties,
     ) -> None:
         group = house.group_of(model, entity)
         if group is None:
             raise Refused(f"{entity} is not a Sonos room that is answering")
         self.hass, self.model, self.entity, self.data = hass, model, entity, data
         self.group: dict[str, Any] = group
+        self.parties = parties
+        # What this changed that a party must know of, to tell it from a guest's change
+        # (party.own): the volumes it set, and a room it brought in or took out.
+        self.volumes: dict[str, int] = {}
+        self.joined: str | None = None
+        self.left: str | None = None
 
     def _call(self, service: str, entity: str, **data: Any) -> Awaitable[Any]:
         return self.hass.services.async_call(
@@ -202,8 +219,9 @@ class _Doing:
         await self._coordinator("repeat_set", repeat=self._value("mode"))
 
     async def play_media(self) -> None:
-        """A favourite, as the speaker's own browsing named it. Without `enqueue` it
-        plays now, and a playlist then takes the queue's place: the page asks first."""
+        """Something to play: a favourite, or what a search or browsing found. Without
+        `enqueue` it plays now. A favourite playlist then takes the queue's place, so
+        the page asks first; anything else joins the queue and is played from it."""
         enqueue = self.data.get("enqueue")
         favourite = self._value("media_content_type") == FAVOURITE
         if favourite and enqueue in LINED_UP:
@@ -216,6 +234,15 @@ class _Doing:
             await self._line_up(next=False)
             await self._play_from(1)
             return
+
+        if not favourite:
+            # Something found by searching or browsing always goes into the queue and
+            # is played from there. Left to itself ("replace", its default), Home
+            # Assistant plays a library song's file directly, and the queue then
+            # doesn't show what is playing (owner, 2026-11-23).
+            if enqueue == "replace":
+                await upnp.clear(*self._speaker())
+            enqueue = enqueue if enqueue in LINED_UP else "play"
 
         extra = {"enqueue": enqueue} if enqueue else {}
         await self._coordinator(
@@ -287,7 +314,9 @@ class _Doing:
 
     # How loud: each room has its own volume.
     async def volume(self) -> None:
-        await self._call("volume_set", self.entity, volume_level=self._level())
+        level = self._level()
+        await self._call("volume_set", self.entity, volume_level=level)
+        self.volumes[self.entity] = round(level * 100)
 
     async def mute(self) -> None:
         await self._call("volume_mute", self.entity, is_volume_muted=self._value("on"))
@@ -302,6 +331,7 @@ class _Doing:
         )
         for room, volume in new.items():
             await self._call("volume_set", room, volume_level=volume / 100)
+        self.volumes.update(new)
 
     def _level(self) -> float:
         return max(0, min(100, int(self._value("value")))) / 100
@@ -310,10 +340,41 @@ class _Doing:
     async def join(self) -> None:
         room = self._room()
         if room not in self.group["rooms"]:
+            if self.parties.of(room):
+                raise Refused(
+                    "That room is in a party of its own. End that party first."
+                )
             await self._coordinator("join", group_members=[room])
+            self.joined = room
 
     async def leave(self) -> None:
-        await self._call("unjoin", self._room())
+        room = self._room()
+        party = self.parties.of(room)
+        if party and party.leader == room:
+            # The leader holds the queue the party guards.
+            raise Refused(
+                "That room leads the party's music. End the party to take it out."
+            )
+        await self._call("unjoin", room)
+        self.left = room
+
+    # The party lock (party.py): on for this group as it stands, or off.
+    async def party(self) -> None:
+        party = self.parties.led_by(self.group["id"])
+        if not self._value("on"):
+            if party:
+                self.parties.stop(party)
+            return
+        if party is None:
+            rooms = self.model["rooms"]
+            await self.parties.start(
+                self.group["rooms"],
+                {
+                    room: rooms[room]["volume"]
+                    for room in self.group["rooms"]
+                    if rooms[room]["volume"] is not None
+                },
+            )
 
     def _room(self) -> str:
         room = self._value("room")
@@ -342,6 +403,7 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "group_volume": _Doing.group_volume,
     "join": _Doing.join,
     "leave": _Doing.leave,
+    "party": _Doing.party,
 }
 
 
@@ -350,11 +412,19 @@ async def do(
 ) -> None:
     """Carry out one thing the page asked for, and write down who asked. Raises
     HomeAssistantError, with the reason, when it can't be done."""
-    doing = _Doing(feed.hass, feed.model(), entity, data)
+    doing = _Doing(feed.hass, feed.model(), entity, data, feed.parties)
+    party = feed.parties.led_by(doing.group["id"])
     # The addresses of what is played stay out of the log: a link can carry a key.
     said = {k: v for k, v in data.items() if k != "media_content_id"}
     try:
-        await ACTIONS[action](doing)
+        if party is None or action == "party":
+            await ACTIONS[action](doing)
+        else:
+            # Held while the speakers are asked and the party's copy is renewed, so
+            # that this is never compared as if a guest had done it.
+            async with party.lock:
+                await ACTIONS[action](doing)
+                await party.own(action, doing)
     except HomeAssistantError as err:
         _LOGGER.warning("%s: %s in %s %s failed: %s", who, action, entity, said, err)
         raise
@@ -363,7 +433,7 @@ async def do(
 
 async def queue(feed: Feed, entity: str) -> dict[str, Any]:
     """The queue of the group `entity` is in (upnp.queue)."""
-    doing = _Doing(feed.hass, feed.model(), entity, {})
+    doing = _Doing(feed.hass, feed.model(), entity, {}, feed.parties)
     return await upnp.queue(*doing._speaker())
 
 

@@ -87,3 +87,57 @@ async def listening(
             return result
 
         yield ended
+
+
+# Seconds between the pings that prove a watched speaker is still there. One that stops
+# answering them ends the watch by itself, so "watching" can't outlive the connection.
+PULSE = 30
+
+
+async def watch_queue(
+    session: aiohttp.ClientSession,
+    host: str,
+    watching: Callable[[], None],
+    changed: Callable[[], None],
+) -> None:
+    """Watch the queue of the group the speaker at `host` leads, until the connection
+    ends (which raises). `watching` is called once the speaker has agreed to report,
+    and `changed` at every change to the queue: a song added, taken out or moved, which
+    is more than Home Assistant hears of (it isn't told of a move). Measured 2026-11-23:
+    the report comes within 0.1 s, but only while the queue is what is playing."""
+    about = await info(session, host)
+    async with asyncio.timeout(ANSWER):
+        socket = await session.ws_connect(
+            f"wss://{host}:{PORT}/websocket/api",
+            headers=HEADERS,
+            protocols=[PROTOCOL],
+            ssl=False,
+            heartbeat=PULSE,
+        )
+
+    async with socket:
+        head = {
+            "namespace": "playback:1",
+            "command": "subscribe",
+            "householdId": about.get("householdId"),
+            "groupId": about.get("groupId"),
+        }
+        await socket.send_json([head, {}])
+        version, agreed = None, False
+        async for message in socket:
+            if message.type is not aiohttp.WSMsgType.TEXT:
+                continue
+            parts = json.loads(message.data)
+            if not isinstance(parts, list) or len(parts) != 2:
+                continue
+            if not agreed:
+                agreed = True
+                watching()
+            new = parts[1].get("queueVersion") if isinstance(parts[1], dict) else None
+            if new is None:
+                continue
+            # The first version heard is where the queue stands, not a change.
+            if version is not None and new != version:
+                changed()
+            version = new
+    raise ConnectionError("the speaker closed the connection")

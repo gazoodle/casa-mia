@@ -31,8 +31,10 @@ SPOTIFY_NAME = "Spotify"
 FAVOURITES = "favorites"
 # What the library is searched for, and the heading each is shown under.
 LIBRARY = (("track", "Songs"), ("album", "Albums"), ("artist", "Artists"))
-# How many of each a search shows.
+# How many of each a search shows. Spotify refuses a request for more than 10 of a kind
+# (owner's box, 2026-11-23: "limit must be between 1 and 10").
 EACH = 20
+SPOTIFY_EACH = 10
 
 
 async def ask(hass: HomeAssistant, entity: str, service: str, **what: Any) -> dict:
@@ -136,7 +138,8 @@ async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
             "This version of Home Assistant's Spotify integration can't be searched"
         )
     try:
-        found = await seek(query, ["track", "album", "playlist", "artist"], limit=EACH)
+        kinds = ["track", "album", "playlist", "artist"]
+        found = await seek(query, kinds, limit=SPOTIFY_EACH)
     except Exception as err:
         # Whatever Spotify's library raises (no network, a refused token, a change in
         # what Spotify sends) is this source's reason, never the whole search's end.

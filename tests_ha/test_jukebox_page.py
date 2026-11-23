@@ -343,6 +343,43 @@ async def test_a_sonos_playlist_is_found_where_the_speaker_keeps_those(
     assert "&lt;dc:title&gt;Friday &amp;amp; Night&lt;/dc:title&gt;" in queued
 
 
+async def test_a_song_found_is_always_played_from_the_queue(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    """Home Assistant plays a library song's file directly unless it is told where in
+    the queue to put it, and the queue then doesn't show what is playing."""
+    client = await hass_ws_client(hass)
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+    song = {
+        "media_content_id": "x-file-cifs://nas.example/a.mp3",
+        "media_content_type": "track",
+    }
+
+    # Played now, as in a room that was quiet: put into the queue and played there.
+    assert (await ask(client, DO, action="play_media", entity_id=KITCHEN, **song))[
+        "success"
+    ]
+    assert sent.pop() == (
+        "play_media",
+        {"entity_id": KITCHEN, "enqueue": "play", **song},
+    )
+    assert not aioclient_mock.mock_calls
+
+    # In place of the queue: the queue is emptied first, then the same.
+    await ask(
+        client, DO, action="play_media", entity_id=KITCHEN, enqueue="replace", **song
+    )
+    assert "#RemoveAllTracksFromQueue" in aioclient_mock.mock_calls[-1][3]["SOAPACTION"]
+    assert sent.pop() == (
+        "play_media",
+        {"entity_id": KITCHEN, "enqueue": "play", **song},
+    )
+
+    # Next, and at the end, as asked.
+    await ask(client, DO, action="play_media", entity_id=KITCHEN, enqueue="add", **song)
+    assert sent.pop()[1]["enqueue"] == "add"
+
+
 async def test_a_sonos_playlist_replaces_the_queue_without_home_assistant(
     hass, hass_ws_client, sent, aioclient_mock
 ):
@@ -590,7 +627,7 @@ async def test_the_library_and_spotify_are_searched_together(
     asked = []
 
     async def search(query, kinds, limit):
-        asked.append((query, kinds))
+        asked.append((query, kinds, limit))
         artist = Of(name="The Marigolds", uri="spotify:artist:1", artists=[])
         picture = [Of(url="https://images.example/cover.jpg")]
         return Of(
@@ -630,7 +667,8 @@ async def test_the_library_and_spotify_are_searched_together(
     # A Spotify result has the address Spotify's own browsing gives, so Sonos browses
     # and plays it the same way.
     assert (spotify["name"], spotify["why"]) == ("Spotify", None)
-    assert asked == [("paper", ["track", "album", "playlist", "artist"])]
+    # No more than 10 of a kind: Spotify refuses a request for more.
+    assert asked == [("paper", ["track", "album", "playlist", "artist"], 10)]
     assert [(i["folder"], i["title"], i["by"]) for i in spotify["items"]] == [
         ("Songs", "Paper Lanterns", "The Marigolds"),
         ("Albums", "Slow Sunday", "The Marigolds"),

@@ -56,7 +56,7 @@ from .const import (
 from .restart_notice import async_check_restart, manifest_version
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.NUMBER, Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.NUMBER, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Read once, at import: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()

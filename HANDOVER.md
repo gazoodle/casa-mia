@@ -230,6 +230,15 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   The queue is read, and a song moved or removed, here too (`queue.ts` on the page);
   jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
   the feed's `queue_size` or `queue_position` changes, and after each change of its own.
+- **The party lock** (`party.py`): nothing can be prevented on a Sonos network, so a
+  party keeps a copy of its rooms, volumes, source and queue and puts back what differs
+  when the speakers report a change (HA state events, and the leader's own websocket
+  report of `queueVersion` for moves: `speaker.watch_queue`). Jukebox's own changes go
+  through `feed.do`, which holds the party's lock and renews the copy (`Party.own`);
+  the comparison waits `SETTLE` seconds for the speakers' reports of them. Built from
+  the agreed mock-up and the 2026-11-23 measurements; not yet run against real
+  speakers. Not kept across a restart. Entities: `binary_sensor` party, `sensor`
+  put_back; event `casa_mia_jukebox_put_back`.
 - **Search and browse** (`find.py`, `find.ts`): the library through HA's
   `media_player.search_media` on a Sonos entity, Spotify through the Spotify
   integration's own signed-in client (`entry.runtime_data.coordinator.client.search`:

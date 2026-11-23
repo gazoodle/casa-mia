@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026.11.12-b14
+
+- Fixed: Jukebox's search found nothing on Spotify ("limit must be between 1 and
+  10"). Spotify accepts at most 10 results of a kind, and 20 were asked for.
+- Fixed: a song found by searching and played in a quiet room played, but wasn't in the
+  queue. It is now put in the queue and played from there, as is one played in place
+  of the queue.
+- New: the party lock in Jukebox's player. Press **Party** and the queue, the rooms and
+  their volumes can only be changed from Jukebox. A change made any other way, such as
+  from the Sonos app on a guest's phone, is put back within a few seconds and listed
+  on the player.
+- New entities for automations: a **Party** binary sensor, on while a party is on (to
+  switch on a disco ball and the lights), and **Changes put back**, a count with the
+  last change. Each change put back also fires the event `casa_mia_jukebox_put_back`.
+
 ## 2026.11.12-b13
 
 - New: Search in Jukebox's player. One box searches the Sonos music library and

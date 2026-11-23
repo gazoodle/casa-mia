@@ -6,7 +6,7 @@
 // a sheet over the player; a wall tablet gets them beside it.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
-import { type Favourite, type Group, type House, ask, average, colours, favourites, follow, groupOf, latest, mmss, names, playing, position, reason } from "./common.ts";
+import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, mmss, names, playing, position, reason } from "./common.ts";
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -26,7 +26,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _toast: { state: true } };
+  static properties = { room: {}, tab: {}, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _toast: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -41,6 +41,10 @@ export class Big extends LitElement {
   _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
   /** The sheet that asks what to call the queue as a playlist. */
   _naming = false;
+  /** The sheet that says what the party lock is doing, and ends it. */
+  _partying = false;
+  /** The newest thing put back that has been said, so each is said once. */
+  private _said?: string;
   _toast = "";
   private _off?: () => void;
   private _fade?: ReturnType<typeof setTimeout>;
@@ -66,6 +70,12 @@ export class Big extends LitElement {
   }
 
   protected willUpdate(changed: Map<string, unknown>) {
+    if (changed.has("_house") && this._house) {
+      // Something put back by the party lock is said as it happens, not at first sight.
+      const last = groupOf(this._house, this.room)?.party?.undone[0];
+      if (last && this._said !== undefined && last.at !== this._said) this._say(last.failed ? last.what : `Put back: ${last.what.replace(/^Someone/, "someone")}`);
+      this._said = last?.at ?? "";
+    }
     if ((changed.has("tab") || changed.has("_favourites")) && this.tab === "favourites" && this._favourites === undefined) {
       favourites(this.hass, this.room).then(
         (found) => (this._favourites = found),
@@ -153,7 +163,9 @@ export class Big extends LitElement {
       <div class="bar">
         <button class="ib" @click=${() => this.remove()} aria-label="Close the player">${icon("down")}</button>
         <div class="where"><small>Playing in</small><b>${names(house, group)}</b></div>
-        <span class="ib"></span>
+        <button class="pill ${group.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => (group.party ? (this._partying = true) : this._party(true))} aria-label=${group.party ? "The party lock is on" : "Turn the party lock on"}>
+          ${icon("lock")}${group.party ? `Party on${group.party.undone.length ? ` · ${group.party.undone.length}` : ""}` : "Party"}
+        </button>
       </div>
       <div class="cover">${art(this.hass, group.picture, title)}</div>
       <div class="title"><b>${title}</b><span>${by}</span></div>
@@ -190,6 +202,11 @@ export class Big extends LitElement {
       <b>${title}<small>${sub}</small></b>
       <button class="ib shut" @click=${() => (this.tab = undefined)} aria-label="Close">${icon("close")}</button>
     </div>`;
+  }
+
+  private async _party(on: boolean) {
+    this._partying = false;
+    if (await this._do("party", { on }, "party")) this._say(on ? "Party on. The queue, the rooms and the volume can only be changed from Jukebox." : "Party off. Other apps can change things again.");
   }
 
   private _songs(group: Group) {
@@ -291,6 +308,23 @@ export class Big extends LitElement {
           </div>
         </div>
       </div>`;
+    if (this._partying && group.party) {
+      const party = group.party;
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._partying = false)}>
+        <div class="sheet" role="dialog" aria-label="The party lock">
+          <h4>The party is on, since ${clock(party.since)}</h4>
+          <p>The queue, the rooms and their volumes can only be changed from Jukebox. Anything changed another way, such as from the Sonos app, is put back.</p>
+          ${party.unwatched ? html`<p class="lost">A song moved in another app isn't being noticed, since ${clock(party.unwatched)}: the speaker isn't reporting its queue. Songs added or taken out are still put back.</p>` : nothing}
+          ${party.undone.length
+            ? html`<ul class="undone">${party.undone.map((u) => html`<li class=${u.failed ? "failed" : ""}><time>${clock(u.at)}</time>${u.failed ? u.what : `Put back: ${u.what.replace(/^Someone/, "someone")}`}</li>`)}</ul>`
+            : html`<p>Nothing has had to be put back.</p>`}
+          <div class="acts">
+            <button class="main" @click=${() => (this._partying = false)}>Keep the party going</button>
+            <button class="danger" @click=${() => this._party(false)}>End the party</button>
+          </div>
+        </div>
+      </div>`;
+    }
     if (this._naming)
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._naming = false)}>
         <form class="sheet" aria-label="Save the queue as a playlist" @submit=${this._save}>
@@ -358,6 +392,9 @@ export class Big extends LitElement {
       .now { display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 22px max(14px, env(safe-area-inset-bottom)); }
       .bar { display: flex; align-items: center; gap: 8px; }
       .where { flex: 1; min-width: 0; text-align: center; }
+      .pill { display: flex; align-items: center; gap: 5px; flex: none; padding: 8px 12px 8px 9px; border-radius: 999px; background: rgb(255 255 255 / 14%); font-size: 12px; font-weight: 700; }
+      .pill svg { width: 16px; height: 16px; }
+      .pill.on { background: #fff; color: #111; }
       .where small { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
       .where b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       /* The artwork is a square that fits the space left for it, whichever way that space is
@@ -421,6 +458,10 @@ export class Big extends LitElement {
       .sheet h4 { margin: 0 0 2px; font-size: 16px; }
       .sheet p { margin: 0 0 14px; color: rgb(255 255 255 / 70%); overflow-wrap: anywhere; }
       .sheet input { display: block; width: 100%; margin: 0 0 14px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgb(255 255 255 / 8%); color: #fff; font: inherit; font-size: 16px; }
+      .sheet .lost, .undone .failed { color: #ff9a8f; }
+      .undone { max-height: 34vh; margin: 0 0 14px; padding: 0; overflow: auto; list-style: none; }
+      .undone li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
+      .undone time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
       .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
       .acts { display: grid; gap: 8px; }
       .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; }
