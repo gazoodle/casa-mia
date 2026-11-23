@@ -134,6 +134,8 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
     2026-11-23) leaves the banner at its severity, which is the masking this removes.
   - **Any row below critical,** a sensor's as well as an integration's; never one rolled
     up (snooze its integration).
+  - **A card may leave it off** (`hide_snoozed`, owner, 2026-11-23: the line was "in my
+    face" on a dashboard). Off by default; the page and Status always show it.
   - **Never out of sight:** the card's line (the card doesn't hide while there is one),
     the page's Snoozed section, the Home tile, Status's `snoozed` and `snoozed_list`.
   - **It ends by itself** (`Snooze.judge`): at its time, said as "still failing, down 16
@@ -215,6 +217,10 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
+  A volume is read with `_level`, never straight from the state: a speaker reports a
+  volume late, so for `REPORT_LAG` after a change made here a report still showing the
+  old volume is taken as late (2026.11.12-b3; consecutive ducked tracks halved it each
+  time). `engine.py` is at 777 of 800 lines: split it before the next change to it.
   `_back` forgets a return only once `play_media` has worked: a player not playing, not
   yet there after a restart, or refusing the call keeps `away` with `due`, and the
   return is made when it next plays (b24; before, the return was cleared first and lost).

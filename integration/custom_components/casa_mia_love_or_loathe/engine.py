@@ -78,6 +78,11 @@ ID = "media_content_id"
 TYPE = "media_content_type"
 # A player rounds the volume it is given; within this it is still the one set here.
 SAME_VOLUME = 0.011
+# A speaker reports a new volume a moment after it is given one. For this long after a
+# change made here, a report that still shows the volume from before it is taken as late
+# (Engine._level).
+# ponytail: a fixed window. Follow each speaker's own state changes if it proves wrong.
+REPORT_LAG = 10.0
 # Back at the end of a song (CONF_BACK_AT_END): the longest the return waits for the next
 # track, for a station whose title never changes.
 LONGEST_SONG = timedelta(minutes=10)
@@ -166,6 +171,9 @@ class Engine:
         # The content id each station turned out to have on a player, which can differ
         # from the one it was started with: how a station already playing is recognised.
         self.learned: dict[str, str] = {}
+        # The volume each speaker was last given here, [from, to, when], kept in
+        # storage so that a reload between a putting back and the next change has it.
+        self.given: dict[str, list[float]] = {}
         # What has been played, for the strike.
         self.history = History()
         self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry))
@@ -203,6 +211,7 @@ class Engine:
         a song already on when its group's list is saved is acted on at that save."""
         kept = await self._store.async_load() or {}
         self.learned = kept.get("learned", {})
+        self.given = kept.get("given", {})
         self.history = History(kept.get("plays", []))
         for entity, was in kept.get("players", {}).items():
             player = self.players.get(entity)
@@ -244,9 +253,16 @@ class Engine:
             for e, p in self.players.items()
             if p.undo or p.away
         }
-        plays = self.history.dump(dt_util.utcnow().timestamp())
+        now = dt_util.utcnow().timestamp()
+        plays = self.history.dump(now)
+        given = {s: g for s, g in self.given.items() if now - g[2] < REPORT_LAG}
         await self._store.async_save(
-            {"players": players, "learned": self.learned, "plays": plays}
+            {
+                "players": players,
+                "learned": self.learned,
+                "plays": plays,
+                "given": given,
+            }
         )
 
     # --- following the players ---------------------------------------------------
@@ -459,12 +475,11 @@ class Engine:
             raise HomeAssistantError("the player reports no volume")
         undo: dict[str, list[float]] = {}
         for speaker in _speakers(state):
-            now = self.hass.states.get(speaker)
-            was = now.attributes.get("volume_level") if now else None
+            was = self._level(speaker)
             if was is None:
                 continue  # a member that says nothing of its volume is left alone
             to = scaled(was, group.act.amount)
-            await self._call("volume_set", speaker, volume_level=to)
+            await self._give(speaker, was, to)
             undo[speaker] = [was, to]
         player.undo = ["volume", undo]
         was, to = undo[entity]
@@ -544,9 +559,9 @@ class Engine:
 
             back, moved = {}, []
             for speaker, (was, to) in undo[1].items():
-                now = self._attr(speaker, "volume_level")
+                now = self._level(speaker)
                 if now is not None and abs(now - to) < SAME_VOLUME:
-                    await self._call("volume_set", speaker, volume_level=was)
+                    await self._give(speaker, to, was)
                     back[speaker] = was
                 else:
                     moved.append(speaker)
@@ -563,6 +578,25 @@ class Engine:
                 )
         except HomeAssistantError as exc:
             self._problem(entity, f"could not put back {undo[0]}: {exc}")
+
+    async def _give(self, speaker: str, was: float, to: float) -> None:
+        await self._call("volume_set", speaker, volume_level=to)
+        self.given[speaker] = [was, to, dt_util.utcnow().timestamp()]
+
+    def _level(self, speaker: str) -> float | None:
+        """A speaker's volume: what it reports, unless that is still the volume from
+        before a change made here moments ago, when it is what it was given.
+
+        Taking the report as it stood made one loathed song straight after another
+        halve the volume each time (2026.11.12): the last one's volume was put back,
+        the speaker had not yet said so, and the next change started from the lowered
+        volume it still reported. Only the last of those changes was ever undone."""
+        level = self._attr(speaker, "volume_level")
+        was, to, at = self.given.get(speaker, (0.0, 0.0, 0.0))
+        late = dt_util.utcnow().timestamp() - at < REPORT_LAG
+        if level is not None and late and abs(level - was) < SAME_VOLUME:
+            return to
+        return level
 
     def _attr(self, entity: str, name: str) -> Any:
         state = self.hass.states.get(entity)

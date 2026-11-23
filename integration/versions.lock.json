@@ -24,15 +24,15 @@
     "version": "2026.11.2-b20"
   },
   "casa_mia_love_or_loathe": {
-    "digest": "e9567493828914139266ce49589414cabeb7458c13c27901edab9b71d649cbe0",
-    "version": "2026.11.11"
+    "digest": "f2464836701061c95373436afb8148f814843e41f392d1640078ac8cddf1f4fc",
+    "version": "2026.11.12-b3"
   },
   "casa_mia_protect_talkback": {
     "digest": "dde0abdacfc4178e08b84f524d976cce2e6f6d342058476fcdb56bcd0079dc7e",
     "version": "2026.11.2-b21"
   },
   "casa_mia_sensor_watch": {
-    "digest": "f14f5c8111b39bc8eb904023432a4727c9488c631e495feda3b89da8baedef5e",
-    "version": "2026.11.12-b2"
+    "digest": "23b0471d5f286e2017eba4470e26bc3074f36beb18aa7559e1e078fddebabbdb",
+    "version": "2026.11.12-b3"
   }
 }

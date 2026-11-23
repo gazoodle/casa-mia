@@ -157,10 +157,18 @@ export function StationDialog({
   const [type, setType] = useState(station?.media_content_type ?? from?.media_content_type ?? "music");
   // The players that say what they are playing: tune one to the station, then take it.
   const telling = entry.players.filter((p) => entry.playing[p]?.media_content_id);
+  // The player it was taken from, shown as chosen until the boxes below are typed in:
+  // a select that went back to "Choose a player…" looked as if nothing had been chosen.
+  const [taken, setTaken] = useState("");
   const take = (player: string) => {
     const playing = entry.playing[player];
+    setTaken(player);
     setId(playing.media_content_id ?? "");
     setType(playing.media_content_type || "music");
+  };
+  const typed = (set: (text: string) => void) => (e: { target: { value: string } }) => {
+    setTaken("");
+    set(e.target.value);
   };
 
   return (
@@ -180,7 +188,7 @@ export function StationDialog({
             : "None of these players says what it is playing just now. Start the station on one of them, or add it from the integration's page in Home Assistant, which can browse for it."
         }
       >
-        <Select value="" onChange={take} disabled={!telling.length} placeholder={telling.length ? "Choose a player…" : "Nothing is playing"}>
+        <Select value={taken} onChange={take} disabled={!telling.length} placeholder={telling.length ? "Choose a player…" : "Nothing is playing"}>
           {telling.map((p) => (
             <option key={p} value={p}>
               {`${nameOf(view.players, p)}: ${entry.playing[p].title || entry.playing[p].media_content_id}`}
@@ -189,10 +197,10 @@ export function StationDialog({
         </Select>
       </Field>
       <Field label="What to play" help="The media content id the player is given, as it reports it when the station is on.">
-        <input value={id} spellCheck={false} onChange={(e) => setId(e.target.value)} />
+        <input value={id} spellCheck={false} onChange={typed(setId)} />
       </Field>
       <Field label="Its type" help="The media content type that goes with it. For a radio station this is nearly always music.">
-        <input value={type} spellCheck={false} onChange={(e) => setType(e.target.value)} />
+        <input value={type} spellCheck={false} onChange={typed(setType)} />
       </Field>
     </Dialog>
   );

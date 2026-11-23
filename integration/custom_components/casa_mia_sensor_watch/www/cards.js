@@ -874,7 +874,8 @@ var Ze = [
 	clear_message: "All well.",
 	show: $e.filter((e) => e !== "icon"),
 	icon_color: "level",
-	snooze: !1
+	snooze: !1,
+	hide_snoozed: !1
 };
 function et(e) {
 	let t = e.map((e) => e === "name" || e === "message" ? "what" : e);
@@ -1104,7 +1105,7 @@ var xt = 300, Y = "snoozed", X = (e) => (/* @__PURE__ */ new Date(Date.now() - e
 					},
 					return_response: !0
 				});
-				this._rows = n?.response?.sensors ?? [], this._snoozed = n?.response?.snoozed ?? [], this._problem = void 0;
+				this._rows = n?.response?.sensors ?? [], this._snoozed = t.hide_snoozed ? [] : n?.response?.snoozed ?? [], this._problem = void 0;
 			} catch (e) {
 				this._rows = [], this._snoozed = [], this._problem = `Sensor Watch isn't answering (${e?.message ?? e}): is it switched on in the Casa Mia app, and Home Assistant restarted since?`, console.warn(`CASA-MIA CARDS: sensor watch: ${this._problem}`);
 			}
@@ -1424,6 +1425,10 @@ var xt = 300, Y = "snoozed", X = (e) => (/* @__PURE__ */ new Date(Date.now() - e
 	{
 		name: "snooze",
 		selector: { boolean: {} }
+	},
+	{
+		name: "hide_snoozed",
+		selector: { boolean: {} }
 	}
 ], Et = {
 	level: "The level's colour",
@@ -1438,11 +1443,13 @@ var xt = 300, Y = "snoozed", X = (e) => (/* @__PURE__ */ new Date(Date.now() - e
 	clear_message: "Its message",
 	show: "Each row shows",
 	icon_color: "Icon colour",
-	snooze: "Snooze from this card"
+	snooze: "Snooze from this card",
+	hide_snoozed: "Hide snoozed items"
 }, Ot = {
 	title: "Or none, and give its panel a garnish heading (it hides with the card).",
 	group: "Only one group's members (from Casa Mia's Sensor Watch page), or every watched sensor.",
 	show: "Drag to reorder; the name and message share a place, where the first of them is.",
+	hide_snoozed: "No line for what is snoozed, and the card hides when nothing else is listed. The Sensor Watch page still lists it, and it comes back here when its snooze ends.",
 	snooze: "A tap on a row then offers to snooze it for a day, a week or 30 days, and what is snoozed can be put back. Leave it off on a tablet that anyone can reach: the Sensor Watch page can always snooze."
 }, kt = class extends V {
 	constructor(...e) {

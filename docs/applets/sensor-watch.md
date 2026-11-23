@@ -1109,6 +1109,9 @@ What is [snoozed](#snooze) isn't in the list. The card keeps one line for it at 
 which opens to show each with who snoozed it and until when, and the card doesn't hide
 while there is one. With **Snooze from this card** on, a tap on a row offers to snooze it
 (and **Details** for the entity's dialog), and each snoozed one has **Unsnooze**.
+**Hide snoozed items** leaves that line off the card, which then hides when nothing else
+is listed. The page still lists what is snoozed, and it is back on the card when its
+snooze ends.
 
 ### The gauge card
 

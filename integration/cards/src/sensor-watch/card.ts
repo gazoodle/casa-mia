@@ -146,7 +146,9 @@ export class SensorWatchCard extends LitElement {
         return_response: true,
       });
       this._rows = (got?.response?.sensors ?? []) as Row[];
-      this._snoozed = (got?.response?.snoozed ?? []) as Row[];
+      // Left off this card when it is asked to be (owner, 2026-11-23): the line was in
+      // the way on a dashboard. The page and Status still say what is snoozed.
+      this._snoozed = o.hide_snoozed ? [] : ((got?.response?.snoozed ?? []) as Row[]);
       this._problem = undefined;
     } catch (err) {
       this._rows = [];

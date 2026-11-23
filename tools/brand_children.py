@@ -10,6 +10,7 @@ NEVER TEST THIS: run it after changing a design, and look at the results.
 - Dash-Bored: a bored face on a dashboard tile.
 - Guest Login: a QR code (a drawing of one, not a real code).
 - Intercom: an intercom panel.
+- Jukebox: a 1980s boom box.
 - Love it or Loathe it: a heart on the left and a vomiting face on the right.
 - Protect Talkback: UniFi Protect's camera (branding/unifiprotect-icon.png, from
   brands.home-assistant.io), taken off its blue background and drawn small.
@@ -224,11 +225,56 @@ def _bored(image: Image.Image, s: float) -> None:
     draw.ellipse(at(294, 422, 306, 434), fill=CREAM)
 
 
+def _boom_box(image: Image.Image, s: float) -> None:
+    """A 1980s boom box: a speaker at each end, the cassette door between them, a row of
+    buttons along the top, a carrying handle and an aerial."""
+    draw = ImageDraw.Draw(image)
+
+    def at(*points: float) -> list[float]:
+        return [p * s for p in points]
+
+    # The aerial and the handle first: the body covers where they join it.
+    draw.line(at(398, 318, 474, 226), fill=CREAM, width=round(18 * s))
+    draw.line(at(398, 318, 474, 226), fill=GREEN, width=round(8 * s))
+    draw.ellipse(at(462, 214, 486, 238), fill=CREAM)
+    draw.ellipse(at(467, 219, 481, 233), fill=GREEN)
+    draw.rounded_rectangle(at(140, 248, 372, 360), radius=36 * s, fill=CREAM)
+    draw.rounded_rectangle(at(150, 258, 362, 360), radius=28 * s, fill=GREEN)
+    draw.rounded_rectangle(at(170, 278, 342, 360), radius=14 * s, fill=CREAM)
+
+    # The body, outlined in cream to lift it off the house.
+    draw.rounded_rectangle(at(62, 296, 450, 492), radius=38 * s, fill=CREAM)
+    draw.rounded_rectangle(at(72, 306, 440, 482), radius=30 * s, fill=TERRACOTTA)
+
+    # Along the top: the tuning scale with its needle, then the buttons.
+    draw.rounded_rectangle(at(92, 322, 250, 346), radius=10 * s, fill=CREAM)
+    draw.rectangle(at(192, 326, 198, 342), fill=TERRACOTTA)
+    for x in (270, 304, 338, 372):
+        draw.rounded_rectangle(at(x, 322, x + 26, 346), radius=7 * s, fill=GREEN)
+    draw.ellipse(at(404, 322, 428, 346), fill=CREAM)
+
+    # A speaker at each end: surround, cone, dust cap and a glint.
+    for x in (146, 366):
+        draw.ellipse(at(x - 58, 356, x + 58, 472), fill=CREAM)
+        draw.ellipse(at(x - 48, 366, x + 48, 462), fill=GREEN)
+        draw.ellipse(at(x - 20, 394, x + 20, 434), fill=DARK_LENS)
+        draw.ellipse(at(x - 14, 400, x - 2, 412), fill=CREAM)
+
+    # The cassette door: a window showing the two reels.
+    draw.rounded_rectangle(at(212, 368, 300, 462), radius=14 * s, fill=CREAM)
+    draw.rounded_rectangle(at(222, 380, 290, 426), radius=8 * s, fill=GREEN)
+    for x in (241, 271):
+        draw.ellipse(at(x - 11, 392, x + 11, 414), fill=CREAM)
+        draw.ellipse(at(x - 4, 399, x + 4, 407), fill=DARK_LENS)
+    draw.rounded_rectangle(at(226, 438, 286, 450), radius=6 * s, fill=TERRACOTTA)
+
+
 OVERLAYS: dict[str, Callable[[Image.Image, float], None]] = {
     "casa_mia_commander": lambda image, s: _camera(ImageDraw.Draw(image), s),
     "casa_mia_dash_bored": _bored,
     "casa_mia_guest_login": lambda image, s: _qr(ImageDraw.Draw(image), s),
     "casa_mia_intercom": lambda image, s: _panel(ImageDraw.Draw(image), s),
+    "casa_mia_jukebox": _boom_box,
     "casa_mia_love_or_loathe": _love_and_loathe,
     "casa_mia_protect_talkback": _protect,
 }
@@ -237,6 +283,7 @@ WORDS = {
     "casa_mia_dash_bored": "Dash-Bored",
     "casa_mia_guest_login": "Guest Login",
     "casa_mia_intercom": "Intercom",
+    "casa_mia_jukebox": "Jukebox",
     "casa_mia_love_or_loathe": "Love it or Loathe it",
     "casa_mia_protect_talkback": "Protect Talkback",
 }

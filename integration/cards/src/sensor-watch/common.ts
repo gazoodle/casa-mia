@@ -42,6 +42,9 @@ export type Config = {
   /** A tap on a row offers to snooze it, and what is snoozed can be put back. Off by
    * default: a dashboard is often a tablet on a wall that anyone can reach. */
   snooze?: boolean;
+  /** Leave what is snoozed off this card: no line for it, and the card hides when
+   * nothing else is listed. It is still on the page and in Status's `snoozed_list`. */
+  hide_snoozed?: boolean;
 };
 
 export const ICON_COLORS = ["level", "state", "none"] as const;
@@ -51,7 +54,7 @@ export type IconColor = (typeof ICON_COLORS)[number];
 export const COLUMNS = ["icon", "level", "name", "message", "value", "since"] as const;
 export type Column = (typeof COLUMNS)[number];
 
-export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well.", show: COLUMNS.filter((c) => c !== "icon") as Column[], icon_color: "level", snooze: false } as const;
+export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well.", show: COLUMNS.filter((c) => c !== "icon") as Column[], icon_color: "level", snooze: false, hide_snoozed: false } as const;
 
 /** The row's parts in order, the name and message as one (`what`, where the first of
  * them is), each once. */

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.12-b3
+
+- **Fixed: in Safari, a menu in a dialog opened again as soon as something was chosen from it.** The choice was taken, but the menu stayed on the screen, on a Mac and on an iPhone. It happened to every menu that sits under a field's label, on every page of the app and on Sensor Watch's page: Safari passed the click on the choice to the field's menu button as well, which opened it again.
+
+- **Love it or Loathe it: a station's dialog shows the player it was taken from.** After a player was chosen under **Take it from a player**, the menu went back to "Choose a player…", which looked as if nothing had been chosen although the boxes below had been filled in. It now shows the player, until the boxes are typed in by hand.
+
+- **Sensor Watch card: Hide snoozed items.** A new option, off by default. With it on, the card has no line for what is snoozed and hides when nothing else is listed. The Sensor Watch page and the Status sensor's `snoozed_list` still show it, and it is back on the card when its snooze ends.
+- **Fixed: Love it or Loathe it: one loathed song or advert straight after another turned the volume down further each time, and it was never put back.** At each new track the volume was put back and then changed again for the new one. A speaker reports its new volume a moment after it is given one, so the second change started from the lowered volume the speaker still reported. With an action of -50, three adverts in a row took 40% to 5%, and only the last step was undone afterwards. The change now starts from the volume that was just put back. The same happened when a group was saved or a song rated while a song was turned down, and that is fixed too. A volume is also put back when the next track comes before the speaker has reported the change.
+
 ## 2026.11.12-b2
 
 - **Sensor Watch: Snooze.** A fault you know about and can't fix yet, such as a cloud that is down, can be snoozed for 1 day, 1 week, 30 days or until a date. It then leaves Status, Problem, the counts, the card's list and the sidebar's notifications, so a fault that comes after it shows. It stays in sight: the card keeps a line for it, the page lists it dimmed under Snoozed, and Status has `snoozed` and `snoozed_list`, each with who snoozed it and until when. Snooze is on each row that needs attention on the page, and on the card when **Snooze from this card** is on in its options.
