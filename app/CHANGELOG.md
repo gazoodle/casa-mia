@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.12-b12
+
+- New in Jukebox's player: clear the queue, and save the queue as a Sonos playlist,
+  both at the top of the Queue tab. Clearing asks first, in large letters.
+- New: delete a Sonos playlist, from the menu you get by tapping it in Favourites. It
+  asks first.
+- New: the players on Jukebox's page can be put in the order you want. Press the
+  arrows button in the heading and drag them. The order is kept for every screen.
+- Jukebox: a speaker takes a moment to do what it is asked, so the button you pressed
+  now shows a light running round its edge until the speaker has answered.
+
 ## 2026.11.12-b11
 
 - New: the queue in Jukebox's player. Tap a song to play it, drag it by its handle to

@@ -15,6 +15,9 @@ const PATHS = {
   repeat: "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z",
   queue: "M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z",
   drag: "M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z",
+  save: "M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z",
+  trash: "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z",
+  sort: "M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z",
   rooms: "M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 1.99 2 1.99L17 22c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 2c1.1 0 2 .9 2 2s-.9 2-2 2c-1.11 0-2-.9-2-2s.89-2 2-2zm0 16c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z",
   favourites: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z",
   down: "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z",
@@ -49,6 +52,42 @@ export class Clock implements ReactiveController {
   }
   hostDisconnected() {
     clearInterval(this.timer);
+  }
+}
+
+// The angle of the arc that runs round a button while a speaker is being asked (`.busy`,
+// below). An angle can be animated only once the browser is told it is one, and that has
+// to be said to the document: a rule inside a shadow root is ignored.
+try {
+  (CSS as any).registerProperty({ name: "--jb-turn", syntax: "<angle>", inherits: false, initialValue: "0deg" });
+} catch {
+  // Said already by another copy of this file, or a browser that doesn't know how: the arc
+  // then stays where it is and only pulses.
+}
+
+/** Which buttons are waiting for a speaker's answer. A speaker takes a moment to do what it
+ * is asked, and the button pressed shows an arc running round it until Jukebox has the
+ * answer, so a press is seen to have been taken. It ends by itself with the request,
+ * done or refused. */
+export class Busy {
+  private waiting = new Map<string, number>();
+  constructor(private host: ReactiveControllerHost) {}
+
+  /** Show `key` as waiting until `work` is settled. Gives `work` back. */
+  during<T>(key: string, work: Promise<T>): Promise<T> {
+    const count = (by: number) => {
+      this.waiting.set(key, (this.waiting.get(key) ?? 0) + by);
+      this.host.requestUpdate();
+    };
+    count(1);
+    const done = () => count(-1);
+    work.then(done, done);
+    return work;
+  }
+
+  /** The class for the button that stands for `key`. */
+  on(key: string): string {
+    return this.waiting.get(key) ? "busy" : "";
   }
 }
 
@@ -111,6 +150,16 @@ export const shared = css`
   svg { display: block; width: 24px; height: 24px; fill: currentColor; }
   .ib { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%; }
   .ib:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
+  .busy { position: relative; }
+  /* Just outside the button, so it shows round one that is itself white, and with a glow. */
+  .busy::after { content: ""; position: absolute; inset: -5px; padding: 3px; border-radius: 999px; pointer-events: none; filter: drop-shadow(0 0 5px var(--jb-glow, currentColor));
+    background: conic-gradient(from var(--jb-turn, 0deg), transparent 0 30%, var(--jb-glow, currentColor) 95%, transparent);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: jb-turn 0.9s linear infinite, jb-pulse 0.9s ease-in-out infinite alternate; }
+  @keyframes jb-turn { to { --jb-turn: 360deg; } }
+  @keyframes jb-pulse { from { opacity: 0.6; } }
+  /* What isn't round keeps its own corners, and the arc runs along its edge. */
+  .busy.row::after, .tools .busy::after, .tiles .busy::after { inset: -2px; border-radius: 16px; }
   .art { position: relative; display: grid; place-items: center; aspect-ratio: 1; width: 100%; overflow: hidden; border-radius: 12px; color: rgb(255 255 255 / 92%); font-weight: 800; container-type: inline-size;
     background: radial-gradient(circle at 28% 22%, rgb(255 255 255 / 38%), transparent 42%), conic-gradient(from 200deg at 68% 72%, var(--a), var(--b), var(--a)); }
   .art i { font-style: normal; font-size: 30cqw; letter-spacing: -0.02em; text-shadow: 0 2px 12px rgb(0 0 0 / 30%); }

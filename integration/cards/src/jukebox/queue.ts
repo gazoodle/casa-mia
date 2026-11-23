@@ -5,7 +5,7 @@
 // changed, never on a timer.
 import { LitElement, css, html, nothing } from "lit";
 import { type Group, type Song, mmss, queue, reason } from "./common.ts";
-import { icon, shared } from "./parts.ts";
+import { Busy, icon, shared } from "./parts.ts";
 
 export const QUEUE = "casa-mia-jukebox-queue";
 /** Every row's height in px: a drag is measured in rows. */
@@ -24,6 +24,7 @@ export class Queue extends LitElement {
   /** The row being dragged: where it was, where it would land, and how far it has moved. */
   _drag?: { from: number; to: number; y: number; dy: number };
   private _asked = 0;
+  private _busy = new Busy(this);
 
   protected willUpdate(changed: Map<string, unknown>) {
     const was = changed.get("group") as Group | undefined;
@@ -45,11 +46,11 @@ export class Queue extends LitElement {
   }
 
   /** Show the change at once, ask for it, then show what the speaker has, done or not. */
-  private async _act(action: string, data: object, change: (songs: Song[]) => void) {
+  private async _act(action: string, data: object, change: (songs: Song[]) => void, row = -1) {
     const songs = [...(this._songs ?? [])];
     change(songs);
     this._songs = songs;
-    await this.do(action, data);
+    await this._busy.during(`row:${row}`, this.do(action, data));
     this._fetch();
   }
 
@@ -70,7 +71,7 @@ export class Queue extends LitElement {
     if (!drag) return;
     this._drag = undefined;
     if (drag.to === drag.from) return this._fetch();
-    this._act("queue_move", { value: drag.from + 1, to: drag.to + 1 }, (songs) => songs.splice(drag.to, 0, ...songs.splice(drag.from, 1)));
+    this._act("queue_move", { value: drag.from + 1, to: drag.to + 1 }, (songs) => songs.splice(drag.to, 0, ...songs.splice(drag.from, 1)), drag.to);
   };
 
   render() {
@@ -84,9 +85,9 @@ export class Queue extends LitElement {
       ${songs.map((song, i) => {
         // While one is dragged, the rows it passes move aside to show where it would land.
         const shift = !drag ? 0 : i === drag.from ? drag.dy : drag.from < i && i <= drag.to ? -ROW : drag.to <= i && i < drag.from ? ROW : 0;
-        return html`<div class="row ${i + 1 === now ? "now" : ""} ${drag?.from === i ? "held" : ""}" style="transform:translateY(${shift}px)">
+        return html`<div class="row ${i + 1 === now ? "now" : ""} ${drag?.from === i ? "held" : ""} ${this._busy.on(`row:${i}`)}" style="transform:translateY(${shift}px)">
           <span class="handle" @pointerdown=${(e: PointerEvent) => this._down(e, i)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${icon("drag")}</span>
-          <button class="t" @click=${() => this.do("queue_play", { value: i + 1 })} aria-label="Play ${song.title}"><b>${song.title}</b><small>${song.artist}</small></button>
+          <button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}"><b>${song.title}</b><small>${song.artist}</small></button>
           <span class="len">${i + 1 === now ? icon("volume") : song.duration ? mmss(song.duration) : nothing}</span>
           <button class="ib" @click=${() => this._act("queue_remove", { value: i + 1 }, (all) => all.splice(i, 1))} aria-label="Take ${song.title} out of the queue">${icon("close")}</button>
         </div>`;

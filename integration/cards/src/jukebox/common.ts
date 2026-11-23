@@ -35,6 +35,8 @@ export type Favourite = {
   title: string;
   /** A station: it plays now and leaves the queue alone. */
   live: boolean;
+  /** One of Sonos's own playlists, which can be deleted. */
+  playlist: boolean;
   picture: string | null;
   media_content_id: string;
   media_content_type: string;
@@ -66,6 +68,12 @@ export function favourites(hass: Asking, room: string): Promise<Favourite[]> {
  * many there are in all. */
 export function queue(hass: Asking, room: string): Promise<{ songs: Song[]; total: number }> {
   return hass.connection.sendMessagePromise({ type: `${DOMAIN}/queue`, entity_id: room });
+}
+
+/** Keep the order the page's players were dragged into, for every screen in the house. The
+ * house comes again, in that order, by the feed. */
+export function arrange(hass: Asking, rooms: string[]): Promise<unknown> {
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/order`, rooms });
 }
 
 /** Why a failure happened, in words to show. */

@@ -6,7 +6,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { type Favourite, type Group, type House, ask, average, colours, favourites, follow, groupOf, latest, mmss, names, playing, position, reason } from "./common.ts";
-import { Clock, art, icon, shared } from "./parts.ts";
+import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
 type Tab = "queue" | "rooms" | "favourites";
@@ -24,7 +24,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _replace: { state: true }, _toast: { state: true } };
+  static properties = { room: {}, tab: {}, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _toast: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -35,11 +35,15 @@ export class Big extends LitElement {
   /** None until asked for; a string is why they couldn't be had. */
   _favourites?: Favourite[] | string;
   _menu?: Favourite;
-  _replace?: Favourite;
+  /** Something that can't be undone, asked about again in large letters. */
+  _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
+  /** The sheet that asks what to call the queue as a playlist. */
+  _naming = false;
   _toast = "";
   private _off?: () => void;
   private _fade?: ReturnType<typeof setTimeout>;
   private _sliders = new Map<string, (value: number) => void>();
+  private _busy = new Busy(this);
 
   constructor() {
     super();
@@ -60,7 +64,7 @@ export class Big extends LitElement {
   }
 
   protected willUpdate(changed: Map<string, unknown>) {
-    if (changed.has("tab") && this.tab === "favourites" && this._favourites === undefined) {
+    if ((changed.has("tab") || changed.has("_favourites")) && this.tab === "favourites" && this._favourites === undefined) {
       favourites(this.hass, this.room).then(
         (found) => (this._favourites = found),
         (err) => (this._favourites = reason(err)),
@@ -78,9 +82,10 @@ export class Big extends LitElement {
     this._fade = setTimeout(() => (this._toast = ""), 3500);
   }
 
-  /** Ask Jukebox for something, and say so on the player if it can't be done. */
-  private _do(action: string, data: object = {}, room = this.room): Promise<boolean> {
-    return ask(this.hass, action, room, data).then(
+  /** Ask Jukebox for something, and say so on the player if it can't be done. The button
+   * that stands for `key` shows that it is waiting until the answer comes. */
+  private _do(action: string, data: object = {}, key = action): Promise<boolean> {
+    return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
       () => true,
       (err) => (this._say(reason(err)), false),
     );
@@ -104,24 +109,25 @@ export class Big extends LitElement {
   }
 
   private _toggleRoom(group: Group, room: string) {
-    if (!group.rooms.includes(room)) return void this._do("join", { room });
+    if (!group.rooms.includes(room)) return void this._do("join", { room }, `room:${room}`);
     if (group.rooms.length === 1) return this._say("That is the last room. Pause the music to stop it.");
     // Taking out the room this player follows: stay with the music, not the room.
     if (room === this.room) this.room = group.rooms.find((r) => r !== room)!;
-    this._do("leave", { room });
+    this._do("leave", { room }, `room:${room}`);
   }
 
   private async _play(favourite: Favourite, enqueue?: "next" | "add" | "replace") {
-    this._menu = this._replace = undefined;
-    const done = await this._do("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) });
+    this._menu = this._confirm = undefined;
+    const done = await this._do("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) }, `fav:${favourite.media_content_id}`);
     const said = { next: "Playing next", add: "Added to the end" } as Record<string, string>;
     if (done) this._say(`${said[enqueue ?? ""] ?? "Playing"}: ${favourite.title}`);
   }
 
   private _choose(group: Group, favourite: Favourite) {
     // A station plays at once and leaves the queue as it is; so does anything in a room
-    // that is playing nothing. The rest is lined up, so there is a choice of where.
-    if (favourite.live || group.kind === "nothing") this._play(favourite);
+    // that is playing nothing. The rest is lined up, so there is a choice of where. A
+    // Sonos playlist always has a choice: it can be deleted.
+    if (favourite.live || (group.kind === "nothing" && !favourite.playlist)) this._play(favourite);
     else this._menu = favourite;
   }
 
@@ -159,12 +165,12 @@ export class Big extends LitElement {
           ? html`<div class="live">LIVE${group.channel ? ` · ${group.channel.toUpperCase()}` : ""}</div>`
           : nothing}
       <div class="tp">
-        ${queue ? html`<button class="ib sm ${group.shuffle ? "on" : ""}" @click=${() => this._do("shuffle", { on: !group.shuffle })} aria-label="Shuffle">${icon("shuffle")}</button>` : nothing}
-        ${queue ? html`<button class="ib" @click=${() => this._do("previous")} aria-label="Previous song">${icon("previous")}</button>` : nothing}
-        <button class="ib play" ?disabled=${group.kind === "nothing"} @click=${() => this._do(on ? "pause" : "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
-        ${queue ? html`<button class="ib" @click=${() => this._do("next")} aria-label="Next song">${icon("next")}</button>` : nothing}
+        ${queue ? html`<button class="ib sm ${group.shuffle ? "on" : ""} ${this._busy.on("shuffle")}" @click=${() => this._do("shuffle", { on: !group.shuffle })} aria-label="Shuffle">${icon("shuffle")}</button>` : nothing}
+        ${queue ? html`<button class="ib ${this._busy.on("previous")}" @click=${() => this._do("previous")} aria-label="Previous song">${icon("previous")}</button>` : nothing}
+        <button class="ib play ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._do(on ? "pause" : "play", {}, "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
+        ${queue ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._do("next")} aria-label="Next song">${icon("next")}</button>` : nothing}
         ${queue
-          ? html`<button class="ib sm ${group.repeat === "off" ? "" : "on"}" @click=${() => this._do("repeat", { mode: REPEAT[group.repeat] })} aria-label="Repeat">
+          ? html`<button class="ib sm ${group.repeat === "off" ? "" : "on"} ${this._busy.on("repeat")}" @click=${() => this._do("repeat", { mode: REPEAT[group.repeat] })} aria-label="Repeat">
               ${icon("repeat")}${group.repeat === "one" ? html`<sup>1</sup>` : nothing}
             </button>`
           : nothing}
@@ -184,8 +190,41 @@ export class Big extends LitElement {
     </div>`;
   }
 
+  private _songs(group: Group) {
+    return group.kind === "queue" && group.queue_size ? `The ${group.queue_size} songs in the queue` : "Whatever is in the queue";
+  }
+
+  private _clear(group: Group) {
+    this._confirm = { warn: "This clears the whole queue", text: `${this._songs(group)} will go, and the music stops.`, keep: "Keep the queue", go: "Clear it", run: () => this._do("queue_clear") };
+  }
+
+  private _save = async (e: SubmitEvent) => {
+    e.preventDefault();
+    const name = String(new FormData(e.target as HTMLFormElement).get("name") ?? "").trim();
+    if (!name) return;
+    this._naming = false;
+    if (!(await this._do("queue_save", { name }))) return;
+    this._say(`Saved as a playlist: ${name}`);
+    this._favourites = undefined; // asked for again when they are next shown
+  };
+
+  private _delete(playlist: Favourite) {
+    const run = async () => {
+      if (!(await this._do("playlist_delete", { media_content_id: playlist.media_content_id }, `fav:${playlist.media_content_id}`))) return;
+      if (Array.isArray(this._favourites)) this._favourites = this._favourites.filter((f) => f !== playlist);
+      this._say(`Deleted: ${playlist.title}`);
+    };
+    this._menu = undefined;
+    this._confirm = { warn: "This deletes the playlist", text: `"${playlist.title}" will be gone from Sonos for good. The queue is left as it is.`, keep: "Keep the playlist", go: "Delete it", run };
+  }
+
   private _queue(group: Group) {
+    const none = group.queue_size === 0;
     return html`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
+      <div class="tools">
+        <button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>
+        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)}>${icon("trash")}Clear the queue</button>
+      </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask}></casa-mia-jukebox-queue></div>`;
   }
 
@@ -199,7 +238,7 @@ export class Big extends LitElement {
       const other = groupOf(house, id);
       const note = !room.available ? "Not answering" : inn ? "Playing this" : other && !other.quiet ? `Playing ${playing(other).title}: tap to bring it here` : "Quiet: tap to add it";
       return html`<div class="room ${inn ? "in" : ""}">
-        <button class="tick" ?disabled=${!room.available} @click=${() => this._toggleRoom(group, id)} aria-label=${inn ? `Take ${room.name} out` : `Add ${room.name}`}>${icon(inn ? "check" : "plus")}</button>
+        <button class="tick ${this._busy.on(`room:${id}`)}" ?disabled=${!room.available} @click=${() => this._toggleRoom(group, id)} aria-label=${inn ? `Take ${room.name} out` : `Add ${room.name}`}>${icon(inn ? "check" : "plus")}</button>
         <button class="t" ?disabled=${!room.available} @click=${() => this._toggleRoom(group, id)}><b>${room.name}</b><small>${note}</small></button>
         ${inn && room.volume !== null
           ? html`<casa-mia-jukebox-slider .value=${room.volume} label="${room.name} volume" @jb-slide=${this._slide("volume", id)} @jb-set=${this._slide("volume", id)}></casa-mia-jukebox-slider><output>${room.volume}</output>`
@@ -213,7 +252,7 @@ export class Big extends LitElement {
   private _favouritesPanel(group: Group) {
     const found = this._favourites;
     const folders = Array.isArray(found) ? [...new Set(found.map((f) => f.folder))] : [];
-    const tile = (f: Favourite) => html`<button @click=${() => this._choose(group, f)}>${art(this.hass, f.picture, f.title)}<b>${f.title}</b></button>`;
+    const tile = (f: Favourite) => html`<button class=${this._busy.on(`fav:${f.media_content_id}`)} @click=${() => this._choose(group, f)}>${art(this.hass, f.picture, f.title)}<b>${f.title}</b></button>`;
     return html`${this._head("Favourites", "The stations, playlists and songs saved in Sonos")}
       <div class="scroll">
         ${found === undefined
@@ -226,34 +265,50 @@ export class Big extends LitElement {
       </div>`;
   }
 
-  /** Where a favourite goes in the queue. Replacing the queue is kept apart and asks again. */
+  /** What is asked before anything is done: where a favourite goes in the queue, a name for
+   * a playlist, and once more, in large letters, before something that can't be undone. */
   private _sheets(group: Group) {
-    const menu = this._menu;
-    const replace = this._replace;
-    const songs = group.kind === "queue" && group.queue_size ? `The ${group.queue_size} songs in the queue` : "Whatever is in the queue";
-    if (replace)
+    const { _menu: menu, _confirm: sure } = this;
+    if (sure)
       return html`<div class="veil">
-        <div class="sheet" role="alertdialog" aria-label="Replace the whole queue">
-          <p class="warn">This replaces the whole queue</p>
-          <p>${songs} will go, and "${replace.title}" will start now.</p>
+        <div class="sheet" role="alertdialog" aria-label=${sure.warn}>
+          <p class="warn">${sure.warn}</p>
+          <p>${sure.text}</p>
           <div class="acts">
-            <button class="main" @click=${() => (this._replace = undefined)}>Keep the queue</button>
-            <button class="danger" @click=${() => this._play(replace, "replace")}>Replace it</button>
+            <button class="main" @click=${() => (this._confirm = undefined)}>${sure.keep}</button>
+            <button class="danger" @click=${() => ((this._confirm = undefined), sure.run())}>${sure.go}</button>
           </div>
         </div>
       </div>`;
-    if (menu)
+    if (this._naming)
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._naming = false)}>
+        <form class="sheet" aria-label="Save the queue as a playlist" @submit=${this._save}>
+          <h4>Save the queue as a playlist</h4>
+          <p>It is kept in Sonos, and is listed with the favourites.</p>
+          <input name="name" maxlength="60" required autocomplete="off" placeholder="A name for the playlist" aria-label="A name for the playlist" />
+          <div class="acts">
+            <button class="main" type="submit">Save</button>
+            <button type="button" @click=${() => (this._naming = false)}>Cancel</button>
+          </div>
+        </form>
+      </div>`;
+    if (menu) {
+      const replace = { warn: "This replaces the whole queue", text: `${this._songs(group)} will go, and "${menu.title}" will start now.`, keep: "Keep the queue", go: "Replace it", run: () => void this._play(menu, "replace") };
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._menu = undefined)}>
         <div class="sheet" role="dialog" aria-label=${menu.title}>
           <h4>${menu.title}</h4>
           <p>${menu.folder}</p>
           <div class="acts">
-            <button class="main" @click=${() => this._play(menu, "next")}>Play next</button>
-            <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
-            <button class="danger sep" @click=${() => ([this._menu, this._replace] = [undefined, menu])}>Play now and replace the queue…</button>
+            ${group.kind === "nothing"
+              ? html`<button class="main" @click=${() => this._play(menu)}>Play now</button>`
+              : html`<button class="main" @click=${() => this._play(menu, "next")}>Play next</button>
+                  <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
+                  <button class="danger sep" @click=${() => ([this._menu, this._confirm] = [undefined, replace])}>Play now and replace the queue…</button>`}
+            ${menu.playlist ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
           </div>
         </div>
       </div>`;
+    }
     return nothing;
   }
 
@@ -280,7 +335,7 @@ export class Big extends LitElement {
     shared,
     css`
       :host { position: fixed; inset: 0; z-index: 1000; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
-      .big { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow: clip; background: #111; color: #fff; --muted: rgb(255 255 255 / 66%); --line: rgb(255 255 255 / 14%); --jb-fill: #fff; --jb-track: rgb(255 255 255 / 22%); animation: up 0.28s ease-out; }
+      .big { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow: clip; background: #111; color: #fff; --muted: rgb(255 255 255 / 66%); --line: rgb(255 255 255 / 14%); --jb-fill: #fff; --jb-glow: #fff; --jb-track: rgb(255 255 255 / 22%); animation: up 0.28s ease-out; }
       /* Clipped, not hidden: a hidden box can still be scrolled (a tap brings its target into
          view), and the light behind the player overflows it on purpose. */
       .big::before { content: ""; position: absolute; inset: -60px; background: var(--pic, conic-gradient(from 200deg at 60% 40%, var(--a), var(--b), var(--a))) center / cover; filter: blur(50px) saturate(1.3); }
@@ -332,6 +387,9 @@ export class Big extends LitElement {
       .head { display: flex; align-items: center; gap: 8px; padding: 12px 10px 8px 16px; }
       .head b { flex: 1; font-size: 16px; }
       .head small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
+      .tools { display: flex; gap: 8px; padding: 0 12px 8px; }
+      .tools button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 6px; border-radius: 12px; background: rgb(255 255 255 / 10%); font-size: 13px; font-weight: 600; }
+      .tools svg { width: 18px; height: 18px; flex: none; }
       .scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 6px max(16px, env(safe-area-inset-bottom)); }
       .scroll h3 { margin: 16px 10px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
       .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }
@@ -351,6 +409,7 @@ export class Big extends LitElement {
       .sheet { width: min(100%, 440px); padding: 18px; border-radius: 22px; background: #26231f; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); animation: up 0.2s ease-out; }
       .sheet h4 { margin: 0 0 2px; font-size: 16px; }
       .sheet p { margin: 0 0 14px; color: rgb(255 255 255 / 70%); overflow-wrap: anywhere; }
+      .sheet input { display: block; width: 100%; margin: 0 0 14px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgb(255 255 255 / 8%); color: #fff; font: inherit; font-size: 16px; }
       .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
       .acts { display: grid; gap: 8px; }
       .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; }
@@ -360,6 +419,8 @@ export class Big extends LitElement {
       .acts .sep { margin-top: 10px; }
       .toast { position: absolute; left: 14px; right: 14px; bottom: 18px; z-index: 6; margin: 0 auto; width: fit-content; max-width: calc(100% - 28px); padding: 11px 16px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 10px 30px rgb(0 0 0 / 45%); opacity: 0; transform: translateY(12px); transition: 0.25s; pointer-events: none; }
       .toast.on { opacity: 1; transform: none; }
+      /* Out of the way of a question's buttons. */
+      .veil ~ .toast { top: max(18px, env(safe-area-inset-top)); bottom: auto; }
 
       /* A wide screen (a wall tablet): the rooms and favourites sit beside the player. */
       @media (min-width: 900px) {

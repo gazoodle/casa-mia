@@ -5,7 +5,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
 import { open } from "./big.ts";
 import { type Group, type House, ask, average, colours, latest, names, playing, position, reason } from "./common.ts";
-import { Clock, art, icon, shared } from "./parts.ts";
+import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const MINI = "casa-mia-jukebox-mini";
 
@@ -29,8 +29,10 @@ export class Mini extends LitElement {
     fire(this, "hass-notification", { message: `Jukebox: ${reason(err)}` });
   }
 
-  private _ask(action: string) {
-    ask(this.hass!, action, this.group!.id).catch((err) => this._failed(err));
+  private _busy = new Busy(this);
+
+  private _ask(action: string, key = action) {
+    this._busy.during(key, ask(this.hass!, action, this.group!.id)).catch((err) => this._failed(err));
   }
 
   render() {
@@ -46,8 +48,8 @@ export class Mini extends LitElement {
         <b>${title}</b><span>${by}</span><small>${names(house, group)}</small>
       </button>
       <span class="tp">
-        <button class="ib" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
-        ${group.kind === "queue" ? html`<button class="ib" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>` : nothing}
+        <button class="ib ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play", "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
+        ${group.kind === "queue" ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>` : nothing}
       </span>
       <div class="vol">
         ${icon("volume")}
@@ -68,7 +70,7 @@ export class Mini extends LitElement {
       .meta b { font-size: 15px; }
       .meta span { color: var(--secondary-text-color); }
       .meta small { margin-top: 3px; font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--a) 55%, var(--primary-text-color)); }
-      .tp { display: flex; gap: 2px; }
+      .tp { display: flex; gap: 2px; --jb-glow: var(--primary-color, #c4552d); }
       .vol { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--secondary-text-color); --jb-fill: #c4552d; }
       .vol svg { width: 18px; height: 18px; flex: none; }
       .prog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--a); }

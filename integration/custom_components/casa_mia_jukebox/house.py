@@ -8,7 +8,7 @@ exactly one group; a room playing nothing by itself is a group that is `quiet`.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 # What a group is playing from. Only a queue has songs to line up and move.
@@ -40,10 +40,11 @@ def _percent(level: Any) -> int | None:
 
 def house(
     players: Mapping[str, tuple[str, str, Mapping[str, Any]]],
+    order: Sequence[str] = (),
 ) -> dict[str, Any]:
     """The rooms and their groups. `players` is each Sonos entity's room name, state and
     attributes; a room whose speaker isn't answering is listed, in no group, so the page
-    can say so."""
+    can say so. `order` is the rooms in the order the owner arranged them."""
     rooms = {
         entity: {
             "name": name,
@@ -87,8 +88,17 @@ def house(
         )
 
     # The order is steady, so the page's players don't jump about: what is playing
-    # first, then by the room's name.
-    groups.sort(key=lambda g: (g["quiet"], rooms[g["id"]]["name"].lower()))
+    # first, each group where the owner put the first of its rooms, and the rooms
+    # nobody has arranged after those, by name.
+    place = {room: n for n, room in enumerate(order)}
+
+    def where(group: dict[str, Any]) -> tuple[bool, int, str]:
+        first = min(
+            (place.get(room, len(place)) for room in group["rooms"]), default=len(place)
+        )
+        return group["quiet"], first, rooms[group["id"]]["name"].lower()
+
+    groups.sort(key=where)
     return {"groups": groups, "rooms": rooms}
 
 

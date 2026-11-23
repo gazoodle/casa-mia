@@ -100,6 +100,23 @@ def test_a_group_is_drawn_once_from_its_coordinator_and_a_lone_idle_room_is_quie
     assert house.group_of(model, SHED) is None
 
 
+def test_the_players_keep_the_order_the_owner_arranged_them_in():
+    def ids(*order):
+        playing = {name: (name.title(), "playing", RADIO) for name in "cba"}
+        quiet = {"q": ("Quiet", "idle", {})}
+        together = {"x": ("X", "playing", {**RADIO, "group_members": ["x", "y"]})}
+        follows = {"y": ("Y", "playing", {**RADIO, "group_members": ["x", "y"]})}
+        model = house.house({**playing, **quiet, **together, **follows}, order)
+        return "".join(group["id"] for group in model["groups"])
+
+    # Left alone: by name, and a quiet room after everything that plays.
+    assert ids() == "abcxq"
+    # Arranged: those first, in that order. A group stands where the first of its
+    # rooms was put, and a room nobody has arranged comes after, by name.
+    assert ids("c", "y", "a") == "cxabq"
+    assert ids("q", "b") == "bacxq"
+
+
 def test_what_a_speaker_is_playing_from():
     assert house.kind({"media_title": "A song"}) == house.QUEUE
     assert house.kind(RADIO) == house.RADIO

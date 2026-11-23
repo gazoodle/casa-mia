@@ -26,6 +26,7 @@ HOUSE = f"{DOMAIN}/house"
 DO = f"{DOMAIN}/do"
 FAVOURITES = f"{DOMAIN}/favourites"
 QUEUE = f"{DOMAIN}/queue"
+ORDER = f"{DOMAIN}/order"
 FEED = f"{DOMAIN}_feed"  # hass.data
 VERSION = f"{DOMAIN}_version"
 
@@ -36,13 +37,21 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
     hass.data[VERSION] = version
     hass.data[FEED] = Feed(hass)
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={version}")
-    for command in (_ws_cards, _ws_house, _ws_do, _ws_favourites, _ws_queue):
+    for command in (
+        _ws_cards,
+        _ws_house,
+        _ws_do,
+        _ws_favourites,
+        _ws_queue,
+        _ws_order,
+    ):
         websocket_api.async_register_command(hass, command)
 
 
 async def show(hass: HomeAssistant) -> None:
     """The page in the sidebar. It stays through a reload of the entry: taking a panel
     out under an open page broke Home Assistant's own (Sensor Watch, 2026.11.3-b1)."""
+    await hass.data[FEED].load()
     if PANEL in hass.data.get(frontend.DATA_PANELS, {}):
         return
     await panel_custom.async_register_panel(
@@ -99,6 +108,7 @@ def _ws_house(
         vol.Optional("media_content_id"): str,
         vol.Optional("media_content_type"): str,
         vol.Optional("enqueue"): vol.In(ENQUEUE),
+        vol.Optional("name"): vol.All(str, vol.Length(max=60)),
     }
 )
 @websocket_api.async_response
@@ -149,3 +159,16 @@ async def _ws_queue(
         connection.send_error(msg["id"], "failed", str(err))
         return
     connection.send_result(msg["id"], found)
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): ORDER, vol.Required("rooms"): [str]}
+)
+@websocket_api.async_response
+async def _ws_order(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """The order the page's players were dragged into, for the whole house. Every open
+    page is sent the house again, in the new order."""
+    await hass.data[FEED].arrange(connection.user.name or "someone", msg["rooms"])
+    connection.send_result(msg["id"])

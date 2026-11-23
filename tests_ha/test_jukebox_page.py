@@ -12,6 +12,7 @@ from custom_components.casa_mia_jukebox.page import (
     DO,
     FAVOURITES,
     HOUSE,
+    ORDER,
     PANEL,
     QUEUE,
 )
@@ -169,7 +170,10 @@ async def test_the_favourites_come_as_one_list_with_their_folders(
             item("Playlists", "lists", play=False),
             item("Radio", "radio", play=False),
         ],
-        "lists": [item("Garden Party", "FV:1", thumbnail="/picture")],
+        "lists": [
+            item("Garden Party", "FV:1", thumbnail="/picture"),
+            item("Friday Night", "SQ:3"),
+        ],
         "radio": [
             item("Harbour FM", "FV:2", kind="genre"),
             item("A folder", "FV:3", play=False),
@@ -186,9 +190,12 @@ async def test_the_favourites_come_as_one_list_with_their_folders(
     found = (await ask(client, FAVOURITES, entity_id=KITCHEN))["result"]
     assert [(f["folder"], f["title"], f["picture"], f["live"]) for f in found] == [
         ("Playlists", "Garden Party", "/picture", False),
+        ("Playlists", "Friday Night", None, False),
         ("Radio", "Harbour FM", None, True),
     ]
     assert found[0]["media_content_id"] == "FV:1"
+    # Only a playlist of Sonos's own can be deleted from the page.
+    assert [f["playlist"] for f in found] == [False, True, False]
 
 
 SPEAKER = "http://192.0.2.7:1400"  # where a_player says every stand-in speaker is
@@ -403,3 +410,55 @@ async def test_the_queue_is_read_and_changed_through_the_coordinator(
 
     answer = await ask(client, DO, action="queue_remove", entity_id=GARDEN, value=0)
     assert "numbered from 1" in answer["error"]["message"] and not sent
+
+
+async def test_the_queue_is_cleared_and_saved_and_a_playlist_deleted(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    client = await hass_ws_client(hass)
+    aioclient_mock.post(BROWSE, text=answered("ContentDirectory", "DestroyObject"))
+    saved = answered("AVTransport", "SaveQueue", AssignedObjectID="SQ:9")
+    aioclient_mock.post(TRANSPORT, text=saved)
+
+    def asked(url, action):
+        (_, to, body, headers) = aioclient_mock.mock_calls[-1]
+        assert str(to) == url and f"#{action}" in headers["SOAPACTION"]
+        return body.decode()
+
+    assert (await ask(client, DO, action="queue_clear", entity_id=GARDEN))["success"]
+    asked(TRANSPORT, "RemoveAllTracksFromQueue")
+
+    named = {"action": "queue_save", "entity_id": GARDEN}
+    assert (await ask(client, DO, name=" Friday & Night ", **named))["success"]
+    assert "<Title>Friday &amp; Night</Title>" in asked(TRANSPORT, "SaveQueue")
+    answer = await ask(client, DO, name="  ", **named)
+    assert answer["error"]["message"] == "The playlist needs a name"
+
+    gone = {"action": "playlist_delete", "entity_id": GARDEN}
+    assert (await ask(client, DO, media_content_id="SQ:3", **gone))["success"]
+    assert "<ObjectID>SQ:3</ObjectID>" in asked(BROWSE, "DestroyObject")
+    # A favourite's id is never handed to the speaker to destroy.
+    calls = len(aioclient_mock.mock_calls)
+    answer = await ask(client, DO, media_content_id="FV:2/7", **gone)
+    assert "Only a Sonos playlist" in answer["error"]["message"]
+    assert len(aioclient_mock.mock_calls) == calls and not sent
+
+
+async def test_the_players_order_is_kept_and_sent_to_every_page(
+    hass, hass_ws_client, sent, hass_storage
+):
+    hass.states.async_set(PORCH, "playing", {"media_title": "Another song"})
+    client = await hass_ws_client(hass)
+    await ask(client, HOUSE)
+    first = (await client.receive_json())["event"]
+    assert [g["id"] for g in first["groups"]] == [KITCHEN, PORCH]
+
+    # Arranged from another page: this one is sent the house again, in the new order.
+    other = await hass_ws_client(hass)
+    assert (await ask(other, ORDER, rooms=[PORCH, KITCHEN]))["success"]
+    again = (await client.receive_json())["event"]
+    assert [g["id"] for g in again["groups"]] == [PORCH, KITCHEN]
+
+    # And it is kept for the next start.
+    await hass.async_block_till_done()
+    assert hass_storage["casa_mia_jukebox.order"]["data"] == {"rooms": [PORCH, KITCHEN]}

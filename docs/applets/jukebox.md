@@ -47,7 +47,9 @@ who is signed in. There is nothing to configure: the page shows every speaker of
 Sonos integration.
 
 - **A player for each thing playing**, with its picture, the rooms it is playing in,
-  pause, skip and one volume for all of those rooms.
+  pause, skip and one volume for all of those rooms. With more than one, the arrows
+  button in the heading lets you drag them into the order you want, which is kept for
+  every screen in the house.
 - **Quiet rooms** are listed below. Tap one to choose a favourite to play there.
 - **A speaker that isn't answering** is listed too, so you know why it is missing.
 
@@ -56,14 +58,17 @@ Tap a player to open it over the whole screen. There you have:
 - **Play, pause, skip, shuffle and repeat**, and a slider to move within a song.
 - **Queue:** the songs lined up, with the one that is playing marked. Tap a song to
   play it, drag one by the handle on its left to move it, or press the cross to take
-  it out. The first 500 songs are shown.
+  it out. The first 500 songs are shown. Above the songs, **Save as a playlist** keeps
+  the queue as a new Sonos playlist under a name you give it, and **Clear the queue**
+  empties it, after asking again.
 - **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
   room in the group has its own volume. A room that is playing something else is
   brought over to this music.
 - **Favourites:** the stations, playlists and songs saved as favourites in Sonos. A
   station plays at once and leaves the queue as it is. For a playlist or a song you
   choose **Play next**, **Add to the end of the queue**, or **Play now and replace
-  the queue**, which asks again before the queue is lost.
+  the queue**, which asks again before the queue is lost. A Sonos playlist also has
+  **Delete this playlist**, which removes it from Sonos for good and asks first.
 
 On a phone the queue, rooms and favourites open as a sheet over the player. On a wide screen,
 such as a wall tablet, they sit beside it.

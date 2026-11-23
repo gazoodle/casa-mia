@@ -224,3 +224,24 @@ async def remove(session: aiohttp.ClientSession, host: str, song: int) -> None:
         ObjectID=f"{QUEUE}/{song}",
         UpdateID=0,
     )
+
+
+async def clear(session: aiohttp.ClientSession, host: str) -> None:
+    """Empty the queue. What is playing from it stops."""
+    await call(session, host, "AVTransport", "RemoveAllTracksFromQueue", InstanceID=0)
+
+
+async def save(session: aiohttp.ClientSession, host: str, name: str) -> str:
+    """Save the queue as a new Sonos playlist called `name`, and give its id (`SQ:3`).
+    A playlist that already has the name is left as it is: Sonos allows two."""
+    saved = await call(
+        session, host, "AVTransport", "SaveQueue", InstanceID=0, Title=name, ObjectID=""
+    )
+    return saved.get("AssignedObjectID", "")
+
+
+async def delete_playlist(
+    session: aiohttp.ClientSession, host: str, playlist: str
+) -> None:
+    """Delete a Sonos playlist (`SQ:3`) from the system, for good."""
+    await call(session, host, "ContentDirectory", "DestroyObject", ObjectID=playlist)

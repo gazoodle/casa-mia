@@ -230,6 +230,12 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   The queue is read, and a song moved or removed, here too (`queue.ts` on the page);
   jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
   the feed's `queue_size` or `queue_position` changes, and after each change of its own.
+- **The players' order** is the owner's, dragged on the page: `Feed.order`, a list of
+  rooms kept in HA's storage (`casa_mia_jukebox.order`) and applied in `house.house`.
+  It is set by its own websocket command (`/order`), not `do`: no speaker is asked.
+- **A button waits visibly** (`Busy` in `parts.ts`, the `.busy` class): an arc runs
+  round it from the press until Jukebox answers. Owner, 2026-11-23: Sonos lags, and a
+  press must be seen to have been taken. It ends with the request, not the feed.
 - **Everything the page does goes through `do`,** never straight to a media player: the
   party lock will tell a guest's change from the owners' by that. Keep it so.
 - **The big player** (`big.ts`) is appended to the document, not drawn inside the card,

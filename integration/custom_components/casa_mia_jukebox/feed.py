@@ -16,14 +16,17 @@ import logging
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
+import aiohttp
 from homeassistant.const import ATTR_ENTITY_ID, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 
 from . import house, upnp
 from .announce import address, room_name
+from .const import DOMAIN
 from .house import QUEUE
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,6 +52,20 @@ class Feed:
         self._rooms: frozenset[str] | None = None
         self._last: dict[str, Any] | None = None
         self._due = False
+        # The order the owner arranged the page's players in, kept across restarts.
+        self._store: Store[dict[str, list[str]]] = Store(hass, 1, f"{DOMAIN}.order")
+        self.order: list[str] = []
+
+    async def load(self) -> None:
+        """Read the saved order. Once, before the page is shown."""
+        self.order = list((await self._store.async_load() or {}).get("rooms", []))
+
+    async def arrange(self, who: str, rooms: list[str]) -> None:
+        """Keep the order the page's players were dragged into, and tell every page."""
+        self.order = rooms
+        await self._store.async_save({"rooms": rooms})
+        _LOGGER.info("%s: arranged the players: %s", who, ", ".join(rooms))
+        self._changed()
 
     @property
     def rooms(self) -> frozenset[str]:
@@ -73,7 +90,7 @@ class Feed:
                 state.state if state else "unavailable",
                 state.attributes if state else {},
             )
-        return house.house(players)
+        return house.house(players, self.order)
 
     @callback
     def listen(self, heard: Callable[[dict[str, Any]], None]) -> Callable[[], None]:
@@ -204,8 +221,7 @@ class _Doing:
         # Next means after the song that is playing; there is none on a radio station.
         after = self.group["queue_position"] if self.group["kind"] == QUEUE else None
         await upnp.queue_favourite(
-            async_get_clientsession(self.hass),
-            self._host(),
+            *self._speaker(),
             self._value("media_content_id"),
             after if next else None,
         )
@@ -220,29 +236,40 @@ class _Doing:
         )
 
     async def queue_move(self) -> None:
-        await upnp.move(
-            async_get_clientsession(self.hass),
-            self._host(),
-            self._song(),
-            self._song("to"),
-        )
+        await upnp.move(*self._speaker(), self._song(), self._song("to"))
 
     async def queue_remove(self) -> None:
-        await upnp.remove(
-            async_get_clientsession(self.hass), self._host(), self._song()
-        )
+        await upnp.remove(*self._speaker(), self._song())
+
+    async def queue_clear(self) -> None:
+        await upnp.clear(*self._speaker())
+
+    async def queue_save(self) -> None:
+        name = str(self._value("name")).strip()
+        if not name:
+            raise Refused("The playlist needs a name")
+        await upnp.save(*self._speaker(), name)
+
+    async def playlist_delete(self) -> None:
+        # Only what a speaker keeps as a playlist of its own: never a favourite, whose
+        # id would name something else to destroy.
+        playlist = self._value("media_content_id")
+        if not playlist.startswith(upnp.SAVED_QUEUES):
+            raise Refused("Only a Sonos playlist can be deleted here")
+        await upnp.delete_playlist(*self._speaker(), playlist)
 
     def _song(self, name: str = "value") -> int:
         if (song := int(self._value(name))) < 1:
             raise Refused("The queue's songs are numbered from 1")
         return song
 
-    def _host(self) -> str:
-        """The address of the group's coordinator, for what is asked of it directly."""
+    def _speaker(self) -> tuple[aiohttp.ClientSession, str]:
+        """The group's coordinator, for what is asked of it directly: the session to
+        ask with and its address."""
         host = address(self.hass, self.group["id"])
         if host is None:
             raise Refused("Home Assistant has no address for this speaker")
-        return host
+        return async_get_clientsession(self.hass), host
 
     # How loud: each room has its own volume.
     async def volume(self) -> None:
@@ -293,6 +320,9 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "queue_play": _Doing.queue_play,
     "queue_move": _Doing.queue_move,
     "queue_remove": _Doing.queue_remove,
+    "queue_clear": _Doing.queue_clear,
+    "queue_save": _Doing.queue_save,
+    "playlist_delete": _Doing.playlist_delete,
     "volume": _Doing.volume,
     "mute": _Doing.mute,
     "group_volume": _Doing.group_volume,
@@ -320,7 +350,7 @@ async def do(
 async def queue(feed: Feed, entity: str) -> dict[str, Any]:
     """The queue of the group `entity` is in (upnp.queue)."""
     doing = _Doing(feed.hass, feed.model(), entity, {})
-    return await upnp.queue(async_get_clientsession(feed.hass), doing._host())
+    return await upnp.queue(*doing._speaker())
 
 
 async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
@@ -353,6 +383,10 @@ async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
                         # A station (Sonos files those as a genre) plays at once and
                         # leaves the queue alone; the rest is lined up in it.
                         "live": item["media_class"] == "genre",
+                        # One of Sonos's own playlists, which can be deleted.
+                        "playlist": item["media_content_id"].startswith(
+                            upnp.SAVED_QUEUES
+                        ),
                         "picture": item.get("thumbnail"),
                         "media_content_id": item["media_content_id"],
                         "media_content_type": item["media_content_type"],

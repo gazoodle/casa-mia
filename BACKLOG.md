@@ -36,6 +36,10 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   2026.11.12-b9, and the queue (jump to a song, move one, take one out) in b11.** Left
   of the brief below, in this order: search and browse, the party lock with its
   sensors, Love it or Loathe it's thumbs on the big player, lyrics. Also left:
+  - Built in b12, asked for by the owner on 2026-11-23: the players' order, clear the
+    queue, save the queue as a playlist, delete a playlist, and the light round a
+    button while a speaker is asked. A playlist just saved may not be listed in
+    Favourites until Home Assistant has heard of it from Sonos; reopen the tab.
   - The queue shows a change made in another app only when the song or the number of
     songs changes: a speaker doesn't tell Home Assistant of a move. The party lock's
     watch on the speaker (`queueVersion`, below) will tell the page too.
