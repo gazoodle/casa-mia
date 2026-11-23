@@ -18,10 +18,9 @@ configuration:
   camera_dashboard_enabled:
     name: Auto Dashboards
     description: >-
-      In development. Dashboards made for you: today the camera dashboard, a page per commander
-      and per camera, previewed and deployed into Home Assistant from the Auto
-      Dashboards page of the Casa Mia panel. The commanders' pictures need Camera
-      Commander on.
+      In development. Dashboards made for you: today the camera dashboard, a live page for each
+      camera a commander shows, previewed and deployed into Home Assistant from the Auto
+      Dashboards page of the Casa Mia panel.
   guest_login_enabled:
     name: Guest login
     description: >-

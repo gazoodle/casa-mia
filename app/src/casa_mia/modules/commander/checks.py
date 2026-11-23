@@ -112,13 +112,9 @@ def problems(store: dict[str, Any]) -> list[str]:
             out.append("Every commander needs a name (with letters or digits).")
         elif slug(name) in paths:
             out.append(f"The commanders {paths[slug(name)]!r} and {name!r} clash.")
-        elif slug(name).startswith("cam-"):
-            out.append(f"The commander {name!r} would clash with the camera pages.")
         paths.setdefault(slug(name), name)
     for cmd in commanders_of({"commanders": cmds}):
         the = f"The {cmd['name']} commander"
-        if not isinstance(cmd.get("page", True), bool):
-            out.append(f"{the}'s dashboard page must be true or false.")
         for key, low, high in (("width", 320, 3840), ("height", 240, 2160)):
             if not isinstance(cmd.get(key), int) or not low <= cmd[key] <= high:
                 out.append(f"{the}'s {key} must be {low}-{high}.")

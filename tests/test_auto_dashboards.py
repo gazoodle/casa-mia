@@ -55,10 +55,13 @@ def commander_store():
 def test_build():
     store = commander_store()
     assert problems(store) == []
-    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    # the commander, then each of its cameras
-    assert [v["path"] for v in views] == ["cameras", "cam-bay", "cam-tablet"]
-    bay_view, tablet_view = views[1], views[2]
+    views = build_dashboard(store)["views"]
+    # a page for each of the commander's cameras, and none for the commander: it goes
+    # on a dashboard as its card (no picture with tap zones, so no embedded images)
+    assert [v["path"] for v in views] == ["cam-bay", "cam-tablet"]
+    assert "picture-elements" not in json.dumps(views)
+    assert "base64" not in json.dumps(views)
+    bay_view, tablet_view = views
     cards = bay_view["sections"][0]["cards"]
     assert [c["type"] for c in cards] == [
         "custom:webrtc-camera",
@@ -185,16 +188,14 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     store["commanders"][0]["main"] = "camera.b"
     cd.commander.save(store)  # on the Camera Commander page: live at once
     assert load_config(tmp_path).commanders[0]["main"] == "camera.b"
-    status, view = call(cd, "GET", "")  # the dashboard's own taps: at its next deploy
+    status, view = call(cd, "GET", "")  # the dashboard: at its next deploy
     assert status == 200 and view["changed"] is True
     assert view["store"]["commanders"][0]["main"] == "camera.b"
 
     status, out = call(cd, "POST", "deploy", {"target": "preview"})
     assert status == 200 and out["url_path"] == "dashboard-cams-preview"
     preview = cd.ha.boards["dashboard-cams-preview"]
-    # the live compositor's pictures: the draft compositor has retired
-    assert "http://10.0.0.2:8099/g/cameras.mjpg" in json.dumps(preview)
-    assert "/dashboard-cams-preview/cam-bay" in json.dumps(preview)
+    assert [v["path"] for v in preview["views"]] == ["cam-bay", "cam-tablet"]
     assert out["changed"] is True  # a preview changes nothing live
     assert out["previewed"]
     status, out = call(cd, "POST", "remove-preview")
@@ -206,9 +207,7 @@ def test_edit_preview_then_deploy(cd, tmp_path):
 
     status, out = call(cd, "POST", "deploy", {"target": "live"})
     assert status == 200 and out["changed"] is False and out["deployed"]
-    assert "http://10.0.0.2:8099/g/cameras.mjpg" in json.dumps(
-        cd.ha.boards["dashboard-cams"]
-    )
+    assert "cam-bay" in json.dumps(cd.ha.boards["dashboard-cams"])
     assert load_config(tmp_path).commanders[0]["main"] == "camera.b"
     # what it replaced was kept, and can be put back
     status, out = call(cd, "GET", "backups")
@@ -278,7 +277,7 @@ def test_revert_throws_the_draft_away(cd):
 def test_yaml_for_copy_and_paste(cd):
     status, ctype, body = cd.handle("GET", "yaml", {"target": ["live"]}, b"")
     assert status == 200 and ctype.startswith("text/yaml")
-    assert b"http://10.0.0.2:8099/g/cameras.mjpg" in body
+    assert b"path: cam-bay" in body
 
 
 def test_starts_empty_without_old_files(tmp_path):
@@ -335,41 +334,12 @@ def test_commander_layout():
     assert commander_layout(cmd)[1] == (0, 0, 1000, 400)
 
 
-def test_commander_overview_taps_choose_and_open():
-    store = commander_store()
-    assert problems(store) == []
-    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    (landscape,) = views[0]["sections"][0]["cards"]  # one picture, for every screen
-    assert landscape["image"] == "http://h:8099/g/cameras.mjpg"
-    assert "visibility" not in landscape
-    taps = [e for e in landscape["elements"] if e["type"] == "image"]
-    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
-    mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
-    assert [m["conditions"][0].get("state") for m in mains] == ["Bay", "Tablet", None]
-    # the select holding none of its cameras (another commander's, or none yet): its own
-    assert mains[2]["conditions"][0]["state_not"] == ["Bay", "Tablet"]
-    assert mains[2]["elements"][1]["tap_action"]["navigation_path"].endswith("/cam-bay")
-    lit, opens = mains[0]["elements"]
-    assert opens["tap_action"]["navigation_path"] == "/dashboard-cams/cam-bay"
-    # Bay's own tile is outlined (the browser draws it) while Bay is the main camera
-    assert lit["image"].endswith("#cm-highlight")
-    assert lit["style"]["pointer-events"] == "none"
-    assert lit["style"]["border"] == "2px solid #7bd1a0"
-
-
 def test_a_dashboard_keeps_the_real_names_while_the_swap_is_on(monkeypatch):
     """The browsers swap what a dashboard shows; a deployed dashboard holding stand-ins
-    would keep them after the swap is off, and its taps would match no option."""
+    would keep them after the swap is off."""
 
     monkeypatch.setattr(swap, "out", lambda t: {"Bay": "Barn"}.get(t, t))
-    views = build_dashboard(commander_store(), "http://h:8099", "dashboard-cams")[
-        "views"
-    ]
-    (landscape,) = views[0]["sections"][0]["cards"]
-    taps = [e for e in landscape["elements"] if e["type"] == "image"]
-    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
-    mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
-    assert mains[0]["conditions"][0]["state"] == "Bay"
+    views = build_dashboard(commander_store())["views"]
     bay = next(v for v in views if v["path"] == "cam-bay")
     assert bay["title"] == "Bay"
 
@@ -452,22 +422,6 @@ def test_main_camera_at_its_own_shape():
     assert commander_layout(cmd, "camera.t")[1] == (250, 125, 500, 250)  # the shape set
 
 
-def test_own_shape_gives_a_tap_zone_set_per_main_camera():
-    store = commander_store()
-    store["commanders"][0] |= {
-        "main_fit": "own",
-        "main_width": 60,
-        "aspects": {"camera.a_low": 16 / 9, "camera.b": 4 / 3},
-    }
-    assert problems(store) == []
-    landscape = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"][0]
-    sets = landscape["sections"][0]["cards"][0]["elements"]
-    assert [s["conditions"][0].get("state") for s in sets] == ["Bay", "Tablet", None]
-    bay, tablet, _ = (s["elements"] for s in sets)
-    assert bay[-1]["tap_action"]["navigation_path"].endswith("/cam-bay")  # the main one
-    assert bay[0]["style"] != tablet[0]["style"]  # the panels moved with the shape
-
-
 def test_a_store_saved_with_the_old_security_look_still_loads(cd):
     """The Security look moved to the Camera Commander card (2026.10.3-b76); a store
     saved before keeps its `look`, which is left alone and means nothing now."""
@@ -519,11 +473,8 @@ def test_a_hidden_panel_is_off_the_view():
     store = commander_store()
     store["commanders"][0]["bottom"]["hidden"] = True
     assert problems(store) == []
-    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    assert [v["path"] for v in views] == ["cameras", "cam-bay"]  # no Tablet page
-    (card,) = views[0]["sections"][0]["cards"]
-    taps = [e for e in card["elements"] if e["type"] == "image"]
-    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay"]
+    views = build_dashboard(store)["views"]
+    assert [v["path"] for v in views] == ["cam-bay"]  # no Tablet page
     from casa_mia.modules.compositor import commander_layout, config_from_store
 
     cfg = config_from_store(store)
@@ -542,18 +493,9 @@ def test_several_commanders():
     phone["left"] = {**phone["left"], "cameras": []}  # Tablet only
     store["commanders"].insert(0, phone)  # moved in front of Cameras
     assert problems(store) == []
-    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    assert [v["path"] for v in views] == ["phone", "cameras", "cam-tablet", "cam-bay"]
-    picture = views[0]["sections"][0]["cards"][0]
-    assert picture["image"] == "http://h:8099/g/phone.mjpg"
-    # the shared select holding Bay (not Phone's): Phone shows its own, Tablet
-    own = [e for e in picture["elements"] if e["type"] == "conditional"][-1]
-    assert own["conditions"][0]["state_not"] == ["Tablet"]
-    phone["page"] = False  # drawn, for elsewhere: no page of its own
-    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    assert [v["path"] for v in views] == ["cameras", "cam-tablet", "cam-bay"]
-    phone["page"] = True
-    # each commander's taps set its own Main camera select, as HA's registry has it
+    views = build_dashboard(store)["views"]
+    assert [v["path"] for v in views] == ["cam-tablet", "cam-bay"]
+    # each commander has its own Main camera select, as HA's registry has it
     registry = [
         {
             "platform": "casa_mia_commander",
@@ -563,11 +505,6 @@ def test_several_commanders():
     ]
     selects = commander_selects(store, registry)
     assert selects == {"p1": "select.phone_main", "": COMMANDER_SELECT}
-    picture = build_dashboard(store, "http://h:8099", "d-c", selects)["views"][0]
-    taps = picture["sections"][0]["cards"][0]["elements"]
-    assert {e["conditions"][0]["entity"] for e in taps if "conditions" in e} == {
-        "select.phone_main"
-    }
     # not registered yet: the entity id the integration will give it
     assert (
         commander_selects(store, [])["p1"]

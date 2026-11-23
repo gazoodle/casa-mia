@@ -49,13 +49,11 @@ class AutoDashboards(Deploys):
         if method == "GET" and parts == ["ha"]:
             return _json(200, self.from_ha())
         if method == "GET" and parts == ["yaml"]:
-            live = (query.get("target") or ["live"])[0] == "live"
             with self._lock:
                 store = self.store
             if found := problems(store):
                 raise BadRequest("Fix these first: " + " ".join(found))
-            url_path, base = self._target(store, live)
-            text = to_yaml(build_dashboard(store, base, url_path, self._selects(store)))
+            text = to_yaml(build_dashboard(store))
             return 200, "text/yaml; charset=utf-8", text.encode()
         if method == "POST" and parts == ["deploy"]:
             target = body.get("target")

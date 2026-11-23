@@ -37,6 +37,20 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   - Its tile and picture in the README.
   - S1 (above), and players that aren't Sonos, which are refused today.
   - Rooms next to each other play slightly out of step: each speaker gets its own clip.
+- **The player card: the owner's brief** (2026-11-23). A new media player card of Casa
+  Mia's own, for Sonos only, driven through Jukebox. Steps 2 to 5 below are parts of it.
+  - A mini player on a page that opens to a big player with the artwork, and lyrics or
+    the like over it.
+  - The queue edited live at a party: search, browse and add to the queue. A choice that
+    would replace the whole queue warns in big letters first.
+  - Borrow from the apps people know (Sonos, Spotify, Music Assistant, other well-liked
+    jukeboxes). It must look good and be easy to use.
+  - It stops other people's changes from the Sonos app sticking.
+  - It works with Love it or Loathe it.
+  - It offers sensors, so an automation can turn on a disco ball and lights.
+  - Turned down the same day: the community Sonos card (too complex for the people who
+    will use this), and a lock that leaves the queue to be filled and changed in other
+    apps (the owner wants it done in Jukebox's card).
 - **In this order:**
   1. **Announcements** (built; this is the design they were built to): an `announce`
      service over `media_player.play_media` with
@@ -61,16 +75,40 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
        Assistant doesn't hand back the id of the one it sent.
      - **`extra.volume` sets the clip's loudness** (the owner heard a clip at 7 play
        quieter than one at 15, 2026-11-23), and a clip plays with the speaker at volume 0.
-  2. **Groups and now playing:** a card with each group, its rooms (dragged together or
-     apart through `join`/`unjoin`), volume and saved presets ("Downstairs", "Everywhere").
-  3. **Search and play:** one search across Spotify, the local library and Sonos
+  2. **A small card for everyday use** (owner, 2026-11-23). The need isn't control of the
+     media or a new page: Home Assistant's own page and dialogs do that. It is that joining
+     rooms and changing station take a dialog for each speaker. The community Sonos card
+     was looked at and turned down as too complex for the people who will use this. The
+     card uses only Home Assistant's own actions (`join`, `unjoin`, `select_source`,
+     `volume_set`):
+     - Agreed: a room is added to what is already playing, and taken out again, with one
+       tap. "Also in the garden", not "follow me".
+     - Wanted if it is easy (owner, 2026-11-23): each room's own volume in a group, set
+       from the one card. Each room is its own entity with its own volume, so it is.
+     - Proposed, not yet agreed: a line for each thing playing with its rooms; Sonos
+       favourites as pictures, played in the chosen rooms; one volume for the group.
+  3. **The party lock** (proposed 2026-11-23, not yet agreed or designed). The owners'
+     hard case: guests on the house network all have the Sonos app and change the playlist
+     or the rooms, and the network's password is to stay as it is. Sonos has no permissions
+     on the network, so Jukebox can only make a change not stick. A party names its rooms,
+     a playlist and volume limits; while it runs, Jukebox's copy of the queue is the truth
+     and anything it didn't do itself is put back, with a record of what it undid. This is
+     a deliberate exception to "the speakers hold the truth", for the length of a party.
+     To measure first: how quickly and how completely queue changes reach Home Assistant.
+     A party's music comes from all of these (owner, 2026-11-23): playlists saved in
+     Sonos, some of which are broken, playlists in Spotify, and songs added on the night.
+     So the lock should guard the Sonos queue whatever filled it, and the owners change
+     it from Jukebox's card (the brief above). A broken track that Sonos skips must not count as someone's change.  4. **Search and play:** one search across Spotify, the local library and Sonos
      favourites. Spotify plays through Sonos's own Spotify service (SoCo's share links),
      not Spotify Connect, which often can't see a sleeping Sonos.
-  4. **Playlists:** editing Spotify playlists and saved tracks through the Web API, reusing
+  5. **Playlists:** editing Spotify playlists and saved tracks through the Web API, reusing
      the token of HA's Spotify integration rather than a second login.
-  5. **Sonos versions in Sensor Watch:** each speaker's software version, flagging
+  6. **Sonos versions in Sensor Watch:** each speaker's software version, flagging
      speakers on different versions and speakers that are offline. Updates themselves stay
      with Sonos's overnight auto-update; no supported local way to start one is known.
+- **Later, housekeeping** (owner, 2026-11-23): the music library was to be cleaned (broken
+  files fixed or downloaded again, the library tidied) and the job was put on hold. The
+  broken Sonos playlists come from it. Not part of Jukebox's builds.
 - **The local library** stays Sonos's own SMB-indexed library, so the Sonos app can
   browse it too. A library index of Jukebox's own only if Sonos's falls short (its track
   limit, slow rescans, weak artwork).
@@ -922,7 +960,7 @@ Decided (2026-10-02): **ship everything.** Every module is off until enabled; no
 ## Auto Dashboards and generated config
 
 - **Auto Dashboards: Back, Home and Help made general** (2026-10-09). The camera dashboard's own Back, Home and Help buttons become part of the dashboard-building system, for any dashboard it writes (perhaps the Tablet Layout too). Then (2026-10-10) a navigation skeleton from HA's structure (floors → areas → rooms, each area's picture), with HA's labels saying what goes where.
-- **Retire the generated camera dashboard** once tablet views built from the cards cover it; its picture-elements tap zones, `commander_zones` and `cm-streams.js` pulse go too.
+- **Retire the rest of the generated camera dashboard.** Its commander pages went in 2026.11.12-b8, with their tap zones. Left: the page for each camera, until the card's full screen covers zoom and PTZ presets; and the highlight's pulse in `cm-streams.js`, kept for dashboards deployed before b8 and to go once they have been deployed again. The README's Auto Dashboards picture (`dashboard-security-look.webp`) still shows a commander page and needs one of a camera's page. The new how-to (`docs/how-to/commander-on-your-home-page.md`) has no pictures of its own steps, and its step 8 (the default dashboard) wasn't checked against a current Home Assistant.
 - **Dashboard generator** (`dashboard-gen`, working name, confirm before coding): replaces the hardcoded process that builds `groups.json` / `entities.json` and the dashboard YAML (`gen_dashboard.py`, `discover_entities.py`, `test_dashboard.py` in `tablet-provision/composite-test`). Needs a mechanism: see "Camera config as one source". Loose end: `test_dashboard.py` asserts no view has `badges` or `header`, but the generator emits both. Add a `--check` that needs no token file (the app holds a Supervisor token).
 - **Camera config as one source** (the first deterministic HA config change). One configurable source in the repo drives the compositor config, the dashboard YAML and its delivery into HA's config (the app maps `/homeassistant` read-write), with no copy and paste. Decide the source's shape, whether the repo overwrites the live copy (`seed_config` never does today), and the delivery: the dashboard is UI-managed (`.storage`), so YAML means registering it under `lovelace: dashboards:` (a one-off Core restart). Touches live HA config: agree each step.
 

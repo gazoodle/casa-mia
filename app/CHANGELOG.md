@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.12-b8
+
+- **Breaking:** Auto Dashboards no longer makes a page for each commander. A camera dashboard deployed before this build keeps its commander pages until its next **Deploy live**, which removes them. Before you deploy, put each commander on a dashboard of your own with the Camera Commander card, and point any button or kiosk that opened a commander's page at that dashboard.
+- **Auto Dashboards: a live page for each camera, and nothing else.** The commander pages were one picture with a transparent tap zone over each tile, and were being mistaken for the way to show a commander. The camera dashboard keeps its page for each camera, which the Camera Commander card's tap on the main camera can open. A commander's **Dashboard page** switch has gone with them, and so has the warning about a commander's Main camera select.
+- **New guide: A camera commander on your home page** (`docs/how-to/commander-on-your-home-page.md`), from installing Casa Mia to a commander on a Tablet Layout view, with what to check when the view type or the card isn't in Home Assistant's lists.
+- **Sensor Watch card:** the snooze buttons under an open row sit in the middle of their space, with the same gap above as below.
+
 ## 2026.11.12-b7
 
 - **Sensor Watch: snooze for 4 hours.** The card and the page offer 4 hours as well as 1 day, 1 week and 30 days. On the card, the snooze buttons under an open row now have a small gap above them, so they no longer touch the row's shading.

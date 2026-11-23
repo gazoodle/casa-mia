@@ -146,7 +146,7 @@ class Deploys(Backups):
     def _take(self) -> None:
         """The Cameras or Camera Commander page changed: the draft takes theirs. The
         dashboards show the commanders' new pictures at once (the live compositor's), and
-        take the rest (tap zones, camera pages) at their next deploy."""
+        take the rest (the camera pages) at their next deploy."""
         theirs = self._theirs()
         with self._lock:
             if self._error or all(self.store.get(k) == v for k, v in theirs.items()):
@@ -168,9 +168,9 @@ class Deploys(Backups):
             store = self.store
         if found := problems(store):
             raise BadRequest("Fix these first: " + " ".join(found))
-        url_path, base = self._target(store, live)
+        url_path = self._url_path(store, live)
         target = "live" if live else "preview"
-        config = build_dashboard(store, base, url_path, self._selects(store))
+        config = build_dashboard(store)
         (boards,) = self.ha.call({"type": "lovelace/dashboards/list"})
         if url_path not in [b.get("url_path") for b in boards]:
             self.ha.call(
@@ -190,10 +190,9 @@ class Deploys(Backups):
             {"type": "lovelace/config/save", "url_path": url_path, "config": config}
         )
         _LOGGER.info(
-            "auto dashboards: deployed /%s (%d views, composites from %s)",
+            "auto dashboards: deployed /%s (%d views)",
             url_path,
             len(config["views"]),
-            base,
         )
         with self._lock:
             stamp = datetime.now().isoformat(timespec="seconds")

@@ -74,6 +74,10 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   go2rtc streams.
 - **Auto Dashboards** (`modules/auto_dashboards/`: Base → Backups → Deploys →
   AutoDashboards): a draft built from the other pages, deployed as the camera dashboard.
+  It makes a live page for each camera and no page for a commander (owner, 2026-11-23,
+  b8). Why: a new user took the generated commander page (one picture with a base64 tap
+  zone over each tile) for the way to show a commander. A commander goes on a dashboard
+  as its card; `docs/how-to/commander-on-your-home-page.md` is the worked example.
 - **Integration:** each commander is a device with a Main camera select and a Track motion
   switch (`motion.py`). The device keeps its old identifier (`DEVICE_KEYS` in
   `sensor.py`); the old `/camera-dashboard/` paths still route to `/commander/`.

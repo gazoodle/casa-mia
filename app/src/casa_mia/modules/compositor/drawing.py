@@ -227,7 +227,7 @@ def commander_layout(
     stop at the side panel; the main camera fills what is left. An empty panel takes no
     room. With a sized main camera (own, fixed) it is main_width wide at its shape, and
     the panels share the room around it (so with own, the layout follows `main`).
-    Shared with the dashboard generator, so its tap zones line up. A margin leaves that
+    The card lays its tap zones by the same rules (layout.ts). A margin leaves that
     much clear all round: the layout is made inside it."""
     w, h, gap = cmd["width"], cmd["height"], cmd["gap"]
     m = max(0, min(int(cmd.get("margin", 0)), (min(w, h) - 1) // 2))

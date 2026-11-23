@@ -210,7 +210,7 @@ export const MODULES: Record<string, ModuleInfo> = {
   auto_dashboards: {
     title: "Auto Dashboards",
     option: "Auto Dashboards",
-    blurb: "Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed.",
+    blurb: "Dashboards made for you: today the camera dashboard, a live page for each camera, previewed and deployed.",
     icon: <DashboardIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],

@@ -1,5 +1,5 @@
 """A commander in the Responsive mode, through everything that reads where its cameras
-are: its picture, its dashboard page's tap zones, and the checks on what is saved.
+are: its picture, and the checks on what is saved.
 (The solver itself: tests/test_responsive_cases.py.)"""
 
 import io
@@ -7,8 +7,7 @@ import json
 
 from PIL import Image
 
-from casa_mia.modules.auto_dashboards import build_dashboard, with_defaults
-from casa_mia.modules.auto_dashboards import problems as dashboard_problems
+from casa_mia.modules.auto_dashboards import with_defaults
 from casa_mia.modules.commander.checks import MOST_CAMERAS, problems
 from casa_mia.modules.compositor import (
     EMPTY_COMMANDER,
@@ -172,45 +171,6 @@ def responsive_store(**options) -> dict:
     for p in PANELS:
         c[p]["cameras"] = []
     return store
-
-
-def zones(view: dict) -> list[dict]:
-    """Every tap zone and mark on a commander's dashboard page, however nested."""
-    found: list[dict] = []
-
-    def walk(node):
-        if isinstance(node, dict):
-            if "style" in node and "left" in node.get("style", {}):
-                found.append(node)
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for value in node:
-                walk(value)
-
-    walk(view)
-    return found
-
-
-def test_its_dashboard_page_has_a_zone_over_each_tile():
-    store = responsive_store()
-    assert dashboard_problems(store) == []
-    view = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"][0]
-    c = store["commanders"][0]
-    laid = placed({**EMPTY_COMMANDER, **c})
-    assert len(laid.tiles) == 2
-
-    def pct(value: object) -> float:
-        return float(str(value).rstrip("%"))
-
-    # a zone is placed by its centre, in % of the picture
-    got = [(pct(z["style"]["left"]), pct(z["style"]["top"])) for z in zones(view)]
-    for _, _, (x, y, w, h), _ in laid.tiles:
-        cx, cy = 100 * (x + w / 2) / laid.size[0], 100 * (y + h / 2) / laid.size[1]
-        assert any(abs(cx - gx) < 0.1 and abs(cy - gy) < 0.1 for gx, gy in got)
-    # taps choose by the cameras' titles, in its own list's order
-    text = json.dumps(view)
-    assert '"option": "Tablet"' in text and '"option": "Bay"' in text
 
 
 def test_what_is_wrong_with_responsive_settings_is_said():

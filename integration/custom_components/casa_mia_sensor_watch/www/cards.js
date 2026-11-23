@@ -1287,7 +1287,7 @@ var xt = 300, Y = "snoozed", X = (e) => (/* @__PURE__ */ new Date(Date.now() - e
       flex-wrap: wrap;
       align-items: center;
       gap: 8px;
-      padding: 2px 16px 8px 20px; /* 2px: clear of the row's hover shading above */
+      padding: 8px 16px 8px 20px; /* the same above as below: clear of the row's hover shading */
     }
     .acts .note {
       margin: 0;

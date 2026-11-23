@@ -177,7 +177,7 @@ class Base:
 
     def _record_shapes(self, store: dict[str, Any]) -> None:
         """Note each commander camera's natural shape in the store (from the stills the
-        compositor keeps), so the picture and the dashboard's tap zones lay out the same
+        compositor keeps), so the picture and the card's tap zones lay out the same
         way when the main camera sets its own size. A shape not known yet keeps the one
         recorded before (16:9 until there is one)."""
         comp = self.live

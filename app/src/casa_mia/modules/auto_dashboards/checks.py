@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from ..commander import commander_selects
 from ..commander import problems as commander_problems
 from ..compositor import (
-    commanders_of,
     slug,
 )
 from .common import CARDS, URL_PATH, Store, with_defaults
@@ -50,7 +48,6 @@ def warnings(
     resources: list[str],
     users: set[str],
     helpers: set[str] | frozenset[str] | None = frozenset(),
-    selects: dict[str, str] | None = None,
 ) -> list[str]:
     """What the dashboard needs that this HA seems to lack: entities, wall tablet users,
     and the custom cards and the Back helper among the dashboard resources (a card can
@@ -91,15 +88,6 @@ def warnings(
     ):
         if card in cards and look not in urls:
             out.append(f"The {card} card is not among the dashboard resources.")
-    names = {c["id"]: c["name"] for c in commanders_of(s)}
-    for cid, select in (selects or commander_selects(s, None)).items():
-        if select not in entities:
-            out.append(
-                f"{select} ({names.get(cid, cid)}'s taps) is not in Home Assistant: it "
-                "comes with the Casa Mia integration while Camera Dashboard is on (a "
-                "new commander's once the draft is saved; restart Home Assistant if the "
-                "integration was just updated)."
-            )
     if helpers is None:  # the integration hasn't said yet since the app started
         return out
     by_hand, ours = "nav_back" in urls, "cm-back.js" in helpers
