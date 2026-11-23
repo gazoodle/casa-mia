@@ -35,8 +35,11 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
 - **The page, its players, rooms and favourites, and the small card were built in
   2026.11.12-b9.** Left of the brief below, in this order: the queue (reorder, remove,
   jump), search and browse, the party lock with its sensors, Love it or Loathe it's
-  thumbs on the big player, lyrics. Also left: a phone's back button should close the
-  big player; the page's heading can't be turned off yet; the group's one volume sets
+  thumbs on the big player, lyrics. Also left: the phone's lock screen (owner,
+  2026-11-23, "unless it's easy": it isn't. A browser shows lock-screen controls only for a page that is
+  itself playing sound, so it would need a silent sound kept playing, and the phone's
+  volume keys would still turn the phone's own volume, not the speakers'); a phone's back
+  button should close the big player; the page's heading can't be turned off yet; the group's one volume sets
   each room in turn (the speakers have a group volume of their own).
 - **Announcements were built in 2026.11.12-b6** (HANDOVER, "Jukebox"). Left to do:
   - See it on the box: the dialogs, the chime reaching a speaker, a whole announcement.

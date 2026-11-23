@@ -222,6 +222,10 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   listening, one model for a burst) and carries out what the page asks (`do`, a dict of
   actions). The rooms are every Sonos media player in the entity registry; nothing is
   listed in the options.
+- **`upnp.py`** asks a speaker itself (UPnP, port 1400). HA's Sonos player clears the
+  queue for any favourite whatever `enqueue` says, so "next" and "add" of a favourite
+  go through `queue_favourite`; only "play now" and "replace" use HA's `play_media`.
+  The queue's reorder and remove will go here too.
 - **Everything the page does goes through `do`,** never straight to a media player: the
   party lock will tell a guest's change from the owners' by that. Keep it so.
 - **The big player** (`big.ts`) is appended to the document, not drawn inside the card,

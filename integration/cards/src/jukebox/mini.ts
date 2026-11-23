@@ -63,7 +63,7 @@ export class Mini extends LitElement {
       :host { display: block; }
       .mini { position: relative; overflow: hidden; display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px; border-radius: 18px; border: 1px solid var(--divider-color, #8884);
         color: var(--primary-text-color); background: linear-gradient(100deg, color-mix(in srgb, var(--a) 26%, var(--card-background-color, #fff)), var(--card-background-color, #fff) 75%); }
-      .meta { display: grid; min-width: 0; }
+      .meta { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
       .meta b, .meta span, .meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .meta b { font-size: 15px; }
       .meta span { color: var(--secondary-text-color); }

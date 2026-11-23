@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.12-b10
+
+- Fixed: in Jukebox's player, "Play next" and "Add to the end of the queue" replaced
+  the whole queue for a Sonos favourite. Jukebox now asks the speaker itself to add it,
+  and the queue is kept.
+- Fixed: a long song title made Jukebox's player wider than the screen, which put the
+  buttons out of reach on a phone. A long title now wraps onto a second line.
+- Jukebox's player shows the whole of the artwork, in a square that fits the space; on a
+  phone its sides were cut off.
+
 ## 2026.11.12-b9
 
 - New: Jukebox has a page of its own, "Jukebox" in the sidebar, for Sonos speakers. It

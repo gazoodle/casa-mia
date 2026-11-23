@@ -20,15 +20,21 @@ from homeassistant.const import ATTR_ENTITY_ID, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import house
-from .announce import room_name
+from . import house, upnp
+from .announce import address, room_name
+from .house import QUEUE
 
 _LOGGER = logging.getLogger(__name__)
 PLAYER = "media_player"
 SONOS = "sonos"
 # Where a favourite can go in the queue, in Home Assistant's own words.
 ENQUEUE = ("next", "add", "replace", "play")
+# A Sonos favourite, as Home Assistant's browsing names its kind, and the two places in
+# the queue that leave the rest of it alone.
+FAVOURITE = "favorite_item_id"
+LINED_UP = ("next", "add")
 
 
 class Feed:
@@ -179,12 +185,32 @@ class _Doing:
     async def play_media(self) -> None:
         """A favourite, as the speaker's own browsing named it. Without `enqueue` it
         plays now, and a playlist then takes the queue's place: the page asks first."""
-        extra = {"enqueue": self.data["enqueue"]} if "enqueue" in self.data else {}
+        enqueue = self.data.get("enqueue")
+        if self._value("media_content_type") == FAVOURITE and enqueue in LINED_UP:
+            await self._line_up(enqueue == "next")
+            return
+
+        extra = {"enqueue": enqueue} if enqueue else {}
         await self._coordinator(
             "play_media",
             media_content_id=self._value("media_content_id"),
             media_content_type=self._value("media_content_type"),
             **extra,
+        )
+
+    async def _line_up(self, next: bool) -> None:
+        """A favourite into the queue, by the speaker itself: Home Assistant clears the
+        queue for any favourite, whatever `enqueue` says (upnp.py)."""
+        host = address(self.hass, self.group["id"])
+        if host is None:
+            raise Refused("Home Assistant has no address for this speaker")
+        # Next means after the song that is playing; there is none on a radio station.
+        after = self.group["queue_position"] if self.group["kind"] == QUEUE else None
+        await upnp.queue_favourite(
+            async_get_clientsession(self.hass),
+            host,
+            self._value("media_content_id"),
+            after if next else None,
         )
 
     # How loud: each room has its own volume.

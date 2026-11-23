@@ -58,6 +58,15 @@ async def _turn(lock: asyncio.Lock, seconds: float) -> AsyncIterator[None]:
         lock.release()
 
 
+def address(hass: HomeAssistant, entity_id: str) -> str | None:
+    """A speaker's address on the network, from the link Home Assistant keeps for its
+    device."""
+    entry = er.async_get(hass).async_get(entity_id)
+    device = dr.async_get(hass).async_get(entry.device_id or "") if entry else None
+    link = device.configuration_url if device else None
+    return pure.address(str(link) if link else None)
+
+
 class Jukebox:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass, self.entry = hass, entry
@@ -140,9 +149,7 @@ class Jukebox:
             return pure.NOT_SONOS, None
         if self.quiet and not priority:
             return pure.QUIET, None
-        device = dr.async_get(self.hass).async_get(entry.device_id or "")
-        link = device.configuration_url if device else None
-        host = pure.address(str(link) if link else None)
+        host = address(self.hass, player)
         if host is None:
             return pure.NO_ANSWER, "Home Assistant has no address for this speaker"
 

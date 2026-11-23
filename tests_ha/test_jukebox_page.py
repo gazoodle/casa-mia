@@ -3,6 +3,7 @@ and what the page asks to be done. The speakers are stand-ins: entities register
 Sonos's, and media player services that record what they were sent."""
 
 import logging
+from xml.sax.saxutils import escape
 
 import pytest
 from custom_components.casa_mia_jukebox.const import DOMAIN
@@ -187,3 +188,110 @@ async def test_the_favourites_come_as_one_list_with_their_folders(
         ("Radio", "Harbour FM", None, True),
     ]
     assert found[0]["media_content_id"] == "FV:1"
+
+
+SPEAKER = "http://192.0.2.7:1400"  # where a_player says every stand-in speaker is
+BROWSE = f"{SPEAKER}/MediaServer/ContentDirectory/Control"
+TRANSPORT = f"{SPEAKER}/MediaRenderer/AVTransport/Control"
+PLAYLIST = "file:///jffs/settings/savedqueues.rsq#3"
+
+
+def answered(service, action, **parts):
+    """A speaker's answer to a UPnP action."""
+    inner = "".join(f"<{k}>{escape(str(v))}</{k}>" for k, v in parts.items())
+    return (
+        '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>'
+        f'<u:{action}Response xmlns:u="urn:schemas-upnp-org:service:{service}:1">'
+        f"{inner}</u:{action}Response></s:Body></s:Envelope>"
+    )
+
+
+FAVOURITES_OF_THE_SPEAKER = answered(
+    "ContentDirectory",
+    "Browse",
+    Result=(
+        '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"'
+        ' xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/">'
+        '<item id="FV:2/6"><res>x-rincon-mp3radio://radio.example/harbour</res></item>'
+        f'<item id="FV:2/7"><res>{PLAYLIST}</res><r:resMD>&lt;about/&gt;</r:resMD></item>'
+        "</DIDL-Lite>"
+    ),
+)
+REFUSED = (
+    '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><s:Fault>'
+    '<detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0">'
+    "<errorCode>701</errorCode></UPnPError></detail></s:Fault></s:Body></s:Envelope>"
+)
+
+
+async def test_a_favourite_is_lined_up_by_the_speaker_and_the_queue_is_kept(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    """Home Assistant clears the queue for a favourite whatever `enqueue` says, so
+    "add to the end" and "play next" go to the speaker itself."""
+    client = await hass_ws_client(hass)
+    aioclient_mock.post(BROWSE, text=FAVOURITES_OF_THE_SPEAKER)
+    added = answered("AVTransport", "AddURIToQueue", NumTracksAdded=12)
+    aioclient_mock.post(TRANSPORT, text=added)
+    favourite = {"media_content_id": "FV:2/7", "media_content_type": "favorite_item_id"}
+
+    def asked_of_the_queue():
+        (_, url, body, headers) = aioclient_mock.mock_calls[-1]
+        assert str(url) == TRANSPORT and "#AddURIToQueue" in headers["SOAPACTION"]
+        return body.decode()
+
+    # At the end: asked of the coordinator's speaker, and nothing of Home Assistant.
+    answer = await ask(
+        client, DO, action="play_media", entity_id=GARDEN, enqueue="add", **favourite
+    )
+    assert answer["success"] and not sent
+    body = asked_of_the_queue()
+    assert f"<EnqueuedURI>{PLAYLIST}</EnqueuedURI>" in body
+    assert "<EnqueuedURIMetaData>&lt;about/&gt;</EnqueuedURIMetaData>" in body
+    assert "<DesiredFirstTrackNumberEnqueued>0<" in body and "<EnqueueAsNext>0<" in body
+
+    # Next: straight after the song that is playing, the fourth.
+    state = hass.states.get(KITCHEN)
+    hass.states.async_set(KITCHEN, "playing", {**state.attributes, "queue_position": 4})
+    await ask(
+        client, DO, action="play_media", entity_id=KITCHEN, enqueue="next", **favourite
+    )
+    body = asked_of_the_queue()
+    assert "<DesiredFirstTrackNumberEnqueued>5<" in body and "<EnqueueAsNext>1<" in body
+    assert not sent
+
+    # Replacing the queue, which the page asks about first, is Home Assistant's to do.
+    await ask(
+        client,
+        DO,
+        action="play_media",
+        entity_id=KITCHEN,
+        enqueue="replace",
+        **favourite,
+    )
+    assert sent.pop() == (
+        "play_media",
+        {"entity_id": KITCHEN, "enqueue": "replace", **favourite},
+    )
+
+
+async def test_a_favourite_that_cant_be_lined_up_says_why(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    client = await hass_ws_client(hass)
+    aioclient_mock.post(BROWSE, text=FAVOURITES_OF_THE_SPEAKER)
+    aioclient_mock.post(TRANSPORT, text=REFUSED, status=500)
+    line_up = {
+        "action": "play_media",
+        "entity_id": KITCHEN,
+        "enqueue": "add",
+        "media_content_type": "favorite_item_id",
+    }
+
+    answer = await ask(client, DO, media_content_id="FV:2/7", **line_up)
+    assert answer["error"]["message"] == "The speaker refused AddURIToQueue (error 701)"
+
+    # One that was deleted in Sonos since the page listed it.
+    answer = await ask(client, DO, media_content_id="FV:2/99", **line_up)
+    assert "doesn't have that favourite" in answer["error"]["message"]
+    assert not sent

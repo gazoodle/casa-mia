@@ -270,22 +270,31 @@ export class Big extends LitElement {
     shared,
     css`
       :host { position: fixed; inset: 0; z-index: 1000; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
-      .big { position: absolute; inset: 0; display: grid; overflow: clip; background: #111; color: #fff; --muted: rgb(255 255 255 / 66%); --line: rgb(255 255 255 / 14%); --jb-fill: #fff; --jb-track: rgb(255 255 255 / 22%); animation: up 0.28s ease-out; }
+      .big { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow: clip; background: #111; color: #fff; --muted: rgb(255 255 255 / 66%); --line: rgb(255 255 255 / 14%); --jb-fill: #fff; --jb-track: rgb(255 255 255 / 22%); animation: up 0.28s ease-out; }
       /* Clipped, not hidden: a hidden box can still be scrolled (a tap brings its target into
          view), and the light behind the player overflows it on purpose. */
       .big::before { content: ""; position: absolute; inset: -60px; background: var(--pic, conic-gradient(from 200deg at 60% 40%, var(--a), var(--b), var(--a))) center / cover; filter: blur(50px) saturate(1.3); }
       .big::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(0 0 0 / 30%), rgb(0 0 0 / 72%)); }
-      .big > * { position: relative; z-index: 1; min-height: 0; }
+      /* The one column is no wider than the screen. Left to itself it grows to fit a long
+         title, which may not wrap, and the buttons go off the right edge with it. */
+      .big > * { position: relative; z-index: 1; min-width: 0; min-height: 0; }
       @keyframes up { from { transform: translateY(40px); opacity: 0; } }
       .now { display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 22px max(14px, env(safe-area-inset-bottom)); }
       .bar { display: flex; align-items: center; gap: 8px; }
       .where { flex: 1; min-width: 0; text-align: center; }
       .where small { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
       .where b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .cover { flex: 1; min-height: 0; display: grid; place-items: center; }
-      .cover .art { width: auto; height: 100%; max-width: 100%; max-height: 380px; border-radius: 18px; box-shadow: 0 20px 50px rgb(0 0 0 / 50%); }
+      /* The artwork is a square that fits the space left for it, whichever way that space is
+         the narrower, and the picture is shown whole inside it, never cropped. */
+      .cover { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; }
+      .cover .art { width: min(100cqw, 100cqh, 380px); border-radius: 18px; box-shadow: 0 20px 50px rgb(0 0 0 / 50%); }
+      .cover .art:has(img) { overflow: visible; background: none; box-shadow: none; }
+      .cover .art:has(img) i { display: none; }
+      .cover .art img { object-fit: contain; border-radius: 18px; filter: drop-shadow(0 16px 30px rgb(0 0 0 / 50%)); }
       .title { text-align: center; }
-      .title b { display: block; font-size: 21px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* Two lines at most: enough to tell one version of a song from another, and no title
+         can squeeze the artwork. */
+      .title b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 21px; line-height: 1.2; overflow-wrap: anywhere; text-wrap: balance; }
       .title span { color: var(--muted); }
       .seek { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
       .live { text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
