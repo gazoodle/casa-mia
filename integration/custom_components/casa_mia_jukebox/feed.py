@@ -201,17 +201,48 @@ class _Doing:
     async def _line_up(self, next: bool) -> None:
         """A favourite into the queue, by the speaker itself: Home Assistant clears the
         queue for any favourite, whatever `enqueue` says (upnp.py)."""
-        host = address(self.hass, self.group["id"])
-        if host is None:
-            raise Refused("Home Assistant has no address for this speaker")
         # Next means after the song that is playing; there is none on a radio station.
         after = self.group["queue_position"] if self.group["kind"] == QUEUE else None
         await upnp.queue_favourite(
             async_get_clientsession(self.hass),
-            host,
+            self._host(),
             self._value("media_content_id"),
             after if next else None,
         )
+
+    # The queue, which the group's coordinator keeps. Songs are numbered from 1.
+    async def queue_play(self) -> None:
+        await self.hass.services.async_call(
+            SONOS,
+            "play_queue",
+            {ATTR_ENTITY_ID: self.group["id"], "queue_position": self._song() - 1},
+            blocking=True,
+        )
+
+    async def queue_move(self) -> None:
+        await upnp.move(
+            async_get_clientsession(self.hass),
+            self._host(),
+            self._song(),
+            self._song("to"),
+        )
+
+    async def queue_remove(self) -> None:
+        await upnp.remove(
+            async_get_clientsession(self.hass), self._host(), self._song()
+        )
+
+    def _song(self, name: str = "value") -> int:
+        if (song := int(self._value(name))) < 1:
+            raise Refused("The queue's songs are numbered from 1")
+        return song
+
+    def _host(self) -> str:
+        """The address of the group's coordinator, for what is asked of it directly."""
+        host = address(self.hass, self.group["id"])
+        if host is None:
+            raise Refused("Home Assistant has no address for this speaker")
+        return host
 
     # How loud: each room has its own volume.
     async def volume(self) -> None:
@@ -259,6 +290,9 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "shuffle": _Doing.shuffle,
     "repeat": _Doing.repeat,
     "play_media": _Doing.play_media,
+    "queue_play": _Doing.queue_play,
+    "queue_move": _Doing.queue_move,
+    "queue_remove": _Doing.queue_remove,
     "volume": _Doing.volume,
     "mute": _Doing.mute,
     "group_volume": _Doing.group_volume,
@@ -281,6 +315,12 @@ async def do(
         _LOGGER.warning("%s: %s in %s %s failed: %s", who, action, entity, said, err)
         raise
     _LOGGER.info("%s: %s in %s %s", who, action, entity, said)
+
+
+async def queue(feed: Feed, entity: str) -> dict[str, Any]:
+    """The queue of the group `entity` is in (upnp.queue)."""
+    doing = _Doing(feed.hass, feed.model(), entity, {})
+    return await upnp.queue(async_get_clientsession(feed.hass), doing._host())
 
 
 async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:

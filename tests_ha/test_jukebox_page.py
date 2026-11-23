@@ -13,6 +13,7 @@ from custom_components.casa_mia_jukebox.page import (
     FAVOURITES,
     HOUSE,
     PANEL,
+    QUEUE,
 )
 from homeassistant.components import frontend
 from homeassistant.core import SupportsResponse
@@ -275,6 +276,45 @@ async def test_a_favourite_is_lined_up_by_the_speaker_and_the_queue_is_kept(
     )
 
 
+async def test_a_sonos_playlist_is_found_where_the_speaker_keeps_those(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    """Home Assistant lists the Sonos playlists among the favourites, but a speaker keeps
+    them apart (`SQ:`), and with no description of their own. In 2026.11.12-b10 one was
+    looked for in a list with no name, which the speaker refused (error 701)."""
+    client = await hass_ws_client(hass)
+    playlists = (
+        '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"'
+        ' xmlns:dc="http://purl.org/dc/elements/1.1/"'
+        ' xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">'
+        f'<container id="SQ:3" parentID="SQ:"><res>{PLAYLIST}</res>'
+        "<dc:title>Friday &amp; Night</dc:title>"
+        "<upnp:class>object.container.playlistContainer</upnp:class></container>"
+        "</DIDL-Lite>"
+    )
+    aioclient_mock.post(
+        BROWSE, text=answered("ContentDirectory", "Browse", Result=playlists)
+    )
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "AddURIToQueue"))
+
+    answer = await ask(
+        client,
+        DO,
+        action="play_media",
+        entity_id=KITCHEN,
+        enqueue="add",
+        media_content_id="SQ:3",
+        media_content_type="favorite_item_id",
+    )
+    assert answer["success"] and not sent
+    browsed, queued = (call[2].decode() for call in aioclient_mock.mock_calls)
+    assert "<ObjectID>SQ:</ObjectID>" in browsed
+    assert f"<EnqueuedURI>{PLAYLIST}</EnqueuedURI>" in queued
+    # Its description is written for it, and escaped once more to travel as text.
+    assert 'item id="SQ:3" parentID="SQ:"' in queued
+    assert "&lt;dc:title&gt;Friday &amp;amp; Night&lt;/dc:title&gt;" in queued
+
+
 async def test_a_favourite_that_cant_be_lined_up_says_why(
     hass, hass_ws_client, sent, aioclient_mock
 ):
@@ -295,3 +335,71 @@ async def test_a_favourite_that_cant_be_lined_up_says_why(
     answer = await ask(client, DO, media_content_id="FV:2/99", **line_up)
     assert "doesn't have that favourite" in answer["error"]["message"]
     assert not sent
+
+
+async def test_the_queue_is_read_and_changed_through_the_coordinator(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    client = await hass_ws_client(hass)
+    jumped = []
+
+    async def play_queue(call):
+        jumped.append(dict(call.data))
+
+    hass.services.async_register("sonos", "play_queue", play_queue)
+    songs = (
+        '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"'
+        ' xmlns:dc="http://purl.org/dc/elements/1.1/"'
+        ' xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">'
+        '<item id="Q:0/1"><res duration="0:03:14">x-file-cifs://nas.example/a.mp3</res>'
+        "<dc:title>Paper Lanterns</dc:title><dc:creator>The Marigolds</dc:creator>"
+        "<upnp:album>Slow Sunday</upnp:album></item>"
+        '<item id="Q:0/2"><res>x-file-cifs://nas.example/b.mp3</res>'
+        "<dc:title>A song</dc:title></item>"
+        "</DIDL-Lite>"
+    )
+    aioclient_mock.post(
+        BROWSE,
+        text=answered("ContentDirectory", "Browse", Result=songs, TotalMatches=7),
+    )
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+
+    # Asked of a room that follows: the queue is its coordinator's.
+    found = (await ask(client, QUEUE, entity_id=GARDEN))["result"]
+    assert found == {
+        "total": 7,
+        "songs": [
+            {
+                "title": "Paper Lanterns",
+                "artist": "The Marigolds",
+                "album": "Slow Sunday",
+                "duration": 194,
+            },
+            {"title": "A song", "artist": "", "album": "", "duration": None},
+        ],
+    }
+
+    def asked(action):
+        (_, url, body, headers) = aioclient_mock.mock_calls[-1]
+        assert str(url) == TRANSPORT and f"#{action}" in headers["SOAPACTION"]
+        return body.decode()
+
+    # A song moved up goes in front of the one at its new place; moved down, in front
+    # of the one after it, since the speaker counts before the move.
+    assert (
+        await ask(client, DO, action="queue_move", entity_id=GARDEN, value=5, to=2)
+    )["success"]
+    body = asked("ReorderTracksInQueue")
+    assert "<StartingIndex>5<" in body and "<InsertBefore>2<" in body
+    await ask(client, DO, action="queue_move", entity_id=GARDEN, value=2, to=5)
+    assert "<InsertBefore>6<" in asked("ReorderTracksInQueue")
+
+    await ask(client, DO, action="queue_remove", entity_id=GARDEN, value=3)
+    assert "<ObjectID>Q:0/3</ObjectID>" in asked("RemoveTrackFromQueue")
+
+    # Jumping to a song is Home Assistant's own action, which counts from 0.
+    await ask(client, DO, action="queue_play", entity_id=GARDEN, value=4)
+    assert jumped == [{"entity_id": KITCHEN, "queue_position": 3}]
+
+    answer = await ask(client, DO, action="queue_remove", entity_id=GARDEN, value=0)
+    assert "numbered from 1" in answer["error"]["message"] and not sent

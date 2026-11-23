@@ -33,14 +33,22 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   speaker reports `swGen` 2 and `AUDIO_CLIP`), so that path can only be tested against a
   stand-in until someone with S1 tries it.
 - **The page, its players, rooms and favourites, and the small card were built in
-  2026.11.12-b9.** Left of the brief below, in this order: the queue (reorder, remove,
-  jump), search and browse, the party lock with its sensors, Love it or Loathe it's
-  thumbs on the big player, lyrics. Also left: the phone's lock screen (owner,
-  2026-11-23, "unless it's easy": it isn't. A browser shows lock-screen controls only for a page that is
-  itself playing sound, so it would need a silent sound kept playing, and the phone's
-  volume keys would still turn the phone's own volume, not the speakers'); a phone's back
-  button should close the big player; the page's heading can't be turned off yet; the group's one volume sets
-  each room in turn (the speakers have a group volume of their own).
+  2026.11.12-b9, and the queue (jump to a song, move one, take one out) in b11.** Left
+  of the brief below, in this order: search and browse, the party lock with its
+  sensors, Love it or Loathe it's thumbs on the big player, lyrics. Also left:
+  - The queue shows a change made in another app only when the song or the number of
+    songs changes: a speaker doesn't tell Home Assistant of a move. The party lock's
+    watch on the speaker (`queueVersion`, below) will tell the page too.
+  - The queue shows the first 500 songs, has no pictures (the speaker serves them over
+    plain http on the house's network, which a phone away from home can't load), and a
+    song can't be dragged past the edge of what is on screen.
+  - The phone's lock screen (owner, 2026-11-23, "unless it's easy": it isn't. A browser
+    shows lock-screen controls only for a page that is itself playing sound, so it
+    would need a silent sound kept playing, and the phone's volume keys would still
+    turn the phone's own volume, not the speakers').
+  - A phone's back button should close the big player; the page's heading can't be
+    turned off yet; the group's one volume sets each room in turn (the speakers have a
+    group volume of their own).
 - **Announcements were built in 2026.11.12-b6** (HANDOVER, "Jukebox"). Left to do:
   - See it on the box: the dialogs, the chime reaching a speaker, a whole announcement.
   - Its tile and picture in the README.

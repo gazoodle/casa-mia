@@ -7,8 +7,8 @@ volume for each room and quiet hours.
 
 Jukebox is meant to become one place to manage the house's music across Sonos, Spotify
 and a local library. Built so far: its page with the players, rooms and favourites, a
-small card, and announcements. Editing the queue, search, and a lock that stops guests
-changing the music at a party are planned.
+small card, and announcements. Search, and a lock that stops guests changing the music
+at a party, are planned.
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -54,6 +54,9 @@ Sonos integration.
 Tap a player to open it over the whole screen. There you have:
 
 - **Play, pause, skip, shuffle and repeat**, and a slider to move within a song.
+- **Queue:** the songs lined up, with the one that is playing marked. Tap a song to
+  play it, drag one by the handle on its left to move it, or press the cross to take
+  it out. The first 500 songs are shown.
 - **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
   room in the group has its own volume. A room that is playing something else is
   brought over to this music.
@@ -62,7 +65,7 @@ Tap a player to open it over the whole screen. There you have:
   choose **Play next**, **Add to the end of the queue**, or **Play now and replace
   the queue**, which asks again before the queue is lost.
 
-On a phone the rooms and favourites open as a sheet over the player. On a wide screen,
+On a phone the queue, rooms and favourites open as a sheet over the player. On a wide screen,
 such as a wall tablet, they sit beside it.
 
 The page's heading has a back button and a home button, because a wall tablet running

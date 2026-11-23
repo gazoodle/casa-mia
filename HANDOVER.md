@@ -225,7 +225,11 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
 - **`upnp.py`** asks a speaker itself (UPnP, port 1400). HA's Sonos player clears the
   queue for any favourite whatever `enqueue` says, so "next" and "add" of a favourite
   go through `queue_favourite`; only "play now" and "replace" use HA's `play_media`.
-  The queue's reorder and remove will go here too.
+  HA lists the Sonos playlists among the favourites with ids `SQ:n`; a speaker keeps
+  those under `SQ:`, apart from the favourites (`FV:2`), and with no `resMD`.
+  The queue is read, and a song moved or removed, here too (`queue.ts` on the page);
+  jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
+  the feed's `queue_size` or `queue_position` changes, and after each change of its own.
 - **Everything the page does goes through `do`,** never straight to a media player: the
   party lock will tell a guest's change from the owners' by that. Keep it so.
 - **The big player** (`big.ts`) is appended to the document, not drawn inside the card,

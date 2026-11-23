@@ -1,5 +1,5 @@
-// The big player: what one group is playing, over its own artwork, with the rooms it plays
-// in (each with its own volume) and the Sonos favourites. It covers the whole screen, on
+// The big player: what one group is playing, over its own artwork, with its queue
+// (queue.ts), the rooms it plays in (each with its own volume) and the Sonos favourites. It covers the whole screen, on
 // the document itself, so it looks the same opened from the page or from a card on any
 // dashboard, and it follows the house by itself. A phone gets the rooms and favourites as
 // a sheet over the player; a wall tablet gets them beside it.
@@ -9,8 +9,9 @@ import { type Favourite, type Group, type House, ask, average, colours, favourit
 import { Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
-type Tab = "rooms" | "favourites";
+type Tab = "queue" | "rooms" | "favourites";
 const TABS: [Tab, string][] = [
+  ["queue", "Queue"],
   ["rooms", "Rooms"],
   ["favourites", "Favourites"],
 ];
@@ -84,6 +85,9 @@ export class Big extends LitElement {
       (err) => (this._say(reason(err)), false),
     );
   }
+
+  /** For the queue, which asks through the player so that a refusal is said here. */
+  private _ask = (action: string, data: object) => this._do(action, data);
 
   /** A slider's sender, one for each thing it sets, kept so a drag sends in turn. */
   private _slide(action: string, room: string) {
@@ -180,6 +184,11 @@ export class Big extends LitElement {
     </div>`;
   }
 
+  private _queue(group: Group) {
+    return html`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
+      <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask}></casa-mia-jukebox-queue></div>`;
+  }
+
   private _rooms(house: House, group: Group) {
     const others = Object.keys(house.rooms)
       .filter((r) => !group.rooms.includes(r))
@@ -256,11 +265,12 @@ export class Big extends LitElement {
       const why = this._why ?? (house ? "This room's speaker isn't answering." : "Asking Home Assistant what is playing…");
       return html`<div class="big"><div class="now"><div class="bar"><button class="ib" @click=${() => this.remove()} aria-label="Close the player">${icon("down")}</button></div><p class="empty">${why}</p></div></div>`;
     }
+    const shown = this.tab ?? "rooms";
     const [a, b] = colours(playing(group).title);
     const picture = group.picture ? `--pic:url('${(this.hass.hassUrl?.(group.picture) ?? group.picture).replace(/'/g, "%27")}');` : "";
     return html`<div class="big" style="--a:${a};--b:${b};${picture}">
       ${this._now(house, group)}
-      <div class="side ${this.tab ? "up" : ""}">${this._tabs(group)}${(this.tab ?? "rooms") === "rooms" ? this._rooms(house, group) : this._favouritesPanel(group)}</div>
+      <div class="side ${this.tab ? "up" : ""}">${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : this._favouritesPanel(group)}</div>
       ${this._sheets(group)}
       <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
     </div>`;

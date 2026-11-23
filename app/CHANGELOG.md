@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.12-b11
+
+- New: the queue in Jukebox's player. Tap a song to play it, drag it by its handle to
+  move it, or take it out.
+- Fixed: adding a Sonos playlist to the queue from Jukebox's player was refused by the
+  speaker ("error 701"). Jukebox looked for it among the favourites, and a speaker
+  keeps its playlists in a list of their own.
+
 ## 2026.11.12-b10
 
 - Fixed: in Jukebox's player, "Play next" and "Add to the end of the queue" replaced

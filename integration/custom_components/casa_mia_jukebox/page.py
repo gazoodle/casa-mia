@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, TITLE, URL
-from .feed import ACTIONS, ENQUEUE, Feed, do, favourites
+from .feed import ACTIONS, ENQUEUE, Feed, do, favourites, queue
 
 PANEL = "jukebox"  # the page's address in Home Assistant: /jukebox
 ELEMENT = "casa-mia-jukebox-page"  # the custom element cards.js defines
@@ -25,6 +25,7 @@ CARDS_VERSION = f"{DOMAIN}/cards"  # which version is served
 HOUSE = f"{DOMAIN}/house"
 DO = f"{DOMAIN}/do"
 FAVOURITES = f"{DOMAIN}/favourites"
+QUEUE = f"{DOMAIN}/queue"
 FEED = f"{DOMAIN}_feed"  # hass.data
 VERSION = f"{DOMAIN}_version"
 
@@ -35,7 +36,7 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
     hass.data[VERSION] = version
     hass.data[FEED] = Feed(hass)
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={version}")
-    for command in (_ws_cards, _ws_house, _ws_do, _ws_favourites):
+    for command in (_ws_cards, _ws_house, _ws_do, _ws_favourites, _ws_queue):
         websocket_api.async_register_command(hass, command)
 
 
@@ -92,6 +93,7 @@ def _ws_house(
         vol.Required(ATTR_ENTITY_ID): str,
         vol.Optional("room"): str,
         vol.Optional("value"): vol.All(vol.Coerce(int), vol.Range(0, 86400)),
+        vol.Optional("to"): vol.All(vol.Coerce(int), vol.Range(0, 86400)),
         vol.Optional("on"): bool,
         vol.Optional("mode"): vol.In(("off", "all", "one")),
         vol.Optional("media_content_id"): str,
@@ -126,6 +128,23 @@ async def _ws_favourites(
 ) -> None:
     try:
         found = await favourites(hass, msg[ATTR_ENTITY_ID])
+    except HomeAssistantError as err:
+        connection.send_error(msg["id"], "failed", str(err))
+        return
+    connection.send_result(msg["id"], found)
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): QUEUE, vol.Required(ATTR_ENTITY_ID): str}
+)
+@websocket_api.async_response
+async def _ws_queue(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """The queue of the group a room is in. The page asks again when the house's music
+    says the queue or the song has changed; it is never asked on a timer."""
+    try:
+        found = await queue(hass.data[FEED], msg[ATTR_ENTITY_ID])
     except HomeAssistantError as err:
         connection.send_error(msg["id"], "failed", str(err))
         return

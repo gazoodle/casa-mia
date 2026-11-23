@@ -39,6 +39,8 @@ export type Favourite = {
   media_content_id: string;
   media_content_type: string;
 };
+/** One song of a queue. */
+export type Song = { title: string; artist: string; album: string; duration: number | null };
 /** Home Assistant's `hass`, for its connection. */
 type Asking = { connection?: any; [key: string]: any };
 
@@ -58,6 +60,12 @@ export function ask(hass: Asking, action: string, room: string, data: object = {
 
 export function favourites(hass: Asking, room: string): Promise<Favourite[]> {
   return hass.connection.sendMessagePromise({ type: `${DOMAIN}/favourites`, entity_id: room });
+}
+
+/** The queue of the group `room` is in: its songs in order (the first few hundred), and how
+ * many there are in all. */
+export function queue(hass: Asking, room: string): Promise<{ songs: Song[]; total: number }> {
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/queue`, entity_id: room });
 }
 
 /** Why a failure happened, in words to show. */
