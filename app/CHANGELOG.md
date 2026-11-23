@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.12-b4
+
+- Love it or Loathe it: its engine's code is in smaller files. Nothing it does has changed.
+
 ## 2026.11.12-b3
 
 - **Fixed: in Safari, a menu in a dialog opened again as soon as something was chosen from it.** The choice was taken, but the menu stayed on the screen, on a Mac and on an iPhone. It happened to every menu that sits under a field's label, on every page of the app and on Sensor Watch's page: Safari passed the click on the choice to the field's menu button as well, which opened it again.

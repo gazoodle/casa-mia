@@ -211,7 +211,7 @@ def test_the_notify_blueprint_is_sound_and_reads_only_what_the_event_carries():
     used = set(re.findall(r"!input (\w+)", text))
     assert used == set(bp["blueprint"]["input"])
     # The event is the engine's `last`.
-    engine = (component / "engine.py").read_text()
+    engine = (component / "engine" / "engine.py").read_text()
     fired = set(
         re.findall(r'"(\w+)":', engine.split("self.last = {", 1)[1].split("}", 1)[0])
     )

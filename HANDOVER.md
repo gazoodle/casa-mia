@@ -212,7 +212,10 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   first.
 - **`__init__._convert`** turns groups from b2 to b4 (never released) into today's shape
   and removes their switches; it can go once the boxes that ran those have moved on.
-- **`engine.py`:** follows `state_changed` on the players (pushed). At a new track it
+- **`engine/`** (a package since 2026.11.12-b4, layered as the compositor is: `base.py`
+  what it is made from, its trail and storage; `volume.py` the change and its undoing;
+  `stations.py` the switch and the return; `engine.py` the following of tracks; each
+  extends the one below, and `common.py` holds what they share): follows `state_changed` on the players (pushed). At a new track it
   undoes the last action, then acts: volume by a percentage or mute until the next
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
@@ -220,7 +223,7 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   A volume is read with `_level`, never straight from the state: a speaker reports a
   volume late, so for `REPORT_LAG` after a change made here a report still showing the
   old volume is taken as late (2026.11.12-b3; consecutive ducked tracks halved it each
-  time). `engine.py` is at 777 of 800 lines: split it before the next change to it.
+  time).
   `_back` forgets a return only once `play_media` has worked: a player not playing, not
   yet there after a restart, or refusing the call keeps `away` with `due`, and the
   return is made when it next plays (b24; before, the return was cleared first and lost).
