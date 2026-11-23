@@ -916,9 +916,9 @@ A snoozed fault:
   until when.
 
 **To snooze,** on the page choose **Snooze…** on a row that needs attention, or on a
-failed integration under Home Assistant itself: 1 day, 1 week, 30 days, or until a date
+failed integration under Home Assistant itself: 4 hours, 1 day, 1 week, 30 days, or until a date
 and time. **Unsnooze** puts it back at once. The card can do the same when **Snooze from
-this card** is on in its options: a tap on a row then offers 1 day, 1 week or 30 days. That
+this card** is on in its options: a tap on a row then offers 4 hours, 1 day, 1 week or 30 days. That
 option is off by default, because a dashboard is often on a tablet that anyone can reach.
 
 A snooze ends by itself:

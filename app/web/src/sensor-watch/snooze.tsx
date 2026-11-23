@@ -11,10 +11,12 @@ import { act } from "./ha";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
+// In hours.
 const FOR: [string, number][] = [
-  ["1 day", 1],
-  ["1 week", 7],
-  ["30 days", 30],
+  ["4 hours", 4],
+  ["1 day", 24],
+  ["1 week", 168],
+  ["30 days", 720],
 ];
 const DATE = "date"; // the choice that asks for a date and time
 /** A time as a datetime-local field holds it: local, to the minute. */
@@ -80,12 +82,12 @@ export function SnoozeControl({ row, say }: { row: Live; say: (text: string, ton
       aria-label={`Snooze ${row.name}`}
       onChange={(picked) => {
         if (picked === DATE) return setWhen(field(Date.now() + 86400e3));
-        const [label, days] = FOR.find(([, d]) => String(d) === picked)!;
-        run("snooze", { duration: { days } }, `snoozed for ${label}`);
+        const [label, hours] = FOR.find(([, h]) => String(h) === picked)!;
+        run("snooze", { duration: { hours } }, `snoozed for ${label}`);
       }}
     >
-      {FOR.map(([label, days]) => (
-        <option key={days} value={String(days)}>
+      {FOR.map(([label, hours]) => (
+        <option key={hours} value={String(hours)}>
           {label}
         </option>
       ))}

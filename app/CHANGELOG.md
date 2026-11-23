@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.12-b7
+
+- **Sensor Watch: snooze for 4 hours.** The card and the page offer 4 hours as well as 1 day, 1 week and 30 days. On the card, the snooze buttons under an open row now have a small gap above them, so they no longer touch the row's shading.
+
 ## 2026.11.12-b6
 
 - **New: Jukebox, with its first part, announcements.** A new integration, added under **Settings → Devices & services → Add integration → Jukebox**. Its action `casa_mia_jukebox.announce` plays a chime, then a sound or a message in the voice you choose, on your Sonos speakers, over whatever each is playing. Each room has a number for its announcement volume, which is separate from the volume of its music. While the quiet-hours entity you choose is on, only an announcement marked `priority` is played. Announcements to one speaker are played one after another, never over each other, and one kept waiting more than 30 seconds is dropped. The action answers with each room's result, and the same is in the `casa_mia_jukebox_announced` event and on the **Last announcement** sensor, so a speaker that was off or didn't answer is seen. For Sonos S2 speakers: an S1 speaker, or any other player, is refused with a result that says why. In development: see its guide, `docs/applets/jukebox.md`.

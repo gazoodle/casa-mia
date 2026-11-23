@@ -3,11 +3,12 @@
 export const DOMAIN = "casa_mia_sensor_watch";
 export const EVENT = DOMAIN;
 export const SERVICE = { domain: DOMAIN, service: "list" };
-/** What a card with `snooze` offers a row, in days (the page has "until a date" too). */
+/** What a card with `snooze` offers a row, in hours (the page has "until a date" too). */
 export const SNOOZE_FOR: readonly [string, number][] = [
-  ["1 day", 1],
-  ["1 week", 7],
-  ["30 days", 30],
+  ["4 hours", 4],
+  ["1 day", 24],
+  ["1 week", 168],
+  ["30 days", 720],
 ];
 /** This file's version (the ?v= the integration loads it with; none in development), and
  * the command that says which one the integration serves now (its _ws_cards). */

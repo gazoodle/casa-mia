@@ -844,9 +844,10 @@ var H = _(".cm-pill, .cm-chip {\n  --surface: var(--card-background-color, #fff)
 	domain: U,
 	service: "list"
 }, qe = [
-	["1 day", 1],
-	["1 week", 7],
-	["30 days", 30]
+	["4 hours", 4],
+	["1 day", 24],
+	["1 week", 168],
+	["30 days", 720]
 ], Je = new URL(import.meta.url).searchParams.get("v") || "dev", Ye = `${U}/cards`;
 function Xe(e) {
 	return e.platform === U;
@@ -1115,7 +1116,7 @@ var xt = 300, Y = "snoozed", X = (e) => (/* @__PURE__ */ new Date(Date.now() - e
 	async _snooze(e, t) {
 		let n = {
 			entity_id: e.entity_id,
-			...t ? { duration: { days: t } } : {}
+			...t ? { duration: { hours: t } } : {}
 		};
 		try {
 			await this._hass?.callWS({
@@ -1286,7 +1287,7 @@ var xt = 300, Y = "snoozed", X = (e) => (/* @__PURE__ */ new Date(Date.now() - e
       flex-wrap: wrap;
       align-items: center;
       gap: 8px;
-      padding: 0 16px 8px 20px;
+      padding: 2px 16px 8px 20px; /* 2px: clear of the row's hover shading above */
     }
     .acts .note {
       margin: 0;

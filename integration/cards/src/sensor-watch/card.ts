@@ -159,19 +159,19 @@ export class SensorWatchCard extends LitElement {
     this._showOrHide();
   }
 
-  /** Snooze a row for some days, or put a snoozed one back; a refusal is said on the
+  /** Snooze a row for some hours, or put a snoozed one back; a refusal is said on the
    * card. The integration's entities write when it's done, which asks for the list again. */
-  private async _snooze(r: Row, days?: number) {
-    const service_data = { entity_id: r.entity_id, ...(days ? { duration: { days } } : {}) };
+  private async _snooze(r: Row, hours?: number) {
+    const service_data = { entity_id: r.entity_id, ...(hours ? { duration: { hours } } : {}) };
     try {
-      await this._hass?.callWS({ type: "call_service", domain: DOMAIN, service: days ? "snooze" : "unsnooze", service_data });
+      await this._hass?.callWS({ type: "call_service", domain: DOMAIN, service: hours ? "snooze" : "unsnooze", service_data });
       this._refused = undefined;
       const open = new Set(this._open);
       open.delete(r.entity_id);
       this._open = open;
       this._ask();
     } catch (err) {
-      this._refused = `${r.name} wasn't ${days ? "snoozed" : "unsnoozed"}: ${(err as Error)?.message ?? err}`;
+      this._refused = `${r.name} wasn't ${hours ? "snoozed" : "unsnoozed"}: ${(err as Error)?.message ?? err}`;
       console.warn(`CASA-MIA CARDS: sensor watch: ${this._refused}`);
     }
   }
@@ -246,7 +246,7 @@ export class SensorWatchCard extends LitElement {
       open && snooze && snoozable(r)
         ? html`<div class="acts">
             <span class="note">Snooze for</span>
-            ${SNOOZE_FOR.map(([label, days]) => html`<button class="cm-chip" @click=${() => this._snooze(r, days)}>${label}</button>`)}
+            ${SNOOZE_FOR.map(([label, hours]) => html`<button class="cm-chip" @click=${() => this._snooze(r, hours)}>${label}</button>`)}
             ${detailed(r) ? html`<button class="cm-chip cm-quiet" @click=${() => fire(this, "hass-more-info", { entityId: r.entity_id })}>Details</button>` : nothing}
           </div>`
         : nothing,
@@ -365,7 +365,7 @@ export class SensorWatchCard extends LitElement {
       flex-wrap: wrap;
       align-items: center;
       gap: 8px;
-      padding: 0 16px 8px 20px;
+      padding: 2px 16px 8px 20px; /* 2px: clear of the row's hover shading above */
     }
     .acts .note {
       margin: 0;
