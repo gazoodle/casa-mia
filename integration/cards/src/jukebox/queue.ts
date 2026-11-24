@@ -14,7 +14,7 @@ export const QUEUE = "casa-mia-jukebox-queue";
 const ROW = 56;
 
 export class Queue extends LitElement {
-  static properties = { group: { attribute: false }, playlist: {}, locked: { type: Boolean }, stamp: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
+  static properties = { group: { attribute: false }, playlist: {}, locked: { type: Boolean }, stamp: { type: Number }, mark: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
   hass!: { connection?: any; [key: string]: any };
   group?: Group;
   /** A Sonos playlist's id (`SQ:3`): its songs are listed, not the queue's. */
@@ -26,6 +26,9 @@ export class Queue extends LitElement {
   do!: (action: string, data: object) => Promise<boolean>;
   /** Changed by the player when something was done that may have changed the queue. */
   stamp = 0;
+  /** Where something carried over the list would land: before song number `mark`,
+   * counted from 0. A line is drawn there. */
+  mark?: number;
   _songs?: Song[];
   _total = 0;
   _why?: string;
@@ -50,9 +53,17 @@ export class Queue extends LitElement {
         if (asked !== this._asked || this._drag) return;
         [this._songs, this._total, this._why] = [found.songs, found.total, undefined];
         if (!this.playlist) fire(this, "jb-queued", found.total); // the player's count of the queue is the speaker's
+        fire(this, "jb-listed", found.total);
       },
       (err) => asked === this._asked && (this._why = reason(err)),
     );
+  }
+
+  /** The place in the list that a point down the screen is nearest to: before which
+   * song, counted from 0, something dropped there would go. */
+  at(y: number): number {
+    const top = this.renderRoot.querySelector(".row")?.getBoundingClientRect().top ?? this.getBoundingClientRect().top;
+    return Math.max(0, Math.min(this._songs?.length ?? 0, Math.round((y - top) / ROW)));
   }
 
   /** Show the change at once, ask for it, then show what the speaker has, done or not. */
@@ -91,12 +102,13 @@ export class Queue extends LitElement {
     if (!group) return nothing;
     const list = this.playlist ? "playlist" : "queue";
     if (!songs) return html`<p class="empty">${this._why ? `The ${list} couldn't be read: ${this._why}` : `Asking the speaker for the ${list}…`}</p>`;
-    if (!songs.length) return html`<p class="empty">${this.playlist ? "This playlist is empty." : "The queue is empty. Press + to add something."}</p>`;
+    if (!songs.length) return html`<p class="empty ${this.mark === undefined ? "" : "over"}">${this.playlist ? "This playlist is empty." : "The queue is empty. Press + to add something."}</p>`;
     // The song that is playing, when it is the queue that plays.
     const now = !this.playlist && group.kind === "queue" ? group.queue_position : null;
     const fixed = this.locked;
     const words = (song: Song) => html`<b>${song.title || "A song with no title"}</b><small>${[song.artist, song.album].filter(Boolean).join(" · ")}</small>`;
     return html`${this._why ? html`<p class="empty">The queue couldn't be read again: ${this._why}</p>` : nothing}
+      ${this.mark === undefined ? nothing : html`<div class="mark" style="top:${(this.renderRoot.querySelector<HTMLElement>(".row")?.offsetTop ?? 0) + this.mark * ROW}px"></div>`}
       ${songs.map((song, i) => {
         // While one is dragged, the rows it passes move aside to show where it would land.
         const shift = !drag ? 0 : i === drag.from ? drag.dy : drag.from < i && i <= drag.to ? -ROW : drag.to <= i && i < drag.from ? ROW : 0;
@@ -116,7 +128,9 @@ export class Queue extends LitElement {
   static styles = [
     shared,
     css`
-      :host { display: block; }
+      :host { display: block; position: relative; }
+      .mark { position: absolute; left: 6px; right: 6px; z-index: 3; height: 3px; margin-top: -1.5px; border-radius: 2px; background: #fff; box-shadow: 0 0 10px rgb(255 255 255 / 70%); pointer-events: none; }
+      .empty.over { outline: 2px dashed #fff; outline-offset: -10px; border-radius: 18px; }
       .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }
       .row { display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; height: ${ROW}px; padding: 0 4px; border-radius: 14px; transition: transform 0.15s; }
       .row.now { background: rgb(255 255 255 / 9%); }

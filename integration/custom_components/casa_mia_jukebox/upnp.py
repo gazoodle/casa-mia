@@ -208,6 +208,11 @@ async def queue(
     return {"songs": songs, "total": total}
 
 
+async def size(session: aiohttp.ClientSession, host: str) -> int:
+    """How many songs the queue holds, without listing them."""
+    return int((await _glance(session, host, QUEUE)).get("TotalMatches") or 0)
+
+
 async def playlists(session: aiohttp.ClientSession, host: str) -> list[dict[str, str]]:
     """The Sonos playlists as the speaker has them now: each one's id (`SQ:3`) and
     title. Home Assistant's own list of them is renewed only when a favourite changes,
@@ -227,19 +232,26 @@ async def playlists(session: aiohttp.ClientSession, host: str) -> list[dict[str,
 
 async def _changes(session: aiohttp.ClientSession, host: str, playlist: str) -> int:
     """A playlist's change number: 0 when made, and one more after each change."""
-    found = await call(
+    return int((await _glance(session, host, playlist)).get("UpdateID") or 0)
+
+
+async def _glance(
+    session: aiohttp.ClientSession, host: str, what: str
+) -> dict[str, str]:
+    """What a speaker says of a list without listing it: how many it holds
+    (`TotalMatches`) and its change number (`UpdateID`)."""
+    return await call(
         session,
         host,
         "ContentDirectory",
         "Browse",
-        ObjectID=playlist,
+        ObjectID=what,
         BrowseFlag="BrowseDirectChildren",
         Filter="*",
         StartingIndex=0,
         RequestedCount=1,
         SortCriteria="",
     )
-    return int(found.get("UpdateID") or 0)
 
 
 async def _reorder(
@@ -322,14 +334,16 @@ async def playlist_add(
     playlist: str,
     thing: str,
     title: str = "",
+    to: int | None = None,
 ) -> None:
-    """Add something to the end of a Sonos playlist. From the music library: a song, by
+    """Add something to a Sonos playlist, to be its song number `to` (an album's songs
+    from there on), or at its end without one. From the music library: a song, by
     the address of its file, or an album, artist or the like by the speaker's id for
     it (`A:ALBUM/…`); the speaker is asked for its own description of the thing, which
     is what it is then given. From Spotify: a song, an album or a playlist (`spotify`),
     with `title` to list it by."""
     if streamed := spotify(thing, title):
-        await _add_to(session, host, playlist, *streamed)
+        await _add_to(session, host, playlist, *streamed, to)
         return
     if thing.startswith("x-file-cifs:"):
         # A song's file. The speaker lists the same file as `S://…`, and won't describe
@@ -341,7 +355,7 @@ async def playlist_add(
             title=escape(title),
             kind="object.item.audioItem.musicTrack",
         )
-        await _add_to(session, host, playlist, thing, about)
+        await _add_to(session, host, playlist, thing, about, to)
         return
     found = await call(
         session,
@@ -364,11 +378,16 @@ async def playlist_add(
     address = item.findtext(f"{DIDL}res")
     if not address:
         raise HomeAssistantError("The speaker gave no address for that")
-    await _add_to(session, host, playlist, address, _described(item))
+    await _add_to(session, host, playlist, address, _described(item), to)
 
 
 async def _add_to(
-    session: aiohttp.ClientSession, host: str, playlist: str, address: str, about: str
+    session: aiohttp.ClientSession,
+    host: str,
+    playlist: str,
+    address: str,
+    about: str,
+    to: int | None,
 ) -> None:
     await call(
         session,
@@ -380,8 +399,9 @@ async def _add_to(
         UpdateID=await _changes(session, host, playlist),
         EnqueuedURI=address,
         EnqueuedURIMetaData=about,
-        # Sonos's own number for "at the end".
-        AddAtIndex=4294967295,
+        # Counted from 0 by the speaker, and an album goes in whole at that place
+        # (a real speaker, 2026-11-24); or Sonos's own number for "at the end".
+        AddAtIndex=to - 1 if to else 4294967295,
     )
 
 

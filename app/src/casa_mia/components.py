@@ -34,6 +34,7 @@ PUBLISHED = {
     "casa_mia_sensor_watch": "casa-mia-sensor-watch",
     "casa_mia_love_or_loathe": "casa-mia-love-or-loathe",
     "casa_mia_dash_bored": "casa-mia-dash-bored",
+    "casa_mia_jukebox": "casa-mia-jukebox",
 }
 _VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:-b(\d+))?")
 # HA's notification service through the Supervisor proxy. The notice needs no dismissing:

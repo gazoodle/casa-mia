@@ -63,7 +63,14 @@ RETRY = (5, 60)
 # What Jukebox does that changes the queue or what is played from, after which the copy
 # of both is read from the speaker again.
 CHANGES_MUSIC = frozenset(
-    {"play_media", "queue_play", "queue_move", "queue_remove", "queue_clear"}
+    {
+        "play_media",
+        "queue_play",
+        "queue_add",
+        "queue_move",
+        "queue_remove",
+        "queue_clear",
+    }
 )
 
 

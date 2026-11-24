@@ -46,6 +46,40 @@ export function art(hass: { hassUrl?: (path: string) => string; [key: string]: a
   return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${/^https?:/.test(picture) ? picture : (hass?.hassUrl?.(picture) ?? picture)} alt="" loading="lazy" @error=${gone} />` : nothing}</span>`;
 }
 
+/** How long a finger rests on a thing before it lifts to be dragged (ms), and how far it
+ * may wander meanwhile (px: more is a scroll, or a slip). */
+const HOLD = 450;
+const SLIP = 10;
+/** How near the top or bottom of what scrolls a drag scrolls it (px). */
+export const EDGE = 70;
+
+/** A finger resting on something, which lifts it if it stays: how the players are put in
+ * order, and how a thing found is carried to its place in a list. */
+export class Hold {
+  private at?: { x: number; y: number; timer: ReturnType<typeof setTimeout> };
+
+  /** The finger came down. `lift` is called, with where, if it is still there in time. */
+  start(e: PointerEvent, lift: (x: number, y: number) => void) {
+    this.drop();
+    const timer = setTimeout(() => {
+      const { x, y } = this.at!;
+      this.at = undefined;
+      lift(x, y);
+    }, HOLD);
+    this.at = { x: e.clientX, y: e.clientY, timer };
+  }
+
+  /** The finger moved: far enough, and it was a scroll or a slip, not a rest. */
+  moved(e: PointerEvent) {
+    if (this.at && Math.hypot(e.clientX - this.at.x, e.clientY - this.at.y) > SLIP) this.drop();
+  }
+
+  drop() {
+    clearTimeout(this.at?.timer);
+    this.at = undefined;
+  }
+}
+
 /** Redraws its element once a second while it is on the page, for what moves by itself
  * (a song's position). The speakers aren't asked anything: the time is worked out. */
 export class Clock implements ReactiveController {

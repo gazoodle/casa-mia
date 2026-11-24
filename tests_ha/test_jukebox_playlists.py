@@ -4,6 +4,9 @@ out and added to, where the speaker keeps it. The speakers are the page tests'."
 import re
 
 from custom_components.casa_mia_jukebox.page import DO, HOUSE, QUEUE
+from pytest_homeassistant_custom_component.test_util.aiohttp import (
+    AiohttpClientMockResponse,
+)
 from test_jukebox_page import (  # noqa: F401  (sent is a fixture)
     BROWSE,
     TRANSPORT,
@@ -149,3 +152,51 @@ async def test_the_queue_is_saved_over_a_playlist_and_remembers_where_it_came_fr
     what = {"media_content_id": "SQ:4", "media_content_type": "favorite_item_id"}
     assert (await do("play_media", **what))["success"]
     assert await source() == "SQ:4"
+
+
+async def test_a_thing_found_is_added_at_a_place_in_a_playlist_and_in_the_queue(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    # The queue holds five songs, and seven once an album of two has been added.
+    totals = iter([5, 7])
+
+    async def browsed(method, url, data):
+        total = next(totals, 0)
+        said = answered("ContentDirectory", "Browse", Result=LISTED, TotalMatches=total)
+        return AiohttpClientMockResponse(method, url, text=said)
+
+    aioclient_mock.post(BROWSE, side_effect=browsed)
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+    client = await hass_ws_client(hass)
+
+    async def do(action, **data):
+        return await ask(client, DO, action=action, entity_id=KITCHEN, **data)
+
+    # Home Assistant adds to the end; the speaker then moves each song up to its place.
+    album = {
+        "media_content_id": "A:ALBUM/Harbour Lights",
+        "media_content_type": "album",
+    }
+    assert (await do("queue_add", to=2, **album))["success"]
+    assert sent.pop() == (
+        "play_media",
+        {"entity_id": KITCHEN, "enqueue": "add"} | album,
+    )
+    moves = [
+        dict(re.findall(r"<(\w+)>(.*?)</\1>", call[2].decode(), re.S))
+        for call in aioclient_mock.mock_calls
+        if b"ReorderTracksInQueue" in call[2]
+    ]
+    assert [(m["StartingIndex"], m["InsertBefore"]) for m in moves] == [
+        ("6", "2"),
+        ("7", "3"),
+    ]
+
+    # In a playlist the speaker puts it at the place itself, counting from 0.
+    song = "x-file-cifs://nas/music/a.mp3"
+    placed = await do("playlist_add", playlist="SQ:4", media_content_id=song, to=3)
+    assert placed["success"]
+    assert asked(aioclient_mock, "AddURIToSavedQueue")["AddAtIndex"] == "2"

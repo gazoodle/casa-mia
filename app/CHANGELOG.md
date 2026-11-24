@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026.11.12-b22
+
+- Jukebox has an editor for a wide screen, opened with **Edit side by side** on the
+  Queue tab and on a playlist's songs. The queue or the playlist is on the left, and
+  Search and Browse on the right. Rest a finger on a song or an album on the right
+  until it lifts, as you do to move a player, then drag it across and let go where
+  it should go: a line shows the place, and an album's songs all go in there. **+**
+  adds to the end. On the left, songs are moved and taken out as before. The button
+  isn't shown on a phone, where the two lists wouldn't fit. Changing a playlist is
+  still for the people who look after the music.
+- Casa Mia's own page has a tile for Jukebox, where Jukebox is set up: how many rooms
+  there are, how many are playing and what, and a tap opens Jukebox's page. Sensor
+  Watch and Love it or Loathe it had tiles there and Jukebox didn't.
+- Jukebox is to be published by itself as well, for a house without Casa Mia, from a
+  repository of its own (`gazoodle/casa-mia-jukebox`) at the next release. Its guide
+  says how the two ways of installing it meet in one house, and has pictures. Because
+  a store may then have installed a newer Jukebox than the app bundles, the app no
+  longer puts an older one over it.
+
 ## 2026.11.12-b21
 
 - Jukebox's **Save as a playlist** can save the queue over a playlist you already

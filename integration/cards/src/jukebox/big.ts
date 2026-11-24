@@ -7,6 +7,7 @@
 // a sheet over the player; a wall tablet gets them beside it.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
+import { EDITOR, edit } from "./editor.ts";
 import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
@@ -114,7 +115,8 @@ export class Big extends LitElement {
   }
 
   private _key = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && !this.inline) this.remove();
+    // With the editor open over this, Escape is the editor's.
+    if (e.key === "Escape" && !this.inline && !document.querySelector(EDITOR)) this.remove();
   };
 
   /** The way out, where there is one: a player in a card stays where it is. */
@@ -343,6 +345,12 @@ export class Big extends LitElement {
       <div class="acts over">${lists.map((p) => html`<button type="button" @click=${() => this._over(p)}>${from(p) ? html`Save back to <strong>${p.title}</strong>` : p.title}</button>`)}</div>`;
   }
 
+  /** The editor of a wide screen, for the queue or the playlist looked at. What it
+   * changed is asked for again when it is closed. */
+  private _edit(playlist?: Favourite) {
+    edit(this.hass, this.room, playlist, () => this._stamp++);
+  }
+
   private _delete(playlist: Favourite) {
     const run = async () => {
       if (!(await this._do("playlist_delete", { media_content_id: playlist.media_content_id }, `fav:${playlist.media_content_id}`))) return;
@@ -376,6 +384,7 @@ export class Big extends LitElement {
         : nothing}
       <div class="tools">
         <button @click=${() => this._add("queue")}>${icon("plus")}Add</button>
+        <button class="wide" @click=${() => this._edit()}>${icon("drag")}Edit side by side</button>
         ${this._house?.me === "host" ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>` : nothing}
         <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)}>${icon("trash")}Clear the queue</button>
       </div>
@@ -417,7 +426,7 @@ export class Big extends LitElement {
         <div class="tools">
           <button @click=${() => (this._viewing = undefined)}>${icon("back")}Favourites</button>
           <button @click=${() => (this._menu = viewing)}>${icon("play")}Play…</button>
-          ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button>` : nothing}
+          ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button><button class="wide" @click=${() => this._edit(viewing)}>${icon("drag")}Edit side by side</button>` : nothing}
         </div>
         <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp}></casa-mia-jukebox-queue></div>`;
     }
@@ -608,6 +617,9 @@ export class Big extends LitElement {
       .tools button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 6px; border-radius: 12px; background: rgb(255 255 255 / 10%); font-size: 13px; font-weight: 600; }
       .tools svg { width: 18px; height: 18px; flex: none; }
       .tools .go { background: #fff; color: #111; }
+      /* The editor has two lists side by side: only where the screen is wide enough. */
+      .tools .wide { display: none; }
+      @media (min-width: 900px) { .tools .wide { display: flex; } }
       .fold { display: flex; align-items: center; gap: 4px; width: 100%; min-height: 36px; text-transform: inherit; letter-spacing: inherit; }
       .fold svg { width: 18px; height: 18px; }
       .scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 6px max(16px, env(safe-area-inset-bottom)); }

@@ -384,6 +384,30 @@ class _Doing:
             blocking=True,
         )
 
+    async def queue_add(self) -> None:
+        """Something found by searching or browsing, into the queue to be its song
+        number `to` (an album's songs from there on), or at its end without one.
+        Nothing starts or stops.
+
+        Home Assistant adds it, as only it knows how each kind of thing is queued, and
+        it can only add at the end; the speaker then moves each song added up to its
+        place."""
+        speaker = self._speaker()
+        before = await upnp.size(*speaker)
+        await self._coordinator(
+            "play_media",
+            media_content_id=self._value("media_content_id"),
+            media_content_type=self._value("media_content_type"),
+            enqueue="add",
+        )
+        if "to" not in self.data or (to := self._song("to")) > before:
+            return
+        # ponytail: one song at a time, which is what has been seen to work on a real
+        # speaker. The speaker's move takes a count of songs: use it if a long album
+        # is slow to land.
+        for n in range(await upnp.size(*speaker) - before):
+            await upnp.move(*speaker, before + 1 + n, to + n)
+
     async def queue_move(self) -> None:
         await upnp.move(*self._speaker(), self._song(), self._song("to"))
 
@@ -442,7 +466,8 @@ class _Doing:
             )
         # The name is what a Spotify song is listed by until the speaker has its own.
         name = str(self.data.get("name", ""))
-        await upnp.playlist_add(*self._speaker(), self._playlist(), thing, name)
+        to = self._song("to") if "to" in self.data else None
+        await upnp.playlist_add(*self._speaker(), self._playlist(), thing, name, to)
 
     def _song(self, name: str = "value") -> int:
         if (song := int(self._value(name))) < 1:
@@ -549,6 +574,7 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "repeat": _Doing.repeat,
     "play_media": _Doing.play_media,
     "queue_play": _Doing.queue_play,
+    "queue_add": _Doing.queue_add,
     "queue_move": _Doing.queue_move,
     "queue_remove": _Doing.queue_remove,
     "queue_clear": _Doing.queue_clear,

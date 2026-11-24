@@ -71,11 +71,26 @@ publication (the release's last step, which asks first), and a run on Home Assis
 Declared on 2026-11-15 in 2026.11.9-b1 (`components.PUBLISHED`), at the owner's word.
 Its mirror is `gazoodle/casa-mia-dash-bored`. Like Love it or Loathe it, it was built
 standalone and imports nothing from `casa_mia`, so there is no old install to hand over.
-It is still In development, and its guide says so at the top; the guide is the mirror's
+It is Alpha (owner, 2026-11-24), and its guide says so at the top; the guide is the mirror's
 README. `tools/mirror.py --dry-run` passes for it, hassfest included, once its manifest's
 keys were put in hassfest's order (they were not, and nothing here had checked). Not yet
 done: its first publication (the release's last step, which asks first), and a run on
 the Home Assistant floor its `hacs.json` names.
+
+## The fourth item: Jukebox
+
+Declared on 2026-11-24 in 2026.11.12-b22 (`components.PUBLISHED`), at the owner's word,
+ahead of a release. Its mirror is `gazoodle/casa-mia-jukebox`. It was built standalone
+and imports nothing from `casa_mia`; it needs Home Assistant's own Sonos integration,
+which its guide says first. The tile on Casa Mia's page is the app's, and a store's user
+has no such tile. Love it or Loathe it's thumbs and line on the player appear only where
+that integration is installed too. It is Alpha (owner, 2026-11-24), and its guide says so at
+the top; the guide is the mirror's README. `tools/mirror.py --dry-run` passes for it,
+without hassfest, which wasn't run (docker was off). Its screenshots were taken from a
+stand-in page with invented rooms and songs, not inside Home Assistant. Not yet done:
+hassfest, its first publication (the release's last step, which asks first), a run on
+the Home Assistant floor its `hacs.json` names, and its entry in HACS's default list
+(the owner's, after the first publication, as for the others).
 
 ## Sensor Watch today
 

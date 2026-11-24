@@ -24,8 +24,8 @@
     "version": "2026.11.2-b20"
   },
   "casa_mia_jukebox": {
-    "digest": "c57ae185dda3f1842386b23fc2e2d984205eb791a2b360959dc14480ba4c2926",
-    "version": "2026.11.12-b21"
+    "digest": "9989f1461c90c4c2e697fee6b7416e2a155d27afb7b94c37f8e2bad76ec17438",
+    "version": "2026.11.12-b22"
   },
   "casa_mia_love_or_loathe": {
     "digest": "eb309f07036d1721f4a09a5881ccd0d246941f5ec3a45896083d7fba5ef6e808",
@@ -36,7 +36,7 @@
     "version": "2026.11.2-b21"
   },
   "casa_mia_sensor_watch": {
-    "digest": "03ded971870bb10a92304a6a6ce46e41fe97a2cf6ded7dfc59321bd72d31c880",
-    "version": "2026.11.12-b8"
+    "digest": "e8a7c2d17479bfebd8984bfbf61763088567494a9a91a3fdcf3146e1a603ec21",
+    "version": "2026.11.12-b22"
   }
 }

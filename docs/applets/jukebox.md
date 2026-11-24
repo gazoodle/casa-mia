@@ -3,12 +3,15 @@
 A page for the music on your Sonos speakers, and announcements on them with a chime, a
 volume for each room and quiet hours.
 
-> **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
 Jukebox is meant to become one place to manage the house's music across Sonos, Spotify
-and a local library. Built so far: its page with the players, rooms and favourites, a
-small card, search, a lock that stops guests changing the music at a party, and
-announcements.
+and a local library. Built so far: its page with a player for each thing playing; the
+rooms and a volume for each; the queue; favourites and Sonos playlists, which you can
+look into and change; a search of the music library and Spotify; cards for your own
+dashboards; a lock that stops guests changing the music at a party; and announcements.
+
+<img src="../screenshots/jukebox.webp" alt="Jukebox's page, headed Music: three small players, for Borrowed Sunglasses playing in the den and snug, the station Harbour FM in the kitchen, and Slow Sunday in the garden, each with pause, skip or stop, and a volume slider. Under them, the porch is listed as a quiet room and the shed as not answering" width="800">
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -21,8 +24,37 @@ integration makes, and Jukebox, the Sonos app and your dashboards all use that e
   S1 is planned.
 - A text-to-speech voice in Home Assistant, if you want messages said. Sounds need none.
 
-Jukebox comes with the Casa Mia app, which installs it. It needs nothing else from Casa
-Mia.
+## Installing it
+
+The Casa Mia app installs the integration for you: there is nothing to download, and
+you go straight to "Setting it up". Jukebox needs nothing else from Casa Mia.
+
+### With HACS or the Marketplace
+
+Jukebox is also published by itself, at
+[gazoodle/casa-mia-jukebox](https://github.com/gazoodle/casa-mia-jukebox), for a house
+without Casa Mia. Add that repository in HACS, or in Home Assistant's Marketplace
+(2026.11 and later), as a custom repository of the type Integration; its page says how.
+Everything in this guide works that way except the Jukebox tile on Casa Mia's own page,
+which needs the app. It is the same integration either way, so the two can meet in one
+house:
+
+- **Installed from a store first, Casa Mia added later.** The app takes over keeping it
+  up to date. If its copy is newer than the store's, it installs it and a Repair asks
+  for a restart. Your settings and the order of your players carry on, and there is
+  nothing for you to do.
+- **The store still offers an update.** A store goes by the version it installed itself
+  and doesn't see what the app wrote, so it offers a release the app has already
+  brought. Installing it writes the same files again and loses nothing.
+- **A store's version newer than the app's** is left alone, with a warning in the app's
+  log. The app installs its own again once that is the newer one.
+- **Remove in HACS deletes the integration's files,** even while it is set up. If you
+  remove it there while the Casa Mia app is installed, it stops at the next restart of
+  Home Assistant, until the app starts again and puts the files back. The Marketplace
+  refuses to remove it while it is set up.
+
+Love it or Loathe it's thumbs and its line on the player are shown where that
+integration is installed too; without it, Jukebox leaves them out.
 
 ## Setting it up
 
@@ -96,6 +128,16 @@ Tap a player to open it over the whole screen. There you have:
   drag a song to move it, take one out with the cross, and press **Add** to put
   something on the end: a song or an album from the music library, or a song, an
   album or a playlist from Spotify. Each heading in Favourites folds its section away.
+<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Borrowed Sunglasses by Velvet Arcade, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit side by side, Save as a playlist and Clear the queue, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
+
+- **Edit side by side** (on a wide screen only, on the Queue tab and on a playlist's
+  songs) opens an editor over the whole screen: the queue or the playlist on the left,
+  Search and Browse on the right. Rest a finger on a song or an album on the right
+  until it lifts, then drag it across and let go where it should go. A line shows the
+  place; an album's songs all go in there. **+** adds to the end. Let go anywhere
+  else and nothing is added. The arrow at the top left, or Escape, closes it.
+
+<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for paper, with songs, albums and playlists found in the music library and on Spotify. A song, Paper Lanterns, is being dragged from the right, and a white line between the second and third songs of the queue shows where it will land" width="800">
 
 - **Search:** one box searches the Sonos music library and Spotify together, and shows
   what each found under its own heading. Press **+** beside a result to play it, play

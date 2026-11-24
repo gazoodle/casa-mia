@@ -5,11 +5,11 @@
   "codeowners": ["@gazoodle"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
-  "documentation": "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/jukebox.md",
+  "documentation": "https://github.com/gazoodle/casa-mia-jukebox",
   "integration_type": "service",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/gazoodle/casa-mia/issues",
+  "issue_tracker": "https://github.com/gazoodle/casa-mia-jukebox/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2026.11.12-b21"
+  "version": "2026.11.12-b22"
 }

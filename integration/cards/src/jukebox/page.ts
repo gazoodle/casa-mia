@@ -5,7 +5,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire, navigate, type Hass } from "../ha.ts";
 import { type Group, type House, arrange, follow, reason } from "./common.ts";
-import { COLUMN, icon, shared } from "./parts.ts";
+import { COLUMN, EDGE, Hold, icon, shared } from "./parts.ts";
 
 export const PAGE = "casa-mia-jukebox-page";
 
@@ -52,13 +52,6 @@ export class Following extends LitElement {
   }
 }
 
-/** How long a finger rests on a player before it lifts to be dragged (ms), how far it may
- * wander meanwhile (px: more is a scroll, or a slip), and how near the top or bottom of
- * the screen a drag scrolls the page (px). */
-const HOLD = 450;
-const SLIP = 10;
-const EDGE = 70;
-
 /** What scrolls the page: the nearest thing around it that can, or the window. */
 function scroller(from: Node): Element {
   for (let node: any = from; node; node = node.parentNode ?? node.host)
@@ -77,7 +70,7 @@ export class Arranging extends Following {
   _drag?: { from: number; to: number; x: number; y: number; dx: number; dy: number; top: number; end: number };
   _failed?: string;
   /** A finger resting on a player, which lifts it if it stays. */
-  private _hold?: { x: number; y: number; timer: ReturnType<typeof setTimeout> };
+  private _hold = new Hold();
   private _at = { x: 0, y: 0 };
   private _scroller?: Element;
   private _frame = 0;
@@ -107,9 +100,7 @@ export class Arranging extends Following {
     const [slot, pointer] = [e.currentTarget as HTMLElement, e.pointerId];
     this._drop();
     this._dragged = false;
-    const lift = () => {
-      const { x, y } = this._hold!;
-      this._hold = undefined;
+    this._hold.start(e, (x, y) => {
       slot.setPointerCapture(pointer);
       this._scroller = scroller(this);
       this._at = { x, y };
@@ -117,13 +108,11 @@ export class Arranging extends Following {
       this._drag = { from, to: from, x, y, dx: 0, dy: 0, top: page.scrollTop, end: page.scrollHeight - page.clientHeight };
       navigator.vibrate?.(15);
       this._frame = requestAnimationFrame(this._edge);
-    };
-    this._hold = { x: e.clientX, y: e.clientY, timer: setTimeout(lift, HOLD) };
+    });
   }
 
   private _moved = (e: PointerEvent) => {
-    const hold = this._hold;
-    if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > SLIP) this._drop();
+    this._hold.moved(e);
     if (!this._drag) return;
     this._at = { x: e.clientX, y: e.clientY };
     this._place();
@@ -160,9 +149,9 @@ export class Arranging extends Following {
   /** Let go of everything, moving nothing: the finger went elsewhere, or the browser took
    * the touch for itself. */
   private _drop = () => {
-    clearTimeout(this._hold?.timer);
+    this._hold.drop();
     cancelAnimationFrame(this._frame);
-    this._hold = this._drag = undefined;
+    this._drag = undefined;
   };
 
   private _up = () => {

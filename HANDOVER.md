@@ -295,6 +295,18 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   (`Feed.art_key`), since an `<img>` can't sign in; `feed.queue` writes the addresses.
 - **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
   and the players' card both extend. Until then only the page had it.
+- **Jukebox is published by itself too** (b22, owner 2026-11-24): in
+  `components.PUBLISHED`, mirror `gazoodle/casa-mia-jukebox`, its manifest's links
+  naming that repository (`docs/design/marketplace-mirrors.md`, the fourth item). Its
+  tile on Casa Mia's page is `app/web/src/jukebox.ts`, following Jukebox's own feed.
+- **The editor** (b22, `editor.ts`): a full-screen element of its own, opened by the
+  big player, with the big player's own list (`queue.ts`) beside its search
+  (`find.ts` with `carry`). A row found is lifted by `Hold` (`parts.ts`, shared with
+  the players' ordering), and says `jb-lift`, `jb-carry`, `jb-drop`; the editor asks
+  the list where that is (`Queue.at`) and shows it (`mark`). A playlist takes a song
+  at a place itself (`AddAtIndex`, counted from 0; an album goes in whole: a real
+  speaker, 2026-11-24). The queue can't through Home Assistant, which only adds at
+  the end, so `queue_add` adds there and moves each song up.
 - **Back to the place in the song** (b20): `Party.at` is how far in the music was at the
   last quiet comparison and when; `_since` is when the first report of a burst came,
   taken as when another app cut in; `_where` adds the time between.
