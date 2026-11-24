@@ -14,7 +14,7 @@ export const QUEUE = "casa-mia-jukebox-queue";
 const ROW = 56;
 
 export class Queue extends LitElement {
-  static properties = { group: { attribute: false }, playlist: {}, locked: { type: Boolean }, stamp: { type: Number }, mark: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
+  static properties = { group: { attribute: false }, playlist: {}, locked: { type: Boolean }, stamp: { type: Number }, mark: { type: Number }, picks: { type: Boolean }, selected: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
   hass!: { connection?: any; [key: string]: any };
   group?: Group;
   /** A Sonos playlist's id (`SQ:3`): its songs are listed, not the queue's. */
@@ -29,6 +29,10 @@ export class Queue extends LitElement {
   /** Where something carried over the list would land: before song number `mark`,
    * counted from 0. A line is drawn there. */
   mark?: number;
+  /** A tap on a song chooses it (`jb-pick`) and doesn't play it: the editor's way. */
+  picks = false;
+  /** The song that is chosen, counted from 0. */
+  selected?: number;
   _songs?: Song[];
   _total = 0;
   _why?: string;
@@ -53,7 +57,7 @@ export class Queue extends LitElement {
         if (asked !== this._asked || this._drag) return;
         [this._songs, this._total, this._why] = [found.songs, found.total, undefined];
         if (!this.playlist) fire(this, "jb-queued", found.total); // the player's count of the queue is the speaker's
-        fire(this, "jb-listed", found.total);
+        fire(this, "jb-listed", { total: found.total, songs: found.songs });
       },
       (err) => asked === this._asked && (this._why = reason(err)),
     );
@@ -112,12 +116,14 @@ export class Queue extends LitElement {
       ${songs.map((song, i) => {
         // While one is dragged, the rows it passes move aside to show where it would land.
         const shift = !drag ? 0 : i === drag.from ? drag.dy : drag.from < i && i <= drag.to ? -ROW : drag.to <= i && i < drag.from ? ROW : 0;
-        return html`<div class="row ${i + 1 === now ? "now" : ""} ${drag?.from === i ? "held" : ""} ${this._busy.on(`row:${i}`)}" style="transform:translateY(${shift}px)">
+        return html`<div class="row ${i + 1 === now ? "now" : ""} ${this.selected === i ? "sel" : ""} ${drag?.from === i ? "held" : ""} ${this._busy.on(`row:${i}`)}" style="transform:translateY(${shift}px)">
           ${fixed ? html`<span></span>` : html`<span class="handle" @pointerdown=${(e: PointerEvent) => this._down(e, i)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${icon("drag")}</span>`}
           ${art(this.hass, song.picture, song.title || song.album || "?")}
-          ${this.playlist
-            ? html`<span class="t">${words(song)}</span>`
-            : html`<button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}">${words(song)}</button>`}
+          ${this.picks
+            ? html`<button class="t" @click=${() => fire(this, "jb-pick", i)} aria-pressed=${this.selected === i} aria-label="Choose ${song.title}">${words(song)}</button>`
+            : this.playlist
+              ? html`<span class="t">${words(song)}</span>`
+              : html`<button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}">${words(song)}</button>`}
           <span class="len">${i + 1 === now ? icon("volume") : song.duration ? mmss(song.duration) : nothing}</span>
           ${fixed ? html`<span></span>` : html`<button class="ib" @click=${() => this._act("queue_remove", { value: i + 1 }, (all) => all.splice(i, 1))} aria-label="Take ${song.title} out of the ${list}">${icon("close")}</button>`}
         </div>`;
@@ -134,6 +140,7 @@ export class Queue extends LitElement {
       .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }
       .row { display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; height: ${ROW}px; padding: 0 4px; border-radius: 14px; transition: transform 0.15s; }
       .row.now { background: rgb(255 255 255 / 9%); }
+      .row.sel { outline: 2px solid #fff; outline-offset: -2px; background: rgb(255 255 255 / 14%); }
       .row.held { position: relative; z-index: 2; background: rgb(255 255 255 / 18%); box-shadow: 0 8px 24px rgb(0 0 0 / 50%); transition: none; }
       /* The handle takes the finger for itself, so a drag moves the song and not the list. */
       .handle { display: grid; place-items: center; height: 100%; color: var(--muted); cursor: grab; touch-action: none; }

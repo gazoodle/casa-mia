@@ -55,6 +55,7 @@ async def test_a_playlists_songs_are_listed_and_changed_where_it_is_kept(
             "album": "Harbour Lights",
             "duration": 194,
             "picture": None,
+            "source": "library",
         }
     ]
     assert asked(aioclient_mock, "Browse")["ObjectID"] == "SQ:4"
@@ -200,3 +201,92 @@ async def test_a_thing_found_is_added_at_a_place_in_a_playlist_and_in_the_queue(
     placed = await do("playlist_add", playlist="SQ:4", media_content_id=song, to=3)
     assert placed["success"]
     assert asked(aioclient_mock, "AddURIToSavedQueue")["AddAtIndex"] == "2"
+
+
+def listing(*songs):
+    """A speaker's list of songs: each a (file, title, artist, album, track number)."""
+    rows = "".join(
+        f'<item id="S://nas/{file}"><res>x-file-cifs://nas/{file}</res>'
+        f"<dc:title>{title}</dc:title><dc:creator>{artist}</dc:creator>"
+        f"<upnp:album>{album}</upnp:album>"
+        f"<upnp:originalTrackNumber>{track}</upnp:originalTrackNumber></item>"
+        for file, title, artist, album, track in songs
+    )
+    return LISTED.partition("<item ")[0] + rows + "</DIDL-Lite>"
+
+
+def a_speaker_with(aioclient_mock, songs, page=500):
+    """A speaker that lists `songs` a page at a time, and takes anything else."""
+
+    async def browsed(method, url, data):
+        asked = dict(re.findall(r"<(\w+)>(.*?)</\1>", data.decode(), re.S))
+        start = int(asked["StartingIndex"])
+        some = songs[start : start + min(page, int(asked["RequestedCount"]))]
+        said = answered(
+            "ContentDirectory",
+            "Browse",
+            Result=listing(*some),
+            TotalMatches=len(songs),
+            UpdateID=7,
+        )
+        return AiohttpClientMockResponse(method, url, text=said)
+
+    aioclient_mock.post(BROWSE, side_effect=browsed)
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+
+
+SONGS = [
+    ("c.mp3", "10 Last", "Velvet Arcade", "Neon", 2),
+    ("a.mp3", "2 Second", "The Marigolds", "Harbour Lights", 9),
+    ("b.mp3", "Borrowed", "The Marigolds", "Harbour Lights", 1),
+    ("a.mp3", "2 Second", "The Marigolds", "Harbour Lights", 9),
+    ("d.mp3", "1 First", "Velvet Arcade", "Neon", 1),
+]
+
+
+async def test_a_long_list_is_read_a_page_at_a_time(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    a_speaker_with(aioclient_mock, SONGS, page=2)
+    client = await hass_ws_client(hass)
+    found = (await ask(client, QUEUE, entity_id=KITCHEN, playlist="SQ:4"))["result"]
+    assert [song["title"] for song in found["songs"]] == [s[1] for s in SONGS]
+    assert found["total"] == 5 and aioclient_mock.call_count == 3
+
+
+async def test_a_playlist_is_sorted_put_back_and_rid_of_songs_that_are_in_it_twice(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    a_speaker_with(aioclient_mock, SONGS)
+    client = await hass_ws_client(hass)
+
+    async def do(action, **data):
+        return await ask(
+            client, DO, action=action, entity_id=KITCHEN, playlist="SQ:4", **data
+        )
+
+    def reordered():
+        said = asked(aioclient_mock, "ReorderTracksInSavedQueue")
+        return said["TrackList"], said.get("NewPositionList", "")
+
+    # By title, numbers counted: the songs named in the order wanted, places rising.
+    sorted_ = await do("playlist_sort", by="title")
+    assert sorted_["result"] == {"moved": True}
+    assert reordered() == ("4,1,3,0,2", "0,1,2,3,4")
+
+    # Put back: the order that undoes it, while the playlist is as the sort left it.
+    assert (await do("playlist_unsort"))["success"]
+    assert reordered() == ("3,1,4,2,0", "0,1,2,3,4")
+    again = await do("playlist_unsort")
+    assert not again["success"] and "no sort" in again["error"]["message"]
+
+    # The song that is in it twice: the second is taken out, the first kept.
+    assert (await do("playlist_dedupe"))["result"] == {"removed": 1}
+    assert reordered() == ("3", "")
+    assert not (await do("playlist_sort", by="mood"))["success"]

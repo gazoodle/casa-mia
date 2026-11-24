@@ -106,7 +106,7 @@ Tap a player to open it over the whole screen. There you have:
 - **Queue:** the songs lined up, each with its picture, artist and album, and the one
   that is playing marked. Tap a song to
   play it, drag one by the handle on its left to move it, or press the cross to take
-  it out. The first 500 songs are shown. **Add** opens Search with an empty box, and
+  it out. The first 2,000 songs are shown. **Add** opens Search with an empty box, and
   brings you back to the queue once you have added something. While a radio station
   is playing and the queue has songs in it, **Play the queue** starts the queue in
   the station's place. Above the songs, **Save…** keeps
@@ -136,12 +136,34 @@ Tap a player to open it over the whole screen. There you have:
 
 - **Edit…** (on a wide screen only, on the Queue tab and on a playlist's
   songs) opens an editor over the whole screen: the queue or the playlist on the left,
-  Search and Browse on the right. Rest a finger on a song or an album on the right
-  until it lifts, then drag it across and let go where it should go. A line shows the
-  place; an album's songs all go in there. **+** adds to the end. Let go anywhere
-  else and nothing is added. The arrow at the top left, or Escape, closes it.
+  Search and Browse on the right. The arrow at the top left, or Escape, closes it.
+  - **Choosing a song:** tap a song on the left. It is shown at the top with its
+    cover and its title, artist and album in full, which a row cuts short, and with
+    its length, where it is from and its place in the list. Tap the cover to see it
+    large. The buttons beside it move the song to the top or the end, take it out,
+    or (in the queue) play from it. **Let go** unchooses it.
+  - **Adding:** press **+** beside something on the right. With a song chosen you are
+    asked whether it goes after that song, before it, or at the end; the song you
+    added after is then the chosen one, so several things added one after another
+    stay in the order you added them. With no song chosen it goes to the end.
+  - **Dragging:** rest a finger on a song or an album on the right until it lifts,
+    then drag it across and let go where it should go. A line shows the place; an
+    album's songs all go in there. Let go anywhere else and nothing is added.
+  - **Sort…** (a playlist only) puts its songs in order of title, of artist then
+    album, or of album. A number in a title is counted, so songs named "01 …", "02 …"
+    fall in order, and within an album the songs go by their track numbers where the
+    speaker has them. The songs are moved in Sonos itself. **Put it back** returns
+    the order the playlist had, until you change the playlist or close the editor.
+    A playlist can't be sorted by the date a song came out: the speaker doesn't
+    say it.
+  - **Duplicates…** (a playlist only) takes out every song that is in the playlist
+    more than once, keeping the first of each, after asking. They can't be put back.
+- **The width of the panels:** on a wide screen there is a thin bar between the cover
+  and the panel beside it, and between the editor's two lists. Drag it to give one
+  side more room. The width is remembered in that browser. Once you have moved it, a
+  small round button on the bar puts it back; so does a double tap on the bar.
 
-<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for paper, with songs, albums and playlists found in the music library and on Spotify. A song, Paper Lanterns, is being dragged from the right, and a white line between the second and third songs of the queue shows where it will land" width="800">
+<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for paper, with songs, albums and playlists found in the music library and on Spotify. The third song of the queue is chosen, and is shown above the list with its cover, title, artist and album, and buttons to play from it, move it to the top or the end, or take it out" width="800">
 
 - **Search:** one box searches the Sonos music library and Spotify together, and shows
   what each found under its own heading. Press **+** beside a result to play it, play

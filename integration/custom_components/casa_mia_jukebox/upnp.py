@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 from urllib.parse import quote
 
 # The standard library's reader: what it reads comes from the owner's own speaker, and
@@ -24,6 +25,8 @@ from xml.sax.saxutils import escape, quoteattr
 
 import aiohttp
 from homeassistant.exceptions import HomeAssistantError
+
+from . import tidy
 
 _LOGGER = logging.getLogger(__name__)
 PORT = 1400
@@ -104,7 +107,12 @@ async def call(
 
 
 async def _listed(
-    session: aiohttp.ClientSession, host: str, what: str, name: str, count: int = PAGE
+    session: aiohttp.ClientSession,
+    host: str,
+    what: str,
+    name: str,
+    count: int = PAGE,
+    start: int = 0,
 ) -> tuple[list[Element], int]:
     """What a speaker lists under `what` (its queue, favourites or playlists): each
     thing listed, a favourite or a song as an item and a playlist as a container, and
@@ -117,7 +125,7 @@ async def _listed(
         ObjectID=what,
         BrowseFlag="BrowseDirectChildren",
         Filter="*",
-        StartingIndex=0,
+        StartingIndex=start,
         # ponytail: the first page only, and the caller is told how many there are in
         # all. Read on from StartingIndex when a list is longer than this.
         RequestedCount=count,
@@ -130,6 +138,24 @@ async def _listed(
     except (ParseError, ValueError) as err:
         raise HomeAssistantError(f"The speaker's {name} couldn't be read") from err
     return listed, int(found.get("TotalMatches") or len(listed))
+
+
+# ponytail: the most songs of one list that are read. A longer list is shown and tidied
+# as far as this, and the page says how many more there are.
+MOST = 2000
+
+
+async def _everything(
+    session: aiohttp.ClientSession, host: str, what: str, name: str
+) -> tuple[list[Element], int]:
+    """As `_listed`, with every page of a long list, up to MOST."""
+    listed, total = await _listed(session, host, what, name)
+    while len(listed) < min(total, MOST):
+        more, total = await _listed(session, host, what, name, start=len(listed))
+        if not more:
+            break
+        listed += more
+    return listed[:MOST], total
 
 
 def _about(item: Element) -> str:
@@ -184,27 +210,50 @@ def _seconds(length: str | None) -> int | None:
         return None
 
 
+def _source(address: str) -> str:
+    """Where a song is from, for the page to say: the music library, Spotify, or
+    another streaming service."""
+    if address.startswith("x-file-cifs:"):
+        return "library"
+    return "spotify" if "spotify" in address else "streamed" if address else ""
+
+
+def _song(item: Element) -> dict[str, Any]:
+    res = item.find(f"{DIDL}res")
+    track = item.findtext(f"{UPNP}originalTrackNumber") or ""
+    address = (res.text or "") if res is not None else ""
+    return {
+        "title": item.findtext(f"{DC}title") or "",
+        "artist": item.findtext(f"{DC}creator") or "",
+        "album": item.findtext(f"{UPNP}album") or "",
+        "duration": _seconds(res.get("duration") if res is not None else None),
+        "picture": item.findtext(f"{UPNP}albumArtURI") or None,
+        "source": _source(address),
+        # For tidying a playlist (tidy.py); not sent to the page.
+        "address": address,
+        "track": int(track) if track.isdigit() else None,
+    }
+
+
+async def detailed(
+    session: aiohttp.ClientSession, host: str, playlist: str
+) -> list[dict[str, Any]]:
+    """Every song of a Sonos playlist, in order, with what tidying it goes by: its
+    address, and its track number where the speaker has one."""
+    items, _ = await _everything(session, host, playlist, "playlist")
+    return [_song(item) for item in items]
+
+
 async def queue(
     session: aiohttp.ClientSession, host: str, what: str = QUEUE
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """The queue of the speaker at `host`, or the Sonos playlist `what` (`SQ:3`), in
-    order: each song's title, artist, album, length in seconds and picture (as the
-    speaker addresses it: art.py), and how many songs there are in all."""
-    items, total = await _listed(session, host, what, "queue")
-    songs = [
-        {
-            "title": item.findtext(f"{DC}title") or "",
-            "artist": item.findtext(f"{DC}creator") or "",
-            "album": item.findtext(f"{UPNP}album") or "",
-            "duration": _seconds(
-                res.get("duration")
-                if (res := item.find(f"{DIDL}res")) is not None
-                else None
-            ),
-            "picture": item.findtext(f"{UPNP}albumArtURI") or None,
-        }
-        for item in items
-    ]
+    order: each song's title, artist, album, length in seconds, picture (as the
+    speaker addresses it: art.py) and where it is from, and how many songs there are
+    in all."""
+    items, total = await _everything(session, host, what, "queue")
+    mine = ("address", "track")
+    songs = [{k: v for k, v in _song(i).items() if k not in mine} for i in items]
     return {"songs": songs, "total": total}
 
 
@@ -242,7 +291,7 @@ async def playlists(session: aiohttp.ClientSession, host: str) -> list[dict[str,
 # number as it stands (`_changes`): one that is out of date is refused, error 1028.
 
 
-async def _changes(session: aiohttp.ClientSession, host: str, playlist: str) -> int:
+async def changes(session: aiohttp.ClientSession, host: str, playlist: str) -> int:
     """A playlist's change number: 0 when made, and one more after each change."""
     return int((await _glance(session, host, playlist)).get("UpdateID") or 0)
 
@@ -267,8 +316,14 @@ async def _glance(
 
 
 async def _reorder(
-    session: aiohttp.ClientSession, host: str, playlist: str, song: int, to: str
+    session: aiohttp.ClientSession,
+    host: str,
+    playlist: str,
+    song: int | str,
+    to: str,
 ) -> None:
+    """One request to move or take out songs of a playlist. `song` is one song's
+    number, or several songs' places counted from 0, with commas."""
     await call(
         session,
         host,
@@ -276,10 +331,32 @@ async def _reorder(
         "ReorderTracksInSavedQueue",
         InstanceID=0,
         ObjectID=playlist,
-        UpdateID=await _changes(session, host, playlist),
-        TrackList=song - 1,
+        UpdateID=await changes(session, host, playlist),
+        TrackList=song - 1 if isinstance(song, int) else song,
         NewPositionList=to,
     )
+
+
+async def playlist_arrange(
+    session: aiohttp.ClientSession, host: str, playlist: str, order: list[int]
+) -> None:
+    """Put a Sonos playlist's songs in a new order: `order` is where each song is now,
+    counted from 0, in the order wanted (tidy.py says how a speaker takes that)."""
+    for tracks, places in tidy.steps(order):
+        named = ",".join(map(str, tracks))
+        await _reorder(session, host, playlist, named, ",".join(map(str, places)))
+
+
+async def playlist_drop(
+    session: aiohttp.ClientSession, host: str, playlist: str, songs: list[int]
+) -> None:
+    """Take several songs out of a Sonos playlist at once, by their places counted
+    from 0 (a real speaker, 2026-11-24). The last of them first, a few at a time, so
+    that the places of those still to go don't change."""
+    last_first = sorted(songs, reverse=True)
+    for start in range(0, len(last_first), tidy.EACH):
+        named = ",".join(map(str, sorted(last_first[start : start + tidy.EACH])))
+        await _reorder(session, host, playlist, named, "")
 
 
 async def playlist_move(
@@ -408,7 +485,7 @@ async def _add_to(
         "AddURIToSavedQueue",
         InstanceID=0,
         ObjectID=playlist,
-        UpdateID=await _changes(session, host, playlist),
+        UpdateID=await changes(session, host, playlist),
         EnqueuedURI=address,
         EnqueuedURIMetaData=about,
         # Counted from 0 by the speaker, and an album goes in whole at that place

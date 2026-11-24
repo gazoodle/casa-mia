@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026.11.12-b25
+
+- **Breaking:** the Dash-Bored page no longer reloads itself after an update unless you
+  ask it to. For wall tablets, switch on **Reload pages by themselves after an update**
+  in Dash-Bored's Configure dialog.
+- Dash-Bored's sighting photographs need a login again. A page is sent an address signed
+  for its own login, for the half hour a sighting is kept, so the photographs show as
+  before. Before, anyone with a sighting's id could fetch its photograph, and the id ends
+  up in browser history and logs.
+- Dash-Bored no longer replaces a UniFi Protect camera's sighting photograph with
+  Protect's own thumbnail. That came through Protect's internal client, which can change
+  with any Protect release. The still taken at the moment of the detection stays.
+- All three were asked for by Frenck, reviewing Dash-Bored's Marketplace submission.
+
+- Jukebox's editor shows a chosen song whole. Tap a song in the list and it appears
+  at the top with its cover and its title, artist and album in full, its length,
+  where it is from and its place in the list; tap the cover to see it large. Buttons
+  beside it move the song to the top or the end, take it out, or play from it.
+- With a song chosen, **+** beside something found asks whether to put it after that
+  song, before it, or at the end. Things added one after another stay in order.
+- A playlist can be sorted in the editor, by title, by artist then album, or by
+  album, with **Put it back** to return the order it had. A number in a title is
+  counted, and an album's songs go by their track numbers. **Duplicates…** takes out
+  the songs that are in a playlist more than once.
+- On a wide screen, drag the thin bar beside the big player's side panel, or between
+  the editor's two lists, to change their widths. The width is remembered in that
+  browser, and a button on the bar puts it back.
+- A queue or a playlist longer than 500 songs is now read in full, up to 2,000.
+
 ## 2026.11.12-b24
 
 - Jukebox's buttons above the queue are now **Add**, **Edit…**, **Save…** and

@@ -29,6 +29,7 @@ from homeassistant.util import dt as dt_util
 from . import art, find, house, may, speaker, upnp
 from .announce import address, room_name
 from .const import DOMAIN
+from .curate import Curator
 from .house import QUEUE
 from .love import Love
 from .may import Who
@@ -77,6 +78,8 @@ class Feed:
         # ponytail: a queue replaced from another app isn't noticed, so the page may
         # offer the wrong playlist first. It asks before replacing, with both counts.
         self.sources: dict[str, str] = {}
+        # Tidying a playlist as a whole, and its memory of a sort to put back.
+        self.curator = Curator()
         # The cover of the song a station is playing, found on Spotify (find.Covers).
         self.covers = find.Covers(hass, self._changed)
         # What a page shows a song's picture with (art.py): new at each start.
@@ -262,6 +265,7 @@ class _Doing:
         entity: str,
         data: dict,
         parties: Parties,
+        curator: Curator | None = None,
     ) -> None:
         group = house.group_of(model, entity)
         if group is None:
@@ -269,6 +273,9 @@ class _Doing:
         self.hass, self.model, self.entity, self.data = hass, model, entity, data
         self.group: dict[str, Any] = group
         self.parties = parties
+        self.curator = curator
+        # What an action has to say of what it did, for the page: none for most.
+        self.result: dict[str, Any] | None = None
         # What this changed that a party must know of, to tell it from a guest's change
         # (party.own): the volumes it set, and a room it brought in or took out.
         self.volumes: dict[str, int] = {}
@@ -597,6 +604,9 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "playlist_move": _Doing.playlist_move,
     "playlist_remove": _Doing.playlist_remove,
     "playlist_add": _Doing.playlist_add,
+    "playlist_sort": lambda doing: doing.curator.sort(doing),
+    "playlist_unsort": lambda doing: doing.curator.unsort(doing),
+    "playlist_dedupe": lambda doing: doing.curator.dedupe(doing),
     "party": _Doing.party,
     "party_open": _Doing.party_open,
 }
@@ -604,11 +614,11 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
 
 async def do(
     feed: Feed, who: Who, action: str, entity: str, data: dict[str, Any]
-) -> None:
+) -> dict[str, Any] | None:
     """Carry out one thing the page asked for, and write down who asked. Raises
     HomeAssistantError, with the reason, when it can't be done, or when this asker may
     not do it while a party is on (may.py)."""
-    doing = _Doing(feed.hass, feed.model(), entity, data, feed.parties)
+    doing = _Doing(feed.hass, feed.model(), entity, data, feed.parties, feed.curator)
     party = feed.parties.led_by(doing.group["id"])
     # The addresses of what is played stay out of the log: a link can carry a key.
     said = {k: v for k, v in data.items() if k != "media_content_id"}
@@ -633,7 +643,8 @@ async def do(
         feed._changed()
     if action in NEW_MUSIC:
         feed.renewed(doing.group["id"])
-    _LOGGER.info("%s: %s in %s %s", who, action, entity, said)
+    _LOGGER.info("%s: %s in %s %s %s", who, action, entity, said, doing.result or "")
+    return doing.result
 
 
 async def queue(feed: Feed, entity: str, playlist: str = "") -> dict[str, Any]:

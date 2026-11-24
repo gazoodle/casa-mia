@@ -2,6 +2,41 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done.
 
+## Stock (an idea, not started)
+
+The owner's idea, 2026-11-23: a spare wall tablet in a store room scans wine, beer, other
+drinks and food in and out, as a stock control system. The name is Stock (owner,
+2026-11-24). Only the name and the two rulings below are decided; the rest is the agent's
+proposal from that discussion, to be agreed before anything is built.
+
+- **Not Grocy** (owner, 2026-11-24). Why: the owner looked at its interface and rejected
+  it outright, as a spreadsheet-style screen with far too many features. Don't propose it
+  again, nor a front end to it.
+- **Where it lives is open.** The owner said it might be Home Assistant, part of Casa Mia,
+  or something else. The proposal is a Casa Mia module, because the tablet page, the
+  storage, the sensors and the events already exist here. Whether the screen is a Lovelace
+  card or a page of its own has not been looked at.
+- **Scanner or camera is open.** The proposal is a 2D presentation scanner on a stand,
+  acting as a keyboard, with the page listening for its keystrokes. A mounted tablet's
+  front camera is usually fixed-focus and reads a curved, shiny bottle badly; a page also
+  needs HTTPS to use it. Test the tablet's camera on a bottle before ruling it out as a
+  fallback. Still to find out: whether the tablet can power a USB scanner while it
+  charges, or needs a Bluetooth one.
+- **Proposed first version:**
+  - A known barcode takes one off the count and shows the name and the new count in
+    large type, with undo.
+  - An unknown barcode is looked up on Open Food Facts (only the barcode leaves the
+    house); if that finds nothing, the page asks for a name and category once.
+  - "Out" is the default. An "In" button switches mode and lapses by itself after a
+    minute (RULE FIVE), with a keypad for the quantity of a case.
+  - On-screen buttons for chosen things that have no barcode.
+  - One SQLite file: the products, and an append-only log of movements.
+  - A sensor for each category, and an event when a product falls to its minimum.
+- **Left out until missed:** best-before dates, storage locations, units, prices,
+  shopping lists and recipes.
+- **Known to be awkward:** a wine's barcode does not give its vintage, small producers
+  often have none, and Open Food Facts is patchy for wine.
+
 ## Jukebox (in development)
 
 The owner's idea, 2026-11-20: one place for both of the owners to manage the house's music
@@ -147,11 +182,14 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
       or a playlist (the match is a Spotify song), once the covers prove reliable on
       the owner's stations; and showing the names the right way round for a station
       that sends them swapped.
-    - **The editor on a wide screen** (built in b22, owner 2026-11-24). Not seen
-      against a real speaker or on a real tablet. Adding to the queue at a place moves
-      each added song up one at a time (`feed.queue_add`): the speaker's move takes a
-      count of songs, which hasn't been tried on a real speaker, and would be quicker
-      for a long album.
+    - **The editor on a wide screen** (b22, redesigned in b25: a chosen song shown
+      whole, insert before or after it, sort with put back, duplicates, widths set by
+      dragging; owner 2026-11-24). Not seen against a real speaker or on a real
+      tablet. Left: sorting by the date a song came out (the speaker doesn't list
+      it); sorting and tidying the queue, which are a playlist's only; and adding to
+      the queue at a place moves each added song up one at a time
+      (`feed.queue_add`), where the speaker's move takes a count of songs that
+      hasn't been tried.
     - After a put-back the music once started at the next song, not the one playing
       (b19, on a real speaker; the cause wasn't found). b20 loads the queue back whole
       and logs where it returns to ("back to song N"): read that line if it recurs.

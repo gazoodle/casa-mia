@@ -348,7 +348,7 @@ var p = globalThis, ne = p.ShadowRoot && (p.ShadyCSS === void 0 || p.ShadyCSS.na
 	let t = "";
 	for (let n of e.cssRules) t += n.cssText;
 	return oe(t);
-})(e) : e, { is: le, defineProperty: ue, getOwnPropertyDescriptor: de, getOwnPropertyNames: fe, getOwnPropertySymbols: pe, getPrototypeOf: me } = Object, h = globalThis, he = h.trustedTypes, ge = he ? he.emptyScript : "", _e = h.reactiveElementPolyfillSupport, g = (e, t) => e, _ = {
+})(e) : e, { is: le, defineProperty: ue, getOwnPropertyDescriptor: de, getOwnPropertyNames: fe, getOwnPropertySymbols: pe, getPrototypeOf: me } = Object, h = globalThis, he = h.trustedTypes, ge = he ? he.emptyScript : "", _e = h.reactiveElementPolyfillSupport, g = (e, t) => e, ve = {
 	toAttribute(e, t) {
 		switch (t) {
 			case Boolean:
@@ -377,23 +377,23 @@ var p = globalThis, ne = p.ShadowRoot && (p.ShadyCSS === void 0 || p.ShadyCSS.na
 		}
 		return n;
 	}
-}, ve = (e, t) => !le(e, t), ye = {
+}, ye = (e, t) => !le(e, t), be = {
 	attribute: !0,
 	type: String,
-	converter: _,
+	converter: ve,
 	reflect: !1,
 	useDefault: !1,
-	hasChanged: ve
+	hasChanged: ye
 };
 Symbol.metadata ??= Symbol("metadata"), h.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-var v = class extends HTMLElement {
+var _ = class extends HTMLElement {
 	static addInitializer(e) {
 		this._$Ei(), (this.l ??= []).push(e);
 	}
 	static get observedAttributes() {
 		return this.finalize(), this._$Eh && [...this._$Eh.keys()];
 	}
-	static createProperty(e, t = ye) {
+	static createProperty(e, t = be) {
 		if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
 			let n = Symbol(), r = this.getPropertyDescriptor(e, n, t);
 			r !== void 0 && ue(this.prototype, e, r);
@@ -419,7 +419,7 @@ var v = class extends HTMLElement {
 		};
 	}
 	static getPropertyOptions(e) {
-		return this.elementProperties.get(e) ?? ye;
+		return this.elementProperties.get(e) ?? be;
 	}
 	static _$Ei() {
 		if (this.hasOwnProperty(g("elementProperties"))) return;
@@ -490,14 +490,14 @@ var v = class extends HTMLElement {
 	_$ET(e, t) {
 		let n = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, n);
 		if (r !== void 0 && !0 === n.reflect) {
-			let i = (n.converter?.toAttribute === void 0 ? _ : n.converter).toAttribute(t, n.type);
+			let i = (n.converter?.toAttribute === void 0 ? ve : n.converter).toAttribute(t, n.type);
 			this._$Em = e, i == null ? this.removeAttribute(r) : this.setAttribute(r, i), this._$Em = null;
 		}
 	}
 	_$AK(e, t) {
 		let n = this.constructor, r = n._$Eh.get(e);
 		if (r !== void 0 && this._$Em !== r) {
-			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? _ : e.converter;
+			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? ve : e.converter;
 			this._$Em = r;
 			let a = i.fromAttribute(t, e.type);
 			this[r] = a ?? this._$Ej?.get(r) ?? a, this._$Em = null;
@@ -506,7 +506,7 @@ var v = class extends HTMLElement {
 	requestUpdate(e, t, n, r = !1, i) {
 		if (e !== void 0) {
 			let a = this.constructor;
-			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? ve)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
+			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? ye)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
 			this.C(e, t, n);
 		}
 		!1 === this.isUpdatePending && (this._$ES = this._$EP());
@@ -570,89 +570,89 @@ var v = class extends HTMLElement {
 	updated(e) {}
 	firstUpdated(e) {}
 };
-v.elementStyles = [], v.shadowRootOptions = { mode: "open" }, v[g("elementProperties")] = /* @__PURE__ */ new Map(), v[g("finalized")] = /* @__PURE__ */ new Map(), _e?.({ ReactiveElement: v }), (h.reactiveElementVersions ??= []).push("2.1.2");
+_.elementStyles = [], _.shadowRootOptions = { mode: "open" }, _[g("elementProperties")] = /* @__PURE__ */ new Map(), _[g("finalized")] = /* @__PURE__ */ new Map(), _e?.({ ReactiveElement: _ }), (h.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region node_modules/lit-html/lit-html.js
-var y = globalThis, be = (e) => e, b = y.trustedTypes, xe = b ? b.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Se = "$lit$", x = `lit$${Math.random().toFixed(9).slice(2)}$`, Ce = "?" + x, we = `<${Ce}>`, S = document, C = () => S.createComment(""), w = (e) => e === null || typeof e != "object" && typeof e != "function", T = Array.isArray, Te = (e) => T(e) || typeof e?.[Symbol.iterator] == "function", Ee = "[ 	\n\f\r]", E = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, De = /-->/g, Oe = />/g, D = RegExp(`>|${Ee}(?:([^\\s"'>=/]+)(${Ee}*=${Ee}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), ke = /'/g, Ae = /"/g, je = /^(?:script|style|textarea|title)$/i, O = ((e) => (t, ...n) => ({
+var v = globalThis, xe = (e) => e, y = v.trustedTypes, Se = y ? y.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Ce = "$lit$", b = `lit$${Math.random().toFixed(9).slice(2)}$`, we = "?" + b, Te = `<${we}>`, x = document, S = () => x.createComment(""), C = (e) => e === null || typeof e != "object" && typeof e != "function", Ee = Array.isArray, De = (e) => Ee(e) || typeof e?.[Symbol.iterator] == "function", Oe = "[ 	\n\f\r]", w = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, ke = /-->/g, Ae = />/g, T = RegExp(`>|${Oe}(?:([^\\s"'>=/]+)(${Oe}*=${Oe}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), je = /'/g, Me = /"/g, Ne = /^(?:script|style|textarea|title)$/i, E = ((e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
-}))(1), k = Symbol.for("lit-noChange"), A = Symbol.for("lit-nothing"), Me = /* @__PURE__ */ new WeakMap(), j = S.createTreeWalker(S, 129);
-function Ne(e, t) {
-	if (!T(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-	return xe === void 0 ? t : xe.createHTML(t);
+}))(1), D = Symbol.for("lit-noChange"), O = Symbol.for("lit-nothing"), Pe = /* @__PURE__ */ new WeakMap(), k = x.createTreeWalker(x, 129);
+function Fe(e, t) {
+	if (!Ee(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+	return Se === void 0 ? t : Se.createHTML(t);
 }
-var Pe = (e, t) => {
-	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = E;
+var Ie = (e, t) => {
+	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = w;
 	for (let t = 0; t < n; t++) {
 		let n = e[t], s, c, l = -1, u = 0;
-		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === E ? c[1] === "!--" ? o = De : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = D) : (je.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = D) : o = Oe : o === D ? c[0] === ">" ? (o = i ?? E, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? D : c[3] === "\"" ? Ae : ke) : o === Ae || o === ke ? o = D : o === De || o === Oe ? o = E : (o = D, i = void 0);
-		let d = o === D && e[t + 1].startsWith("/>") ? " " : "";
-		a += o === E ? n + we : l >= 0 ? (r.push(s), n.slice(0, l) + Se + n.slice(l) + x + d) : n + x + (l === -2 ? t : d);
+		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === w ? c[1] === "!--" ? o = ke : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = T) : (Ne.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = T) : o = Ae : o === T ? c[0] === ">" ? (o = i ?? w, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? T : c[3] === "\"" ? Me : je) : o === Me || o === je ? o = T : o === ke || o === Ae ? o = w : (o = T, i = void 0);
+		let d = o === T && e[t + 1].startsWith("/>") ? " " : "";
+		a += o === w ? n + Te : l >= 0 ? (r.push(s), n.slice(0, l) + Ce + n.slice(l) + b + d) : n + b + (l === -2 ? t : d);
 	}
-	return [Ne(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
-}, Fe = class e {
+	return [Fe(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
+}, A = class e {
 	constructor({ strings: t, _$litType$: n }, r) {
 		let i;
 		this.parts = [];
-		let a = 0, o = 0, s = t.length - 1, c = this.parts, [l, u] = Pe(t, n);
-		if (this.el = e.createElement(l, r), j.currentNode = this.el.content, n === 2 || n === 3) {
+		let a = 0, o = 0, s = t.length - 1, c = this.parts, [l, u] = Ie(t, n);
+		if (this.el = e.createElement(l, r), k.currentNode = this.el.content, n === 2 || n === 3) {
 			let e = this.el.content.firstChild;
 			e.replaceWith(...e.childNodes);
 		}
-		for (; (i = j.nextNode()) !== null && c.length < s;) {
+		for (; (i = k.nextNode()) !== null && c.length < s;) {
 			if (i.nodeType === 1) {
-				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(Se)) {
-					let t = u[o++], n = i.getAttribute(e).split(x), r = /([.?@])?(.*)/.exec(t);
+				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(Ce)) {
+					let t = u[o++], n = i.getAttribute(e).split(b), r = /([.?@])?(.*)/.exec(t);
 					c.push({
 						type: 1,
 						index: a,
 						name: r[2],
 						strings: n,
-						ctor: r[1] === "." ? Re : r[1] === "?" ? ze : r[1] === "@" ? Be : N
+						ctor: r[1] === "." ? ze : r[1] === "?" ? Be : r[1] === "@" ? Ve : M
 					}), i.removeAttribute(e);
-				} else e.startsWith(x) && (c.push({
+				} else e.startsWith(b) && (c.push({
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
-				if (je.test(i.tagName)) {
-					let e = i.textContent.split(x), t = e.length - 1;
+				if (Ne.test(i.tagName)) {
+					let e = i.textContent.split(b), t = e.length - 1;
 					if (t > 0) {
-						i.textContent = b ? b.emptyScript : "";
-						for (let n = 0; n < t; n++) i.append(e[n], C()), j.nextNode(), c.push({
+						i.textContent = y ? y.emptyScript : "";
+						for (let n = 0; n < t; n++) i.append(e[n], S()), k.nextNode(), c.push({
 							type: 2,
 							index: ++a
 						});
-						i.append(e[t], C());
+						i.append(e[t], S());
 					}
 				}
 			} else if (i.nodeType === 8) {
-				if (i.data === Ce) c.push({
+				if (i.data === we) c.push({
 					type: 2,
 					index: a
 				});
 				else {
 					let e = -1;
-					for (; (e = i.data.indexOf(x, e + 1)) !== -1;) c.push({
+					for (; (e = i.data.indexOf(b, e + 1)) !== -1;) c.push({
 						type: 7,
 						index: a
-					}), e += x.length - 1;
+					}), e += b.length - 1;
 				}
 			}
 			a++;
 		}
 	}
 	static createElement(e, t) {
-		let n = S.createElement("template");
+		let n = x.createElement("template");
 		return n.innerHTML = e, n;
 	}
 };
-function M(e, t, n = e, r) {
-	if (t === k) return t;
-	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = w(t) ? void 0 : t._$litDirective$;
-	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = M(e, i._$AS(e, t.values), i, r)), t;
+function j(e, t, n = e, r) {
+	if (t === D) return t;
+	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = C(t) ? void 0 : t._$litDirective$;
+	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = j(e, i._$AS(e, t.values), i, r)), t;
 }
-var Ie = class {
+var Le = class {
 	constructor(e, t) {
 		this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = t;
 	}
@@ -663,28 +663,28 @@ var Ie = class {
 		return this._$AM._$AU;
 	}
 	u(e) {
-		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? S).importNode(t, !0);
-		j.currentNode = r;
-		let i = j.nextNode(), a = 0, o = 0, s = n[0];
+		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? x).importNode(t, !0);
+		k.currentNode = r;
+		let i = k.nextNode(), a = 0, o = 0, s = n[0];
 		for (; s !== void 0;) {
 			if (a === s.index) {
 				let t;
-				s.type === 2 ? t = new Le(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new Ve(i, this, e)), this._$AV.push(t), s = n[++o];
+				s.type === 2 ? t = new Re(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new He(i, this, e)), this._$AV.push(t), s = n[++o];
 			}
-			a !== s?.index && (i = j.nextNode(), a++);
+			a !== s?.index && (i = k.nextNode(), a++);
 		}
-		return j.currentNode = S, r;
+		return k.currentNode = x, r;
 	}
 	p(e) {
 		let t = 0;
 		for (let n of this._$AV) n !== void 0 && (n.strings === void 0 ? n._$AI(e[t]) : (n._$AI(e, n, t), t += n.strings.length - 2)), t++;
 	}
-}, Le = class e {
+}, Re = class e {
 	get _$AU() {
 		return this._$AM?._$AU ?? this._$Cv;
 	}
 	constructor(e, t, n, r) {
-		this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = e, this._$AB = t, this._$AM = n, this.options = r, this._$Cv = r?.isConnected ?? !0;
+		this.type = 2, this._$AH = O, this._$AN = void 0, this._$AA = e, this._$AB = t, this._$AM = n, this.options = r, this._$Cv = r?.isConnected ?? !0;
 	}
 	get parentNode() {
 		let e = this._$AA.parentNode, t = this._$AM;
@@ -697,7 +697,7 @@ var Ie = class {
 		return this._$AB;
 	}
 	_$AI(e, t = this) {
-		e = M(this, e, t), w(e) ? e === A || e == null || e === "" ? (this._$AH !== A && this._$AR(), this._$AH = A) : e !== this._$AH && e !== k && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? Te(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
+		e = j(this, e, t), C(e) ? e === O || e == null || e === "" ? (this._$AH !== O && this._$AR(), this._$AH = O) : e !== this._$AH && e !== D && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? De(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
 	}
 	O(e) {
 		return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -706,36 +706,36 @@ var Ie = class {
 		this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
 	}
 	_(e) {
-		this._$AH !== A && w(this._$AH) ? this._$AA.nextSibling.data = e : this.T(S.createTextNode(e)), this._$AH = e;
+		this._$AH !== O && C(this._$AH) ? this._$AA.nextSibling.data = e : this.T(x.createTextNode(e)), this._$AH = e;
 	}
 	$(e) {
-		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = Fe.createElement(Ne(n.h, n.h[0]), this.options)), n);
+		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = A.createElement(Fe(n.h, n.h[0]), this.options)), n);
 		if (this._$AH?._$AD === r) this._$AH.p(t);
 		else {
-			let e = new Ie(r, this), n = e.u(this.options);
+			let e = new Le(r, this), n = e.u(this.options);
 			e.p(t), this.T(n), this._$AH = e;
 		}
 	}
 	_$AC(e) {
-		let t = Me.get(e.strings);
-		return t === void 0 && Me.set(e.strings, t = new Fe(e)), t;
+		let t = Pe.get(e.strings);
+		return t === void 0 && Pe.set(e.strings, t = new A(e)), t;
 	}
 	k(t) {
-		T(this._$AH) || (this._$AH = [], this._$AR());
+		Ee(this._$AH) || (this._$AH = [], this._$AR());
 		let n = this._$AH, r, i = 0;
-		for (let a of t) i === n.length ? n.push(r = new e(this.O(C()), this.O(C()), this, this.options)) : r = n[i], r._$AI(a), i++;
+		for (let a of t) i === n.length ? n.push(r = new e(this.O(S()), this.O(S()), this, this.options)) : r = n[i], r._$AI(a), i++;
 		i < n.length && (this._$AR(r && r._$AB.nextSibling, i), n.length = i);
 	}
 	_$AR(e = this._$AA.nextSibling, t) {
 		for (this._$AP?.(!1, !0, t); e !== this._$AB;) {
-			let t = be(e).nextSibling;
-			be(e).remove(), e = t;
+			let t = xe(e).nextSibling;
+			xe(e).remove(), e = t;
 		}
 	}
 	setConnected(e) {
 		this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
 	}
-}, N = class {
+}, M = class {
 	get tagName() {
 		return this.element.tagName;
 	}
@@ -743,47 +743,47 @@ var Ie = class {
 		return this._$AM._$AU;
 	}
 	constructor(e, t, n, r, i) {
-		this.type = 1, this._$AH = A, this._$AN = void 0, this.element = e, this.name = t, this._$AM = r, this.options = i, n.length > 2 || n[0] !== "" || n[1] !== "" ? (this._$AH = Array(n.length - 1).fill(/* @__PURE__ */ new String()), this.strings = n) : this._$AH = A;
+		this.type = 1, this._$AH = O, this._$AN = void 0, this.element = e, this.name = t, this._$AM = r, this.options = i, n.length > 2 || n[0] !== "" || n[1] !== "" ? (this._$AH = Array(n.length - 1).fill(/* @__PURE__ */ new String()), this.strings = n) : this._$AH = O;
 	}
 	_$AI(e, t = this, n, r) {
 		let i = this.strings, a = !1;
-		if (i === void 0) e = M(this, e, t, 0), a = !w(e) || e !== this._$AH && e !== k, a && (this._$AH = e);
+		if (i === void 0) e = j(this, e, t, 0), a = !C(e) || e !== this._$AH && e !== D, a && (this._$AH = e);
 		else {
 			let r = e, o, s;
-			for (e = i[0], o = 0; o < i.length - 1; o++) s = M(this, r[n + o], t, o), s === k && (s = this._$AH[o]), a ||= !w(s) || s !== this._$AH[o], s === A ? e = A : e !== A && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
+			for (e = i[0], o = 0; o < i.length - 1; o++) s = j(this, r[n + o], t, o), s === D && (s = this._$AH[o]), a ||= !C(s) || s !== this._$AH[o], s === O ? e = O : e !== O && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
 		}
 		a && !r && this.j(e);
 	}
 	j(e) {
-		e === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
+		e === O ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
 	}
-}, Re = class extends N {
+}, ze = class extends M {
 	constructor() {
 		super(...arguments), this.type = 3;
 	}
 	j(e) {
-		this.element[this.name] = e === A ? void 0 : e;
+		this.element[this.name] = e === O ? void 0 : e;
 	}
-}, ze = class extends N {
+}, Be = class extends M {
 	constructor() {
 		super(...arguments), this.type = 4;
 	}
 	j(e) {
-		this.element.toggleAttribute(this.name, !!e && e !== A);
+		this.element.toggleAttribute(this.name, !!e && e !== O);
 	}
-}, Be = class extends N {
+}, Ve = class extends M {
 	constructor(e, t, n, r, i) {
 		super(e, t, n, r, i), this.type = 5;
 	}
 	_$AI(e, t = this) {
-		if ((e = M(this, e, t, 0) ?? A) === k) return;
-		let n = this._$AH, r = e === A && n !== A || e.capture !== n.capture || e.once !== n.once || e.passive !== n.passive, i = e !== A && (n === A || r);
+		if ((e = j(this, e, t, 0) ?? O) === D) return;
+		let n = this._$AH, r = e === O && n !== O || e.capture !== n.capture || e.once !== n.once || e.passive !== n.passive, i = e !== O && (n === O || r);
 		r && this.element.removeEventListener(this.name, this, n), i && this.element.addEventListener(this.name, this, e), this._$AH = e;
 	}
 	handleEvent(e) {
 		typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
 	}
-}, Ve = class {
+}, He = class {
 	constructor(e, t, n) {
 		this.element = e, this.type = 6, this._$AN = void 0, this._$AM = t, this.options = n;
 	}
@@ -791,18 +791,18 @@ var Ie = class {
 		return this._$AM._$AU;
 	}
 	_$AI(e) {
-		M(this, e);
+		j(this, e);
 	}
-}, He = y.litHtmlPolyfillSupport;
-He?.(Fe, Le), (y.litHtmlVersions ??= []).push("3.3.3");
-var Ue = (e, t, n) => {
+}, Ue = v.litHtmlPolyfillSupport;
+Ue?.(A, Re), (v.litHtmlVersions ??= []).push("3.3.3");
+var We = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
 		let e = n?.renderBefore ?? null;
-		r._$litPart$ = i = new Le(t.insertBefore(C(), e), e, void 0, n ?? {});
+		r._$litPart$ = i = new Re(t.insertBefore(S(), e), e, void 0, n ?? {});
 	}
 	return i._$AI(e), i;
-}, We = globalThis, P = class extends v {
+}, Ge = globalThis, N = class extends _ {
 	constructor() {
 		super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
 	}
@@ -812,7 +812,7 @@ var Ue = (e, t, n) => {
 	}
 	update(e) {
 		let t = this.render();
-		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = Ue(t, this.renderRoot, this.renderOptions);
+		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = We(t, this.renderRoot, this.renderOptions);
 	}
 	connectedCallback() {
 		super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -821,80 +821,80 @@ var Ue = (e, t, n) => {
 		super.disconnectedCallback(), this._$Do?.setConnected(!1);
 	}
 	render() {
-		return k;
+		return D;
 	}
 };
-P._$litElement$ = !0, P.finalized = !0, We.litElementHydrateSupport?.({ LitElement: P });
-var Ge = We.litElementPolyfillSupport;
-Ge?.({ LitElement: P }), (We.litElementVersions ??= []).push("4.2.2");
+N._$litElement$ = !0, N.finalized = !0, Ge.litElementHydrateSupport?.({ LitElement: N });
+var Ke = Ge.litElementPolyfillSupport;
+Ke?.({ LitElement: N }), (Ge.litElementVersions ??= []).push("4.2.2");
 //#endregion
 //#region src/jukebox/common.ts
-var F = "casa_mia_jukebox", Ke = new URL(import.meta.url).searchParams.get("v") || "dev", qe = `${F}/cards`, I = (e) => e?.curates ?? e?.me === "host", Je = (e, t) => !!t.party && e.me !== "host" && !(e.me === "screen" && t.party.open), Ye = 6e5;
-function Xe(e, t) {
+var P = "casa_mia_jukebox", qe = new URL(import.meta.url).searchParams.get("v") || "dev", Je = `${P}/cards`, F = (e) => e?.curates ?? e?.me === "host", Ye = (e, t) => !!t.party && e.me !== "host" && !(e.me === "screen" && t.party.open), Xe = 6e5;
+function Ze(e, t) {
 	let n = e.love;
-	if (!n || !n.now && t - Date.parse(n.at) > Ye) return;
+	if (!n || !n.now && t - Date.parse(n.at) > Xe) return;
 	let r = n.did || "Changing this player", i = n.because ? `${r}, because ${n.because}.` : `${r}. ${n.why}.`;
 	return {
 		text: n.next ? `${i} ${n.next}.` : i,
 		over: !n.now
 	};
 }
-function L(e, t) {
-	let n = e.subscribeMessage((e) => t(e), { type: `${F}/house` });
+function Qe(e, t) {
+	let n = e.subscribeMessage((e) => t(e), { type: `${P}/house` });
 	return n.catch((e) => t(void 0, e?.code === "unknown_command" ? "Jukebox isn't set up in Home Assistant" : e?.message ?? String(e))), () => void n.then((e) => e()).catch(() => void 0);
 }
-function R(e, t, n, r = {}) {
+function I(e, t, n, r = {}) {
 	return e.connection.sendMessagePromise({
-		type: `${F}/do`,
+		type: `${P}/do`,
 		action: t,
 		entity_id: n,
 		...r
 	});
 }
-function Ze(e, t) {
+function $e(e, t) {
 	return e.connection.sendMessagePromise({
-		type: `${F}/favourites`,
+		type: `${P}/favourites`,
 		entity_id: t
 	});
 }
-function Qe(e, t, n) {
+function et(e, t, n) {
 	return e.connection.sendMessagePromise({
-		type: `${F}/queue`,
+		type: `${P}/queue`,
 		entity_id: t,
 		...n ? { playlist: n } : {}
 	});
 }
-function $e(e, t, n) {
+function tt(e, t, n) {
 	return e.connection.sendMessagePromise({
-		type: `${F}/search`,
+		type: `${P}/search`,
 		entity_id: t,
 		query: n
 	});
 }
-function et(e, t, n) {
+function nt(e, t, n) {
 	let r = n ? {
 		media_content_type: n.media_content_type,
 		media_content_id: n.media_content_id
 	} : {};
 	return e.connection.sendMessagePromise({
-		type: `${F}/browse`,
+		type: `${P}/browse`,
 		entity_id: t,
 		...r
 	});
 }
-function tt(e, t) {
+function rt(e, t) {
 	return e.connection.sendMessagePromise({
-		type: `${F}/order`,
+		type: `${P}/order`,
 		rooms: t
 	});
 }
-var z = (e) => e?.message ?? String(e), B = (e, t) => e.groups.find((e) => e.rooms.includes(t)), V = (e, t) => t.rooms.map((t) => e.rooms[t]?.name ?? t).join(" + ");
-function H(e, t) {
+var L = (e) => e?.message ?? String(e), R = (e, t) => e.groups.find((e) => e.rooms.includes(t)), z = (e, t) => t.rooms.map((t) => e.rooms[t]?.name ?? t).join(" + ");
+function B(e, t) {
 	let n = t.rooms.map((t) => e.rooms[t]?.volume).filter((e) => typeof e == "number");
 	return n.length ? Math.round(n.reduce((e, t) => e + t, 0) / n.length) : 0;
 }
-var nt = (e, t) => t.rooms.length > 0 && t.rooms.every((t) => e.rooms[t]?.muted);
-function U(e) {
+var it = (e, t) => t.rooms.length > 0 && t.rooms.every((t) => e.rooms[t]?.muted);
+function V(e) {
 	let t = {
 		tv: "Television",
 		line_in: "Line-in",
@@ -911,24 +911,24 @@ function U(e) {
 		by: e.artist
 	};
 }
-function rt(e, t) {
+function at(e, t) {
 	if (typeof e.position != "number" || !e.duration) return null;
 	let n = e.state === "playing" && e.position_at ? Math.max(0, (t - Date.parse(e.position_at)) / 1e3) : 0;
 	return Math.min(e.duration, Math.floor(e.position + n));
 }
-var W = (e) => new Date(e).toLocaleTimeString([], {
+var H = (e) => new Date(e).toLocaleTimeString([], {
 	hour: "2-digit",
 	minute: "2-digit",
 	hour12: !1
-}), it = (e) => `${Math.floor(e / 60)}:${String(Math.floor(e % 60)).padStart(2, "0")}`;
-function G(e) {
+}), U = (e) => `${Math.floor(e / 60)}:${String(Math.floor(e % 60)).padStart(2, "0")}`;
+function W(e) {
 	let t = 0;
 	for (let n of e) t = t * 31 + n.charCodeAt(0) >>> 0;
 	let n = t % 360;
 	return [`hsl(${n} 72% 56%)`, `hsl(${(n + 70) % 360} 62% 30%)`];
 }
-var at = (e) => e.split(/\s+/).slice(0, 2).map((e) => e[0] ?? "").join("").toUpperCase();
-function ot(e, t) {
+var ot = (e) => e.split(/\s+/).slice(0, 2).map((e) => e[0] ?? "").join("").toUpperCase();
+function st(e, t) {
 	let n = !1, r, i = (a) => {
 		if (n) return void (r = { value: a });
 		n = !0, e(a).catch(t).finally(() => {
@@ -941,8 +941,9 @@ function ot(e, t) {
 }
 //#endregion
 //#region src/jukebox/parts.ts
-var st = {
+var ct = {
 	play: "M8 5v14l11-7z",
+	reset: "M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8zm-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91z",
 	pause: "M6 5h4v14H6zM14 5h4v14h-4z",
 	stop: "M6 6h12v12H6z",
 	next: "M6 6l8.5 6L6 18zM16 6h2v12h-2z",
@@ -967,28 +968,28 @@ var st = {
 	menu: "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z",
 	back: "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z",
 	home: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"
-}, K = (e) => O`<svg viewBox="0 0 24 24" aria-hidden="true"><path d=${st[e]}></path></svg>`, q = (e, t) => /^https?:/.test(t) ? t : e?.hassUrl?.(t) ?? t, J = (e) => e.target.remove();
-function Y(e, t, n) {
-	let [r, i] = G(n);
-	return O`<span class="art" style="--a:${r};--b:${i}"><i>${at(n)}</i>${t ? O`<img src=${q(e, t)} alt="" loading="lazy" @error=${J} />` : A}</span>`;
+}, G = (e) => E`<svg viewBox="0 0 24 24" aria-hidden="true"><path d=${ct[e]}></path></svg>`, K = (e, t) => /^https?:/.test(t) ? t : e?.hassUrl?.(t) ?? t, q = (e) => e.target.remove();
+function J(e, t, n) {
+	let [r, i] = W(n);
+	return E`<span class="art" style="--a:${r};--b:${i}"><i>${ot(n)}</i>${t ? E`<img src=${K(e, t)} alt="" loading="lazy" @error=${q} />` : O}</span>`;
 }
-function ct(e, t, n) {
-	if (!t.cover) return Y(e, t.picture, n);
-	let [r, i] = G(n);
-	return O`<span class="art" style="--a:${r};--b:${i}"><i>${at(n)}</i><img src=${q(e, t.cover)} alt="" @error=${J} />${t.picture ? O`<img class="badge" src=${q(e, t.picture)} alt="" @error=${J} />` : A}</span>`;
+function lt(e, t, n) {
+	if (!t.cover) return J(e, t.picture, n);
+	let [r, i] = W(n);
+	return E`<span class="art" style="--a:${r};--b:${i}"><i>${ot(n)}</i><img src=${K(e, t.cover)} alt="" @error=${q} />${t.picture ? E`<img class="badge" src=${K(e, t.picture)} alt="" @error=${q} />` : O}</span>`;
 }
-function lt(e, t, n, r) {
-	if (!t || t.length < 4) return Y(e, t?.[0] ?? n, r);
-	let [i, a] = G(r);
-	return O`<span class="art four" style="--a:${i};--b:${a}"><i>${at(r)}</i>${t.slice(0, 4).map((t) => O`<img src=${q(e, t)} alt="" loading="lazy" @error=${J} />`)}</span>`;
+function ut(e, t, n, r) {
+	if (!t || t.length < 4) return J(e, t?.[0] ?? n, r);
+	let [i, a] = W(r);
+	return E`<span class="art four" style="--a:${i};--b:${a}"><i>${ot(r)}</i>${t.slice(0, 4).map((t) => E`<img src=${K(e, t)} alt="" loading="lazy" @error=${q} />`)}</span>`;
 }
-var ut = 450, dt = 10, ft = class {
+var dt = 450, ft = 10, pt = class {
 	start(e, t) {
 		this.drop();
 		let n = setTimeout(() => {
 			let { x: e, y: n } = this.at;
 			this.at = void 0, t(e, n);
-		}, ut);
+		}, dt);
 		this.at = {
 			x: e.clientX,
 			y: e.clientY,
@@ -996,12 +997,51 @@ var ut = 450, dt = 10, ft = class {
 		};
 	}
 	moved(e) {
-		this.at && Math.hypot(e.clientX - this.at.x, e.clientY - this.at.y) > dt && this.drop();
+		this.at && Math.hypot(e.clientX - this.at.x, e.clientY - this.at.y) > ft && this.drop();
 	}
 	drop() {
 		clearTimeout(this.at?.timer), this.at = void 0;
 	}
-}, pt = class {
+}, mt = class {
+	constructor(e, t, n) {
+		this.host = e, this.key = t, this.first = n, this.drag = (e, t) => {
+			let n = e.currentTarget;
+			n.setPointerCapture(e.pointerId), e.preventDefault();
+			let r = (e) => {
+				this.value = t(e), this.host.requestUpdate();
+			}, i = () => {
+				n.removeEventListener("pointermove", r), n.removeEventListener("pointerup", i), n.removeEventListener("pointercancel", i), this.keep();
+			};
+			n.addEventListener("pointermove", r), n.addEventListener("pointerup", i), n.addEventListener("pointercancel", i);
+		}, this.reset = () => {
+			this.value = this.first, this.keep();
+		}, this.value = n;
+		try {
+			let e = Number(localStorage.getItem(t));
+			e > 0 && (this.value = e);
+		} catch {}
+	}
+	get moved() {
+		return this.value !== this.first;
+	}
+	keep() {
+		try {
+			this.moved ? localStorage.setItem(this.key, String(this.value)) : localStorage.removeItem(this.key);
+		} catch {}
+		this.host.requestUpdate();
+	}
+	grip(e) {
+		return E`<div class="grip" role="separator" aria-orientation="vertical" aria-label="Drag to change the width of the panels" @pointerdown=${(t) => this.drag(t, e)} @dblclick=${this.reset}>
+      ${this.moved ? E`<button @pointerdown=${(e) => e.stopPropagation()} @click=${this.reset} aria-label="Put the panels back to the width they came with">${G("reset")}</button>` : O}
+    </div>`;
+	}
+}, ht = m`
+  .grip { position: relative; display: grid; place-items: center; width: 14px; cursor: col-resize; touch-action: none; }
+  .grip::before { content: ""; width: 4px; height: 56px; border-radius: 2px; background: rgb(255 255 255 / 22%); }
+  .grip:hover::before, .grip:active::before { background: rgb(255 255 255 / 60%); }
+  .grip button { position: absolute; top: calc(50% + 40px); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #3a3630; color: #fff; box-shadow: 0 4px 14px rgb(0 0 0 / 50%); z-index: 2; }
+  .grip button svg { width: 18px; height: 18px; }
+`, gt = class {
 	constructor(e) {
 		this.host = e, e.addController(this);
 	}
@@ -1020,7 +1060,7 @@ try {
 		initialValue: "0deg"
 	});
 } catch {}
-var X = class {
+var Y = class {
 	constructor(e) {
 		this.host = e, this.waiting = /* @__PURE__ */ new Map(), this.changes = 0;
 	}
@@ -1035,7 +1075,7 @@ var X = class {
 	on(e) {
 		return this.waiting.get(e) ? "busy" : "";
 	}
-}, mt = "casa-mia-jukebox-slider", ht = 16, gt = 22, _t = class extends P {
+}, _t = "casa-mia-jukebox-slider", vt = 16, yt = 22, bt = class extends N {
 	static {
 		this.properties = {
 			value: { type: Number },
@@ -1047,8 +1087,8 @@ var X = class {
 	constructor() {
 		super(), this.value = 0, this.max = 100, this.label = "", this._down = (e) => {
 			if (e.button) return;
-			let t = this.getBoundingClientRect(), n = this._held ?? this.value, r = t.width - ht, i = t.left + ht / 2 + (this.max ? n / this.max : 0) * r;
-			Math.abs(e.clientX - i) > gt || (this.setPointerCapture(e.pointerId), this._drag = {
+			let t = this.getBoundingClientRect(), n = this._held ?? this.value, r = t.width - vt, i = t.left + vt / 2 + (this.max ? n / this.max : 0) * r;
+			Math.abs(e.clientX - i) > yt || (this.setPointerCapture(e.pointerId), this._drag = {
 				x: e.clientX,
 				from: n,
 				travel: r,
@@ -1075,7 +1115,7 @@ var X = class {
 	}
 	render() {
 		let e = this._held ?? this.value;
-		return O`<input
+		return E`<input
       type="range"
       min="0"
       max=${this.max}
@@ -1099,7 +1139,7 @@ var X = class {
     input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--jb-fill, currentColor); box-shadow: 0 1px 4px rgb(0 0 0 / 40%); }
   `;
 	}
-}, vt = "casa-mia-jukebox-marquee", yt = class extends P {
+}, xt = "casa-mia-jukebox-marquee", St = class extends N {
 	constructor(...e) {
 		super(...e), this.text = "", this._over = 0, this._space = new ResizeObserver(() => this._measure());
 	}
@@ -1124,7 +1164,7 @@ var X = class {
 	}
 	render() {
 		let e = this._over;
-		return O`<span class=${e ? "run" : ""} style=${e ? `--over:-${e}px;--time:${(4 + e / 40).toFixed(1)}s` : ""}>${this.text}</span>`;
+		return E`<span class=${e ? "run" : ""} style=${e ? `--over:-${e}px;--time:${(4 + e / 40).toFixed(1)}s` : ""}>${this.text}</span>`;
 	}
 	static {
 		this.styles = m`
@@ -1138,7 +1178,7 @@ var X = class {
     }
   `;
 	}
-}, bt = oe(320), Z = m`
+}, Ct = oe(320), X = m`
   * { box-sizing: border-box; }
   button { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: inherit; }
   button:disabled { opacity: 0.4; cursor: default; }
@@ -1166,22 +1206,50 @@ var X = class {
   .art.four img:nth-of-type(2) { top: 0; left: 50%; }
   .art.four img:nth-of-type(3) { top: 50%; left: 0; }
   .art.four img:nth-of-type(4) { top: 50%; left: 50%; }
-`, xt = "casa-mia-jukebox-editor";
-function St(e, t, n, r) {
-	document.querySelector(xt)?.remove(), document.body.append(Object.assign(document.createElement(xt), {
+`, wt = "casa-mia-jukebox-editor", Tt = {
+	library: "Music library",
+	spotify: "Spotify",
+	streamed: "A streaming service"
+}, Et = [
+	[
+		"title",
+		"By title",
+		"title"
+	],
+	[
+		"artist",
+		"By artist, then album",
+		"artist"
+	],
+	[
+		"album",
+		"By album, in the album's own order",
+		"album"
+	]
+];
+function Dt(e, t, n, r) {
+	document.querySelector(wt)?.remove(), document.body.append(Object.assign(document.createElement(wt), {
 		hass: e,
 		room: t,
 		playlist: n,
 		done: r
 	}));
 }
-var Ct = class extends P {
+var Ot = class extends N {
 	constructor(...e) {
-		super(...e), this.room = "", this.done = () => {}, this._stamp = 0, this._toast = "", this._frame = 0, this._busy = new X(this), this._key = (e) => {
-			e.key === "Escape" && (e.stopImmediatePropagation(), this.remove());
+		super(...e), this.room = "", this.done = () => {}, this._songs = [], this._stamp = 0, this._toast = "", this._sorting = !1, this._unsort = !1, this._zoom = !1, this._frame = 0, this._busy = new Y(this), this._split = new mt(this, "casa-mia-jukebox-split-editor", 50), this._key = (e) => {
+			e.key === "Escape" && (e.stopImmediatePropagation(), this._zoom || this._menu || this._sorting || this._confirm ? [this._zoom, this._menu, this._sorting, this._confirm] = [
+				!1,
+				void 0,
+				!1,
+				void 0
+			] : this.remove());
 		}, this._touch = (e) => {
 			this._lift && e.preventDefault();
-		}, this._do = (e, t, n = e) => this._busy.during(n, R(this.hass, e, this.room, t)).then(() => (this._stamp++, !0), (e) => (this._say(z(e)), !1)), this._edge = () => {
+		}, this._do = (e, t) => this._run(e, t).then((e) => !!e), this._listed = (e) => {
+			let { total: t, songs: n } = e.detail, r = this._adding;
+			r && this._sel !== void 0 && t > r.total ? (this._sel += t - r.total, this._adding = void 0) : r?.over && (this._adding = void 0), [this._songs, this._total] = [n, t], this._sel !== void 0 && this._sel >= n.length && (this._sel = void 0);
+		}, this._edge = () => {
 			let e = this._lift, t = this.renderRoot.querySelector(".list .scroll");
 			if (!e || !t) return;
 			let n = t.getBoundingClientRect(), r = e.x >= n.left && e.x <= n.right ? e.y < n.top + 70 ? -Math.ceil((n.top + 70 - e.y) / 5) : e.y > n.bottom - 70 ? Math.ceil((e.y - n.bottom + 70) / 5) : 0 : 0, i = t.scrollTop;
@@ -1194,8 +1262,12 @@ var Ct = class extends P {
 				...e.detail
 			}, this._place());
 		}, this._let = (e) => {
-			let [t, n] = [this._lift, this._mark];
-			cancelAnimationFrame(this._frame), this._lift = this._mark = void 0, e && t && n !== void 0 && this._add(t.item, n + 1);
+			let [t, n, r] = [
+				this._lift,
+				this._mark,
+				this._sel
+			];
+			cancelAnimationFrame(this._frame), this._lift = this._mark = void 0, e && t && n !== void 0 && this._add(t.item, n + 1, r !== void 0 && n <= r);
 		};
 	}
 	static {
@@ -1206,13 +1278,20 @@ var Ct = class extends P {
 			_why: { state: !0 },
 			_lift: { state: !0 },
 			_mark: { state: !0 },
-			_count: { state: !0 },
+			_songs: { state: !0 },
+			_total: { state: !0 },
+			_sel: { state: !0 },
 			_stamp: { state: !0 },
-			_toast: { state: !0 }
+			_toast: { state: !0 },
+			_menu: { state: !0 },
+			_sorting: { state: !0 },
+			_confirm: { state: !0 },
+			_unsort: { state: !0 },
+			_zoom: { state: !0 }
 		};
 	}
 	connectedCallback() {
-		super.connectedCallback(), this._off = L(this.hass.connection, (e, t) => [this._house, this._why] = [e, t]), window.addEventListener("keydown", this._key), this.addEventListener("touchmove", this._touch, { passive: !1 });
+		super.connectedCallback(), this._off = Qe(this.hass.connection, (e, t) => [this._house, this._why] = [e, t]), window.addEventListener("keydown", this._key), this.addEventListener("touchmove", this._touch, { passive: !1 });
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback(), this._off?.(), window.removeEventListener("keydown", this._key), this.removeEventListener("touchmove", this._touch), clearTimeout(this._fade), cancelAnimationFrame(this._frame), this.done();
@@ -1220,18 +1299,74 @@ var Ct = class extends P {
 	_say(e) {
 		this._toast = e, clearTimeout(this._fade), this._fade = setTimeout(() => this._toast = "", 3500);
 	}
-	async _add(e, t) {
-		let n = t ? { to: t } : {}, r = `fav:${e.media_content_id}`;
-		(this.playlist ? await this._do("playlist_add", {
+	_run(e, t = {}, n = e) {
+		return this._busy.during(n, I(this.hass, e, this.room, t)).then((n) => (this._moved(e, t), this._stamp++, n ?? {}), (e) => (this._say(L(e)), void 0));
+	}
+	_moved(e, t) {
+		/sort$/.test(e) || (this._unsort = !1);
+		let n = this._sel;
+		if (n === void 0) return;
+		let [r, i] = [Number(t.value) - 1, Number(t.to) - 1];
+		/_remove$/.test(e) ? this._sel = r === n ? void 0 : r < n ? n - 1 : n : /_move$/.test(e) ? this._sel = r === n ? i : r < n && i >= n ? n - 1 : r > n && i <= n ? n + 1 : n : /sort$|dedupe$|clear$/.test(e) && (this._sel = void 0);
+	}
+	async _add(e, t, n = !1) {
+		this._menu = void 0;
+		let r = t ? { to: t } : {}, i = `fav:${e.media_content_id}`, a = n ? {
+			total: this._total ?? 0,
+			over: !1
+		} : void 0;
+		this._adding = a;
+		let o = this.playlist ? await this._run("playlist_add", {
 			playlist: this.playlist.media_content_id,
 			media_content_id: e.media_content_id,
 			name: e.title.slice(0, 60),
-			...n
-		}, r) : await this._do("queue_add", {
+			...r
+		}, i) : await this._run("queue_add", {
 			media_content_id: e.media_content_id,
 			media_content_type: e.media_content_type,
-			...n
-		}, r)) && this._say(t ? `Added as number ${t}: ${e.title}` : `Added to the end: ${e.title}`);
+			...r
+		}, i);
+		a && (a.over = !0), o && this._say(t ? `Added as number ${t}: ${e.title}` : `Added to the end: ${e.title}`);
+	}
+	_choose(e) {
+		this._sel === void 0 ? this._add(e) : this._menu = e;
+	}
+	_move(e) {
+		let t = this._sel;
+		e - 1 !== t && this._run(this.playlist ? "playlist_move" : "queue_move", {
+			...this._which(),
+			value: t + 1,
+			to: e
+		});
+	}
+	_which() {
+		return this.playlist ? { playlist: this.playlist.media_content_id } : {};
+	}
+	async _sort(e, t) {
+		this._sorting = !1;
+		let n = await this._run("playlist_sort", {
+			...this._which(),
+			by: e
+		});
+		n && (this._unsort = !!n.moved, this._say(n.moved ? `Sorted by ${t}. Put it back returns the order it had.` : `It is already in order of ${t}.`));
+	}
+	async _back() {
+		await this._run("playlist_unsort", this._which()) && (this._unsort = !1, this._say("Back in the order it had."));
+	}
+	_dedupe() {
+		let e = async () => {
+			let e = await this._run("playlist_dedupe", this._which());
+			if (!e) return;
+			let t = Number(e.removed);
+			this._say(t ? `Took out ${t === 1 ? "1 song that was" : `${t} songs that were`} in it more than once.` : "No song is in it more than once.");
+		};
+		this._confirm = {
+			warn: "This takes songs out",
+			text: "Every song that is in this playlist more than once is taken out, keeping the first of each. They can't be put back.",
+			keep: "Leave it",
+			go: "Take them out",
+			run: e
+		};
 	}
 	get _list() {
 		return this.renderRoot.querySelector("casa-mia-jukebox-queue");
@@ -1242,76 +1377,182 @@ var Ct = class extends P {
 		let r = e.x >= n.left && e.x <= n.right && e.y >= n.top && e.y <= n.bottom;
 		this._mark = r ? t.at(e.y) : void 0;
 	}
+	_pane() {
+		let [e, t] = [this._sel, this._sel === void 0 ? void 0 : this._songs[this._sel]];
+		if (e === void 0 || !t) return E`<p class="pane none">Tap a song to see it here, and to choose where the next thing you add goes.</p>`;
+		let n = this._total ?? this._songs.length, r = [
+			t.duration ? U(t.duration) : "",
+			Tt[t.source ?? ""] ?? "",
+			`Number ${e + 1} of ${n}`
+		].filter(Boolean);
+		return E`<div class="pane">
+      <button class="cover" @click=${() => this._zoom = !0} aria-label="Show the cover larger">${J(this.hass, t.picture, t.title || t.album || "?")}</button>
+      <div class="about">
+        <h3>${t.title || "A song with no title"}</h3>
+        ${t.artist ? E`<p>${t.artist}</p>` : O}
+        ${t.album ? E`<p class="album">${t.album}</p>` : O}
+        <small>${r.join(" · ")}</small>
+        <div class="acts">
+          ${this.playlist ? O : E`<button class=${this._busy.on("queue_play")} @click=${() => this._run("queue_play", { value: e + 1 })}>${G("play")}Play from here</button>`}
+          <button ?disabled=${e === 0} @click=${() => this._move(1)}>To the top</button>
+          <button ?disabled=${e >= n - 1} @click=${() => this._move(n)}>To the end</button>
+          <button @click=${() => this._run(this.playlist ? "playlist_remove" : "queue_remove", {
+			...this._which(),
+			value: e + 1
+		})}>${G("close")}Take out</button>
+          <button @click=${() => this._sel = void 0}>Let go</button>
+        </div>
+      </div>
+    </div>`;
+	}
+	_sheets() {
+		let [e, t, n] = [
+			this._confirm,
+			this._menu,
+			this._sel === void 0 ? void 0 : this._songs[this._sel]
+		], r = (e, t) => E`<div class="veil" @click=${(e) => e.target === e.currentTarget && t()}>${e}</div>`;
+		if (e) return r(E`<div class="sheet" role="alertdialog" aria-label=${e.warn}>
+          <p class="warn">${e.warn}</p>
+          <p>${e.text}</p>
+          <div class="acts">
+            <button class="main" @click=${() => this._confirm = void 0}>${e.keep}</button>
+            <button class="danger" @click=${() => (this._confirm = void 0, e.run())}>${e.go}</button>
+          </div>
+        </div>`, () => this._confirm = void 0);
+		if (t && n && this._sel !== void 0) {
+			let [e, i] = [this._sel, n.title || "the chosen song"];
+			return r(E`<div class="sheet" role="dialog" aria-label="Where to add ${t.title}">
+          <h4>${t.title}</h4>
+          <p>Where should it go?</p>
+          <div class="acts">
+            <button class="main" @click=${() => this._add(t, e + 2, !0)}>After “${i}”</button>
+            <button @click=${() => this._add(t, e + 1, !0)}>Before “${i}”</button>
+            <button @click=${() => this._add(t)}>At the end</button>
+            <button class="sep" @click=${() => this._menu = void 0}>Cancel</button>
+          </div>
+        </div>`, () => this._menu = void 0);
+		}
+		return this._sorting ? r(E`<div class="sheet" role="dialog" aria-label="Sort this playlist">
+          <h4>Sort this playlist</h4>
+          <p>The songs are moved into that order in Sonos. Put it back returns the order it had, until you change the playlist or close this editor.</p>
+          <div class="acts">
+            ${Et.map(([e, t, n]) => E`<button @click=${() => this._sort(e, n)}>${t}</button>`)}
+            <button class="sep" @click=${() => this._sorting = !1}>Cancel</button>
+          </div>
+        </div>`, () => this._sorting = !1) : this._zoom && n ? r(E`<div class="large">${J(this.hass, n.picture, n.title || n.album || "?")}</div>`, () => this._zoom = !1) : O;
+	}
 	render() {
-		let e = this._house, t = e && B(e, this.room), n = this._lift, r = this.playlist ? this.playlist.title : t && e ? `The queue in ${V(e, t)}` : "The queue", i = this._count === void 0 ? "" : this._count === 1 ? "1 song" : `${this._count} songs`;
-		return O`<div class="page ${n ? "carrying" : ""}">
+		let e = this._house, t = e && R(e, this.room), n = this._lift, r = this.playlist ? this.playlist.title : t && e ? `The queue in ${z(e, t)}` : "The queue", i = this._total === void 0 ? "" : this._total === 1 ? "1 song" : `${this._total} songs`, a = (this._total ?? 0) - this._songs.length, o = this.playlist && F(e), s = this._split.value;
+		return E`<div class="page ${n ? "carrying" : ""}">
       <header>
-        <button class="ib" @click=${() => this.remove()} aria-label="Close the editor">${K("back")}</button>
-        <h1>${r}<small>Rest a finger on a song or an album on the right until it lifts, then drag it to where it should go. + adds it to the end.</small></h1>
+        <button class="ib" @click=${() => this.remove()} aria-label="Close the editor">${G("back")}</button>
+        <h1>${r}<small>Tap a song on the left to choose it. Press + beside something on the right to add it, or rest a finger on it until it lifts and drag it to its place.</small></h1>
       </header>
-      ${t ? O`<div class="cols">
+      ${t ? E`<div class="cols" style="grid-template-columns:minmax(0,${s}fr) auto minmax(0,${100 - s}fr)">
             <section class="list">
-              <h2>${this.playlist ? "In this playlist" : "In the queue"}<small>${i}</small></h2>
-              <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${t} .playlist=${this.playlist?.media_content_id} .do=${this._do} .stamp=${this._stamp} .mark=${this._mark} @jb-listed=${(e) => this._count = e.detail}></casa-mia-jukebox-queue></div>
+              <h2>${this.playlist ? "In this playlist" : "In the queue"}<small>${i}${a > 0 ? `, the first ${this._songs.length} shown` : ""}</small></h2>
+              ${this._pane()}
+              ${o ? E`<div class="tools">
+                    <button class=${this._busy.on("playlist_sort")} @click=${() => this._sorting = !0}>Sort…</button>
+                    <button class=${this._busy.on("playlist_dedupe")} @click=${() => this._dedupe()}>Duplicates…</button>
+                    ${this._unsort ? E`<button class="go ${this._busy.on("playlist_unsort")}" @click=${() => this._back()}>${G("reset")}Put it back</button>` : O}
+                  </div>` : O}
+              <div class="scroll"><casa-mia-jukebox-queue picks .hass=${this.hass} .group=${t} .playlist=${this.playlist?.media_content_id} .do=${this._do} .stamp=${this._stamp} .mark=${this._mark} .selected=${this._sel} @jb-listed=${this._listed} @jb-pick=${(e) => this._sel = this._sel === e.detail ? void 0 : e.detail}></casa-mia-jukebox-queue></div>
             </section>
+            ${this._split.grip((e) => {
+			let t = this.renderRoot.querySelector(".cols").getBoundingClientRect();
+			return Math.round(Math.max(25, Math.min(75, 100 * (e.clientX - t.left) / t.width)));
+		})}
             <section class="find">
               <h2>Search and browse</h2>
               <div class="scroll">
-                <casa-mia-jukebox-find carry .hass=${this.hass} .room=${t.id} .waiting=${(e) => this._busy.on(e)} .changes=${this._busy.changes} @jb-choose=${(e) => this._add(e.detail)} @jb-lift=${this._lifted} @jb-carry=${this._carried} @jb-drop=${() => this._let(!0)} @jb-cancel=${() => this._let(!1)}></casa-mia-jukebox-find>
+                <casa-mia-jukebox-find carry .hass=${this.hass} .room=${t.id} .waiting=${(e) => this._busy.on(e)} .changes=${this._busy.changes} @jb-choose=${(e) => this._choose(e.detail)} @jb-lift=${this._lifted} @jb-carry=${this._carried} @jb-drop=${() => this._let(!0)} @jb-cancel=${() => this._let(!1)}></casa-mia-jukebox-find>
               </div>
             </section>
-          </div>` : O`<p class="none">${this._why ?? (e ? "That room isn't answering." : "Asking Home Assistant what is playing…")}</p>`}
-      ${n ? O`<div class="ghost" style="transform:translate(${n.x + 14}px,${n.y - 28}px)">${Y(this.hass, n.item.picture, n.item.title)}<b>${n.item.title}</b></div>` : A}
-      ${this._toast ? O`<div class="toast" role="status">${this._toast}</div>` : A}
+          </div>` : E`<p class="none">${this._why ?? (e ? "That room isn't answering." : "Asking Home Assistant what is playing…")}</p>`}
+      ${n ? E`<div class="ghost" style="transform:translate(${n.x + 14}px,${n.y - 28}px)">${J(this.hass, n.item.picture, n.item.title)}<b>${n.item.title}</b></div>` : O}
+      ${this._sheets()}
+      ${this._toast ? E`<div class="toast" role="status">${this._toast}</div>` : O}
     </div>`;
 	}
 	static {
-		this.styles = [Z, m`
+		this.styles = [
+			X,
+			ht,
+			m`
       :host { position: fixed; inset: 0; z-index: 1001; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); color: #fff; --line: rgb(255 255 255 / 14%); --muted: rgb(255 255 255 / 60%); }
       .page { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; padding: max(14px, env(safe-area-inset-top)) 16px 16px; box-sizing: border-box; background: #171512; }
       .page.carrying { cursor: grabbing; }
       header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
       h1 { display: grid; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; min-width: 0; }
       h1 small { font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
-      .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; min-height: 0; }
+      .cols { display: grid; gap: 2px; min-height: 0; }
       section { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; border-radius: 22px; background: #26231f; }
+      section.list { grid-template-rows: auto auto auto minmax(0, 1fr); }
       h2 { display: flex; align-items: baseline; gap: 10px; margin: 0; padding: 14px 18px 10px; font-size: 15px; }
       h2 small { font-weight: 400; color: var(--muted); }
       .scroll { overflow: auto; overscroll-behavior: contain; padding: 0 6px 10px; }
       .carrying .list { outline: 2px dashed rgb(255 255 255 / 35%); outline-offset: -2px; }
       .none { color: var(--muted); }
+      /* The chosen song, whole. Its names wrap: here nothing is cut short. */
+      .pane { display: grid; grid-template-columns: clamp(110px, 22vh, 200px) minmax(0, 1fr); gap: 16px; margin: 0 12px 10px; padding: 12px; border-radius: 16px; background: rgb(255 255 255 / 6%); }
+      .pane.none { display: block; margin: 0 12px 10px; }
+      .pane .cover { align-self: start; border-radius: 12px; cursor: zoom-in; }
+      .about { display: grid; align-content: start; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+      .about h3 { margin: 0; font-size: 18px; line-height: 1.2; }
+      .about p { margin: 0; }
+      .about .album, .about small { color: var(--muted); }
+      .about .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+      .about .acts button, .tools button { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / 10%); font-size: 13px; font-weight: 600; }
+      .about .acts button:disabled { opacity: 0.35; }
+      .about .acts svg, .tools svg { width: 16px; height: 16px; flex: none; }
+      .tools { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+      .tools .go { background: #fff; color: #111; }
       .ghost { position: fixed; left: 0; top: 0; z-index: 5; display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; max-width: 300px; padding: 8px 14px 8px 8px; border-radius: 14px; background: #3a3630; box-shadow: 0 16px 40px rgb(0 0 0 / 60%); pointer-events: none; }
       .ghost .art { border-radius: 8px; }
       .ghost b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .toast { position: fixed; left: 50%; bottom: 26px; z-index: 6; transform: translateX(-50%); max-width: min(90vw, 520px); padding: 12px 18px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; }
-    `];
+      .veil { position: fixed; inset: 0; z-index: 7; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 60%); }
+      .sheet { width: min(100%, 440px); padding: 18px; border-radius: 22px; background: #26231f; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
+      .sheet h4 { margin: 0 0 2px; font-size: 16px; overflow-wrap: anywhere; }
+      .sheet p { margin: 0 0 14px; color: rgb(255 255 255 / 70%); overflow-wrap: anywhere; }
+      .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+      .sheet .acts { display: grid; gap: 8px; }
+      .sheet .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+      .sheet .acts .main { background: #fff; color: #111; }
+      .sheet .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
+      .sheet .acts .sep { margin-top: 10px; }
+      .large { width: min(84vw, 84vh); }
+      .large .art { border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
+      .toast { position: fixed; left: 50%; bottom: 26px; z-index: 8; transform: translateX(-50%); max-width: min(90vw, 520px); padding: 12px 18px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; }
+    `
+		];
 	}
-}, wt = "casa-mia-jukebox-big", Tt = [
+}, kt = "casa-mia-jukebox-big", At = [
 	["queue", "Queue"],
 	["rooms", "Rooms"],
 	["favourites", "Favourites"],
 	["search", "Search"]
-], Et = {
+], jt = {
 	off: "all",
 	all: "one",
 	one: "off"
-}, Dt = "casa-mia-jukebox-folded";
-function Ot() {
+}, Mt = "casa-mia-jukebox-folded";
+function Nt() {
 	try {
-		let e = JSON.parse(localStorage.getItem(Dt) ?? "[]");
+		let e = JSON.parse(localStorage.getItem(Mt) ?? "[]");
 		return Array.isArray(e) ? e.filter((e) => typeof e == "string") : [];
 	} catch {
 		return [];
 	}
 }
-function kt(e, t, n) {
-	document.querySelector(wt)?.remove(), document.body.append(Object.assign(document.createElement(wt), {
+function Pt(e, t, n) {
+	document.querySelector(kt)?.remove(), document.body.append(Object.assign(document.createElement(kt), {
 		hass: e,
 		room: t,
 		tab: n
 	}));
 }
-var At = class extends P {
+var Ft = class extends N {
 	static {
 		this.properties = {
 			room: {},
@@ -1337,7 +1578,7 @@ var At = class extends P {
 		};
 	}
 	constructor() {
-		super(), this.room = "", this._fresh = 0, this._settling = !1, this._folded = Ot(), this._naming = !1, this.inline = !1, this._stamp = 0, this._partying = !1, this._toast = "", this._sliders = /* @__PURE__ */ new Map(), this._busy = new X(this), this._key = (e) => {
+		super(), this.room = "", this._fresh = 0, this._split = new mt(this, "casa-mia-jukebox-split-big", 460), this._settling = !1, this._folded = Nt(), this._naming = !1, this.inline = !1, this._stamp = 0, this._partying = !1, this._toast = "", this._sliders = /* @__PURE__ */ new Map(), this._busy = new Y(this), this._key = (e) => {
 			e.key === "Escape" && !this.inline && !document.querySelector("casa-mia-jukebox-editor") && this.remove();
 		}, this._ask = (e, t) => this._do(e, t), this._save = async (e) => {
 			e.preventDefault();
@@ -1346,33 +1587,33 @@ var At = class extends P {
 			let n = this._playlists().find((e) => e.title.toLowerCase() === t.toLowerCase());
 			if (n) return void this._over(n);
 			this._naming = !1, await this._do("queue_save", { name: t }) && (this._say(`Saved as a playlist: ${t}`), this._favourites = void 0);
-		}, this._waiting = (e) => this._busy.on(e), new pt(this);
+		}, this._waiting = (e) => this._busy.on(e), new gt(this);
 	}
 	connectedCallback() {
-		super.connectedCallback(), this._off = L(this.hass.connection, (e, t) => [this._house, this._why] = [e, t]), window.addEventListener("keydown", this._key);
+		super.connectedCallback(), this._off = Qe(this.hass.connection, (e, t) => [this._house, this._why] = [e, t]), window.addEventListener("keydown", this._key);
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback(), this._off?.(), window.removeEventListener("keydown", this._key), clearTimeout(this._fade);
 	}
 	willUpdate(e) {
 		if (e.has("_house") && this._settling && ([this._vol, this._settling] = [void 0, !1]), e.has("_house") && this._house) {
-			let e = B(this._house, this.room)?.party?.undone[0];
+			let e = R(this._house, this.room)?.party?.undone[0];
 			e && this._said !== void 0 && e.at !== this._said && this._say(e.failed ? e.what : `Put back: ${e.what.replace(/^Someone/, "someone")}`), this._said = e?.at ?? "";
 		}
-		(e.has("tab") || e.has("_favourites") || e.has("_naming")) && (this.tab === "favourites" || this._naming) && this._favourites === void 0 && Ze(this.hass, this.room).then((e) => this._favourites = e, (e) => this._favourites = z(e));
+		(e.has("tab") || e.has("_favourites") || e.has("_naming")) && (this.tab === "favourites" || this._naming) && this._favourites === void 0 && $e(this.hass, this.room).then((e) => this._favourites = e, (e) => this._favourites = L(e));
 	}
 	_shut() {
-		return this.inline ? O`<span class="ib"></span>` : O`<button class="ib" @click=${() => this.remove()} aria-label="Close the player">${K("down")}</button>`;
+		return this.inline ? E`<span class="ib"></span>` : E`<button class="ib" @click=${() => this.remove()} aria-label="Close the player">${G("down")}</button>`;
 	}
 	_say(e) {
 		this._toast = e, clearTimeout(this._fade), this._fade = setTimeout(() => this._toast = "", 3500);
 	}
 	_do(e, t = {}, n = e) {
-		return this._busy.during(n, R(this.hass, e, this.room, t)).then(() => (/^(queue_|play_media|stop)/.test(e) && this._stamp++, !0), (e) => (this._say(z(e)), !1));
+		return this._busy.during(n, I(this.hass, e, this.room, t)).then(() => (/^(queue_|play_media|stop)/.test(e) && this._stamp++, !0), (e) => (this._say(L(e)), !1));
 	}
 	_slide(e, t) {
 		let n = `${e} ${t}`;
-		return this._sliders.has(n) || this._sliders.set(n, ot((n) => R(this.hass, e, t, { value: n }), (e) => this._say(z(e)))), (e) => this._sliders.get(n)(e.detail.value);
+		return this._sliders.has(n) || this._sliders.set(n, st((n) => I(this.hass, e, t, { value: n }), (e) => this._say(L(e)))), (e) => this._sliders.get(n)(e.detail.value);
 	}
 	_slid(e, t, n) {
 		[this._vol, this._settling] = [t.detail.value, n], this._slide("group_volume", e.id)(t);
@@ -1395,7 +1636,7 @@ var At = class extends P {
 	_fold(e) {
 		this._folded = this._folded.includes(e) ? this._folded.filter((t) => t !== e) : [...this._folded, e];
 		try {
-			localStorage.setItem(Dt, JSON.stringify(this._folded));
+			localStorage.setItem(Mt, JSON.stringify(this._folded));
 		} catch {}
 	}
 	_add(e) {
@@ -1413,62 +1654,62 @@ var At = class extends P {
 	}
 	_tabs(e) {
 		let t = this.tab ?? "rooms";
-		return O`<div class="tabs">
-      ${Tt.map(([n, r]) => O`<button class=${this.tab === n ? "up" : t === n ? "shown" : ""} @click=${() => [this._adding, this._viewing, this.tab] = [
+		return E`<div class="tabs">
+      ${At.map(([n, r]) => E`<button class=${this.tab === n ? "up" : t === n ? "shown" : ""} @click=${() => [this._adding, this._viewing, this.tab] = [
 			void 0,
 			void 0,
 			this.tab === n ? void 0 : n
 		]}>
-          ${K(n)}${r}${n === "rooms" && e.rooms.length > 1 ? O` (${e.rooms.length})` : A}
+          ${G(n)}${r}${n === "rooms" && e.rooms.length > 1 ? E` (${e.rooms.length})` : O}
         </button>`)}
     </div>`;
 	}
 	_now(e, t) {
-		let { title: n, by: r } = U(t), i = rt(t, Date.now()), a = t.state === "playing", o = nt(e, t), s = t.kind === "queue", c = e.me === "host", l = Xe(t, Date.now());
-		return O`<div class="now">
+		let { title: n, by: r } = V(t), i = at(t, Date.now()), a = t.state === "playing", o = it(e, t), s = t.kind === "queue", c = e.me === "host", l = Ze(t, Date.now());
+		return E`<div class="now">
       <div class="bar">
         ${this._shut()}
-        <div class="where"><small>Playing in</small><b>${V(e, t)}</b></div>
-        ${t.party || c ? O`<button class="pill ${t.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => t.party ? this._partying = !0 : this._party(!0)} aria-label=${t.party ? "The party lock is on" : "Turn the party lock on"}>
-              ${K("lock")}${t.party ? `Party on${c && t.party.undone.length ? ` · ${t.party.undone.length}` : ""}` : "Party"}
-            </button>` : A}
+        <div class="where"><small>Playing in</small><b>${z(e, t)}</b></div>
+        ${t.party || c ? E`<button class="pill ${t.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => t.party ? this._partying = !0 : this._party(!0)} aria-label=${t.party ? "The party lock is on" : "Turn the party lock on"}>
+              ${G("lock")}${t.party ? `Party on${c && t.party.undone.length ? ` · ${t.party.undone.length}` : ""}` : "Party"}
+            </button>` : O}
       </div>
-      ${Je(e, t) ? O`<p class="barred">A party is on: the music can't be changed from this screen.</p>` : A}
-      <div class="cover">${ct(this.hass, t, n)}</div>
+      ${Ye(e, t) ? E`<p class="barred">A party is on: the music can't be changed from this screen.</p>` : O}
+      <div class="cover">${lt(this.hass, t, n)}</div>
       <div class="title">
         <b>${n}</b><span>${r}</span>
         <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
              element, and it shows nothing where this login can't rate. -->
         <casa-mia-thumbs quiet .hass=${this.hass} .entityId=${t.id}></casa-mia-thumbs>
-        ${l ? O`<p class="love ${l.over ? "over" : ""}"><strong>Love it or Loathe it${l.over ? `, at ${W(t.love.at)}` : ""}:</strong> ${l.text}</p>` : A}
+        ${l ? E`<p class="love ${l.over ? "over" : ""}"><strong>Love it or Loathe it${l.over ? `, at ${H(t.love.at)}` : ""}:</strong> ${l.text}</p>` : O}
       </div>
-      ${i !== null && t.duration ? O`<div class="seek">
-            <span>${it(i)}</span>
+      ${i !== null && t.duration ? E`<div class="seek">
+            <span>${U(i)}</span>
             <casa-mia-jukebox-slider .value=${i} .max=${t.duration} label="Place in the song" @jb-set=${(e) => this._do("seek", { value: e.detail.value })}></casa-mia-jukebox-slider>
-            <span>${it(t.duration)}</span>
-          </div>` : t.kind === "radio" ? O`<div class="live">LIVE${t.channel ? ` · ${t.channel.toUpperCase()}` : ""}</div>` : A}
+            <span>${U(t.duration)}</span>
+          </div>` : t.kind === "radio" ? E`<div class="live">LIVE${t.channel ? ` · ${t.channel.toUpperCase()}` : ""}</div>` : O}
       <div class="tp">
-        ${s ? O`<button class="ib sm ${t.shuffle ? "on" : ""} ${this._busy.on("shuffle")}" @click=${() => this._do("shuffle", { on: !t.shuffle })} aria-label="Shuffle">${K("shuffle")}</button>` : A}
-        ${s ? O`<button class="ib ${this._busy.on("previous")}" @click=${() => this._do("previous")} aria-label="Previous song">${K("previous")}</button>` : A}
-        <button class="ib play ${this._busy.on("play")}" ?disabled=${t.kind === "nothing"} @click=${() => this._do(a ? "pause" : "play", {}, "play")} aria-label=${a ? "Pause" : "Play"}>${K(a ? "pause" : "play")}</button>
-        ${s ? O`<button class="ib ${this._busy.on("next")}" @click=${() => this._do("next")} aria-label="Next song">${K("next")}</button>` : A}
-        ${s ? O`<button class="ib sm ${t.repeat === "off" ? "" : "on"} ${this._busy.on("repeat")}" @click=${() => this._do("repeat", { mode: Et[t.repeat] })} aria-label="Repeat">
-              ${K("repeat")}${t.repeat === "one" ? O`<sup>1</sup>` : A}
-            </button>` : A}
+        ${s ? E`<button class="ib sm ${t.shuffle ? "on" : ""} ${this._busy.on("shuffle")}" @click=${() => this._do("shuffle", { on: !t.shuffle })} aria-label="Shuffle">${G("shuffle")}</button>` : O}
+        ${s ? E`<button class="ib ${this._busy.on("previous")}" @click=${() => this._do("previous")} aria-label="Previous song">${G("previous")}</button>` : O}
+        <button class="ib play ${this._busy.on("play")}" ?disabled=${t.kind === "nothing"} @click=${() => this._do(a ? "pause" : "play", {}, "play")} aria-label=${a ? "Pause" : "Play"}>${G(a ? "pause" : "play")}</button>
+        ${s ? E`<button class="ib ${this._busy.on("next")}" @click=${() => this._do("next")} aria-label="Next song">${G("next")}</button>` : O}
+        ${s ? E`<button class="ib sm ${t.repeat === "off" ? "" : "on"} ${this._busy.on("repeat")}" @click=${() => this._do("repeat", { mode: jt[t.repeat] })} aria-label="Repeat">
+              ${G("repeat")}${t.repeat === "one" ? E`<sup>1</sup>` : O}
+            </button>` : O}
       </div>
       <div class="gvol ${o ? "hush" : ""}">
-        <button class="ib ${this._busy.on("group_mute")}" @click=${() => this._do("group_mute", { on: !o })} aria-label=${o ? "Unmute" : "Mute"} aria-pressed=${o}>${K(o ? "muted" : "volume")}</button>
-        <casa-mia-jukebox-slider .value=${H(e, t)} label="Volume" @jb-slide=${(e) => this._slid(t, e, !1)} @jb-set=${(e) => this._slid(t, e, !0)}></casa-mia-jukebox-slider>
-        <output aria-hidden="true">${this._vol ?? H(e, t)}%</output>
-        <button class="ib ${this._busy.on("stop")}" @click=${() => this._stop(e, t)} aria-label="Stop the music here and clear the player">${K("stop")}</button>
+        <button class="ib ${this._busy.on("group_mute")}" @click=${() => this._do("group_mute", { on: !o })} aria-label=${o ? "Unmute" : "Mute"} aria-pressed=${o}>${G(o ? "muted" : "volume")}</button>
+        <casa-mia-jukebox-slider .value=${B(e, t)} label="Volume" @jb-slide=${(e) => this._slid(t, e, !1)} @jb-set=${(e) => this._slid(t, e, !0)}></casa-mia-jukebox-slider>
+        <output aria-hidden="true">${this._vol ?? B(e, t)}%</output>
+        <button class="ib ${this._busy.on("stop")}" @click=${() => this._stop(e, t)} aria-label="Stop the music here and clear the player">${G("stop")}</button>
       </div>
       ${this._tabs(t)}
     </div>`;
 	}
 	_head(e, t) {
-		return O`<div class="head">
+		return E`<div class="head">
       <b>${e}<small>${t}</small></b>
-      <button class="ib shut" @click=${() => this.tab = void 0} aria-label="Close">${K("close")}</button>
+      <button class="ib shut" @click=${() => this.tab = void 0} aria-label="Close">${G("close")}</button>
     </div>`;
 	}
 	async _party(e) {
@@ -1482,7 +1723,7 @@ var At = class extends P {
 		let n = async () => await this._do("stop", {}, "stop") && !this.inline && this.remove();
 		this._confirm = {
 			warn: "This stops the music here",
-			text: `${this._songs(t)} will go, and ${V(e, t)} will be listed with the quiet rooms again.`,
+			text: `${this._songs(t)} will go, and ${z(e, t)} will be listed with the quiet rooms again.`,
 			keep: "Keep it",
 			go: "Stop it",
 			run: n
@@ -1502,7 +1743,7 @@ var At = class extends P {
 	}
 	async _over(e) {
 		this._naming = !1;
-		let t = (e) => e === 1 ? "1 song" : `${e} songs`, n = await Qe(this.hass, this.room, e.media_content_id).then((e) => e.total, () => void 0), r = async () => await this._do("queue_save", { playlist: e.media_content_id }) && this._say(`Saved over the playlist: ${e.title}`), i = n === void 0 ? "" : ` holds ${t(n)} now. It`, a = this._queued ? t(this._queued) : "songs";
+		let t = (e) => e === 1 ? "1 song" : `${e} songs`, n = await et(this.hass, this.room, e.media_content_id).then((e) => e.total, () => void 0), r = async () => await this._do("queue_save", { playlist: e.media_content_id }) && this._say(`Saved over the playlist: ${e.title}`), i = n === void 0 ? "" : ` holds ${t(n)} now. It`, a = this._queued ? t(this._queued) : "songs";
 		this._confirm = {
 			warn: "This replaces the playlist",
 			text: `"${e.title}"${i} will hold the queue's ${a} instead, and what it held can't be got back.`,
@@ -1512,13 +1753,13 @@ var At = class extends P {
 		};
 	}
 	_overs(e) {
-		if (this._favourites === void 0) return O`<p class="or">Fetching the playlists you have…</p>`;
+		if (this._favourites === void 0) return E`<p class="or">Fetching the playlists you have…</p>`;
 		let t = (t) => t.media_content_id === e.source, n = this._playlists().sort((e, n) => Number(t(n)) - Number(t(e)));
-		return n.length ? O`<p class="or">Or save it over a playlist you have:</p>
-      <div class="acts over">${n.map((e) => O`<button type="button" @click=${() => this._over(e)}>${t(e) ? O`Save back to <strong>${e.title}</strong>` : e.title}</button>`)}</div>` : A;
+		return n.length ? E`<p class="or">Or save it over a playlist you have:</p>
+      <div class="acts over">${n.map((e) => E`<button type="button" @click=${() => this._over(e)}>${t(e) ? E`Save back to <strong>${e.title}</strong>` : e.title}</button>`)}</div>` : O;
 	}
 	_edit(e) {
-		St(this.hass, this.room, e, () => this._stamp++);
+		Dt(this.hass, this.room, e, () => this._stamp++);
 	}
 	_delete(e) {
 		let t = async () => {
@@ -1534,59 +1775,59 @@ var At = class extends P {
 	}
 	_search(e) {
 		let t = this._adding === "playlist" && this._viewing;
-		return O`${t ? this._head(`Add to ${t.title}`, "Press + beside a song or an album to add it to the end of the playlist.") : this._adding === "queue" ? this._head("Add to the queue", "Press + beside what you find to play it next or add it to the end.") : this._head("Search", "The music library and Spotify. Press + to play something or add it to the queue.")}
+		return E`${t ? this._head(`Add to ${t.title}`, "Press + beside a song or an album to add it to the end of the playlist.") : this._adding === "queue" ? this._head("Add to the queue", "Press + beside what you find to play it next or add it to the end.") : this._head("Search", "The music library and Spotify. Press + to play something or add it to the queue.")}
       <div class="scroll">
         <casa-mia-jukebox-find .hass=${this.hass} .room=${e.id} .fresh=${this._fresh} .waiting=${this._waiting} .changes=${this._busy.changes} @jb-choose=${(t) => this._choose(e, t.detail)}></casa-mia-jukebox-find>
       </div>`;
 	}
 	_queue(e) {
 		let t = this._queued === 0;
-		return O`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
-      ${e.kind !== "queue" && !t ? O`<div class="tools"><button class="go ${this._busy.on("queue_play")}" @click=${() => this._do("queue_play", { value: 1 })}>${K("play")}Play the queue${e.kind === "radio" ? " in place of the radio" : ""}</button></div>` : A}
+		return E`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
+      ${e.kind !== "queue" && !t ? E`<div class="tools"><button class="go ${this._busy.on("queue_play")}" @click=${() => this._do("queue_play", { value: 1 })}>${G("play")}Play the queue${e.kind === "radio" ? " in place of the radio" : ""}</button></div>` : O}
       <div class="tools">
-        <button @click=${() => this._add("queue")}>${K("plus")}Add</button>
-        <button class="wide" @click=${() => this._edit()} aria-label="Edit the queue side by side with Search">${K("drag")}Edit…</button>
-        ${I(this._house) ? O`<button class=${this._busy.on("queue_save")} ?disabled=${t} @click=${() => this._naming = !0} aria-label="Save the queue as a playlist">${K("save")}Save…</button>` : A}
-        <button class=${this._busy.on("queue_clear")} ?disabled=${t} @click=${() => this._clear(e)} aria-label="Clear the queue">${K("trash")}Clear…</button>
+        <button @click=${() => this._add("queue")}>${G("plus")}Add</button>
+        <button class="wide" @click=${() => this._edit()} aria-label="Edit the queue side by side with Search">${G("drag")}Edit…</button>
+        ${F(this._house) ? E`<button class=${this._busy.on("queue_save")} ?disabled=${t} @click=${() => this._naming = !0} aria-label="Save the queue as a playlist">${G("save")}Save…</button>` : O}
+        <button class=${this._busy.on("queue_clear")} ?disabled=${t} @click=${() => this._clear(e)} aria-label="Clear the queue">${G("trash")}Clear…</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${e} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e) => this._queued = e.detail}></casa-mia-jukebox-queue></div>`;
 	}
 	_rooms(e, t) {
 		let n = Object.keys(e.rooms).filter((e) => !t.rooms.includes(e)).sort((t, n) => e.rooms[t].name.localeCompare(e.rooms[n].name)), r = (n) => {
-			let r = e.rooms[n], i = t.rooms.includes(n), a = B(e, n), o = r.available ? i ? "Playing this" : a && !a.quiet ? `Playing ${U(a).title}: tap to bring it here` : "Quiet: tap to add it" : "Not answering", s = `mute:${n}`;
-			return O`<div class="room ${i ? "in" : ""} ${r.muted ? "hush" : ""}">
-        <button class="tick ${this._busy.on(`room:${n}`)}" ?disabled=${!r.available} @click=${() => this._toggleRoom(t, n)} aria-label=${i ? `Take ${r.name} out` : `Add ${r.name}`}>${K(i ? "check" : "plus")}</button>
+			let r = e.rooms[n], i = t.rooms.includes(n), a = R(e, n), o = r.available ? i ? "Playing this" : a && !a.quiet ? `Playing ${V(a).title}: tap to bring it here` : "Quiet: tap to add it" : "Not answering", s = `mute:${n}`;
+			return E`<div class="room ${i ? "in" : ""} ${r.muted ? "hush" : ""}">
+        <button class="tick ${this._busy.on(`room:${n}`)}" ?disabled=${!r.available} @click=${() => this._toggleRoom(t, n)} aria-label=${i ? `Take ${r.name} out` : `Add ${r.name}`}>${G(i ? "check" : "plus")}</button>
         <button class="t" ?disabled=${!r.available} @click=${() => this._toggleRoom(t, n)}><b>${r.name}</b><small>${o}</small></button>
-        ${i && r.volume !== null ? O`<button class="ib mute ${this._busy.on(s)}" @click=${() => this._busy.during(s, R(this.hass, "mute", n, { on: !r.muted })).catch((e) => this._say(z(e)))} aria-label=${r.muted ? `Unmute ${r.name}` : `Mute ${r.name}`} aria-pressed=${r.muted}>${K(r.muted ? "muted" : "volume")}</button><casa-mia-jukebox-slider .value=${r.volume} label="${r.name} volume" @jb-slide=${this._slide("volume", n)} @jb-set=${this._slide("volume", n)}></casa-mia-jukebox-slider><output>${r.volume}</output>` : A}
+        ${i && r.volume !== null ? E`<button class="ib mute ${this._busy.on(s)}" @click=${() => this._busy.during(s, I(this.hass, "mute", n, { on: !r.muted })).catch((e) => this._say(L(e)))} aria-label=${r.muted ? `Unmute ${r.name}` : `Mute ${r.name}`} aria-pressed=${r.muted}>${G(r.muted ? "muted" : "volume")}</button><casa-mia-jukebox-slider .value=${r.volume} label="${r.name} volume" @jb-slide=${this._slide("volume", n)} @jb-set=${this._slide("volume", n)}></casa-mia-jukebox-slider><output>${r.volume}</output>` : O}
       </div>`;
 		};
-		return O`${this._head("Rooms", "Tap a room to add it or take it out. Each has its own volume.")}
+		return E`${this._head("Rooms", "Tap a room to add it or take it out. Each has its own volume.")}
       <div class="scroll">${[...t.rooms, ...n].map(r)}</div>`;
 	}
 	_favouritesPanel(e) {
-		let t = this._favourites, n = Array.isArray(t) ? [...new Set(t.map((e) => e.folder))] : [], r = (t) => O`<button class=${this._busy.on(`fav:${t.media_content_id}`)} @click=${() => this._choose(e, t)}>${lt(this.hass, t.pictures, t.picture, t.title)}<b>${t.title}</b></button>`, i = this._viewing;
+		let t = this._favourites, n = Array.isArray(t) ? [...new Set(t.map((e) => e.folder))] : [], r = (t) => E`<button class=${this._busy.on(`fav:${t.media_content_id}`)} @click=${() => this._choose(e, t)}>${ut(this.hass, t.pictures, t.picture, t.title)}<b>${t.title}</b></button>`, i = this._viewing;
 		if (i) {
-			let t = I(this._house);
-			return O`${this._head(i.title, t ? "Drag a song by its handle to move it, or take it out with the cross." : "The songs in this playlist.")}
+			let t = F(this._house);
+			return E`${this._head(i.title, t ? "Drag a song by its handle to move it, or take it out with the cross." : "The songs in this playlist.")}
         <div class="tools">
-          <button @click=${() => this._viewing = void 0}>${K("back")}Favourites</button>
-          <button @click=${() => this._menu = i}>${K("play")}Play…</button>
-          ${t ? O`<button @click=${() => this._add("playlist")}>${K("plus")}Add</button><button class="wide" @click=${() => this._edit(i)} aria-label="Edit the playlist side by side with Search">${K("drag")}Edit…</button>` : A}
+          <button @click=${() => this._viewing = void 0}>${G("back")}Favourites</button>
+          <button @click=${() => this._menu = i}>${G("play")}Play…</button>
+          ${t ? E`<button @click=${() => this._add("playlist")}>${G("plus")}Add</button><button class="wide" @click=${() => this._edit(i)} aria-label="Edit the playlist side by side with Search">${G("drag")}Edit…</button>` : O}
         </div>
         <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${e} .playlist=${i.media_content_id} .locked=${!t} .do=${this._ask} .stamp=${this._stamp}></casa-mia-jukebox-queue></div>`;
 		}
-		return O`${this._head("Favourites", "The stations, playlists and songs saved in Sonos")}
+		return E`${this._head("Favourites", "The stations, playlists and songs saved in Sonos")}
       <div class="scroll">
-        ${t === void 0 ? O`<p class="empty">Fetching them from the speaker…</p>` : typeof t == "string" ? O`<p class="empty">The favourites couldn't be fetched: ${t}</p>` : t.length ? n.map((e) => {
+        ${t === void 0 ? E`<p class="empty">Fetching them from the speaker…</p>` : typeof t == "string" ? E`<p class="empty">The favourites couldn't be fetched: ${t}</p>` : t.length ? n.map((e) => {
 			let n = t.filter((t) => t.folder === e), i = this._folded.includes(e);
-			return O`<h3><button class="fold" aria-expanded=${!i} @click=${() => this._fold(e)}>${K(i ? "chevron" : "down")}${e} (${n.length})</button></h3>
-                    ${i ? A : O`<div class="tiles">${n.map(r)}</div>`}`;
-		}) : O`<p class="empty">There are no favourites saved in Sonos yet.</p>`}
+			return E`<h3><button class="fold" aria-expanded=${!i} @click=${() => this._fold(e)}>${G(i ? "chevron" : "down")}${e} (${n.length})</button></h3>
+                    ${i ? O : E`<div class="tiles">${n.map(r)}</div>`}`;
+		}) : E`<p class="empty">There are no favourites saved in Sonos yet.</p>`}
       </div>`;
 	}
 	_sheets(e, t) {
 		let { _menu: n, _confirm: r } = this;
-		if (r) return O`<div class="veil">
+		if (r) return E`<div class="veil">
         <div class="sheet" role="alertdialog" aria-label=${r.warn}>
           <p class="warn">${r.warn}</p>
           <p>${r.text}</p>
@@ -1598,24 +1839,24 @@ var At = class extends P {
       </div>`;
 		if (this._partying && t.party) {
 			let n = t.party;
-			return O`<div class="veil" @click=${(e) => e.target === e.currentTarget && (this._partying = !1)}>
+			return E`<div class="veil" @click=${(e) => e.target === e.currentTarget && (this._partying = !1)}>
         <div class="sheet" role="dialog" aria-label="The party lock">
-          <h4>The party is on, since ${W(n.since)}</h4>
+          <h4>The party is on, since ${H(n.since)}</h4>
           <p>The queue, the rooms and their volumes can only be changed from Jukebox. Anything changed another way, such as from the Sonos app, is put back.</p>
-          ${n.unwatched ? O`<p class="lost">A song moved in another app isn't being noticed, since ${W(n.unwatched)}: the speaker isn't reporting its queue. Songs added or taken out are still put back.</p>` : A}
-          ${n.undone.length ? O`<ul class="undone">${n.undone.map((e) => O`<li class=${e.failed ? "failed" : ""}><time>${W(e.at)}</time>${e.failed ? e.what : `Put back: ${e.what.replace(/^Someone/, "someone")}`}</li>`)}</ul>` : O`<p>Nothing has had to be put back.</p>`}
-          ${e.me === "host" ? O`<button class="switch ${this._busy.on("party_open")}" role="switch" aria-checked=${n.open} @click=${() => this._do("party_open", { on: !n.open })}>
+          ${n.unwatched ? E`<p class="lost">A song moved in another app isn't being noticed, since ${H(n.unwatched)}: the speaker isn't reporting its queue. Songs added or taken out are still put back.</p>` : O}
+          ${n.undone.length ? E`<ul class="undone">${n.undone.map((e) => E`<li class=${e.failed ? "failed" : ""}><time>${H(e.at)}</time>${e.failed ? e.what : `Put back: ${e.what.replace(/^Someone/, "someone")}`}</li>`)}</ul>` : E`<p>Nothing has had to be put back.</p>`}
+          ${e.me === "host" ? E`<button class="switch ${this._busy.on("party_open")}" role="switch" aria-checked=${n.open} @click=${() => this._do("party_open", { on: !n.open })}>
                   <span><b>Let the wall tablets change the music</b><small>${n.open ? "They can, until you turn this off or the party ends." : "Only the people who run the party can."}</small></span><i></i>
                 </button>
                 <div class="acts">
                   <button class="main" @click=${() => this._partying = !1}>Keep the party going</button>
                   <button class="danger" @click=${() => this._party(!1)}>End the party</button>
-                </div>` : O`<p>${Je(e, t) ? "The music can't be changed from this screen." : "This screen has been let to change the music."} Only the people who run the party can end it.</p>
+                </div>` : E`<p>${Ye(e, t) ? "The music can't be changed from this screen." : "This screen has been let to change the music."} Only the people who run the party can end it.</p>
                 <div class="acts"><button class="main" @click=${() => this._partying = !1}>Close</button></div>`}
         </div>
       </div>`;
 		}
-		if (this._naming) return O`<div class="veil" @click=${(e) => e.target === e.currentTarget && (this._naming = !1)}>
+		if (this._naming) return E`<div class="veil" @click=${(e) => e.target === e.currentTarget && (this._naming = !1)}>
         <form class="sheet" aria-label="Save the queue as a playlist" @submit=${this._save}>
           <h4>Save the queue as a playlist</h4>
           <p>It is kept in Sonos, and is listed with the favourites.</p>
@@ -1635,42 +1876,50 @@ var At = class extends P {
 				go: "Replace it",
 				run: () => void this._play(n, "replace")
 			};
-			return O`<div class="veil" @click=${(e) => e.target === e.currentTarget && (this._menu = void 0)}>
+			return E`<div class="veil" @click=${(e) => e.target === e.currentTarget && (this._menu = void 0)}>
         <div class="sheet" role="dialog" aria-label=${n.title}>
           <h4>${n.title}</h4>
           <p>${n.folder}</p>
           <div class="acts">
-            ${t.kind === "nothing" ? O`<button class="main" @click=${() => this._play(n)}>Play now</button>` : O`<button class="main" @click=${() => this._play(n, "next")}>Play next</button>
+            ${t.kind === "nothing" ? E`<button class="main" @click=${() => this._play(n)}>Play now</button>` : E`<button class="main" @click=${() => this._play(n, "next")}>Play next</button>
                   <button @click=${() => this._play(n, "add")}>Add to the end of the queue</button>
                   <button class="danger sep" @click=${() => [this._menu, this._confirm] = [void 0, r]}>Play now and replace the queue…</button>`}
-            ${n.playlist && this._viewing !== n ? O`<button class="sep" @click=${() => [this._menu, this._viewing, this.tab] = [
+            ${n.playlist && this._viewing !== n ? E`<button class="sep" @click=${() => [this._menu, this._viewing, this.tab] = [
 				void 0,
 				n,
 				"favourites"
-			]}>See what is in it</button>` : A}
-            ${n.playlist && I(e) ? O`<button class="danger sep" @click=${() => this._delete(n)}>Delete this playlist…</button>` : A}
+			]}>See what is in it</button>` : O}
+            ${n.playlist && F(e) ? E`<button class="danger sep" @click=${() => this._delete(n)}>Delete this playlist…</button>` : O}
           </div>
         </div>
       </div>`;
 		}
-		return A;
+		return O;
 	}
 	render() {
-		let e = this._house, t = e && B(e, this.room);
+		let e = this._house, t = e && R(e, this.room);
 		if (!e || !t) {
 			let t = this._why ?? (e ? "This room's speaker isn't answering." : "Asking Home Assistant what is playing…");
-			return O`<div class="big"><div class="now"><div class="bar">${this._shut()}</div><p class="empty">${t}</p></div></div>`;
+			return E`<div class="big"><div class="now"><div class="bar">${this._shut()}</div><p class="empty">${t}</p></div></div>`;
 		}
-		let n = this.tab ?? "rooms", [r, i] = G(U(t).title);
-		return O`<div class="big" style="--a:${r};--b:${i};${t.picture ? `--pic:url('${(this.hass.hassUrl?.(t.picture) ?? t.picture).replace(/'/g, "%27")}');` : ""}">
+		let n = this.tab ?? "rooms", [r, i] = W(V(t).title), a = t.picture ? `--pic:url('${(this.hass.hassUrl?.(t.picture) ?? t.picture).replace(/'/g, "%27")}');` : "";
+		return E`<div class="big" style="--a:${r};--b:${i};--side:${this._split.value}px;${a}">
       ${this._now(e, t)}
-      <div class="side ${this.tab ? "up" : ""}">${this._tabs(t)}${n === "queue" ? this._queue(t) : n === "rooms" ? this._rooms(e, t) : n === "search" ? this._search(t) : this._favouritesPanel(t)}</div>
+      <div class="side ${this.tab ? "up" : ""}">${this._split.grip((e) => {
+			let t = this.getBoundingClientRect();
+			return Math.round(Math.max(360, Math.min(t.width - 380, t.right - e.clientX)));
+		})}${this._tabs(t)}${n === "queue" ? this._queue(t) : n === "rooms" ? this._rooms(e, t) : n === "search" ? this._search(t) : this._favouritesPanel(t)}</div>
       ${this._sheets(e, t)}
       <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
     </div>`;
 	}
 	static {
-		this.styles = [Z, m`
+		this.styles = [
+			X,
+			ht,
+			m`
+      /* The handle that sets the side panel's width: only where the panel is beside the cover. */
+      .side > .grip { display: none; position: absolute; left: -7px; top: 0; bottom: 0; z-index: 3; }
       /* Its own width decides its layout, not the screen's: it may be over the whole screen,
          or in a card of any size. */
       :host { position: fixed; inset: 0; z-index: 1000; container-type: inline-size; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
@@ -1798,7 +2047,8 @@ var At = class extends P {
       :host([inline]) .big { animation: none; }
 
       @container (min-width: 900px) {
-        .big { grid-template-columns: minmax(0, 1fr) 460px; }
+        .big { grid-template-columns: minmax(0, 1fr) min(var(--side, 460px), 100cqw - 380px); }
+        .side > .grip { display: grid; }
         .now { padding: 16px 56px 22px; }
         .now .tabs, .shut { display: none; }
         .side { position: relative; inset: auto; display: flex; border-radius: 0; border-left: 1px solid var(--line); background: rgb(12 11 10 / 46%); backdrop-filter: blur(24px); box-shadow: none; animation: none; }
@@ -1806,9 +2056,10 @@ var At = class extends P {
         .side .tabs .shown { background: rgb(255 255 255 / 16%); color: #fff; }
         .veil { place-items: center; }
       }
-    `];
+    `
+		];
 	}
-}, jt = "casa-mia-jukebox-page", Q = class extends P {
+}, It = "casa-mia-jukebox-page", Z = class extends N {
 	constructor(...e) {
 		super(...e), this.narrow = !1, this._connected = !0;
 	}
@@ -1831,19 +2082,19 @@ var At = class extends P {
 		super.disconnectedCallback(), this._off?.(), this._off = void 0;
 	}
 	_follow() {
-		!this._off && this.isConnected && this._hass?.connection && (this._off = L(this._hass.connection, (e, t) => [this._house, this._why] = [e, t]));
+		!this._off && this.isConnected && this._hass?.connection && (this._off = Qe(this._hass.connection, (e, t) => [this._house, this._why] = [e, t]));
 	}
 	get _trouble() {
 		return this._connected ? this._house ? void 0 : this._why ?? "Asking Home Assistant what is playing…" : "No connection to Home Assistant. What is shown may be out of date.";
 	}
 };
-function Mt(e) {
+function Lt(e) {
 	for (let t = e; t; t = t.parentNode ?? t.host) if (t instanceof Element && t.scrollHeight > t.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(t).overflowY)) return t;
 	return document.scrollingElement ?? document.documentElement;
 }
-var Nt = class extends Q {
+var Rt = class extends Z {
 	constructor(...e) {
-		super(...e), this._hold = new ft(), this._at = {
+		super(...e), this._hold = new pt(), this._at = {
 			x: 0,
 			y: 0
 		}, this._frame = 0, this._dragged = !1, this._touch = (e) => {
@@ -1869,7 +2120,7 @@ var Nt = class extends Q {
 				...t.groups.flatMap((e) => e.rooms),
 				...Object.keys(t.rooms)
 			])];
-			tt(this._hass, r).then(() => this._failed = void 0, (e) => this._failed = `The order couldn't be kept: ${z(e)}`);
+			rt(this._hass, r).then(() => this._failed = void 0, (e) => this._failed = `The order couldn't be kept: ${L(e)}`);
 		}, this._tap = {
 			capture: !0,
 			handleEvent: (e) => {
@@ -1879,7 +2130,7 @@ var Nt = class extends Q {
 	}
 	static {
 		this.properties = {
-			...Q.properties,
+			...Z.properties,
 			_drag: { state: !0 },
 			_failed: { state: !0 }
 		};
@@ -1894,7 +2145,7 @@ var Nt = class extends Q {
 		if (e.button || e.composedPath().some((e) => e.localName === "casa-mia-jukebox-slider")) return;
 		let [n, r] = [e.currentTarget, e.pointerId];
 		this._drop(), this._dragged = !1, this._hold.start(e, (e, i) => {
-			n.setPointerCapture(r), this._scroller = Mt(this), this._at = {
+			n.setPointerCapture(r), this._scroller = Lt(this), this._at = {
 				x: e,
 				y: i
 			};
@@ -1931,7 +2182,7 @@ var Nt = class extends Q {
 			this._house,
 			this._drag
 		];
-		return e.map((e, i) => O`<div
+		return e.map((e, i) => E`<div
         class="slot ${r?.from === i ? "held" : ""} ${r && r.to === i && r.from !== i ? "here" : ""}"
         style=${r?.from === i ? `transform:translate(${r.dx}px,${r.dy}px) scale(1.03)` : ""}
         @pointerdown=${(e) => this._down(e, i)}
@@ -1945,53 +2196,53 @@ var Nt = class extends Q {
         <casa-mia-jukebox-mini .hass=${t} .house=${n} .group=${e}></casa-mia-jukebox-mini>
       </div>`);
 	}
-}, Pt = m`
+}, zt = m`
   .slot { position: relative; min-width: 0; border-radius: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .slot.held { z-index: 2; box-shadow: 0 16px 40px rgb(0 0 0 / 45%); cursor: grabbing; }
   .slot.here { outline: 2px dashed var(--primary-color); outline-offset: 3px; }
   .hint { margin: 10px 2px 0; font-size: 12px; color: var(--secondary-text-color); }
-`, Ft = "To move a player, rest a finger on it until it lifts, then drag it.", It = class extends Nt {
+`, Bt = "To move a player, rest a finger on it until it lifts, then drag it.", Vt = class extends Rt {
 	render() {
 		let e = this._hass;
-		if (!e) return A;
+		if (!e) return O;
 		let t = this._house, n = t?.groups.filter((e) => !e.quiet) ?? [], r = this._trouble ?? this._failed;
-		return O`<div class="page">
+		return E`<div class="page">
       <div class="nav">
-        ${this.narrow ? O`<button class="ib" @click=${() => s(this, "hass-toggle-menu")} aria-label="Home Assistant's menu">${K("menu")}</button>` : A}
-        <button class="ib" @click=${() => history.back()} aria-label="Back">${K("back")}</button>
+        ${this.narrow ? E`<button class="ib" @click=${() => s(this, "hass-toggle-menu")} aria-label="Home Assistant's menu">${G("menu")}</button>` : O}
+        <button class="ib" @click=${() => history.back()} aria-label="Back">${G("back")}</button>
         <h1>Music</h1>
-        <button class="ib" @click=${() => c("/")} aria-label="Home">${K("home")}</button>
+        <button class="ib" @click=${() => c("/")} aria-label="Home">${G("home")}</button>
       </div>
-      ${r ? O`<p class="trouble" role="status">${r}</p>` : A}
+      ${r ? E`<p class="trouble" role="status">${r}</p>` : O}
       <div class="minis">
         ${this._minis(n)}
       </div>
-      ${n.length > 1 ? O`<p class="hint">${Ft}</p>` : A}
-      ${t && !n.length ? O`<p class="none">Nothing is playing anywhere.</p>` : A}
+      ${n.length > 1 ? E`<p class="hint">${Bt}</p>` : O}
+      ${t && !n.length ? E`<p class="none">Nothing is playing anywhere.</p>` : O}
       <casa-mia-jukebox-rooms class="rooms" .hass=${e} .house=${t}></casa-mia-jukebox-rooms>
     </div>`;
 	}
 	static {
 		this.styles = [
-			Z,
-			Pt,
+			X,
+			zt,
 			m`
       :host { display: block; min-height: 100vh; background: var(--primary-background-color); color: var(--primary-text-color); font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       .page { max-width: 1240px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px 32px; }
       .nav { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
       .nav h1 { flex: 1; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
       .nav .ib { background: var(--card-background-color); border: 1px solid var(--divider-color); }
-      .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${bt}px), 1fr)); gap: 12px; }
+      .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${Ct}px), 1fr)); gap: 12px; }
       .rooms { margin-top: 22px; }
       .none { margin: 0; color: var(--secondary-text-color); overflow-wrap: anywhere; }
       .trouble { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--error-color, #db4437) 16%, transparent); overflow-wrap: anywhere; }
     `
 		];
 	}
-}, Lt = "casa-mia-jukebox", Rt = class extends Nt {
+}, Ht = "casa-mia-jukebox", Ut = class extends Rt {
 	static {
 		this.properties = {
-			...Nt.properties,
+			...Rt.properties,
 			_config: { state: !0 }
 		};
 	}
@@ -2024,30 +2275,30 @@ var Nt = class extends Q {
 	}
 	render() {
 		let e = this._hass, t = this._house;
-		if (!e || !this._config) return A;
-		if (!t) return O`<p class="note">${f(this) ? "What is playing, with pause, skip and volume" : this._trouble}</p>`;
-		let n = this._config.entity, r = n ? B(t, n) : void 0, i = n ? r ? [r] : [] : t.groups.filter((e) => !e.quiet), a = this._trouble ?? this._failed;
-		return O`${a ? O`<p class="note">${a}</p>` : A}
-      ${n ? i.map((n) => O`<casa-mia-jukebox-mini .hass=${e} .house=${t} .group=${n}></casa-mia-jukebox-mini>`) : this._minis(i)}
-      ${!n && i.length > 1 ? O`<p class="hint">${Ft}</p>` : A}
-      ${i.length ? A : O`<p class="note">${n ? `${t.rooms[n]?.name ?? n} isn't answering` : "Nothing is playing"}</p>`}`;
+		if (!e || !this._config) return O;
+		if (!t) return E`<p class="note">${f(this) ? "What is playing, with pause, skip and volume" : this._trouble}</p>`;
+		let n = this._config.entity, r = n ? R(t, n) : void 0, i = n ? r ? [r] : [] : t.groups.filter((e) => !e.quiet), a = this._trouble ?? this._failed;
+		return E`${a ? E`<p class="note">${a}</p>` : O}
+      ${n ? i.map((n) => E`<casa-mia-jukebox-mini .hass=${e} .house=${t} .group=${n}></casa-mia-jukebox-mini>`) : this._minis(i)}
+      ${!n && i.length > 1 ? E`<p class="hint">${Bt}</p>` : O}
+      ${i.length ? O : E`<p class="note">${n ? `${t.rooms[n]?.name ?? n} isn't answering` : "Nothing is playing"}</p>`}`;
 	}
 	static {
 		this.styles = [
-			Z,
-			Pt,
+			X,
+			zt,
 			m`
       /* As many players across as fit the width the dashboard gives the card, each at least
          COLUMN wide: one on a phone, two or three on a tablet (owner, 2026-11-24: a card
          the width of an iPad showed one long player to a row). A player alone keeps a
          column's width; it isn't stretched across the card. */
-      :host { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${bt}px), 1fr)); gap: 12px; }
+      :host { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${Ct}px), 1fr)); gap: 12px; }
       .hint { grid-column: 1 / -1; margin: 0 2px; }
       .note { grid-column: 1 / -1; margin: 0; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--secondary-text-color); overflow-wrap: anywhere; }
     `
 		];
 	}
-}, zt = "casa-mia-jukebox-mini", Bt = class extends P {
+}, Wt = "casa-mia-jukebox-mini", Gt = class extends N {
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
@@ -2064,10 +2315,10 @@ var Nt = class extends Q {
 		[this._vol, this._settling] = [e.detail.value, t], this._volume(e.detail.value);
 	}
 	constructor() {
-		super(), this._stopping = !1, this._settling = !1, this._volume = ot((e) => R(this.hass, "group_volume", this.group.id, { value: e }), (e) => this._failed(e)), this._busy = new X(this), new pt(this);
+		super(), this._stopping = !1, this._settling = !1, this._volume = st((e) => I(this.hass, "group_volume", this.group.id, { value: e }), (e) => this._failed(e)), this._busy = new Y(this), new gt(this);
 	}
 	_failed(e) {
-		s(this, "hass-notification", { message: `Jukebox: ${z(e)}` });
+		s(this, "hass-notification", { message: `Jukebox: ${L(e)}` });
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback(), clearTimeout(this._unasked);
@@ -2076,40 +2327,40 @@ var Nt = class extends Q {
 		clearTimeout(this._unasked), this._stopping = e, e && (this._unasked = setTimeout(() => this._stopping = !1, 8e3));
 	}
 	_ask(e, t = e, n = {}) {
-		this._busy.during(t, R(this.hass, e, this.group.id, n)).catch((e) => this._failed(e));
+		this._busy.during(t, I(this.hass, e, this.group.id, n)).catch((e) => this._failed(e));
 	}
 	render() {
 		let { hass: e, house: t, group: n } = this;
-		if (!e || !t || !n) return A;
-		let { title: r, by: i } = U(n), a = rt(n, Date.now()), o = n.state === "playing", s = nt(t, n), c = () => kt(e, n.id);
-		return this._stopping ? O`<div class="mini" style="--a:${G(r)[0]}">
-        <span class="pic">${ct(e, n, r)}</span>
-        <span class="meta"><b>Stop and clear?</b><span>Empties the queue</span><small>${V(t, n)}</small></span>
+		if (!e || !t || !n) return O;
+		let { title: r, by: i } = V(n), a = at(n, Date.now()), o = n.state === "playing", s = it(t, n), c = () => Pt(e, n.id);
+		return this._stopping ? E`<div class="mini" style="--a:${W(r)[0]}">
+        <span class="pic">${lt(e, n, r)}</span>
+        <span class="meta"><b>Stop and clear?</b><span>Empties the queue</span><small>${z(t, n)}</small></span>
         <span class="tp">
           <button class="say" @click=${() => this._sure(!1)}>Keep</button>
           <button class="say stop" @click=${() => (this._sure(!1), this._ask("stop"))}>Stop</button>
         </span>
-      </div>` : O`<div class="mini" style="--a:${G(r)[0]}">
-      <button class="pic" @click=${c} aria-label="Open the player">${ct(e, n, r)}</button>
+      </div>` : E`<div class="mini" style="--a:${W(r)[0]}">
+      <button class="pic" @click=${c} aria-label="Open the player">${lt(e, n, r)}</button>
       <button class="meta" @click=${c}>
         <b><casa-mia-jukebox-marquee .text=${r}></casa-mia-jukebox-marquee></b>
         <span><casa-mia-jukebox-marquee .text=${i}></casa-mia-jukebox-marquee></span>
-        <small><casa-mia-jukebox-marquee .text=${`${V(t, n)}${n.party ? " · Party" : ""}${n.love?.now && n.love.did ? ` · ${n.love.did} (Love it or Loathe it)` : ""}`}></casa-mia-jukebox-marquee></small>
+        <small><casa-mia-jukebox-marquee .text=${`${z(t, n)}${n.party ? " · Party" : ""}${n.love?.now && n.love.did ? ` · ${n.love.did} (Love it or Loathe it)` : ""}`}></casa-mia-jukebox-marquee></small>
       </button>
       <span class="tp">
-        <button class="ib ${this._busy.on("play")}" ?disabled=${n.kind === "nothing"} @click=${() => this._ask(o ? "pause" : "play", "play")} aria-label=${o ? "Pause" : "Play"}>${K(o ? "pause" : "play")}</button>
-        ${o && n.kind === "queue" ? O`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${K("next")}</button>` : O`<button class="ib ${this._busy.on("stop")}" @click=${() => this._sure(!0)} aria-label="Stop the music here and clear the player">${K("stop")}</button>`}
+        <button class="ib ${this._busy.on("play")}" ?disabled=${n.kind === "nothing"} @click=${() => this._ask(o ? "pause" : "play", "play")} aria-label=${o ? "Pause" : "Play"}>${G(o ? "pause" : "play")}</button>
+        ${o && n.kind === "queue" ? E`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${G("next")}</button>` : E`<button class="ib ${this._busy.on("stop")}" @click=${() => this._sure(!0)} aria-label="Stop the music here and clear the player">${G("stop")}</button>`}
       </span>
       <div class="vol ${s ? "hush" : ""}">
-        <button class=${this._busy.on("mute")} @click=${() => this._ask("group_mute", "mute", { on: !s })} aria-label=${s ? "Unmute" : "Mute"} aria-pressed=${s}>${K(s ? "muted" : "volume")}</button>
-        <casa-mia-jukebox-slider .value=${H(t, n)} label="Volume" @jb-slide=${(e) => this._slid(e, !1)} @jb-set=${(e) => this._slid(e, !0)}></casa-mia-jukebox-slider>
-        <output aria-hidden="true">${this._vol ?? H(t, n)}%</output>
+        <button class=${this._busy.on("mute")} @click=${() => this._ask("group_mute", "mute", { on: !s })} aria-label=${s ? "Unmute" : "Mute"} aria-pressed=${s}>${G(s ? "muted" : "volume")}</button>
+        <casa-mia-jukebox-slider .value=${B(t, n)} label="Volume" @jb-slide=${(e) => this._slid(e, !1)} @jb-set=${(e) => this._slid(e, !0)}></casa-mia-jukebox-slider>
+        <output aria-hidden="true">${this._vol ?? B(t, n)}%</output>
       </div>
-      ${a !== null && n.duration ? O`<i class="prog" style="width:${100 * a / n.duration}%"></i>` : A}
+      ${a !== null && n.duration ? E`<i class="prog" style="width:${100 * a / n.duration}%"></i>` : O}
     </div>`;
 	}
 	static {
-		this.styles = [Z, m`
+		this.styles = [X, m`
       /* Its own font, so it looks the same on Jukebox's page and in any dashboard. */
       :host { display: block; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       .mini { position: relative; overflow: hidden; display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px; border-radius: 18px; border: 1px solid var(--divider-color, #8884);
@@ -2133,16 +2384,16 @@ var Nt = class extends Q {
       .prog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--a); }
     `];
 	}
-}, Vt = "casa-mia-jukebox-queue", $ = 56, Ht = class extends P {
+}, Kt = "casa-mia-jukebox-queue", Q = 56, qt = class extends N {
 	constructor(...e) {
-		super(...e), this.locked = !1, this.stamp = 0, this._total = 0, this._asked = 0, this._busy = new X(this), this._moved = (e) => {
+		super(...e), this.locked = !1, this.stamp = 0, this.picks = !1, this._total = 0, this._asked = 0, this._busy = new Y(this), this._moved = (e) => {
 			let t = this._drag;
 			if (!t) return;
 			let n = e.clientY - t.y;
 			this._drag = {
 				...t,
 				dy: n,
-				to: Math.max(0, Math.min(this._songs.length - 1, t.from + Math.round(n / $)))
+				to: Math.max(0, Math.min(this._songs.length - 1, t.from + Math.round(n / Q)))
 			};
 		}, this._up = () => {
 			let e = this._drag;
@@ -2162,6 +2413,8 @@ var Nt = class extends Q {
 			locked: { type: Boolean },
 			stamp: { type: Number },
 			mark: { type: Number },
+			picks: { type: Boolean },
+			selected: { type: Number },
 			_songs: { state: !0 },
 			_total: { state: !0 },
 			_why: { state: !0 },
@@ -2174,17 +2427,20 @@ var Nt = class extends Q {
 	}
 	_fetch() {
 		let e = ++this._asked;
-		Qe(this.hass, this.group.id, this.playlist).then((t) => {
+		et(this.hass, this.group.id, this.playlist).then((t) => {
 			e !== this._asked || this._drag || ([this._songs, this._total, this._why] = [
 				t.songs,
 				t.total,
 				void 0
-			], this.playlist || s(this, "jb-queued", t.total), s(this, "jb-listed", t.total));
-		}, (t) => e === this._asked && (this._why = z(t)));
+			], this.playlist || s(this, "jb-queued", t.total), s(this, "jb-listed", {
+				total: t.total,
+				songs: t.songs
+			}));
+		}, (t) => e === this._asked && (this._why = L(t)));
 	}
 	at(e) {
 		let t = this.renderRoot.querySelector(".row")?.getBoundingClientRect().top ?? this.getBoundingClientRect().top;
-		return Math.max(0, Math.min(this._songs?.length ?? 0, Math.round((e - t) / $)));
+		return Math.max(0, Math.min(this._songs?.length ?? 0, Math.round((e - t) / Q)));
 	}
 	async _act(e, t, n, r = -1) {
 		let i = [...this._songs ?? []];
@@ -2205,33 +2461,34 @@ var Nt = class extends Q {
 	}
 	render() {
 		let { group: e, _songs: t, _drag: n } = this;
-		if (!e) return A;
+		if (!e) return O;
 		let r = this.playlist ? "playlist" : "queue";
-		if (!t) return O`<p class="empty">${this._why ? `The ${r} couldn't be read: ${this._why}` : `Asking the speaker for the ${r}…`}</p>`;
-		if (!t.length) return O`<p class="empty ${this.mark === void 0 ? "" : "over"}">${this.playlist ? "This playlist is empty." : "The queue is empty. Press + to add something."}</p>`;
-		let i = !this.playlist && e.kind === "queue" ? e.queue_position : null, a = this.locked, o = (e) => O`<b>${e.title || "A song with no title"}</b><small>${[e.artist, e.album].filter(Boolean).join(" · ")}</small>`;
-		return O`${this._why ? O`<p class="empty">The queue couldn't be read again: ${this._why}</p>` : A}
-      ${this.mark === void 0 ? A : O`<div class="mark" style="top:${(this.renderRoot.querySelector(".row")?.offsetTop ?? 0) + this.mark * $}px"></div>`}
+		if (!t) return E`<p class="empty">${this._why ? `The ${r} couldn't be read: ${this._why}` : `Asking the speaker for the ${r}…`}</p>`;
+		if (!t.length) return E`<p class="empty ${this.mark === void 0 ? "" : "over"}">${this.playlist ? "This playlist is empty." : "The queue is empty. Press + to add something."}</p>`;
+		let i = !this.playlist && e.kind === "queue" ? e.queue_position : null, a = this.locked, o = (e) => E`<b>${e.title || "A song with no title"}</b><small>${[e.artist, e.album].filter(Boolean).join(" · ")}</small>`;
+		return E`${this._why ? E`<p class="empty">The queue couldn't be read again: ${this._why}</p>` : O}
+      ${this.mark === void 0 ? O : E`<div class="mark" style="top:${(this.renderRoot.querySelector(".row")?.offsetTop ?? 0) + this.mark * Q}px"></div>`}
       ${t.map((e, t) => {
-			let s = n ? t === n.from ? n.dy : n.from < t && t <= n.to ? -56 : n.to <= t && t < n.from ? $ : 0 : 0;
-			return O`<div class="row ${t + 1 === i ? "now" : ""} ${n?.from === t ? "held" : ""} ${this._busy.on(`row:${t}`)}" style="transform:translateY(${s}px)">
-          ${a ? O`<span></span>` : O`<span class="handle" @pointerdown=${(e) => this._down(e, t)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${K("drag")}</span>`}
-          ${Y(this.hass, e.picture, e.title || e.album || "?")}
-          ${this.playlist ? O`<span class="t">${o(e)}</span>` : O`<button class="t" @click=${() => this._busy.during(`row:${t}`, this.do("queue_play", { value: t + 1 }))} aria-label="Play ${e.title}">${o(e)}</button>`}
-          <span class="len">${t + 1 === i ? K("volume") : e.duration ? it(e.duration) : A}</span>
-          ${a ? O`<span></span>` : O`<button class="ib" @click=${() => this._act("queue_remove", { value: t + 1 }, (e) => e.splice(t, 1))} aria-label="Take ${e.title} out of the ${r}">${K("close")}</button>`}
+			let c = n ? t === n.from ? n.dy : n.from < t && t <= n.to ? -56 : n.to <= t && t < n.from ? Q : 0 : 0;
+			return E`<div class="row ${t + 1 === i ? "now" : ""} ${this.selected === t ? "sel" : ""} ${n?.from === t ? "held" : ""} ${this._busy.on(`row:${t}`)}" style="transform:translateY(${c}px)">
+          ${a ? E`<span></span>` : E`<span class="handle" @pointerdown=${(e) => this._down(e, t)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${G("drag")}</span>`}
+          ${J(this.hass, e.picture, e.title || e.album || "?")}
+          ${this.picks ? E`<button class="t" @click=${() => s(this, "jb-pick", t)} aria-pressed=${this.selected === t} aria-label="Choose ${e.title}">${o(e)}</button>` : this.playlist ? E`<span class="t">${o(e)}</span>` : E`<button class="t" @click=${() => this._busy.during(`row:${t}`, this.do("queue_play", { value: t + 1 }))} aria-label="Play ${e.title}">${o(e)}</button>`}
+          <span class="len">${t + 1 === i ? G("volume") : e.duration ? U(e.duration) : O}</span>
+          ${a ? E`<span></span>` : E`<button class="ib" @click=${() => this._act("queue_remove", { value: t + 1 }, (e) => e.splice(t, 1))} aria-label="Take ${e.title} out of the ${r}">${G("close")}</button>`}
         </div>`;
 		})}
-      ${this._total > t.length ? O`<p class="empty">and ${this._total - t.length} more, which aren't shown</p>` : A}`;
+      ${this._total > t.length ? E`<p class="empty">and ${this._total - t.length} more, which aren't shown</p>` : O}`;
 	}
 	static {
-		this.styles = [Z, m`
+		this.styles = [X, m`
       :host { display: block; position: relative; }
       .mark { position: absolute; left: 6px; right: 6px; z-index: 3; height: 3px; margin-top: -1.5px; border-radius: 2px; background: #fff; box-shadow: 0 0 10px rgb(255 255 255 / 70%); pointer-events: none; }
       .empty.over { outline: 2px dashed #fff; outline-offset: -10px; border-radius: 18px; }
       .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }
-      .row { display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; height: ${$}px; padding: 0 4px; border-radius: 14px; transition: transform 0.15s; }
+      .row { display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; height: ${Q}px; padding: 0 4px; border-radius: 14px; transition: transform 0.15s; }
       .row.now { background: rgb(255 255 255 / 9%); }
+      .row.sel { outline: 2px solid #fff; outline-offset: -2px; background: rgb(255 255 255 / 14%); }
       .row.held { position: relative; z-index: 2; background: rgb(255 255 255 / 18%); box-shadow: 0 8px 24px rgb(0 0 0 / 50%); transition: none; }
       /* The handle takes the finger for itself, so a drag moves the song and not the list. */
       .handle { display: grid; place-items: center; height: 100%; color: var(--muted); cursor: grab; touch-action: none; }
@@ -2244,9 +2501,9 @@ var Nt = class extends Q {
       .ib { color: var(--muted); }
     `];
 	}
-}, Ut = "casa-mia-jukebox-find", Wt = 400, Gt = class extends P {
+}, Jt = "casa-mia-jukebox-find", Yt = 400, Xt = class extends N {
 	constructor(...e) {
-		super(...e), this.room = "", this.waiting = () => "", this.changes = 0, this.fresh = 0, this.carry = !1, this._hold = new ft(), this._dropped = !1, this._query = "", this._trail = [], this._asked = 0, this._moved = (e) => {
+		super(...e), this.room = "", this.waiting = () => "", this.changes = 0, this.fresh = 0, this.carry = !1, this._hold = new pt(), this._dropped = !1, this._query = "", this._trail = [], this._asked = 0, this._moved = (e) => {
 			this._hold.moved(e), this._carried && s(this, "jb-carry", {
 				x: e.clientX,
 				y: e.clientY
@@ -2304,19 +2561,19 @@ var Nt = class extends Q {
 		let t = { title: e?.title ?? "Browse" };
 		this._trail = [...this._trail, t];
 		let n = (e) => this._trail = this._trail.map((n) => n === t ? Object.assign(t, e) : n);
-		et(this.hass, this.room, e).then((e) => n({ items: e.items }), (e) => n({ why: z(e) }));
+		nt(this.hass, this.room, e).then((e) => n({ items: e.items }), (e) => n({ why: L(e) }));
 	}
 	_type(e) {
 		this._query = e.target.value, this._trail = this._trail.slice(0, 1), clearTimeout(this._typed), [this._found, this._why] = [void 0, void 0];
 		let t = ++this._asked, n = this._query.trim();
-		n && (this._typed = setTimeout(() => $e(this.hass, this.room, n).then((e) => t === this._asked && (this._found = e.sources), (e) => t === this._asked && (this._why = z(e))), Wt));
+		n && (this._typed = setTimeout(() => tt(this.hass, this.room, n).then((e) => t === this._asked && (this._found = e.sources), (e) => t === this._asked && (this._why = L(e))), Yt));
 	}
 	_clear() {
 		let e = this.renderRoot.querySelector("input");
 		e.value = "", e.dispatchEvent(new Event("input")), e.focus();
 	}
 	_row(e) {
-		return this.carry && e.can_play ? O`<div
+		return this.carry && e.can_play ? E`<div
         class="row carry ${this._carried === e ? "lifted" : ""} ${this.waiting(`fav:${e.media_content_id}`)}"
         @pointerdown=${(t) => this._down(t, e)}
         @pointermove=${this._moved}
@@ -2327,45 +2584,45 @@ var Nt = class extends Q {
         @dragstart=${(e) => e.preventDefault()}
       >
         ${this._inside(e)}
-      </div>` : O`<div class="row ${this.waiting(`fav:${e.media_content_id}`)}">${this._inside(e)}</div>`;
+      </div>` : E`<div class="row ${this.waiting(`fav:${e.media_content_id}`)}">${this._inside(e)}</div>`;
 	}
 	_inside(e) {
 		let t = () => s(this, "jb-choose", e), n = e.can_expand;
-		return O`
+		return E`
       <button class="t" ?disabled=${!n && !e.can_play} @click=${() => n ? this._open(e) : t()}>
-        ${Y(this.hass, e.picture, e.title)}
-        <span><b>${e.title}</b>${e.by ? O`<small>${e.by}</small>` : A}</span>
-        ${n ? K("chevron") : A}
+        ${J(this.hass, e.picture, e.title)}
+        <span><b>${e.title}</b>${e.by ? E`<small>${e.by}</small>` : O}</span>
+        ${n ? G("chevron") : O}
       </button>
-      ${e.can_play ? O`<button class="ib" @click=${t} aria-label="Play ${e.title}, or add it to the queue">${K("plus")}</button>` : A}`;
+      ${e.can_play ? E`<button class="ib" @click=${t} aria-label="Play ${e.title}, or add it to the queue">${G("plus")}</button>` : O}`;
 	}
 	_results() {
-		return this._why ? O`<p class="note">The search couldn't be made: ${this._why}</p>` : this._found ? this._found.map((e) => {
+		return this._why ? E`<p class="note">The search couldn't be made: ${this._why}</p>` : this._found ? this._found.map((e) => {
 			let t = [...new Set(e.items.map((e) => e.folder))];
-			return O`<h3>${e.name}</h3>
-        ${e.why ? O`<p class="note">${e.name} couldn't be searched: ${e.why}</p>` : e.items.length ? A : O`<p class="note">Nothing found.</p>`}
-        ${t.map((t) => O`<h4>${t}</h4>${e.items.filter((e) => e.folder === t).map((e) => this._row(e))}`)}`;
-		}) : O`<p class="note">Searching the music library and Spotify…</p>`;
+			return E`<h3>${e.name}</h3>
+        ${e.why ? E`<p class="note">${e.name} couldn't be searched: ${e.why}</p>` : e.items.length ? O : E`<p class="note">Nothing found.</p>`}
+        ${t.map((t) => E`<h4>${t}</h4>${e.items.filter((e) => e.folder === t).map((e) => this._row(e))}`)}`;
+		}) : E`<p class="note">Searching the music library and Spotify…</p>`;
 	}
 	_browsing() {
 		let e = this._trail[this._trail.length - 1];
-		return e ? O`<div class="where">
-        ${this._trail.length > 1 ? O`<button class="ib" @click=${() => this._trail = this._trail.slice(0, -1)} aria-label="Back">${K("back")}</button>` : A}
+		return e ? E`<div class="where">
+        ${this._trail.length > 1 ? E`<button class="ib" @click=${() => this._trail = this._trail.slice(0, -1)} aria-label="Back">${G("back")}</button>` : O}
         <h3>${e.title}</h3>
       </div>
-      ${e.why ? O`<p class="note">This couldn't be opened: ${e.why}</p>` : e.items ? e.items.length ? e.items.map((e) => this._row(e)) : O`<p class="note">There is nothing here.</p>` : O`<p class="note">Asking the speaker…</p>`}` : A;
+      ${e.why ? E`<p class="note">This couldn't be opened: ${e.why}</p>` : e.items ? e.items.length ? e.items.map((e) => this._row(e)) : E`<p class="note">There is nothing here.</p>` : E`<p class="note">Asking the speaker…</p>`}` : O;
 	}
 	render() {
 		let e = this._query.trim() && this._trail.length < 2;
-		return O`<label class="box">
-        ${K("search")}
+		return E`<label class="box">
+        ${G("search")}
         <input type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="A song, an album or an artist" aria-label="Search the music library and Spotify" @input=${this._type} />
-        ${this._query ? O`<button class="ib" @click=${this._clear} aria-label="Clear the search">${K("close")}</button>` : A}
+        ${this._query ? E`<button class="ib" @click=${this._clear} aria-label="Clear the search">${G("close")}</button>` : O}
       </label>
       ${e ? this._results() : this._browsing()}`;
 	}
 	static {
-		this.styles = [Z, m`
+		this.styles = [X, m`
       :host { display: block; padding: 0 6px; }
       .box { display: flex; align-items: center; gap: 8px; margin: 2px 4px 10px; padding: 0 6px 0 12px; border-radius: 14px; border: 1px solid var(--line); background: rgb(255 255 255 / 8%); color: var(--muted); }
       .box:focus-within { border-color: #fff; }
@@ -2390,21 +2647,21 @@ var Nt = class extends Q {
       .row.lifted { opacity: 0.35; }
     `];
 	}
-}, Kt = { entity: { filter: {
+}, Zt = { entity: { filter: {
 	integration: "sonos",
 	domain: "media_player"
-} } }, qt = m`
+} } }, $ = m`
   .note { margin: 0; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--secondary-text-color); overflow-wrap: anywhere; }
-`, Jt = "casa-mia-jukebox-quiet", Yt = {
+`, Qt = "casa-mia-jukebox-quiet", $t = {
 	heading: "Show the heading over the rooms",
 	silent: "List the speakers that aren't answering"
-}, Xt = class extends Q {
+}, en = class extends Z {
 	constructor(...e) {
 		super(...e), this._config = {};
 	}
 	static {
 		this.properties = {
-			...Q.properties,
+			...Z.properties,
 			_config: { state: !0 }
 		};
 	}
@@ -2423,7 +2680,7 @@ var Nt = class extends Q {
 				name: "silent",
 				selector: { boolean: {} }
 			}],
-			computeLabel: (e) => Yt[e.name]
+			computeLabel: (e) => $t[e.name]
 		};
 	}
 	setConfig(e) {
@@ -2440,28 +2697,28 @@ var Nt = class extends Q {
 	}
 	render() {
 		let [e, t] = [this._hass, this._house];
-		if (!e) return A;
-		if (!t) return O`<p class="note">${f(this) ? "The rooms that are playing nothing, a tap from their favourites" : this._trouble}</p>`;
+		if (!e) return O;
+		if (!t) return E`<p class="note">${f(this) ? "The rooms that are playing nothing, a tap from their favourites" : this._trouble}</p>`;
 		let [n, r] = [this._config.heading !== !1, this._config.silent !== !1], i = !t.groups.some((e) => e.quiet) && (!r || Object.values(t.rooms).every((e) => e.available));
-		return O`${this._trouble ? O`<p class="note">${this._trouble}</p>` : A}
-      ${i ? O`<p class="note">Every room is playing something.</p>` : O`<casa-mia-jukebox-rooms .hass=${e} .house=${t} .heading=${n} .silent=${r}></casa-mia-jukebox-rooms>`}`;
+		return E`${this._trouble ? E`<p class="note">${this._trouble}</p>` : O}
+      ${i ? E`<p class="note">Every room is playing something.</p>` : E`<casa-mia-jukebox-rooms .hass=${e} .house=${t} .heading=${n} .silent=${r}></casa-mia-jukebox-rooms>`}`;
 	}
 	static {
 		this.styles = [
-			Z,
-			qt,
+			X,
+			$,
 			m`:host { display: grid; gap: 12px; }`
 		];
 	}
-}, Zt = "casa-mia-jukebox-shortcut", Qt = {
+}, tn = "casa-mia-jukebox-shortcut", nn = {
 	favourite: "Favourite or Sonos playlist, by its name",
 	rooms: "Rooms (the first leads, the others join it)",
 	name: "What the button says (leave empty for the favourite's name)",
 	icon: "Icon",
 	enqueue: "Where in the queue (leave empty to play now)"
-}, $t = class extends P {
+}, rn = class extends N {
 	constructor(...e) {
-		super(...e), this._busy = new X(this);
+		super(...e), this._busy = new Y(this);
 	}
 	static {
 		this.properties = { _config: { state: !0 } };
@@ -2488,7 +2745,7 @@ var Nt = class extends Q {
 					name: "rooms",
 					required: !0,
 					selector: { entity: {
-						...Kt.entity,
+						...Zt.entity,
 						multiple: !0
 					} }
 				},
@@ -2511,7 +2768,7 @@ var Nt = class extends Q {
 					}] } }
 				}
 			],
-			computeLabel: (e) => Qt[e.name]
+			computeLabel: (e) => nn[e.name]
 		};
 	}
 	setConfig(e) {
@@ -2533,23 +2790,23 @@ var Nt = class extends Q {
 			rooms: e.rooms,
 			...e.enqueue ? { enqueue: e.enqueue } : {}
 		};
-		this._busy.during("play", this._hass.callService("casa_mia_jukebox", "play", t)).catch((e) => s(this, "hass-notification", { message: `Jukebox: ${z(e)}` }));
+		this._busy.during("play", this._hass.callService("casa_mia_jukebox", "play", t)).catch((e) => s(this, "hass-notification", { message: `Jukebox: ${L(e)}` }));
 	}
 	render() {
 		let [e, t] = [this._hass, this._config];
-		if (!e || !t) return A;
+		if (!e || !t) return O;
 		let n = t.rooms ?? [];
-		if (!t.favourite || !n.length) return O`<p class="note">${f(this) ? "A button that plays one favourite in the rooms you choose" : "Choose a favourite and a room for this shortcut."}</p>`;
+		if (!t.favourite || !n.length) return E`<p class="note">${f(this) ? "A button that plays one favourite in the rooms you choose" : "Choose a favourite and a room for this shortcut."}</p>`;
 		let r = n.map((t) => e.states[t]?.attributes.friendly_name ?? t).join(" + ");
-		return O`<button class="short ${this._busy.on("play")}" @click=${() => this._play(t)}>
+		return E`<button class="short ${this._busy.on("play")}" @click=${() => this._play(t)}>
       <ha-icon .icon=${t.icon || "mdi:play-circle"}></ha-icon>
       <span><b>${t.name || t.favourite}</b><small>${r}</small></span>
     </button>`;
 	}
 	static {
 		this.styles = [
-			Z,
-			qt,
+			X,
+			$,
 			m`
       :host { display: block; height: 100%; --jb-glow: var(--primary-color, #c4552d); font: 14px/1.3 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       .short { display: flex; align-items: center; gap: 12px; width: 100%; height: 100%; min-height: 56px; padding: 8px 16px 8px 12px; border-radius: 18px; border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--primary-text-color); }
@@ -2561,7 +2818,7 @@ var Nt = class extends Q {
     `
 		];
 	}
-}, en = "casa-mia-jukebox-now", tn = class extends P {
+}, an = "casa-mia-jukebox-now", on = class extends N {
 	static {
 		this.properties = { _config: { state: !0 } };
 	}
@@ -2577,7 +2834,7 @@ var Nt = class extends Q {
 			schema: [{
 				name: "entity",
 				required: !0,
-				selector: Kt
+				selector: Zt
 			}],
 			computeLabel: () => "Room"
 		};
@@ -2598,16 +2855,16 @@ var Nt = class extends Q {
 	}
 	render() {
 		let [e, t] = [this._hass, this._config?.entity];
-		return !e || !this._config ? A : !t || f(this) ? O`<p class="note">${t ? "" : "Choose a room. "}The whole player for one room: artwork, controls, queue, rooms, favourites and search.</p>` : O`<casa-mia-jukebox-big inline .hass=${e} .room=${t}></casa-mia-jukebox-big>`;
+		return !e || !this._config ? O : !t || f(this) ? E`<p class="note">${t ? "" : "Choose a room. "}The whole player for one room: artwork, controls, queue, rooms, favourites and search.</p>` : E`<casa-mia-jukebox-big inline .hass=${e} .room=${t}></casa-mia-jukebox-big>`;
 	}
 	static {
 		this.styles = [
-			Z,
-			qt,
+			X,
+			$,
 			m`:host { display: block; height: 100%; }`
 		];
 	}
-}, nn = "casa-mia-jukebox-rooms", rn = class extends P {
+}, sn = "casa-mia-jukebox-rooms", cn = class extends N {
 	constructor(...e) {
 		super(...e), this.heading = !0, this.silent = !0;
 	}
@@ -2620,14 +2877,14 @@ var Nt = class extends Q {
 	}
 	render() {
 		let { hass: e, house: t } = this;
-		if (!e || !t) return A;
+		if (!e || !t) return O;
 		let n = t.groups.filter((e) => e.quiet), r = this.silent ? Object.values(t.rooms).filter((e) => !e.available) : [];
-		return O`${n.length ? O`${this.heading ? O`<h2>Quiet rooms: tap one to play something there</h2>` : A}
-            <div class="chips">${n.map((n) => O`<button @click=${() => kt(e, n.id, "favourites")}>${K("rooms")}${t.rooms[n.id].name}</button>`)}</div>` : A}
-      ${r.length ? O`<h2>Not answering</h2><p class="none">${r.map((e) => e.name).join(", ")}</p>` : A}`;
+		return E`${n.length ? E`${this.heading ? E`<h2>Quiet rooms: tap one to play something there</h2>` : O}
+            <div class="chips">${n.map((n) => E`<button @click=${() => Pt(e, n.id, "favourites")}>${G("rooms")}${t.rooms[n.id].name}</button>`)}</div>` : O}
+      ${r.length ? E`<h2>Not answering</h2><p class="none">${r.map((e) => e.name).join(", ")}</p>` : O}`;
 	}
 	static {
-		this.styles = [Z, m`
+		this.styles = [X, m`
       :host { display: block; color: var(--primary-text-color); font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       h2 { margin: 22px 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--secondary-text-color); }
       h2:first-child { margin-top: 0; }
@@ -2639,5 +2896,5 @@ var Nt = class extends Q {
     `];
 	}
 };
-l(mt, _t), l(vt, yt), l(zt, Bt), l(Vt, Ht), l(Ut, Gt), l(nn, rn), l(wt, At), l(xt, Ct), l(jt, It), l(Lt, Rt), l(Jt, Xt), l(Zt, $t), l(en, tn), u(Lt, "Casa Mia Jukebox: players", "What is playing on the Sonos speakers, with pause, skip and volume. A tap opens the big player."), u(Jt, "Casa Mia Jukebox: quiet rooms", "The rooms that are playing nothing, each a tap from its favourites."), u(Zt, "Casa Mia Jukebox: shortcut", "A button that plays one favourite in the rooms you choose."), u(en, "Casa Mia Jukebox: now playing", "The whole player for one room, in place: artwork, controls, queue, rooms, favourites and search."), r("Jukebox", qe, Ke);
+l(_t, bt), l(xt, St), l(Wt, Gt), l(Kt, qt), l(Jt, Xt), l(sn, cn), l(kt, Ft), l(wt, Ot), l(It, Vt), l(Ht, Ut), l(Qt, en), l(tn, rn), l(an, on), u(Ht, "Casa Mia Jukebox: players", "What is playing on the Sonos speakers, with pause, skip and volume. A tap opens the big player."), u(Qt, "Casa Mia Jukebox: quiet rooms", "The rooms that are playing nothing, each a tap from its favourites."), u(tn, "Casa Mia Jukebox: shortcut", "A button that plays one favourite in the rooms you choose."), u(an, "Casa Mia Jukebox: now playing", "The whole player for one room, in place: artwork, controls, queue, rooms, favourites and search."), r("Jukebox", Je, qe);
 //#endregion

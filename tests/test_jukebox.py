@@ -192,3 +192,57 @@ def test_a_stations_song_is_found_on_spotify_whichever_way_round_it_is_named():
     # One name only (a show's, an advert's) is never looked for.
     assert cover.names("", "The Breakfast Show") is None
     assert cover.names("Harbour FM", "  ") is None
+
+
+tidy = load_component_file("casa_mia_jukebox", "tidy")
+
+
+def a_song(title, artist="", album="", track=None):
+    return {"title": title, "artist": artist, "album": album, "track": track}
+
+
+def test_a_playlist_is_sorted_by_title_artist_or_album_and_can_be_put_back():
+    songs = [
+        a_song("10 Last", "Velvet Arcade", "Neon", 2),
+        a_song("2 second", "The Marigolds", "Harbour Lights", 9),
+        a_song("Borrowed", "the marigolds", "Harbour Lights", 1),
+        a_song("1 First", "Velvet Arcade", "Neon", 1),
+    ]
+    # A number in a title is counted, not spelt: 1, 2, 10.
+    assert tidy.order(songs, "title") == [3, 1, 0, 2]
+    # Within an album, by track number; capitals make no difference.
+    assert tidy.order(songs, "album") == [2, 1, 3, 0]
+    assert tidy.order(songs, "artist") == [2, 1, 3, 0]
+
+    # Applying an order and then its inverse leaves the list as it was.
+    def apply(order, things):
+        return [things[n] for n in order]
+
+    new = tidy.order(songs, "title")
+    assert apply(tidy.inverse(new), apply(new, "abcd")) == list("abcd")
+
+
+def test_a_new_order_is_asked_of_the_speaker_a_few_songs_at_a_time():
+    def speaker(now, tracks, places):
+        """As a real speaker does it: the songs named land at their places, and the
+        rest keep the order they had."""
+        moved = [now[t] for t in tracks]
+        rest = [x for n, x in enumerate(now) if n not in tracks]
+        out = []
+        for place in range(len(now)):
+            out.append(moved.pop(0) if place in places else rest.pop(0))
+        return out
+
+    order = [6, 2, 5, 0, 1, 4, 3]
+    now = list(range(7))
+    asked = list(tidy.steps(order, each=3))
+    for tracks, places in asked:
+        assert places == sorted(places)  # a speaker refuses places that don't rise
+        now = speaker(now, tracks, places)
+    assert now == order and len(asked) == 2  # the last few were already in place
+    # Nothing is asked for a list already in order.
+    assert list(tidy.steps([0, 1, 2])) == []
+
+
+def test_songs_that_are_in_a_playlist_twice_are_found_and_the_first_kept():
+    assert tidy.repeats(["a", "b", "a", "c", "b", "a", ""]) == [2, 4, 5]

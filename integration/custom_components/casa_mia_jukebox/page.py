@@ -16,7 +16,7 @@ from homeassistant.const import ATTR_ENTITY_ID, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from . import art, find, may
+from . import art, find, may, tidy
 from .const import DOMAIN, TITLE, URL
 from .feed import ACTIONS, ENQUEUE, Feed, do, favourites, queue
 
@@ -134,6 +134,7 @@ def _ws_house(
         vol.Optional("media_content_type"): str,
         vol.Optional("enqueue"): vol.In(ENQUEUE),
         vol.Optional("name"): vol.All(str, vol.Length(max=60)),
+        vol.Optional("by"): vol.In(tidy.BY),
         vol.Optional("playlist"): str,
     }
 )
@@ -148,11 +149,11 @@ async def _ws_do(
     }
     who = may.who(hass, connection.user)
     try:
-        await do(hass.data[FEED], who, msg["action"], msg[ATTR_ENTITY_ID], data)
+        told = await do(hass.data[FEED], who, msg["action"], msg[ATTR_ENTITY_ID], data)
     except HomeAssistantError as err:
         connection.send_error(msg["id"], "failed", str(err))
         return
-    connection.send_result(msg["id"])
+    connection.send_result(msg["id"], told)
 
 
 @websocket_api.websocket_command(

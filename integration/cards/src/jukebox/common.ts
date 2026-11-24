@@ -89,7 +89,7 @@ export type Favourite = {
   media_content_type: string;
 };
 /** One song of a queue. */
-export type Song = { title: string; artist: string; album: string; duration: number | null; picture?: string | null };
+export type Song = { title: string; artist: string; album: string; duration: number | null; picture?: string | null; /** Where it is from: the music library, Spotify, or another service. */ source?: string };
 /** Home Assistant's `hass`, for its connection. */
 type Asking = { connection?: any; [key: string]: any };
 

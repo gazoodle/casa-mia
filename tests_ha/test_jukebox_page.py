@@ -514,14 +514,14 @@ async def test_the_queue_is_read_and_changed_through_the_coordinator(
     )
     aioclient_mock.post(
         BROWSE,
-        text=answered("ContentDirectory", "Browse", Result=songs, TotalMatches=7),
+        text=answered("ContentDirectory", "Browse", Result=songs, TotalMatches=2),
     )
     aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
 
     # Asked of a room that follows: the queue is its coordinator's.
     found = (await ask(client, QUEUE, entity_id=GARDEN))["result"]
     assert found == {
-        "total": 7,
+        "total": 2,
         "songs": [
             {
                 "title": "Paper Lanterns",
@@ -529,6 +529,7 @@ async def test_the_queue_is_read_and_changed_through_the_coordinator(
                 "album": "Slow Sunday",
                 "duration": 194,
                 "picture": None,
+                "source": "library",
             },
             {
                 "title": "A song",
@@ -536,6 +537,7 @@ async def test_the_queue_is_read_and_changed_through_the_coordinator(
                 "album": "",
                 "duration": None,
                 "picture": None,
+                "source": "library",
             },
         ],
     }

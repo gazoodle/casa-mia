@@ -316,6 +316,17 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   `components.PUBLISHED`, mirror `gazoodle/casa-mia-jukebox`, its manifest's links
   naming that repository (`docs/design/marketplace-mirrors.md`, the fourth item). Its
   tile on Casa Mia's page is `app/web/src/jukebox.ts`, following Jukebox's own feed.
+- **Tidying a playlist** (b25): `tidy.py` (no Home Assistant in it) works out a sort,
+  its inverse and the repeats; `curate.py` carries them out and remembers how to put
+  a sort back, by the playlist's change number. A speaker moves many songs in one
+  request when they are named in the order wanted with rising places, and takes
+  several out in one (both on a real speaker, 2026-11-24, twenty songs; `tidy.EACH`
+  at a time, which hasn't been tried at that size). An action may now say what it
+  did (`_Doing.result`), which goes back to the page as the request's answer.
+- **The editor's chosen song** (b25): `queue.ts` with `picks` says `jb-pick` and
+  doesn't play; `editor.ts` keeps the chosen song chosen through moves, removals and
+  additions (`_moved`, `_listed`). `Split` in `parts.ts` is the draggable width, kept
+  in the browser, used by the editor and the big player.
 - **The editor** (b22, `editor.ts`): a full-screen element of its own, opened by the
   big player, with the big player's own list (`queue.ts`) beside its search
   (`find.ts` with `carry`). A row found is lifted by `Hold` (`parts.ts`, shared with

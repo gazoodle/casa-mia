@@ -8,6 +8,7 @@ import { colours, initials } from "./common.ts";
 
 const PATHS = {
   play: "M8 5v14l11-7z",
+  reset: "M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8zm-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91z",
   pause: "M6 5h4v14H6zM14 5h4v14h-4z",
   stop: "M6 6h12v12H6z",
   next: "M6 6l8.5 6L6 18zM16 6h2v12h-2z",
@@ -99,6 +100,77 @@ export class Hold {
     this.at = undefined;
   }
 }
+
+/** A size the person sets by dragging a handle between two panels, remembered in this
+ * browser, with a way back to the size it came with. A convenience only: a browser that
+ * won't keep it (a private window) forgets at the next visit. */
+export class Split {
+  value: number;
+  constructor(private host: ReactiveControllerHost, private key: string, private first: number) {
+    this.value = first;
+    try {
+      const kept = Number(localStorage.getItem(key));
+      if (kept > 0) this.value = kept;
+    } catch {
+      // Not kept on this device.
+    }
+  }
+
+  get moved() {
+    return this.value !== this.first;
+  }
+
+  private keep() {
+    try {
+      if (this.moved) localStorage.setItem(this.key, String(this.value));
+      else localStorage.removeItem(this.key);
+    } catch {
+      // Not kept on this device: it still holds until the page is left.
+    }
+    this.host.requestUpdate();
+  }
+
+  /** The handle was taken hold of. `size` gives the size the pointer asks for now. */
+  drag = (e: PointerEvent, size: (e: PointerEvent) => number) => {
+    const handle = e.currentTarget as HTMLElement;
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    const move = (at: PointerEvent) => {
+      this.value = size(at);
+      this.host.requestUpdate();
+    };
+    const done = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", done);
+      handle.removeEventListener("pointercancel", done);
+      this.keep();
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", done);
+    handle.addEventListener("pointercancel", done);
+  };
+
+  reset = () => {
+    this.value = this.first;
+    this.keep();
+  };
+
+  /** The handle, and, once it has been moved, the button that puts the size back. */
+  grip(size: (e: PointerEvent) => number) {
+    return html`<div class="grip" role="separator" aria-orientation="vertical" aria-label="Drag to change the width of the panels" @pointerdown=${(e: PointerEvent) => this.drag(e, size)} @dblclick=${this.reset}>
+      ${this.moved ? html`<button @pointerdown=${(e: Event) => e.stopPropagation()} @click=${this.reset} aria-label="Put the panels back to the width they came with">${icon("reset")}</button>` : nothing}
+    </div>`;
+  }
+}
+
+/** The look of a `Split`'s handle: a thin bar that takes the finger for itself. */
+export const grips = css`
+  .grip { position: relative; display: grid; place-items: center; width: 14px; cursor: col-resize; touch-action: none; }
+  .grip::before { content: ""; width: 4px; height: 56px; border-radius: 2px; background: rgb(255 255 255 / 22%); }
+  .grip:hover::before, .grip:active::before { background: rgb(255 255 255 / 60%); }
+  .grip button { position: absolute; top: calc(50% + 40px); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #3a3630; color: #fff; box-shadow: 0 4px 14px rgb(0 0 0 / 50%); z-index: 2; }
+  .grip button svg { width: 18px; height: 18px; }
+`;
 
 /** Redraws its element once a second while it is on the page, for what moves by itself
  * (a song's position). The speakers aren't asked anything: the time is worked out. */

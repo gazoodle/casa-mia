@@ -9,7 +9,7 @@ import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { EDITOR, edit } from "./editor.ts";
 import { type Favourite, type Group, type House, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
-import { Busy, Clock, icon, mosaic, shared, sleeve } from "./parts.ts";
+import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
 type Tab = "queue" | "rooms" | "favourites" | "search";
@@ -55,6 +55,8 @@ export class Big extends LitElement {
    * chosen goes there, and the player goes back to where it came from. */
   _adding?: "queue" | "playlist";
   private _fresh = 0;
+  /** How wide the panel beside the cover is on a wide screen, in px. */
+  private _split = new Split(this, "casa-mia-jukebox-split-big", 460);
   /** The volume a finger on the slider is asking for, shown as its number until the
    * house has answered: the house's own number comes a moment behind the finger. */
   _vol?: number;
@@ -542,9 +544,15 @@ export class Big extends LitElement {
     const shown = this.tab ?? "rooms";
     const [a, b] = colours(playing(group).title);
     const picture = group.picture ? `--pic:url('${(this.hass.hassUrl?.(group.picture) ?? group.picture).replace(/'/g, "%27")}');` : "";
-    return html`<div class="big" style="--a:${a};--b:${b};${picture}">
+    // The panel's width is the person's to set, between what its tools need and what
+    // leaves the cover room.
+    const width = (e: PointerEvent) => {
+      const box = this.getBoundingClientRect();
+      return Math.round(Math.max(360, Math.min(box.width - 380, box.right - e.clientX)));
+    };
+    return html`<div class="big" style="--a:${a};--b:${b};--side:${this._split.value}px;${picture}">
       ${this._now(house, group)}
-      <div class="side ${this.tab ? "up" : ""}">${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : shown === "search" ? this._search(group) : this._favouritesPanel(group)}</div>
+      <div class="side ${this.tab ? "up" : ""}">${this._split.grip(width)}${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : shown === "search" ? this._search(group) : this._favouritesPanel(group)}</div>
       ${this._sheets(house, group)}
       <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
     </div>`;
@@ -552,7 +560,10 @@ export class Big extends LitElement {
 
   static styles = [
     shared,
+    grips,
     css`
+      /* The handle that sets the side panel's width: only where the panel is beside the cover. */
+      .side > .grip { display: none; position: absolute; left: -7px; top: 0; bottom: 0; z-index: 3; }
       /* Its own width decides its layout, not the screen's: it may be over the whole screen,
          or in a card of any size. */
       :host { position: fixed; inset: 0; z-index: 1000; container-type: inline-size; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
@@ -680,7 +691,8 @@ export class Big extends LitElement {
       :host([inline]) .big { animation: none; }
 
       @container (min-width: 900px) {
-        .big { grid-template-columns: minmax(0, 1fr) 460px; }
+        .big { grid-template-columns: minmax(0, 1fr) min(var(--side, 460px), 100cqw - 380px); }
+        .side > .grip { display: grid; }
         .now { padding: 16px 56px 22px; }
         .now .tabs, .shut { display: none; }
         .side { position: relative; inset: auto; display: flex; border-radius: 0; border-left: 1px solid var(--line); background: rgb(12 11 10 / 46%); backdrop-filter: blur(24px); box-shadow: none; animation: none; }

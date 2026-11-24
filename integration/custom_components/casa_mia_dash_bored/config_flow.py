@@ -16,7 +16,14 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
-from .const import CONF_COLUMN, CONF_FLOOR_ORDER, CONF_ROOM_ORDER, DOMAIN, TITLE
+from .const import (
+    CONF_COLUMN,
+    CONF_FLOOR_ORDER,
+    CONF_RELOAD,
+    CONF_ROOM_ORDER,
+    DOMAIN,
+    TITLE,
+)
 
 # Both are orders, so each is a list that keeps the order it was chosen in. Floors
 # can't be dragged (Home Assistant's selector has no reorder): take one out and add it again.
@@ -29,6 +36,7 @@ OPTIONS = vol.Schema(
             selector.AreaSelectorConfig(multiple=True, reorder=True)
         ),
         vol.Optional(CONF_COLUMN, default=True): selector.BooleanSelector(),
+        vol.Optional(CONF_RELOAD, default=False): selector.BooleanSelector(),
     }
 )
 

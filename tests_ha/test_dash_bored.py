@@ -3,8 +3,6 @@ photographs it takes of what the cameras see, and the feed of Sensor Watch's ale
 its pages follow. Sensor Watch itself is not loaded:
 the two meet only through its bus event, which each test fires by hand."""
 
-import asyncio
-
 import pytest
 from custom_components.casa_mia_dash_bored import image as sightings
 from custom_components.casa_mia_dash_bored import sightings as log
@@ -491,66 +489,46 @@ async def test_casa_mias_picture_is_used_when_it_has_one_and_the_camera_when_not
     assert "could not be had, so the camera is asked" in caplog.text
 
 
-async def test_protects_thumbnail_replaces_the_first_photograph_when_it_comes(
-    hass, monkeypatch, freezer, caplog
+async def test_a_protect_cameras_sighting_keeps_the_still_taken_at_once(
+    hass, monkeypatch, freezer
 ):
     """As UniFi Protect tells it: the sensor turns on, with no word of which event, and
-    the event entity fires a moment later naming it. One sighting, told at once with the
-    first photograph; Protect's own picture follows, and its failure leaves the first."""
-    ready, wanted = asyncio.Event(), []
-
-    async def thumbnail(_hass, entry_id, event_id):
-        wanted.append(event_id)
-        await ready.wait()
-        if event_id == "gone":
-            raise RuntimeError("no such event")
-        return b"protect's choice"
-
-    monkeypatch.setattr(sightings, "protect_thumbnail", thumbnail)
+    the event entity fires a moment later naming it. One sighting, with the still taken
+    at once: Protect's insides are never asked for its own thumbnail (Frenck, reviewing
+    hacs/default#14577, 2026-11-24)."""
     asked, entity_id = await shed(hass, monkeypatch, platform="unifiprotect")
     entity = hass.data["image"].get_entity(entity_id)
 
     hass.states.async_set("binary_sensor.shed_person", "on")
     await hass.async_block_till_done()
-    assert entity._photo == b"a photograph" and wanted == []
-    seen, first = hass.states.get(entity_id).state, entity._id
+    first, seen = entity._id, hass.states.get(entity_id).state
 
     freezer.tick(1)
     fired = {"event_type": "person", "event_id": "e1"}
     hass.states.async_set("event.shed_detect", "2026-11-13T10:00:01+00:00", fired)
-    await hass.async_block_till_done()
-    assert wanted == ["e1"] and len(asked) == 1 and entity._id == first
-
-    freezer.tick(2)
-    ready.set()
     await hass.async_block_till_done(wait_background_tasks=True)
-    state = hass.states.get(entity_id)
-    assert entity._photo == b"protect's choice"
-    # The photograph is newer, so a page fetches it; the sighting is when it was.
-    assert state.state != seen and state.attributes["seen"] == seen
-    (item,) = hass.data[log.KEY].items.values()
-    assert item["id"] == first and item["changed"] == item["at"] + 3
-    assert hass.data[log.KEY].photos[first] == (b"protect's choice", "image/jpeg")
+    assert entity._id == first and len(asked) == 1
+    assert entity._photo == b"a photograph"
+    assert hass.states.get(entity_id).state == seen
+    assert not hasattr(sightings, "protect_thumbnail")
 
     # An event entity alone is a sighting too, of the kind it says; and what it does
     # not say is worth a photograph (a number plate read) is none.
     freezer.tick(sightings.APART)
     fired = {"event_type": "license_plate", "event_id": "plate"}
     hass.states.async_set("event.shed_detect", "2026-11-13T10:00:09+00:00", fired)
-    fired = {"event_type": "animal", "event_id": "gone"}
+    fired = {"event_type": "animal", "event_id": "e2"}
     hass.states.async_set("event.shed_detect", "2026-11-13T10:00:10+00:00", fired)
     await hass.async_block_till_done(wait_background_tasks=True)
-    assert entity._kind == "animal" and entity._id != first
-    assert entity._photo == b"a photograph" and wanted == ["e1", "gone"]
-    assert "the first photograph stays: RuntimeError: no such event" in caplog.text
+    assert entity._kind == "animal" and entity._id != first and len(asked) == 2
 
 
 async def test_each_sighting_is_kept_with_its_own_photograph_for_half_an_hour(
-    hass, hass_ws_client, hass_client_no_auth, monkeypatch, freezer
+    hass, hass_ws_client, hass_client, hass_client_no_auth, monkeypatch, freezer
 ):
     """An animal reported after a person does not take the person's picture away: both
     are in the feed. A page opened later is told them, and fetches each photograph by
-    its sighting's id."""
+    the address the feed signed for it."""
     _, entity_id = await shed(hass, monkeypatch)
     hass.states.async_set("binary_sensor.shed_person", "on")
     await hass.async_block_till_done()
@@ -566,10 +544,16 @@ async def test_each_sighting_is_kept_with_its_own_photograph_for_half_an_hour(
     assert animal["at"] == person["at"] + 30 and person["id"] != animal["id"]
     assert person["entity"] == entity_id and person["camera"] == "camera.shed_cam"
 
+    # Each photograph by the address the feed signed, which an <img> can use; never by
+    # its id alone (Frenck, reviewing hacs/default#14577, 2026-11-24).
     photos = await hass_client_no_auth()
-    served = await photos.get(log.PHOTO.format(sighting_id=person["id"]))
-    assert await served.read() == b"a photograph"
-    assert (await photos.get(log.PHOTO.format(sighting_id="guess"))).status == 404
+    assert person["photo_url"].startswith(log.PHOTO.format(sighting_id=person["id"]))
+    served = await photos.get(person["photo_url"])
+    assert served.status == 200 and await served.read() == b"a photograph"
+    bare = await photos.get(log.PHOTO.format(sighting_id=person["id"]))
+    assert bare.status == 401
+    signed_in = await hass_client()
+    assert (await signed_in.get(log.PHOTO.format(sighting_id="guess"))).status == 404
 
     # Half an hour on, the next sighting finds the old ones gone, photographs and all.
     freezer.tick(log.KEEP + 1)
@@ -586,18 +570,27 @@ async def test_the_house_settings_are_saved_in_the_dialog_and_pushed_to_the_page
 ):
     entry = await set_up(hass)
     client, held = await feed(hass, hass_ws_client, SETTINGS)
-    assert held == [{"floor_order": [], "room_order": []}]
+    # A page doesn't reload itself after an update unless the house says so.
+    assert held == [{"floor_order": [], "room_order": [], "reload_when_idle": False}]
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {"floor_order": ["ground"], "room_order": ["kitchen", "hall"]},
+        {
+            "floor_order": ["ground"],
+            "room_order": ["kitchen", "hall"],
+            "reload_when_idle": True,
+        },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
     # An open page is told at once, and one opened after a reload is told the same.
-    saved = {"floor_order": ["ground"], "room_order": ["kitchen", "hall"]}
+    saved = {
+        "floor_order": ["ground"],
+        "room_order": ["kitchen", "hall"],
+        "reload_when_idle": True,
+    }
     assert (await client.receive_json())["event"] == [saved]
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()

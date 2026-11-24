@@ -64,6 +64,8 @@ export class Family extends LitElement {
   protected _hass?: Hass;
   protected _config: Options & { type?: string } = {};
   protected _settings: Options = {}; // the house's, from the integration: a card's own come before them
+  /** The house's setting that its pages reload themselves after an update (index.ts): off until the settings say so. */
+  static reloadWhenIdle = false;
   protected _cameras: Lens[] = []; // Casa Mia's cameras, where it is installed: they come before the ones found
   protected _survey?: Survey;
   protected _forecastOf?: string; // the weather entity whose forecast is followed
@@ -240,6 +242,7 @@ export class Family extends LitElement {
     // The settings come whole each time they are saved: the latest stands, and the house is read again by it.
     this._follow(SETTINGS, "Dash-Bored's settings", (settings: Options[]) => {
       this._settings = settings.at(-1) ?? this._settings;
+      Family.reloadWhenIdle = !!this._settings.reload_when_idle;
       this._survey = undefined;
       if (this._hass) this.hass = this._hass;
     });

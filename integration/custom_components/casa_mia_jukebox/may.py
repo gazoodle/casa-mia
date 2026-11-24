@@ -42,6 +42,9 @@ PLAYLISTS = frozenset(
         "playlist_move",
         "playlist_remove",
         "playlist_add",
+        "playlist_sort",
+        "playlist_unsort",
+        "playlist_dedupe",
     }
 )
 
