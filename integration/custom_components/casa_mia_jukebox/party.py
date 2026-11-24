@@ -52,6 +52,10 @@ EVENT = f"{DOMAIN}_put_back"
 # speakers' reports of it to arrive. Sooner, a report of the old volume would be taken
 # for someone turning it back.
 SETTLE = 3.0
+# Seconds the comparison waits after a speaker's report for the reports to stop coming.
+# Replacing a queue from another app is several changes one after another; comparing
+# half-way would have Jukebox and that app both changing the queue at once.
+BURST = 1.5
 # How many changes put back a party remembers for the page.
 KEPT = 20
 # Seconds before the watch on a speaker's queue is tried again, doubling to the limit.
@@ -82,6 +86,7 @@ class Party:
         self.uri = self.about = ""
         self.queue: list[tuple[str, str]] = []
         self.song = 0
+        self.playing = False  # whether the music was playing when last compared
         self.since = dt_util.utcnow().isoformat()
         self.undone: list[dict[str, Any]] = []
         # When the watch on the queue was lost; none while it is held, or not yet made.
@@ -211,6 +216,7 @@ class Party:
         self.uri, self.about = await upnp.source(session, host)
         self.queue = await upnp.songs(session, host)
         self.song = await upnp.track(session, host)
+        self.playing = await upnp.playing(session, host)
 
     def _settle(self) -> None:
         self._quiet_until = self.hass.loop.time() + SETTLE
@@ -223,11 +229,13 @@ class Party:
 
     @callback
     def due(self) -> None:
-        """Compare the speakers with the copy soon: once for a burst of reports, and not
-        before the reports of Jukebox's own last change have had time to arrive."""
-        if self._due is None:
-            wait = max(0.0, self._quiet_until - self.hass.loop.time())
-            self._due = self.hass.loop.call_later(wait, self._compare)
+        """Compare the speakers with the copy soon: once for a burst of reports, when
+        they have stopped coming (BURST), and not before the reports of Jukebox's own
+        last change have had time to arrive."""
+        if self._due:
+            self._due.cancel()
+        wait = max(BURST, self._quiet_until - self.hass.loop.time())
+        self._due = self.hass.loop.call_later(wait, self._compare)
 
     @callback
     def _compare(self) -> None:
@@ -341,6 +349,7 @@ class Party:
         elif uri == self.uri:
             # Nothing to put back: remember where the music is, to return to it.
             self.song = await upnp.track(session, host)
+            self.playing = await upnp.playing(session, host)
 
     def _queue_change(self, have: list[tuple[str, str]]) -> str:
         want, now = (Counter(s[0] for s in songs) for songs in (self.queue, have))
@@ -385,6 +394,16 @@ class Party:
                 found = now.index(song[0], at + 1)
                 await upnp.move(session, host, found + 1, at + 1)
                 now.insert(at, now.pop(found))
+
+        # A queue replaced from another app leaves the speaker stopped at its first
+        # song (2026-11-24): back to the song it was on, playing, if it was playing.
+        # Not when the music carried on through the change (a song added to the end),
+        # which this would start again from its beginning.
+        if not self.playing or not self.uri.startswith(upnp.OWN_QUEUE):
+            return
+        carried_on = await upnp.playing(session, host)
+        if not carried_on or await upnp.track(session, host) != self.song:
+            await upnp.play_from(session, host, self.uri, self.about, self.song)
 
 
 class Parties:

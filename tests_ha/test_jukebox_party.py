@@ -4,10 +4,12 @@ and the lock can be seen to put them back."""
 
 import asyncio
 import re
+from xml.etree.ElementTree import fromstring
 from xml.sax.saxutils import unescape
 
 import pytest
 from custom_components.casa_mia_jukebox import party as party_module
+from custom_components.casa_mia_jukebox import upnp
 from custom_components.casa_mia_jukebox.page import DO, FEED, HOUSE
 from custom_components.casa_mia_jukebox.party import EVENT
 from homeassistant.helpers import entity_registry as er
@@ -36,6 +38,7 @@ class Speaker:
         self.queue = ["a", "b", "c"]
         self.uri = OWN_QUEUE
         self.song = 2
+        self.playing = True
         self.asked = []
         self.refuses = set()
         aioclient_mock.post(BROWSE, side_effect=self.answer)
@@ -66,6 +69,9 @@ class Speaker:
     def GetPositionInfo(self, said):
         return {"Track": self.song}
 
+    def GetTransportInfo(self, said):
+        return {"CurrentTransportState": "PLAYING" if self.playing else "STOPPED"}
+
     def SetAVTransportURI(self, said):
         self.uri = said["CurrentURI"]
 
@@ -73,7 +79,7 @@ class Speaker:
         self.song = int(said["Target"])
 
     def Play(self, said):
-        pass
+        self.playing = True
 
     def RemoveTrackFromQueue(self, said):
         del self.queue[int(said["ObjectID"].split("/")[1]) - 1]
@@ -127,6 +133,7 @@ async def house(hass, hass_ws_client, sent, aioclient_mock, monkeypatch):  # noq
 
     monkeypatch.setattr(party_module.speaker, "watch_queue", watch_queue)
     monkeypatch.setattr(party_module, "SETTLE", 0)
+    monkeypatch.setattr(party_module, "BURST", 0)
     hass.bus.async_listen(EVENT, lambda event: House.put_back.append(event.data))
 
     house = House()
@@ -235,6 +242,64 @@ async def test_a_guests_changes_to_the_queue_are_put_back(hass, house):
     house.watch["changed"]()
     await house.settled()
     assert house.speaker.queue == ["a", "b", "c"]
+
+
+async def test_a_queue_replaced_from_another_app_plays_on_from_where_it_was(
+    hass, house
+):
+    """Another app's "play this album now" empties the queue, fills it and leaves the
+    speaker at its first song; on a real speaker the music then stayed stopped."""
+    house.speaker.queue, house.speaker.song = ["x", "y"], 1
+    house.speaker.playing = False
+    house.speaker.asked.clear()
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b", "c"]
+    assert (house.speaker.song, house.speaker.playing) == (2, True)
+    assert house.speaker.asked[-3:] == ["SetAVTransportURI", "Seek", "Play"]
+
+    # A song added while the music carries on: taken out, and nothing started again.
+    house.speaker.queue = ["a", "b", "c", "z"]
+    house.speaker.asked.clear()
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b", "c"]
+    assert not {"Seek", "Play", "SetAVTransportURI"} & set(house.speaker.asked)
+
+    # Paused by someone before the queue was changed: put back, and left paused.
+    house.speaker.playing = False
+    await house.a_guest(KITCHEN, media_position=40)  # a report: compared, nothing to do
+    house.speaker.queue = ["x"]
+    house.speaker.asked.clear()
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b", "c"] and not house.speaker.playing
+    assert "Play" not in house.speaker.asked
+
+
+def test_a_song_is_described_to_the_speaker_as_the_speaker_writes_it():
+    """Written with made-up names for the same things, a streamed song put back lost
+    its title on a real speaker."""
+    listed = fromstring(
+        '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"'
+        ' xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"'
+        ' xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
+        '<item id="Q:0/1" parentID="Q:0" restricted="true">'
+        '<res protocolInfo="sonos.com-http:*:audio/mp4:*">x-stream:a?sid=1&amp;sn=2</res>'
+        "<dc:title>Salt &amp; Vinegar</dc:title><dc:creator>The Marigolds</dc:creator>"
+        "<upnp:class>object.item.audioItem.musicTrack</upnp:class></item></DIDL-Lite>"
+    )
+    said = upnp._described(listed[0])
+    assert "<dc:title>Salt &amp; Vinegar</dc:title>" in said
+    assert "<upnp:class>object.item.audioItem.musicTrack</upnp:class>" in said
+    assert (
+        '<res protocolInfo="sonos.com-http:*:audio/mp4:*">x-stream:a?sid=1&amp;sn=2</res>'
+        in said
+    )
+    assert "ns0" not in said and 'id="Q:0/1"' in said
+    # And it still reads as what it was.
+    again = fromstring(said)[0]
+    assert [c.tag for c in again] == [c.tag for c in listed[0]]
 
 
 async def test_a_guest_playing_something_else_is_brought_back_to_the_queue(hass, house):

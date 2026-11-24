@@ -260,11 +260,18 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   the others on the same station isn't known.
   The speaker still has the name and the logo's address (`upnp.station`, from
   GetMediaInfo), so `Feed._station` asks it once for each stream.
+- **The party lock, after its first real use** (2026-11-24, b19): it waits `BURST`
+  seconds for reports to stop before comparing (another app replaces a queue in
+  several steps); after a queue is put back it returns to `Party.song` and plays, when
+  `Party.playing` and the music didn't carry on; `upnp._described` writes a song's
+  description with the speaker's own XML names (`dc:`, `upnp:`, `r:`), because a
+  description with the standard library's made-up names lost a streamed song its title.
 - **Who may change what at a party** (`may.py`, owner 2026-11-24): decided in `feed.do`,
   never on the page, because Home Assistant doesn't limit what a login may ask for. A
   host (administrator, a login on the options' `hosts`, or no login at all) runs the
   party; a screen (a login on `screens`) may change the music only while a host has set
-  `Party.open`, which starts off at every party; any other login only looks. The page
+  `Party.open`, which starts off at every party; any other login only looks. A host
+  is also the only one who may save or delete a playlist, at any time. The page
   is told its part as `me` with each push of the house. Why: a guest could end the
   party at a wall tablet and carry on from the Sonos app.
 - **With Love it or Loathe it** (`love.py`): no code is shared. Jukebox reads the

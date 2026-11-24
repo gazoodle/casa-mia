@@ -284,7 +284,7 @@ export class Big extends LitElement {
     const none = this._queued === 0;
     return html`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
       <div class="tools">
-        <button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>
+        ${this._house?.me === "host" ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>` : nothing}
         <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)}>${icon("trash")}Clear the queue</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e: CustomEvent) => (this._queued = e.detail)}></casa-mia-jukebox-queue></div>`;
@@ -390,7 +390,7 @@ export class Big extends LitElement {
               : html`<button class="main" @click=${() => this._play(menu, "next")}>Play next</button>
                   <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
                   <button class="danger sep" @click=${() => ([this._menu, this._confirm] = [undefined, replace])}>Play now and replace the queue…</button>`}
-            ${menu.playlist ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
+            ${menu.playlist && house.me === "host" ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
           </div>
         </div>
       </div>`;

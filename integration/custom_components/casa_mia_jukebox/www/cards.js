@@ -1323,7 +1323,7 @@ var _t = class extends R {
 		let t = this._queued === 0;
 		return A`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
       <div class="tools">
-        <button class=${this._busy.on("queue_save")} ?disabled=${t} @click=${() => this._naming = !0}>${J("save")}Save as a playlist</button>
+        ${this._house?.me === "host" ? A`<button class=${this._busy.on("queue_save")} ?disabled=${t} @click=${() => this._naming = !0}>${J("save")}Save as a playlist</button>` : M}
         <button class=${this._busy.on("queue_clear")} ?disabled=${t} @click=${() => this._clear(e)}>${J("trash")}Clear the queue</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${e} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e) => this._queued = e.detail}></casa-mia-jukebox-queue></div>`;
@@ -1390,7 +1390,7 @@ var _t = class extends R {
         </form>
       </div>`;
 		if (n) {
-			let e = {
+			let r = {
 				warn: "This replaces the whole queue",
 				text: `${this._songs(t)} will go, and "${n.title}" will start now.`,
 				keep: "Keep the queue",
@@ -1404,8 +1404,8 @@ var _t = class extends R {
           <div class="acts">
             ${t.kind === "nothing" ? A`<button class="main" @click=${() => this._play(n)}>Play now</button>` : A`<button class="main" @click=${() => this._play(n, "next")}>Play next</button>
                   <button @click=${() => this._play(n, "add")}>Add to the end of the queue</button>
-                  <button class="danger sep" @click=${() => [this._menu, this._confirm] = [void 0, e]}>Play now and replace the queue…</button>`}
-            ${n.playlist ? A`<button class="danger sep" @click=${() => this._delete(n)}>Delete this playlist…</button>` : M}
+                  <button class="danger sep" @click=${() => [this._menu, this._confirm] = [void 0, r]}>Play now and replace the queue…</button>`}
+            ${n.playlist && e.me === "host" ? A`<button class="danger sep" @click=${() => this._delete(n)}>Delete this playlist…</button>` : M}
           </div>
         </div>
       </div>`;

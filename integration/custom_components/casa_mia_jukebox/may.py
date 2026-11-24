@@ -13,7 +13,9 @@ then carry on from their own phone.
   opened the screens up (`Party.open`), and never the party itself.
 - Anyone else, a guest's login among them, can only look while a party is on.
 
-With no party, everyone may do everything but start one.
+With no party, everyone may do everything but start one, and but keep or delete a
+playlist: saving the queue as a playlist and deleting one are a host's at any time
+(owner, 2026-11-24), since a deleted playlist can't be put back.
 """
 
 from __future__ import annotations
@@ -28,6 +30,8 @@ from .const import CONF_HOSTS, CONF_SCREENS, DOMAIN
 HOST, SCREEN, OTHER = "host", "screen", "other"
 # What changes a party itself, as `feed.ACTIONS` names it.
 PARTY = frozenset({"party", "party_open"})
+# What makes or deletes a Sonos playlist.
+PLAYLISTS = frozenset({"queue_save", "playlist_delete"})
 
 
 class Who(NamedTuple):
@@ -61,6 +65,8 @@ def refusal(asker: Who, action: str, party_on: bool, opened: bool) -> str | None
         return None
     if action in PARTY:
         return "Only the people who may run a party can start, change or end one"
+    if action in PLAYLISTS:
+        return "Only the people who look after the music can save or delete a playlist"
     if party_on and not (asker.role == SCREEN and opened):
         return (
             "A party is on in these rooms, so the music can't be changed from this "

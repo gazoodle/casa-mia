@@ -15,7 +15,7 @@ from __future__ import annotations
 # The standard library's reader: what it reads comes from the owner's own speaker, and
 # Home Assistant's Python has expat's guard against entity bombs. defusedxml would be
 # the first requirement of any Casa Mia component.
-from xml.etree.ElementTree import Element, ParseError, fromstring, tostring
+from xml.etree.ElementTree import Element, ParseError, fromstring
 from xml.sax.saxutils import escape, quoteattr
 
 import aiohttp
@@ -346,13 +346,46 @@ async def songs(session: aiohttp.ClientSession, host: str) -> list[tuple[str, st
     """The queue as (address, description) for each song, in order: what `insert`
     needs to put one back."""
     listed, _ = await _listed(session, host, QUEUE, "queue")
-    return [
-        (
-            item.findtext(f"{DIDL}res") or "",
-            f'<DIDL-Lite xmlns="{DIDL[1:-1]}">{tostring(item, encoding="unicode")}</DIDL-Lite>',
-        )
-        for item in listed
-    ]
+    return [(item.findtext(f"{DIDL}res") or "", _described(item)) for item in listed]
+
+
+# The names a speaker writes its descriptions with. A description written with any
+# others (the standard library's writer makes up `ns0`, `ns1`) reads the same to an XML
+# reader, but a streamed song put back with one lost its title, artist and album on a
+# real speaker (2026-11-24); a library song didn't, since the speaker looks those up.
+_NAMES = {DIDL: "", DC: "dc:", UPNP: "upnp:", SONOS: "r:"}
+
+
+def _described(item: Element) -> str:
+    """One song of a list, as the description `AddURIToQueue` takes: everything the
+    speaker said of it, written as the speaker writes it."""
+
+    def named(tag: str) -> str | None:
+        space, _, name = tag.rpartition("}")
+        prefix = _NAMES.get(space + "}")
+        return None if prefix is None else prefix + name
+
+    parts = []
+    for child in item:
+        name = named(child.tag)
+        if name is None:
+            continue  # nothing of Sonos's or UPnP's: not known how to write it
+        attributes = "".join(f" {k}={quoteattr(v)}" for k, v in child.attrib.items())
+        parts.append(f"<{name}{attributes}>{escape(child.text or '')}</{name}>")
+    attributes = "".join(f" {k}={quoteattr(v)}" for k, v in item.attrib.items())
+    return (
+        '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"'
+        ' xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"'
+        ' xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/"'
+        ' xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
+        f"<item{attributes}>{''.join(parts)}</item></DIDL-Lite>"
+    )
+
+
+async def playing(session: aiohttp.ClientSession, host: str) -> bool:
+    """Whether the speaker at `host` is playing now, or about to."""
+    told = await call(session, host, "AVTransport", "GetTransportInfo", InstanceID=0)
+    return told.get("CurrentTransportState") in ("PLAYING", "TRANSITIONING")
 
 
 async def insert(

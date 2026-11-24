@@ -23,6 +23,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from . import find, house, may, speaker, upnp
 from .announce import address, room_name
@@ -41,6 +42,9 @@ ENQUEUE = ("next", "add", "replace", "play")
 # the queue that leave the rest of it alone.
 FAVOURITE = "favorite_item_id"
 LINED_UP = ("next", "add")
+# What puts different music on: after one of these, what Love it or Loathe it did to the
+# music before, and has finished with, is no longer said on the players.
+NEW_MUSIC = frozenset({"play_media", "queue_play", "queue_clear", "stop"})
 # The folder Home Assistant puts a favourite playlist in, and Jukebox the Sonos playlists.
 PLAYLISTS = "Playlists"
 
@@ -64,6 +68,8 @@ class Feed:
         # for each stream, when a speaker is seen on it, never on a timer.
         self._stations: dict[str, tuple[str, str, str | None]] = {}
         self._asking: set[str] = set()
+        # When each room's music was last changed from Jukebox (NEW_MUSIC).
+        self._renewed: dict[str, str] = {}
         # The order the owner arranged the page's players in, kept across restarts.
         self._store: Store[dict[str, list[str]]] = Store(hass, 1, f"{DOMAIN}.order")
         self.order: list[str] = []
@@ -111,8 +117,15 @@ class Feed:
                 self._station(group, str(stream or ""))
             party = self.parties.led_by(group["id"])
             group["party"] = party.view() if party else None
-            # What Love it or Loathe it last did to this player, and why (love.py).
-            group["love"] = self.love.of(group["id"])
+            # What Love it or Loathe it last did to this player, and why (love.py),
+            # unless that is over and different music was chosen since: an advert's
+            # volume was still being explained over a playlist started after it
+            # (owner, 2026-11-24).
+            love = self.love.of(group["id"])
+            stale = love and not love.get("now")
+            if stale and str(love.get("at", "")) <= self._renewed.get(group["id"], ""):
+                love = None
+            group["love"] = love
         return model
 
     def _station(self, group: dict[str, Any], stream: str) -> None:
@@ -148,6 +161,12 @@ class Feed:
         finally:
             self._asking.discard(room)
         self._stations[room] = (stream, name, picture)
+        self._changed()
+
+    @callback
+    def renewed(self, room: str) -> None:
+        """Different music was put on in this room's group, from Jukebox."""
+        self._renewed[room] = dt_util.utcnow().isoformat()
         self._changed()
 
     @callback
@@ -518,6 +537,8 @@ async def do(
     except HomeAssistantError as err:
         _LOGGER.warning("%s: %s in %s %s failed: %s", who, action, entity, said, err)
         raise
+    if action in NEW_MUSIC:
+        feed.renewed(doing.group["id"])
     _LOGGER.info("%s: %s in %s %s", who, action, entity, said)
 
 

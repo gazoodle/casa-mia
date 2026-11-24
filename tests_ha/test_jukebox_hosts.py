@@ -101,8 +101,14 @@ async def test_a_login_named_as_a_host_runs_the_party_and_others_cant_start_one(
     assert await me(hass, hass_ws_client, hass_read_only_access_token) == "host"
     assert (await party(False))["success"] and house.party is None
 
-    # With no party, anyone may change the music, but only a host may start one.
+    # With no party, anyone may change the music, but only a host may start one, or
+    # save or delete a playlist.
     await options(hass, hosts=[])
+    for action in ("queue_save", "playlist_delete"):
+        kept = await ask(someone, DO, action=action, entity_id=KITCHEN, name="A list")
+        assert (
+            not kept["success"] and "look after the music" in kept["error"]["message"]
+        )
     assert (await ask(someone, DO, action="volume", entity_id=GARDEN, value=15))[
         "success"
     ]
@@ -139,3 +145,32 @@ async def test_what_love_it_or_loathe_it_does_is_shown_and_not_put_back(
     await house.settled()
     assert sent.pop() == ("volume_set", {"entity_id": KITCHEN, "volume_level": 0.3})
     assert "turned" in house.party.undone[0]["what"]
+
+
+async def test_what_was_done_to_the_last_music_isnt_said_over_new_music(
+    hass,
+    sent,  # noqa: F811
+    hass_ws_client,
+):
+    sensor = (
+        er.async_get(hass)
+        .async_get_or_create("sensor", "casa_mia_love_or_loathe", "an_entry_last_match")
+        .entity_id
+    )
+    over = {"did": "Volume 30% to 15% until the next track", "why": "An advert"}
+    over |= {"at": "2026-11-24T09:00:00+00:00", "now": False}
+    hass.states.async_set(sensor, "An advert", {"players": {KITCHEN: over}})
+
+    page = await hass_ws_client(hass)
+    await ask(page, HOUSE)
+    assert (await page.receive_json())["event"]["groups"][0]["love"][
+        "why"
+    ] == "An advert"
+
+    # Something else is put on from Jukebox: the old reason goes.
+    asker = await hass_ws_client(hass)
+    what = {"media_content_id": "FV:2/1", "media_content_type": "favorite_item_id"}
+    assert (await ask(asker, DO, action="play_media", entity_id=KITCHEN, **what))[
+        "success"
+    ]
+    assert (await page.receive_json())["event"]["groups"][0]["love"] is None

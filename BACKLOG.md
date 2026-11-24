@@ -105,6 +105,28 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     - The reason shows what was last done. The last few lines for one player (Love it
       or Loathe it keeps them per entry, for Casa Mia's page) aren't shown.
     - A song played too often is never skipped: each skip counts as a play.
+  - **The party lock against the Sonos app, first real use** (owner, 2026-11-24, b19).
+    "Play this album now" from the Sonos app replaced the queue. The lock put the
+    songs back, but the music stayed stopped at the first song, and the streamed songs
+    among them came back with no title, artist or album (read from the speaker afterwards;
+    they still played, and the saved playlist still had the details). Fixed in b19:
+    the music is started again where it was, and a song is described to the speaker in
+    the speaker's own XML names. **Not proven:** that the names were the cause of the
+    lost titles. It is the likeliest reading (library songs, which the speaker looks
+    up itself, were unharmed), but no streamed song has been put back by b19 on a real
+    speaker. If titles are still lost, log what `upnp.songs` read and what `insert`
+    sent before guessing again; the saved playlist's own `r:resMD` for a song is the
+    known-good description.
+  - **Playlists, asked 2026-11-24, not built:**
+    - **Change an existing playlist.** Only save and delete were asked for at first.
+      The speaker has the actions (SaveQueue over an existing one, AddURIToSavedQueue,
+      ReorderTracksInSavedQueue), none tried here. Proposed order: save the queue over
+      an existing playlist, with the large-letters warning; "add to a playlist" from
+      Search; a song-by-song editor last. For the people who may change playlists.
+    - **Keep a copy of every playlist** (owner: "snaffle a copy"), so one deleted or
+      changed in the Sonos app can be put back. A party's queue is already safe from a
+      deleted playlist (the queue is its own copy); this is for the playlist itself.
+      It rests on putting songs back with their details, so prove the b19 fix first.
   - **Mute** (b17): the party lock guards a room's volume but not its mute, so a
     guest's mute isn't put back.
   - `tests_ha/test_jukebox_page.py` is at 777 lines of the 800 allowed: split it before

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.12-b19
+
+- Fixed: at a party, a queue replaced from another app (the Sonos app's "play this
+  album now") was put back but the music stayed stopped at the first song. It now goes
+  back to the song it was on and plays, if it was playing.
+- Fixed: a streamed song that the party lock put back into a queue lost its title,
+  artist and album. A song is now described to the speaker in the speaker's own form.
+- The party lock waits a moment for another app's changes to stop arriving before it
+  compares, so it never changes a queue that the other app is still half-way through
+  changing.
+- Jukebox: saving the queue as a playlist and deleting a playlist are only for the
+  people on **Who may run a party**, now named **Who may run a party and change
+  playlists**. Administrators always may. Playing a playlist is still for everyone.
+- Jukebox no longer says what Love it or Loathe it did to the last music once other
+  music has been put on from Jukebox.
+
 ## 2026.11.12-b18
 
 - Jukebox's party lock can only be turned on and off by the people you choose: a new

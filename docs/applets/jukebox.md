@@ -35,8 +35,9 @@ Mia.
      box for none.
    - **Quiet hours:** an entity that is on while announcements should be kept back. A
      schedule helper suits it; a toggle or a binary sensor works too.
-   - **Who may run a party** and **Screens that may be opened up at a party:** see
-     [The party lock](#the-party-lock).
+   - **Who may run a party and change playlists** and **Screens that may be opened up
+     at a party:** see [The party lock](#the-party-lock). The first list is also who
+     may save the queue as a playlist or delete a playlist, party or no party.
 
 Each room you choose gets a number, **announcement volume**, on Jukebox's device page.
 It starts at 25%. It is separate from the volume of the room's music: a clip carries its
@@ -70,7 +71,8 @@ Tap a player to open it over the whole screen. There you have:
   play it, drag one by the handle on its left to move it, or press the cross to take
   it out. The first 500 songs are shown. Above the songs, **Save as a playlist** keeps
   the queue as a new Sonos playlist under a name you give it, and **Clear the queue**
-  empties it, after asking again.
+  empties it, after asking again. **Save as a playlist** is shown only to the people
+  who may change playlists (see [Setting it up](#setting-it-up)).
 - **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
   room in the group has its own volume and its own mute. A room that is playing something else is
   brought over to this music.
@@ -78,7 +80,8 @@ Tap a player to open it over the whole screen. There you have:
   station plays at once and leaves the queue as it is. For a playlist or a song you
   choose **Play next**, **Add to the end of the queue**, or **Play now and replace
   the queue**, which asks again before the queue is lost. A Sonos playlist also has
-  **Delete this playlist**, which removes it from Sonos for good and asks first.
+  **Delete this playlist**, which removes it from Sonos for good and asks first. It
+  is shown only to the people who may change playlists.
 
 - **Search:** one box searches the Sonos music library and Spotify together, and shows
   what each found under its own heading. Press **+** beside a result to play it, play
@@ -107,8 +110,8 @@ way to stop them. The party lock doesn't stop them either: it puts back what the
 change.
 
 Press **Party** at the top of the big player. Only the people who may run a party see
-the button: administrators, and the logins you choose under **Who may run a party** in
-Jukebox's Configure dialog. While it is on for those rooms:
+the button: administrators, and the logins you choose under **Who may run a party and
+change playlists** in Jukebox's Configure dialog. While it is on for those rooms:
 
 - **The queue** is kept as you made it. A song a guest adds is taken out, one they take
   out is put back in its place, and songs they move go back to their order.
@@ -119,8 +122,9 @@ Jukebox's Configure dialog. While it is on for those rooms:
 - **The volume** of each room is kept, including a change made with the buttons on a
   speaker.
 
-A change is put back about three seconds after it is made, and each one is listed with
-its time when you press **Party on**. End the party from the same place.
+A change is put back a few seconds after it is made, once the other app has finished
+making it, and each one is listed with its time when you press **Party on**. If the
+change stopped the music, it is started again at the song it was on. End the party from the same place.
 
 ### Who can change the music during a party
 
@@ -184,8 +188,9 @@ Jukebox works with it. The two share no settings; there is nothing to set up.
 - **Why a player was changed.** When Love it or Loathe it mutes a song, changes its
   volume, switches station or skips it, the big player says what it did and why, under
   the title: "Muted until the next track. Last Christmas by Wham! is in Christmas
-  (loathe)". It stays while that is in force and for ten minutes after. A small player
-  says what was done for as long as it is in force.
+  (loathe)". It stays while that is in force and for ten minutes after, or until you
+  put other music on from Jukebox. A small player says what was done for as long as it
+  is in force.
 - **At a party**, what Love it or Loathe it does is not taken for a guest's change. The
   volume and the station are left alone until it has put them back.
 
