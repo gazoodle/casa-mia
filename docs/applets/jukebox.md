@@ -47,7 +47,8 @@ who is signed in. There is nothing to configure: the page shows every speaker of
 Sonos integration.
 
 - **A player for each thing playing**, with its picture, the rooms it is playing in,
-  pause, skip and one volume for all of those rooms. Where there is no next song to skip
+  pause, skip and one volume for all of those rooms. The speaker beside the volume
+  mutes all of those rooms, and is crossed out while they are muted. Where there is no next song to skip
   to (a station, or music that is paused) the second button is Stop. To change their order, rest a
   finger on a player until it lifts, then drag it to its new place. The order is kept
   for every screen in the house.
@@ -66,7 +67,7 @@ Tap a player to open it over the whole screen. There you have:
   the queue as a new Sonos playlist under a name you give it, and **Clear the queue**
   empties it, after asking again.
 - **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
-  room in the group has its own volume. A room that is playing something else is
+  room in the group has its own volume and its own mute. A room that is playing something else is
   brought over to this music.
 - **Favourites:** the stations, playlists and songs saved as favourites in Sonos. A
   station plays at once and leaves the queue as it is. For a playlist or a song you

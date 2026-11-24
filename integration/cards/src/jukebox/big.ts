@@ -7,7 +7,7 @@
 // a sheet over the player; a wall tablet gets them beside it.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
-import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, mmss, names, playing, position, reason } from "./common.ts";
+import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, mmss, muted, names, playing, position, reason } from "./common.ts";
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -172,6 +172,7 @@ export class Big extends LitElement {
     const { title, by } = playing(group);
     const at = position(group, Date.now());
     const on = group.state === "playing";
+    const hush = muted(house, group);
     const queue = group.kind === "queue";
     return html`<div class="now">
       <div class="bar">
@@ -203,8 +204,8 @@ export class Big extends LitElement {
             </button>`
           : nothing}
       </div>
-      <div class="gvol">
-        ${icon("volume")}
+      <div class="gvol ${hush ? "hush" : ""}">
+        <button class="ib ${this._busy.on("group_mute")}" @click=${() => this._do("group_mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
         <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${this._slide("group_volume", group.id)} @jb-set=${this._slide("group_volume", group.id)}></casa-mia-jukebox-slider>
         <button class="ib ${this._busy.on("stop")}" @click=${() => this._stop(house, group)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>
       </div>
@@ -287,11 +288,12 @@ export class Big extends LitElement {
       const inn = group.rooms.includes(id);
       const other = groupOf(house, id);
       const note = !room.available ? "Not answering" : inn ? "Playing this" : other && !other.quiet ? `Playing ${playing(other).title}: tap to bring it here` : "Quiet: tap to add it";
-      return html`<div class="room ${inn ? "in" : ""}">
+      const mute = `mute:${id}`;
+      return html`<div class="room ${inn ? "in" : ""} ${room.muted ? "hush" : ""}">
         <button class="tick ${this._busy.on(`room:${id}`)}" ?disabled=${!room.available} @click=${() => this._toggleRoom(group, id)} aria-label=${inn ? `Take ${room.name} out` : `Add ${room.name}`}>${icon(inn ? "check" : "plus")}</button>
         <button class="t" ?disabled=${!room.available} @click=${() => this._toggleRoom(group, id)}><b>${room.name}</b><small>${note}</small></button>
         ${inn && room.volume !== null
-          ? html`<casa-mia-jukebox-slider .value=${room.volume} label="${room.name} volume" @jb-slide=${this._slide("volume", id)} @jb-set=${this._slide("volume", id)}></casa-mia-jukebox-slider><output>${room.volume}</output>`
+          ? html`<button class="ib mute ${this._busy.on(mute)}" @click=${() => this._busy.during(mute, ask(this.hass, "mute", id, { on: !room.muted })).catch((err) => this._say(reason(err)))} aria-label=${room.muted ? `Unmute ${room.name}` : `Mute ${room.name}`} aria-pressed=${room.muted}>${icon(room.muted ? "muted" : "volume")}</button><casa-mia-jukebox-slider .value=${room.volume} label="${room.name} volume" @jb-slide=${this._slide("volume", id)} @jb-set=${this._slide("volume", id)}></casa-mia-jukebox-slider><output>${room.volume}</output>`
           : nothing}
       </div>`;
     };
@@ -446,6 +448,9 @@ export class Big extends LitElement {
       .tp .play svg { width: 36px; height: 36px; }
       .gvol { display: flex; align-items: center; gap: 12px; color: var(--muted); }
       .gvol svg { width: 20px; height: 20px; flex: none; }
+      .gvol .ib:first-child { margin: 0 -11px; }
+      .room .mute { justify-self: center; color: var(--muted); }
+      .room .mute svg { width: 20px; height: 20px; }
       .gvol casa-mia-jukebox-slider, .seek casa-mia-jukebox-slider { color: #fff; }
       .tabs { display: flex; gap: 6px; }
       .tabs button { flex: 1; display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; font-size: 11px; font-weight: 700; color: var(--muted); }

@@ -7,7 +7,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
 import { open } from "./big.ts";
-import { type Group, type House, ask, average, colours, latest, names, playing, position, reason } from "./common.ts";
+import { type Group, type House, ask, average, colours, latest, muted, names, playing, position, reason } from "./common.ts";
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const MINI = "casa-mia-jukebox-mini";
@@ -50,8 +50,8 @@ export class Mini extends LitElement {
     if (asking) this._unasked = setTimeout(() => (this._stopping = false), 8000);
   }
 
-  private _ask(action: string, key = action) {
-    this._busy.during(key, ask(this.hass!, action, this.group!.id)).catch((err) => this._failed(err));
+  private _ask(action: string, key = action, data: object = {}) {
+    this._busy.during(key, ask(this.hass!, action, this.group!.id, data)).catch((err) => this._failed(err));
   }
 
   render() {
@@ -60,6 +60,7 @@ export class Mini extends LitElement {
     const { title, by } = playing(group);
     const at = position(group, Date.now());
     const on = group.state === "playing";
+    const hush = muted(house, group);
     const show = () => open(hass, group.id);
     if (this._stopping)
       return html`<div class="mini" style="--a:${colours(title)[0]}">
@@ -83,8 +84,8 @@ export class Mini extends LitElement {
           ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>`
           : html`<button class="ib ${this._busy.on("stop")}" @click=${() => this._sure(true)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>`}
       </span>
-      <div class="vol">
-        ${icon("volume")}
+      <div class="vol ${hush ? "hush" : ""}">
+        <button class=${this._busy.on("mute")} @click=${() => this._ask("group_mute", "mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
         <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._volume(e.detail.value)} @jb-set=${(e: CustomEvent) => this._volume(e.detail.value)}></casa-mia-jukebox-slider>
       </div>
       ${at !== null && group.duration ? html`<i class="prog" style="width:${(100 * at) / group.duration}%"></i>` : nothing}
@@ -111,6 +112,8 @@ export class Mini extends LitElement {
       .meta > b, .meta > span, .meta > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .vol { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--secondary-text-color); --jb-fill: #c4552d; }
       .vol svg { width: 18px; height: 18px; flex: none; }
+      /* A finger's worth to press, taking no more of the line than the picture did. */
+      .vol button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; margin: -8px; border-radius: 50%; }
       .prog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--a); }
     `,
   ];

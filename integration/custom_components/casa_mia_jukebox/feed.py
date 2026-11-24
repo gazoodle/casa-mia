@@ -339,6 +339,10 @@ class _Doing:
     async def mute(self) -> None:
         await self._call("volume_mute", self.entity, is_volume_muted=self._value("on"))
 
+    async def group_mute(self) -> None:
+        for room in self.group["rooms"]:
+            await self._call("volume_mute", room, is_volume_muted=self._value("on"))
+
     async def group_volume(self) -> None:
         # ponytail: each room is set by itself. The speakers have a group volume of
         # their own (measured 2026-11-23) to use if this is heard to step.
@@ -419,6 +423,7 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "playlist_delete": _Doing.playlist_delete,
     "volume": _Doing.volume,
     "mute": _Doing.mute,
+    "group_mute": _Doing.group_mute,
     "group_volume": _Doing.group_volume,
     "join": _Doing.join,
     "leave": _Doing.leave,

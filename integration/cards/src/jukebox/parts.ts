@@ -26,6 +26,7 @@ const PATHS = {
   down: "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z",
   close: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
   volume: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z",
+  muted: "M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z",
   check: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
   plus: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
   menu: "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z",
@@ -266,6 +267,7 @@ export const shared = css`
   button:disabled { opacity: 0.4; cursor: default; }
   svg { display: block; width: 24px; height: 24px; fill: currentColor; }
   .ib { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%; }
+  .hush casa-mia-jukebox-slider { opacity: 0.4; }
   .ib:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
   .busy { position: relative; }
   /* Just outside the button, so it shows round one that is itself white, and with a glow. */

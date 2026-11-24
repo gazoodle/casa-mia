@@ -55,6 +55,36 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     make its text, buttons, pictures and rows multiples of that scale, then Casa Mia's
     other cards where it matters. Not yet tried on a tablet; the owner is to try the
     theme setting first.
+  - **Listening on a phone's or tablet's own earbuds** (asked 2026-11-24, and put off
+    the same day as too much for now). Wanted: the same Jukebox, with playlists,
+    Spotify, the library and radio, heard on the device in the listener's hand, with
+    nothing to think about. Decided by the owner: no Music Assistant, and no Sonos Port
+    bought to capture from. Found (from documentation and forums, none of it measured
+    here):
+    - No Sonos speaker sends sound to Bluetooth headphones, and only the Port has an
+      output to capture.
+    - Home Assistant's Spotify integration is a remote control and carries no sound.
+      It can start music in the Spotify app on a phone (Spotify Connect), which covers
+      Spotify only, needs the listener's own Premium account and the app awake, and
+      shows changes made elsewhere up to 30 s late (it polls).
+    - Home Assistant's companion app has no player of its own. A page playing sound
+      inside it is reported to stop when the screen locks; in Safari one stream is
+      reported to carry on, but a locked page can't start the next song, so the server
+      must send one continuous stream.
+    - Spotify's in-browser player is unreliable on iOS, so Spotify's sound would need
+      librespot (reverse-engineered, needs Premium, breaks when Spotify changes).
+    What is left is a player in the Casa Mia app that sends each listener one
+    continuous stream, driven by Jukebox as one more room. **The house's own radio
+    station** (the `radio` module) already plays local media out through Icecast, so a
+    revision of it could be that player for the library and radio (owner's idea,
+    2026-11-24): Jukebox hands it a queue, and it gives that listener a stream of their
+    own. Spotify would still be the missing part. Before anything is built, measure
+    the last step with no code: a long stream on a phone, in Safari and in the
+    companion app, on earbuds, screen locked, for twenty minutes.
+  - **Mute** (b17): the party lock guards a room's volume but not its mute, so a
+    guest's mute isn't put back.
+  - `tests_ha/test_jukebox_page.py` is at 777 lines of the 800 allowed: split it before
+    adding to it.
   - The party lock and its entities were built in b14, from the mock-up. Left: it has
     not met real speakers (a guest's change from the Sonos app, another app's stream);
     a party isn't kept across a restart of Home Assistant; the leading room can't be

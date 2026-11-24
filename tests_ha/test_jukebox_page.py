@@ -29,7 +29,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from test_jukebox import GARDEN, KITCHEN, a_player
 
 PORCH = "media_player.porch"
-SERVICES = ("media_play", "volume_set", "join", "unjoin", "play_media")
+SERVICES = ("media_play", "volume_set", "volume_mute", "join", "unjoin", "play_media")
 
 
 @pytest.fixture
@@ -144,6 +144,16 @@ async def test_what_the_page_asks_goes_to_the_right_speakers(
     assert sent == [
         ("volume_set", {"entity_id": KITCHEN, "volume_level": 0.5}),
         ("volume_set", {"entity_id": GARDEN, "volume_level": 0.3}),
+    ]
+    sent.clear()
+
+    # Mute, for one room and for every room of the group.
+    await ask(client, DO, action="mute", entity_id=GARDEN, on=True)
+    assert sent.pop() == ("volume_mute", {"entity_id": GARDEN, "is_volume_muted": True})
+    await ask(client, DO, action="group_mute", entity_id=GARDEN, on=False)
+    assert sent == [
+        ("volume_mute", {"entity_id": room, "is_volume_muted": False})
+        for room in (KITCHEN, GARDEN)
     ]
     sent.clear()
 

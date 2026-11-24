@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.12-b17
+
+- Jukebox's players can mute. The speaker picture beside a volume slider is now a
+  button: on a small player and on the big player it mutes or unmutes every room that
+  player is playing in, and on the Rooms tab each room has one of its own. A muted
+  room shows a crossed-out speaker and a dimmed slider, including when it was muted
+  from somewhere else, such as the Sonos app or a Home Assistant dashboard.
+
 ## 2026.11.12-b16
 
 - Jukebox's Players card shows as many players across as its width allows: one on a

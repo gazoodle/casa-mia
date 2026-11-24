@@ -114,6 +114,9 @@ export function average(house: House, group: Group): number {
   return known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : 0;
 }
 
+/** Whether a group is muted: every one of its rooms is. */
+export const muted = (house: House, group: Group): boolean => group.rooms.length > 0 && group.rooms.every((r) => house.rooms[r]?.muted);
+
 /** The two lines a player shows for what a group is playing. */
 export function playing(group: Group): { title: string; by: string } {
   const named = { tv: "Television", line_in: "Line-in", nothing: "Nothing playing" } as Record<string, string>;
