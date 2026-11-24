@@ -565,12 +565,36 @@ export function gapLines(gaps: readonly Gap[], lineOf: (g: Gap) => GapLine | und
     if (!l) return [];
     const [x, y, w, h] = rectOf(g);
     const [knock, s0, s1] = [Number(l.knock) || 0, Number(l.extend_start) || 0, Number(l.extend_end) || 0];
-    const color = Array.isArray(l.color) ? `rgb(${l.color.join(", ")})` : (l.color ?? "#000");
+    const color = Array.isArray(l.color) ? `rgb(${l.color.map(Number).join(", ")})` : String(l.color ?? "#000");
     const base = { id: g.id, color, width: l.width === undefined ? 1 : Math.max(0, Number(l.width) || 0), style: l.style ?? "solid" };
     return g.across
       ? [{ ...base, x1: x - s0, y1: y + h / 2 + knock, x2: x + w + s1, y2: y + h / 2 + knock }]
       : [{ ...base, x1: x + w / 2 + knock, y1: y - s0, x2: x + w / 2 + knock, y2: y + h + s1 }];
   });
+}
+
+/** The SVG `<line>`s that draw these, as each one's attributes. They are for setAttribute,
+ * never for markup: the colour is the view's config as typed (any CSS colour), and in markup
+ * a quote in it would end the attribute and run script for everyone who opens the dashboard
+ * (Frenck, reviewing hacs/default#14586, 2026-11-24). */
+export function lineAttrs(drawn: readonly Drawn[]): Record<string, string>[] {
+  const out = (o: Record<string, string | number>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, String(v)]));
+  return drawn.flatMap((l) => {
+    const w = l.width;
+    const dash: Record<string, string> = l.style === "dashed" ? { "stroke-dasharray": `${3 * w} ${2 * w}` } : l.style === "dotted" ? { "stroke-dasharray": `0 ${2 * w}`, "stroke-linecap": "round" } : {};
+    if (l.style !== "double") return [out({ x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, stroke: l.color, "stroke-width": w, ...dash })];
+    // Two thin lines, a third of its width each, a third apart.
+    const t = Math.max(1, w / 3);
+    const [dx, dy] = l.y1 === l.y2 ? [0, t] : [t, 0];
+    return [-1, 1].map((k) => out({ x1: l.x1 + k * dx, y1: l.y1 + k * dy, x2: l.x2 + k * dx, y2: l.y2 + k * dy, stroke: l.color, "stroke-width": t }));
+  });
+}
+
+/** An edge's size as its dimension label says it (`c` its options): auto, a percentage, or
+ * nothing when it is in px. A number whatever the config holds: the label is markup. */
+export function edgeSize(c: { size?: unknown; unit?: unknown }, p: Panel): string {
+  if (c.size === "auto") return "auto";
+  return c.unit === "px" ? "" : `${Number(c.size ?? LAYOUT.panels[p].size) || 0}%`;
 }
 
 /** What a view saw out of edit mode: the panels' area, the space above its header then

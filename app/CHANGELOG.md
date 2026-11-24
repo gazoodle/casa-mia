@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.12-b23
+
+- Tablet Layout: a gap line's `color` from a dashboard's YAML could close its attribute
+  and run script for everyone who opened that dashboard. The lines are now built
+  element by element, so any CSS colour still works but can't become markup, and the
+  members of an `[r, g, b]` colour are made numbers. An edge's `size` in the edit mode's
+  dimension labels is now always a number too. Found by Frenck reviewing Tablet
+  Layout's Marketplace submission.
+- Jukebox's cards in the card picker link to Jukebox's own repository, as its manifest
+  says since b22.
+
 ## 2026.11.12-b22
 
 - Jukebox has an editor for a wide screen, opened with **Edit side by side** on the

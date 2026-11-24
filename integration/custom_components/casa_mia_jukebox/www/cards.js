@@ -303,7 +303,7 @@ function u(e, t, n) {
 		name: t,
 		description: n,
 		preview: !0,
-		documentationURL: "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/jukebox.md"
+		documentationURL: "https://github.com/gazoodle/casa-mia-jukebox"
 	});
 }
 var d = o.main, ee = o.panel;
