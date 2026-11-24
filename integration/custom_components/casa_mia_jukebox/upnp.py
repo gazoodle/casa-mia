@@ -241,6 +241,23 @@ async def clear(session: aiohttp.ClientSession, host: str) -> None:
     await call(session, host, "AVTransport", "RemoveAllTracksFromQueue", InstanceID=0)
 
 
+async def rest(session: aiohttp.ClientSession, host: str, player: str) -> None:
+    """Leave the speaker at `host` playing nothing and with nothing to play: it is set
+    to play from its own queue, which stops a station or another app's stream
+    (measured 2026-11-23), and the queue is emptied. `player` is the speaker's own id
+    (`RINCON_…`), which names its queue."""
+    await call(
+        session,
+        host,
+        "AVTransport",
+        "SetAVTransportURI",
+        InstanceID=0,
+        CurrentURI=f"{OWN_QUEUE}{player}#0",
+        CurrentURIMetaData="",
+    )
+    await clear(session, host)
+
+
 async def save(session: aiohttp.ClientSession, host: str, name: str) -> str:
     """Save the queue as a new Sonos playlist called `name`, and give its id (`SQ:3`).
     A playlist that already has the name is left as it is: Sonos allows two."""

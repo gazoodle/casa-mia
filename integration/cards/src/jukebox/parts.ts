@@ -9,6 +9,7 @@ import { colours, initials } from "./common.ts";
 const PATHS = {
   play: "M8 5v14l11-7z",
   pause: "M6 5h4v14H6zM14 5h4v14h-4z",
+  stop: "M6 6h12v12H6z",
   next: "M6 6l8.5 6L6 18zM16 6h2v12h-2z",
   previous: "M18 6l-8.5 6L18 18zM6 6h2v12H6z",
   shuffle: "M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z",
@@ -99,9 +100,19 @@ export class Busy {
 
 export const SLIDER = "casa-mia-jukebox-slider";
 
+/** The dot's width (px), and how far either side of its middle a finger may land and still
+ * take it. Above and below, the whole height of the slider takes it. */
+const DOT = 16;
+const REACH = 22;
+
 /** A slider for a volume or a place in a song. While it is dragged, and for a moment
  * after, it shows the finger's value and not the house's, which would pull it back. It
- * says `jb-slide` as it moves and `jb-set` when it is let go, each with {value}. */
+ * says `jb-slide` as it moves and `jb-set` when it is let go, each with {value}.
+ *
+ * The dot is taken by a finger that lands near it (owner, 2026-11-23: on a phone only the
+ * dot itself could be taken, which was hit and miss) and then follows the finger. A touch
+ * anywhere else on the line does nothing: a stray tap must not send a volume to full. The
+ * browser's own slider is underneath, for the keyboard and for screen readers. */
 export class Slider extends LitElement {
   static properties = { value: { type: Number }, max: { type: Number }, label: {}, _held: { state: true } };
   value = 0;
@@ -109,19 +120,61 @@ export class Slider extends LitElement {
   label = "";
   _held?: number;
   private _settle?: ReturnType<typeof setTimeout>;
+  /** A drag: where the finger began, the value then, how far the dot can travel (px), and
+   * whether it has moved at all. */
+  private _drag?: { x: number; from: number; travel: number; moved: boolean };
+
+  constructor() {
+    super();
+    this.addEventListener("pointerdown", this._down);
+    this.addEventListener("pointermove", this._dragged);
+    this.addEventListener("pointerup", this._let);
+    this.addEventListener("pointercancel", this._let);
+  }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     clearTimeout(this._settle);
   }
 
-  private _move(e: Event, set: boolean) {
-    const value = Number((e.target as HTMLInputElement).value);
+  private _send(value: number, set: boolean) {
     this._held = value;
     clearTimeout(this._settle);
     fire(this, set ? "jb-set" : "jb-slide", { value });
     // Let go: the house's own value is shown again once it has had time to catch up.
     if (set) this._settle = setTimeout(() => (this._held = undefined), 1500);
+  }
+
+  private _down = (e: PointerEvent) => {
+    if (e.button) return;
+    const box = this.getBoundingClientRect();
+    const value = this._held ?? this.value;
+    const travel = box.width - DOT;
+    const dot = box.left + DOT / 2 + (this.max ? value / this.max : 0) * travel;
+    if (Math.abs(e.clientX - dot) > REACH) return;
+    this.setPointerCapture(e.pointerId);
+    this._drag = { x: e.clientX, from: value, travel, moved: false };
+  };
+
+  private _dragged = (e: PointerEvent) => {
+    const drag = this._drag;
+    if (!drag || drag.travel <= 0) return;
+    const value = Math.round(Math.max(0, Math.min(this.max, drag.from + ((e.clientX - drag.x) / drag.travel) * this.max)));
+    if (value === (this._held ?? this.value)) return;
+    drag.moved = true;
+    this._send(value, false);
+  };
+
+  private _let = () => {
+    const drag = this._drag;
+    this._drag = undefined;
+    // A touch that didn't move the dot sets nothing.
+    if (drag?.moved) this._send(this._held ?? this.value, true);
+  };
+
+  /** From the keyboard, through the browser's own slider. */
+  private _keyed(e: Event, set: boolean) {
+    this._send(Number((e.target as HTMLInputElement).value), set);
   }
 
   render() {
@@ -133,14 +186,17 @@ export class Slider extends LitElement {
       .value=${String(value)}
       style="--fill:${this.max ? (100 * value) / this.max : 0}%"
       aria-label=${this.label}
-      @input=${(e: Event) => this._move(e, false)}
-      @change=${(e: Event) => this._move(e, true)}
+      @input=${(e: Event) => this._keyed(e, false)}
+      @change=${(e: Event) => this._keyed(e, true)}
     />`;
   }
 
   static styles = css`
-    :host { display: block; flex: 1; min-width: 0; }
-    input { display: block; width: 100%; height: 22px; margin: 0; background: none; cursor: pointer; appearance: none; -webkit-appearance: none; }
+    /* Half as tall again as the line and its dot need, so a finger a little above or below
+       still takes the dot. The margins give the height back, so what is around the slider
+       stays where it was. A finger moving up or down still scrolls the page. */
+    :host { display: block; flex: 1; min-width: 0; height: 33px; margin: -5.5px 0; padding: 5.5px 0; box-sizing: border-box; cursor: pointer; touch-action: pan-y; }
+    input { display: block; width: 100%; height: 22px; margin: 0; background: none; appearance: none; -webkit-appearance: none; pointer-events: none; }
     input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--jb-fill, currentColor) var(--fill), var(--jb-track, rgb(128 128 128 / 35%)) var(--fill)); }
     input::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--jb-fill, currentColor) var(--fill), var(--jb-track, rgb(128 128 128 / 35%)) var(--fill)); }
     input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border: 0; border-radius: 50%; background: var(--jb-fill, currentColor); box-shadow: 0 1px 4px rgb(0 0 0 / 40%); }

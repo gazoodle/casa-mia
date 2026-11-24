@@ -2,8 +2,9 @@
 // to move it, or take it out. Everything is asked of Jukebox, and after each change the
 // speaker is asked what the queue now is, so what is shown is the speaker's and not a guess.
 // The queue is asked for again when the house's music says its size or the song has
-// changed, never on a timer.
+// changed, and when the player has done something to it, never on a timer.
 import { LitElement, css, html, nothing } from "lit";
+import { fire } from "../ha.ts";
 import { type Group, type Song, mmss, queue, reason } from "./common.ts";
 import { Busy, icon, shared } from "./parts.ts";
 
@@ -12,12 +13,14 @@ export const QUEUE = "casa-mia-jukebox-queue";
 const ROW = 56;
 
 export class Queue extends LitElement {
-  static properties = { group: { attribute: false }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
+  static properties = { group: { attribute: false }, stamp: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
   hass!: { connection?: any; [key: string]: any };
   group?: Group;
   /** Ask Jukebox for something; true when it was done. The big player's own, so that a
    * refusal is said on the player. */
   do!: (action: string, data: object) => Promise<boolean>;
+  /** Changed by the player when something was done that may have changed the queue. */
+  stamp = 0;
   _songs?: Song[];
   _total = 0;
   _why?: string;
@@ -30,6 +33,7 @@ export class Queue extends LitElement {
     const was = changed.get("group") as Group | undefined;
     const now = this.group;
     if (changed.has("group") && now && (!was || was.id !== now.id || was.queue_size !== now.queue_size || was.queue_position !== now.queue_position || was.kind !== now.kind)) this._fetch();
+    else if (changed.has("stamp") && now) this._fetch();
   }
 
   private _fetch() {
@@ -40,6 +44,7 @@ export class Queue extends LitElement {
         // (the queue is asked for again when it ends).
         if (asked !== this._asked || this._drag) return;
         [this._songs, this._total, this._why] = [found.songs, found.total, undefined];
+        fire(this, "jb-queued", found.total); // the player's count of the queue is the speaker's
       },
       (err) => asked === this._asked && (this._why = reason(err)),
     );

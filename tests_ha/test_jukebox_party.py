@@ -262,3 +262,47 @@ async def test_what_cant_be_put_back_is_said(hass, house, caplog):
     assert "error" in last["what"] and "couldn't be put back" in caplog.text
     # It isn't counted as put back.
     assert entity(hass, "sensor", "_put_back").state == "0"
+
+
+async def test_the_play_action_goes_through_jukebox(hass, house, sent, caplog):  # noqa: F811
+    """A dashboard button or an automation plays a favourite by name through Jukebox,
+    so that it is logged and, with a party on, isn't put back as a guest's change."""
+    from homeassistant.core import SupportsResponse
+    from homeassistant.exceptions import HomeAssistantError
+
+    async def browse(call):
+        top = call.data["media_content_id"] == ""
+        folder = {"title": "Radio", "media_content_type": "favorites_folder"}
+        station = {"title": "Harbour FM", "media_class": "genre", "can_play": True}
+        ids = {"media_content_id": "FV:2/6", "media_content_type": "favorite_item_id"}
+        child = {**folder, "media_content_id": "radio"} if top else {**station, **ids}
+        return {KITCHEN: {"children": [child]}}
+
+    hass.services.async_register(
+        "media_player", "browse_media", browse, supports_response=SupportsResponse.ONLY
+    )
+    caplog.set_level("INFO")
+
+    play = {"rooms": [KITCHEN, PORCH], "favourite": " harbour fm "}
+    await hass.services.async_call("casa_mia_jukebox", "play", play, blocking=True)
+    assert sent == [
+        ("join", {"entity_id": KITCHEN, "group_members": [PORCH]}),
+        (
+            "play_media",
+            {
+                "entity_id": KITCHEN,
+                "media_content_id": "FV:2/6",
+                "media_content_type": "favorite_item_id",
+            },
+        ),
+    ]
+    assert "An automation: play_media in media_player.kitchen" in caplog.text
+    # The party took both as Jukebox's own: the porch is one of its rooms now.
+    await house.settled()
+    assert PORCH in house.party.rooms and not house.party.undone
+
+    with pytest.raises(HomeAssistantError, match="no favourite or playlist called"):
+        unknown = {"rooms": [KITCHEN], "favourite": "Nothing of the kind"}
+        await hass.services.async_call(
+            "casa_mia_jukebox", "play", unknown, blocking=True
+        )

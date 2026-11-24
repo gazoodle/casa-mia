@@ -1,5 +1,7 @@
 // The mini player: one thing that is playing, with its picture, its rooms, pause, skip and
-// one volume for all of its rooms. A tap on it opens the big player (big.ts). The page
+// one volume for all of its rooms. Where there is no next song to skip to (a station, or
+// music that is paused) the second button is Stop, which the big player asks about before
+// it clears the player. A tap on it opens the big player (big.ts). The page
 // shows one for each thing playing, and the card is one by itself.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
@@ -49,7 +51,9 @@ export class Mini extends LitElement {
       </button>
       <span class="tp">
         <button class="ib ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play", "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
-        ${group.kind === "queue" ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>` : nothing}
+        ${on && group.kind === "queue"
+          ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>`
+          : html`<button class="ib" @click=${() => open(hass, group.id, undefined, "stop")} aria-label="Stop the music here and clear the player">${icon("stop")}</button>`}
       </span>
       <div class="vol">
         ${icon("volume")}
@@ -62,7 +66,8 @@ export class Mini extends LitElement {
   static styles = [
     shared,
     css`
-      :host { display: block; }
+      /* Its own font, so it looks the same on Jukebox's page and in any dashboard. */
+      :host { display: block; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       .mini { position: relative; overflow: hidden; display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px; border-radius: 18px; border: 1px solid var(--divider-color, #8884);
         color: var(--primary-text-color); background: linear-gradient(100deg, color-mix(in srgb, var(--a) 26%, var(--card-background-color, #fff)), var(--card-background-color, #fff) 75%); }
       .meta { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }

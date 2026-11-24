@@ -47,7 +47,8 @@ who is signed in. There is nothing to configure: the page shows every speaker of
 Sonos integration.
 
 - **A player for each thing playing**, with its picture, the rooms it is playing in,
-  pause, skip and one volume for all of those rooms. To change their order, rest a
+  pause, skip and one volume for all of those rooms. Where there is no next song to skip
+  to (a station, or music that is paused) the second button is Stop. To change their order, rest a
   finger on a player until it lifts, then drag it to its new place. The order is kept
   for every screen in the house.
 - **Quiet rooms** are listed below. Tap one to choose a favourite to play there.
@@ -56,6 +57,9 @@ Sonos integration.
 Tap a player to open it over the whole screen. There you have:
 
 - **Play, pause, skip, shuffle and repeat**, and a slider to move within a song.
+- **Stop**, the square beside the volume. It ends the music there, empties the queue and
+  puts the rooms back with the quiet ones, after asking. Pause keeps the player and
+  what it was playing; Stop clears it.
 - **Queue:** the songs lined up, with the one that is playing marked. Tap a song to
   play it, drag one by the handle on its left to move it, or press the cross to take
   it out. The first 500 songs are shown. Above the songs, **Save as a playlist** keeps
@@ -137,12 +141,48 @@ Limits:
 - While a radio station is playing, a speaker doesn't report changes to its queue, so
   those are put back when the next thing happens that it does report.
 
-## The card
+## The cards
 
-**Casa Mia Jukebox**, in the card picker, is the small player by itself, for a
-dashboard you already have. Choose a room and it always shows that room's music. With
-no room chosen it shows a player for each thing playing in the house. A tap on it
-opens the same big player.
+Jukebox's page is made of pieces, and each piece is also a card. If you want a page of
+your own, with your own buttons or other cards beside the music, make a dashboard view
+and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox".
+
+| Card | What it shows | Options |
+|---|---|---|
+| **Players** | A small player for each thing playing, in the order you dragged them into on Jukebox's page. | A room, to show only that room's music. |
+| **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | None. |
+| **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
+| **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |
+
+A tap on a small player or a quiet room opens the big player over the screen, as on
+Jukebox's page. The Now playing card needs room: give it at least half the width of a
+tablet and most of its height.
+
+Which cards a tablet or a person sees is Home Assistant's to decide: each card has a
+Visibility tab in the dashboard editor. If your own view replaces Jukebox's page, you
+can take "Jukebox" out of the sidebar by holding the sidebar's title and unticking it.
+
+## Playing a favourite from a button or an automation
+
+The Shortcut card uses an action that you can also call from an automation, a script
+or a voice command:
+
+```yaml
+action: casa_mia_jukebox.play
+data:
+  favourite: Harbour FM
+  rooms:
+    - media_player.kitchen
+```
+
+`favourite` is the name of a favourite or a Sonos playlist as it is written in
+Jukebox's Favourites; capitals don't matter. With more than one room, the first leads
+and the others join it. Add `enqueue: next` or `enqueue: add` to line it up in the
+queue; without it, it plays now. A station always plays now.
+
+Use this action and not the speaker's own `media_player.play_media`: it goes through
+Jukebox, so it is written in the log with who asked, and when a party is on it isn't
+put back as a guest's change.
 
 ## Announcing
 

@@ -38,6 +38,14 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   - Built in b12, asked for by the owner on 2026-11-23: the players' order, clear the
     queue, save the queue as a playlist, delete a playlist, and the light round a
     button while a speaker is asked.
+  - **The pieces as cards** (owner, 2026-11-24: "maybe we have cards for the pieces
+    that the jukebox main page shows, then they can be assembled into a custom page")
+    were built in b15 with the `play` action. Left, agreed in outline and waiting for
+    the owner to have tried the cards: each piece adapting to the size it is given (a
+    player growing a larger picture, the previous button and the song's time where it
+    has the width), and Jukebox's own page showing Now playing across a wide screen
+    when one thing is playing (the owner's kitchen tablet has a lot of empty space).
+    The play action takes a favourite's name only: nothing found by a search.
   - The party lock and its entities were built in b14, from the mock-up. Left: it has
     not met real speakers (a guest's change from the Sonos app, another app's stream);
     a party isn't kept across a restart of Home Assistant; the leading room can't be

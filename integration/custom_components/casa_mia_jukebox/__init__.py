@@ -41,7 +41,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
-from . import page, pure
+from . import feed, page, pure
 from .announce import Jukebox
 from .const import (
     ANNOUNCE,
@@ -51,11 +51,21 @@ from .const import (
     CONF_TTS,
     DOMAIN,
     INSTALLED_EVENT,
+    PLAY,
     URL,
 )
 from .restart_notice import async_check_restart, manifest_version
 
 _LOGGER = logging.getLogger(__name__)
+# The `play` action: a favourite by name, in rooms, and where in the queue (none: now).
+PLAY_SCHEMA = vol.Schema(
+    {
+        vol.Required("rooms"): vol.All(cv.entity_ids, vol.Length(min=1)),
+        vol.Required("favourite"): vol.All(cv.string, vol.Length(min=1)),
+        vol.Optional("enqueue"): vol.In(feed.LINED_UP),
+    }
+)
+
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.NUMBER, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Read once, at import: a reload must not take newer files as loaded.
@@ -123,6 +133,20 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         schema=SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
     )
+
+    async def play(call: ServiceCall) -> None:
+        # Who asked, for the log: the person who pressed a button, or nobody's hand.
+        asker = call.context.user_id
+        user = await hass.auth.async_get_user(asker) if asker else None
+        await feed.play(
+            hass.data[page.FEED],
+            (user.name if user else None) or "An automation",
+            call.data["rooms"],
+            call.data["favourite"],
+            call.data.get("enqueue"),
+        )
+
+    hass.services.async_register(DOMAIN, PLAY, play, schema=PLAY_SCHEMA)
     # The chime that comes with Jukebox, where a speaker can fetch it, and the page's
     # bundle. Not cached by the path: the bundle's address changes with each version.
     await hass.http.async_register_static_paths(

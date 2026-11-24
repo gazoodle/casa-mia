@@ -4,7 +4,6 @@
 // the way back, as a wall tablet has no sidebar and no top bar to leave by.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, navigate, type Hass } from "../ha.ts";
-import { open } from "./big.ts";
 import { type House, arrange, follow, reason } from "./common.ts";
 import { icon, shared } from "./parts.ts";
 
@@ -196,8 +195,6 @@ export class Page extends Following {
     if (!hass) return nothing;
     const house = this._house;
     const playing = house?.groups.filter((g) => !g.quiet) ?? [];
-    const quiet = house?.groups.filter((g) => g.quiet) ?? [];
-    const silent = Object.values(house?.rooms ?? {}).filter((r) => !r.available);
     const trouble = this._trouble ?? this._failed;
     const drag = this._drag;
     return html`<div class="page">
@@ -227,11 +224,7 @@ export class Page extends Following {
       </div>
       ${playing.length > 1 ? html`<p class="hint">To move a player, rest a finger on it until it lifts, then drag it.</p>` : nothing}
       ${house && !playing.length ? html`<p class="none">Nothing is playing anywhere.</p>` : nothing}
-      ${quiet.length
-        ? html`<h2>Quiet rooms: tap one to play something there</h2>
-            <div class="chips">${quiet.map((g) => html`<button @click=${() => open(hass, g.id, "favourites")}>${icon("rooms")}${house!.rooms[g.id].name}</button>`)}</div>`
-        : nothing}
-      ${silent.length ? html`<h2>Not answering</h2><p class="none">${silent.map((r) => r.name).join(", ")}</p>` : nothing}
+      <casa-mia-jukebox-rooms class="rooms" .hass=${hass} .house=${house}></casa-mia-jukebox-rooms>
     </div>`;
   }
 
@@ -250,10 +243,7 @@ export class Page extends Following {
       .slot { position: relative; min-width: 0; border-radius: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
       .slot.held { z-index: 2; box-shadow: 0 16px 40px rgb(0 0 0 / 45%); cursor: grabbing; }
       .slot.here { outline: 2px dashed var(--primary-color); outline-offset: 3px; }
-      h2 { margin: 22px 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--secondary-text-color); }
-      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-      .chips button { display: flex; align-items: center; gap: 6px; padding: 8px 14px 8px 10px; border-radius: 999px; border: 1px solid var(--divider-color); background: var(--card-background-color); font-weight: 600; }
-      .chips svg { width: 18px; height: 18px; color: var(--secondary-text-color); }
+      .rooms { margin-top: 22px; }
       .none { margin: 0; color: var(--secondary-text-color); overflow-wrap: anywhere; }
       .trouble { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--error-color, #db4437) 16%, transparent); overflow-wrap: anywhere; }
     `,

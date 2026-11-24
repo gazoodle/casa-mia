@@ -3,6 +3,7 @@
 DOMAIN = "casa_mia_jukebox"
 TITLE = "Jukebox"
 ANNOUNCE = "announce"
+PLAY = "play"
 # Fired after each announcement, with what was asked and each room's result.
 EVENT = "casa_mia_jukebox_announced"
 # The Casa Mia app's, when a start changed any component's files (its components.py).

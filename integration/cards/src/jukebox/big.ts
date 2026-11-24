@@ -2,7 +2,8 @@
 // (queue.ts), the rooms it plays in (each with its own volume), the Sonos favourites and a
 // search of the music library and Spotify (find.ts). It covers the whole screen, on
 // the document itself, so it looks the same opened from the page or from a card on any
-// dashboard, and it follows the house by itself. A phone gets the rooms and favourites as
+// dashboard, and it follows the house by itself. The Now playing card shows the same
+// player in place (`inline`). A phone gets the rooms and favourites as
 // a sheet over the player; a wall tablet gets them beside it.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
@@ -19,14 +20,15 @@ const TABS: [Tab, string][] = [
 ];
 const REPEAT = { off: "all", all: "one", one: "off" } as const;
 
-/** Show the big player for the group `room` is in, in place of any already open. */
-export function open(hass: Hass, room: string, tab?: Tab): void {
+/** Show the big player for the group `room` is in, in place of any already open. With
+ * `first`, it opens asking whether to stop the music there. */
+export function open(hass: Hass, room: string, tab?: Tab, first?: "stop"): void {
   document.querySelector(BIG)?.remove();
-  document.body.append(Object.assign(document.createElement(BIG), { hass, room, tab }));
+  document.body.append(Object.assign(document.createElement(BIG), { hass, room, tab, first }));
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _toast: { state: true } };
+  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _toast: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -41,6 +43,16 @@ export class Big extends LitElement {
   _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
   /** The sheet that asks what to call the queue as a playlist. */
   _naming = false;
+  /** Drawn in place, in a card, and so with nothing to close. */
+  inline = false;
+  /** What to ask about as soon as the house is known. */
+  first?: "stop";
+  /** How many songs the speaker's queue holds, once the Queue tab has asked it. Home
+   * Assistant's own count goes stale while a station plays. */
+  _queued?: number;
+  /** Goes up when something was done that may have changed the queue, so the Queue tab
+   * asks the speaker again: a speaker playing a station reports no such change. */
+  _stamp = 0;
   /** The sheet that says what the party lock is doing, and ends it. */
   _partying = false;
   /** The newest thing put back that has been said, so each is said once. */
@@ -70,6 +82,11 @@ export class Big extends LitElement {
   }
 
   protected willUpdate(changed: Map<string, unknown>) {
+    if (changed.has("_house") && this._house && this.first) {
+      const group = groupOf(this._house, this.room);
+      if (group) this._stop(this._house, group);
+      this.first = undefined;
+    }
     if (changed.has("_house") && this._house) {
       // Something put back by the party lock is said as it happens, not at first sight.
       const last = groupOf(this._house, this.room)?.party?.undone[0];
@@ -85,8 +102,13 @@ export class Big extends LitElement {
   }
 
   private _key = (e: KeyboardEvent) => {
-    if (e.key === "Escape") this.remove();
+    if (e.key === "Escape" && !this.inline) this.remove();
   };
+
+  /** The way out, where there is one: a player in a card stays where it is. */
+  private _shut() {
+    return this.inline ? html`<span class="ib"></span>` : html`<button class="ib" @click=${() => this.remove()} aria-label="Close the player">${icon("down")}</button>`;
+  }
 
   private _say(text: string) {
     this._toast = text;
@@ -98,7 +120,7 @@ export class Big extends LitElement {
    * that stands for `key` shows that it is waiting until the answer comes. */
   private _do(action: string, data: object = {}, key = action): Promise<boolean> {
     return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
-      () => true,
+      () => (/^(queue_|play_media|stop)/.test(action) && this._stamp++, true),
       (err) => (this._say(reason(err)), false),
     );
   }
@@ -161,7 +183,7 @@ export class Big extends LitElement {
     const queue = group.kind === "queue";
     return html`<div class="now">
       <div class="bar">
-        <button class="ib" @click=${() => this.remove()} aria-label="Close the player">${icon("down")}</button>
+        ${this._shut()}
         <div class="where"><small>Playing in</small><b>${names(house, group)}</b></div>
         <button class="pill ${group.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => (group.party ? (this._partying = true) : this._party(true))} aria-label=${group.party ? "The party lock is on" : "Turn the party lock on"}>
           ${icon("lock")}${group.party ? `Party on${group.party.undone.length ? ` · ${group.party.undone.length}` : ""}` : "Party"}
@@ -192,6 +214,7 @@ export class Big extends LitElement {
       <div class="gvol">
         ${icon("volume")}
         <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${this._slide("group_volume", group.id)} @jb-set=${this._slide("group_volume", group.id)}></casa-mia-jukebox-slider>
+        <button class="ib ${this._busy.on("stop")}" @click=${() => this._stop(house, group)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>
       </div>
       ${this._tabs(group)}
     </div>`;
@@ -210,7 +233,14 @@ export class Big extends LitElement {
   }
 
   private _songs(group: Group) {
-    return group.kind === "queue" && group.queue_size ? `The ${group.queue_size} songs in the queue` : "Whatever is in the queue";
+    const songs = this._queued ?? (group.kind === "queue" ? group.queue_size : null);
+    return songs ? (songs === 1 ? "The one song in the queue" : `The ${songs} songs in the queue`) : "Whatever is in the queue";
+  }
+
+  /** End the music here and give the rooms back to the quiet ones, after asking. */
+  private _stop(house: House, group: Group) {
+    const run = async () => (await this._do("stop", {}, "stop")) && !this.inline && this.remove();
+    this._confirm = { warn: "This stops the music here", text: `${this._songs(group)} will go, and ${names(house, group)} will be listed with the quiet rooms again.`, keep: "Keep it", go: "Stop it", run };
   }
 
   private _clear(group: Group) {
@@ -247,13 +277,13 @@ export class Big extends LitElement {
   }
 
   private _queue(group: Group) {
-    const none = group.queue_size === 0;
+    const none = this._queued === 0;
     return html`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
       <div class="tools">
         <button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>
         <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)}>${icon("trash")}Clear the queue</button>
       </div>
-      <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask}></casa-mia-jukebox-queue></div>`;
+      <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e: CustomEvent) => (this._queued = e.detail)}></casa-mia-jukebox-queue></div>`;
   }
 
   private _rooms(house: House, group: Group) {
@@ -363,7 +393,7 @@ export class Big extends LitElement {
     if (!house || !group) {
       // Not known yet, refused, or the room has stopped answering: say which, with a way out.
       const why = this._why ?? (house ? "This room's speaker isn't answering." : "Asking Home Assistant what is playing…");
-      return html`<div class="big"><div class="now"><div class="bar"><button class="ib" @click=${() => this.remove()} aria-label="Close the player">${icon("down")}</button></div><p class="empty">${why}</p></div></div>`;
+      return html`<div class="big"><div class="now"><div class="bar">${this._shut()}</div><p class="empty">${why}</p></div></div>`;
     }
     const shown = this.tab ?? "rooms";
     const [a, b] = colours(playing(group).title);
@@ -379,7 +409,9 @@ export class Big extends LitElement {
   static styles = [
     shared,
     css`
-      :host { position: fixed; inset: 0; z-index: 1000; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
+      /* Its own width decides its layout, not the screen's: it may be over the whole screen,
+         or in a card of any size. */
+      :host { position: fixed; inset: 0; z-index: 1000; container-type: inline-size; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       .big { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow: clip; background: #111; color: #fff; --muted: rgb(255 255 255 / 66%); --line: rgb(255 255 255 / 14%); --jb-fill: #fff; --jb-glow: #fff; --jb-track: rgb(255 255 255 / 22%); animation: up 0.28s ease-out; }
       /* Clipped, not hidden: a hidden box can still be scrolled (a tap brings its target into
          view), and the light behind the player overflows it on purpose. */
@@ -475,7 +507,11 @@ export class Big extends LitElement {
       .veil ~ .toast { top: max(18px, env(safe-area-inset-top)); bottom: auto; }
 
       /* A wide screen (a wall tablet): the rooms and favourites sit beside the player. */
-      @media (min-width: 900px) {
+      /* In a dashboard card (the Now playing card): in place, the size the card is given. */
+      :host([inline]) { position: relative; inset: auto; z-index: 0; display: block; height: 100%; min-height: 560px; overflow: hidden; border-radius: var(--ha-card-border-radius, 18px); }
+      :host([inline]) .big { animation: none; }
+
+      @container (min-width: 900px) {
         .big { grid-template-columns: minmax(0, 1fr) 460px; }
         .now { padding: 16px 56px 22px; }
         .now .tabs, .shut { display: none; }

@@ -24,7 +24,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
-from . import find, house, upnp
+from . import find, house, speaker, upnp
 from .announce import address, room_name
 from .const import DOMAIN
 from .house import QUEUE
@@ -195,6 +195,24 @@ class _Doing:
         if name not in self.data:
             raise Refused(f"'{name}' is missing")
         return self.data[name]
+
+    async def stop(self) -> None:
+        """End the music here: nothing playing, nothing queued, and every room by
+        itself again, so the page lists them as quiet."""
+        if self.parties.led_by(self.group["id"]):
+            raise Refused("There is a party here. End the party first.")
+        session, host = self._speaker()
+        try:
+            player = (await speaker.info(session, host)).get("playerId")
+        except (aiohttp.ClientError, OSError, TimeoutError, ValueError) as err:
+            raise Refused(
+                f"The speaker didn't answer ({err or type(err).__name__})"
+            ) from err
+        if not player:
+            raise Refused("The speaker didn't say which it is")
+        await upnp.rest(session, host, player)
+        for room in self.group["rooms"][1:]:
+            await self._call("unjoin", room)
 
     # What plays: asked of the group's coordinator, which every room follows.
     async def play(self) -> None:
@@ -386,6 +404,7 @@ class _Doing:
 ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "play": _Doing.play,
     "pause": _Doing.pause,
+    "stop": _Doing.stop,
     "next": _Doing.next,
     "previous": _Doing.previous,
     "seek": _Doing.seek,
@@ -498,3 +517,26 @@ async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
         + [item for item in items if item["folder"] == PLAYLISTS]
         + [item for item in items if item["folder"] != PLAYLISTS]
     )
+
+
+async def play(
+    feed: Feed, who: str, rooms: list[str], name: str, enqueue: str | None
+) -> None:
+    """Play a favourite or a Sonos playlist, by its name, in these rooms together: the
+    `play` action, for a dashboard button, an automation or a voice command. It goes
+    the way the page's own requests go (`do`), so it is logged with who asked and a
+    party doesn't take it for a guest's change. The first room leads; the others join
+    it. Without `enqueue` it plays now."""
+    leader, *others = rooms
+    wanted = name.strip().casefold()
+    found = await favourites(feed.hass, leader)
+    match = next((f for f in found if f["title"].strip().casefold() == wanted), None)
+    if match is None:
+        raise Refused(f"Sonos has no favourite or playlist called '{name.strip()}'")
+
+    for room in others:
+        await do(feed, who, "join", leader, {"room": room})
+    what = {key: match[key] for key in ("media_content_id", "media_content_type")}
+    # A station has no place in a queue: it plays now, whatever was asked.
+    where = {"enqueue": enqueue} if enqueue and not match["live"] else {}
+    await do(feed, who, "play_media", leader, {**what, **where})

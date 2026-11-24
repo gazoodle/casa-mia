@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.11.12-b15
+
+- New: the pieces of Jukebox's page are cards, to build a page of your own from:
+  **Quiet rooms**, **Shortcut** (a button that plays one favourite in the rooms you
+  choose) and **Now playing** (the whole player for one room, in place), beside the
+  **Players** card there was already.
+- New action: `casa_mia_jukebox.play` plays a favourite or a Sonos playlist by name in
+  one or more rooms, for a button, an automation or a voice command. It goes through
+  Jukebox, so it is logged and a party doesn't put it back.
+- New: Stop, on both of Jukebox's players. It ends the music there, empties the queue
+  and lists the rooms with the quiet ones again, after asking. On the small player it
+  takes the place of the skip button when there is no next song to skip to (a station,
+  or music that is paused).
+- Fixed: in Jukebox's Queue tab, clearing the queue while a radio station was playing
+  left the songs on screen, and the question said one song would go from a queue that
+  was empty. The list and the count now come from the speaker each time.
+- Jukebox's sliders are easier to take hold of: the dot can be taken from a little to
+  either side of it and a little above or below, and is the size it was. A touch
+  elsewhere on the line no longer moves it, so a stray tap can't change the volume.
+
 ## 2026.11.12-b14
 
 - Fixed: Jukebox's search found nothing on Spotify ("limit must be between 1 and

@@ -111,6 +111,32 @@
           "description": "Play it in quiet hours too."
         }
       }
+    },
+    "play": {
+      "name": "Play a favourite",
+      "description": "Plays a Sonos favourite or playlist, by its name, in one or more rooms. It goes through Jukebox, so it is logged and a party doesn't put it back.",
+      "fields": {
+        "favourite": {
+          "name": "Favourite",
+          "description": "The name of a favourite or a Sonos playlist, as it is written in Jukebox's Favourites."
+        },
+        "rooms": {
+          "name": "Rooms",
+          "description": "The Sonos speakers to play it on. With more than one, the first leads and the others join it."
+        },
+        "enqueue": {
+          "name": "Where in the queue",
+          "description": "Leave it out to play now. A station always plays now."
+        }
+      }
+    }
+  },
+  "selector": {
+    "enqueue": {
+      "options": {
+        "next": "Play next",
+        "add": "Add to the end of the queue"
+      }
     }
   }
 }

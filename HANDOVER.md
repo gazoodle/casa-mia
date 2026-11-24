@@ -230,6 +230,17 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   The queue is read, and a song moved or removed, here too (`queue.ts` on the page);
   jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
   the feed's `queue_size` or `queue_position` changes, and after each change of its own.
+- **The page's pieces are cards** (owner, 2026-11-24, in place of customising Jukebox's
+  own page): `card.ts` (players), `pieces.ts` (quiet rooms, shortcut, now playing) and
+  `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
+  a container query, so it follows its own width and not the screen's. The Shortcut
+  card and automations use the `casa_mia_jukebox.play` action (`feed.play`), which goes
+  through `do`. Making each piece adapt to the size it is given is still to do.
+- **Stop** (`_Doing.stop`, `upnp.rest`) is how a player returns to "quiet": the leader
+  is set to play from its own, emptied queue and the followers are unjoined. HA then
+  reports no title, which is what `house.kind` calls nothing.
+- **The Queue tab's count and list are the speaker's** (`jb-queued`, `stamp`): HA's
+  `queue_size` goes stale while a station plays (owner saw "1 song" for an empty queue).
 - **The party lock** (`party.py`): nothing can be prevented on a Sonos network, so a
   party keeps a copy of its rooms, volumes, source and queue and puts back what differs
   when the speakers report a change (HA state events, and the leader's own websocket

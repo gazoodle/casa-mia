@@ -343,6 +343,28 @@ async def test_a_sonos_playlist_is_found_where_the_speaker_keeps_those(
     assert "&lt;dc:title&gt;Friday &amp;amp; Night&lt;/dc:title&gt;" in queued
 
 
+async def test_stop_leaves_the_rooms_quiet_and_alone(
+    hass, hass_ws_client, sent, aioclient_mock
+):
+    client = await hass_ws_client(hass)
+    aioclient_mock.get(
+        "https://192.0.2.7:1443/api/v1/players/local/info",
+        json={"playerId": "RINCON_000000000000001400"},
+    )
+    aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+
+    assert (await ask(client, DO, action="stop", entity_id=GARDEN))["success"]
+    # The leader is set to play from its own queue, which stops a station too, the
+    # queue is emptied, and the room that followed is by itself again.
+    set_source, emptied = aioclient_mock.mock_calls[1:]
+    assert (
+        "<CurrentURI>x-rincon-queue:RINCON_000000000000001400#0<"
+        in set_source[2].decode()
+    )
+    assert "#RemoveAllTracksFromQueue" in emptied[3]["SOAPACTION"]
+    assert sent == [("unjoin", {"entity_id": GARDEN})]
+
+
 async def test_a_song_found_is_always_played_from_the_queue(
     hass, hass_ws_client, sent, aioclient_mock
 ):

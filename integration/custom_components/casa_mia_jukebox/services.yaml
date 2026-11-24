@@ -27,3 +27,23 @@ announce:
       default: false
       selector:
         boolean:
+play:
+  fields:
+    favourite:
+      required: true
+      selector:
+        text:
+    rooms:
+      required: true
+      selector:
+        entity:
+          domain: media_player
+          integration: sonos
+          multiple: true
+    enqueue:
+      selector:
+        select:
+          options:
+            - next
+            - add
+          translation_key: enqueue
