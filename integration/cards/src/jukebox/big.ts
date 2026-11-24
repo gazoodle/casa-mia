@@ -8,7 +8,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { EDITOR, edit } from "./editor.ts";
-import { type Favourite, type Group, type House, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
+import { type Favourite, type Group, type House, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -244,19 +244,20 @@ export class Big extends LitElement {
       <div class="bar">
         ${this._shut()}
         <div class="where"><small>Playing in</small><b>${names(house, group)}</b></div>
-        ${group.party || host
+        ${(group.party || host) && group.id !== PHONE
           ? html`<button class="pill ${group.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => (group.party ? (this._partying = true) : this._party(true))} aria-label=${group.party ? "The party lock is on" : "Turn the party lock on"}>
               ${icon("lock")}${group.party ? `Party on${host && group.party.undone.length ? ` · ${group.party.undone.length}` : ""}` : "Party"}
             </button>`
           : nothing}
       </div>
       ${shut(house, group) ? html`<p class="barred">A party is on: the music can't be changed from this screen.</p>` : nothing}
+      ${group.trouble ? html`<p class="barred" role="status">${group.trouble}</p>` : nothing}
       <div class="cover">${sleeve(this.hass, group, title)}</div>
       <div class="title">
         <b>${title}</b><span>${by}</span>
         <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
              element, and it shows nothing where this login can't rate. -->
-        <casa-mia-thumbs quiet .hass=${this.hass} .entityId=${group.id}></casa-mia-thumbs>
+        ${group.id === PHONE ? nothing : html`<casa-mia-thumbs quiet .hass=${this.hass} .entityId=${group.id}></casa-mia-thumbs>`}
         ${love ? html`<p class="love ${love.over ? "over" : ""}"><strong>Love it or Loathe it${love.over ? `, at ${clock(group.love!.at)}` : ""}:</strong> ${love.text}</p>` : nothing}
       </div>
       ${at !== null && group.duration
@@ -280,9 +281,11 @@ export class Big extends LitElement {
           : nothing}
       </div>
       <div class="gvol ${hush ? "hush" : ""}">
-        <button class="ib ${this._busy.on("group_mute")}" @click=${() => this._do("group_mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
-        <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._slid(group, e, false)} @jb-set=${(e: CustomEvent) => this._slid(group, e, true)}></casa-mia-jukebox-slider>
-        <output aria-hidden="true">${this._vol ?? average(house, group)}%</output>
+        ${loud(house, group)
+          ? html`<button class="ib ${this._busy.on("group_mute")}" @click=${() => this._do("group_mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
+              <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._slid(group, e, false)} @jb-set=${(e: CustomEvent) => this._slid(group, e, true)}></casa-mia-jukebox-slider>
+              <output aria-hidden="true">${this._vol ?? average(house, group)}%</output>`
+          : html`<span class="own">Its own volume buttons set how loud it is</span>`}
         <button class="ib ${this._busy.on("stop")}" @click=${() => this._stop(house, group)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>
       </div>
       ${this._tabs(group)}
@@ -399,15 +402,16 @@ export class Big extends LitElement {
       <div class="tools">
         <button @click=${() => this._add("queue")}>${icon("plus")}Add</button>
         <button class="wide" @click=${() => this._edit()} aria-label="Edit the queue side by side with Search">${icon("drag")}Edit…</button>
-        ${curates(this._house) ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)} aria-label="Save the queue as a playlist">${icon("save")}Save…</button>` : nothing}
+        ${curates(this._house) && group.id !== PHONE ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)} aria-label="Save the queue as a playlist">${icon("save")}Save…</button>` : nothing}
         <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)} aria-label="Clear the queue">${icon("trash")}Clear…</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e: CustomEvent) => (this._queued = e.detail)}></casa-mia-jukebox-queue></div>`;
   }
 
   private _rooms(house: House, group: Group) {
+    // This device plays by itself: it isn't offered to a Sonos group, nor they to it.
     const others = Object.keys(house.rooms)
-      .filter((r) => !group.rooms.includes(r))
+      .filter((r) => !group.rooms.includes(r) && r !== PHONE && group.id !== PHONE)
       .sort((a, b) => house.rooms[a].name.localeCompare(house.rooms[b].name));
     const row = (id: string) => {
       const room = house.rooms[id];
@@ -423,7 +427,7 @@ export class Big extends LitElement {
           : nothing}
       </div>`;
     };
-    return html`${this._head("Rooms", "Tap a room to add it or take it out. Each has its own volume.")}
+    return html`${this._head("Rooms", group.id === PHONE ? "This device plays by itself, through its own speaker or whatever it is connected to." : "Tap a room to add it or take it out. Each has its own volume.")}
       <div class="scroll">${[...group.rooms, ...others].map(row)}</div>`;
   }
 
@@ -623,6 +627,7 @@ export class Big extends LitElement {
       .gvol svg { width: 20px; height: 20px; flex: none; }
       .gvol output { flex: none; min-width: 2.8em; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
       .gvol .ib:first-child { margin: 0 -11px; }
+      .gvol .own { flex: 1; font-size: 13px; }
       .room .mute { justify-self: center; color: var(--muted); }
       .room .mute svg { width: 20px; height: 20px; }
       .gvol casa-mia-jukebox-slider, .seek casa-mia-jukebox-slider { color: #fff; }

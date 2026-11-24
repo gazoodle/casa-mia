@@ -4,11 +4,32 @@
       "user": {
         "title": "Jukebox",
         "description": "Adds the `announce` action, which plays a chime and a message on your Sonos speakers. Choose the rooms, the voice and quiet hours afterwards, under Configure."
+      },
+      "pick_implementation": {
+        "title": "Sign Jukebox in to Spotify",
+        "description": "For listening to Spotify on a phone. Choose the application credentials to sign in with.",
+        "data": {
+          "implementation": "Application credentials"
+        }
       }
     },
     "abort": {
-      "single_instance_allowed": "Jukebox is already set up."
+      "single_instance_allowed": "Jukebox is already set up.",
+      "reconfigure_successful": "Jukebox is signed in to Spotify. The people who may run a party can now listen to Spotify on their own phone.",
+      "reauth_successful": "Jukebox is signed in to Spotify again.",
+      "missing_credentials": "Jukebox needs application credentials to sign in to Spotify. Add them under Settings, Devices & services, Application credentials, for Jukebox: the client ID and secret of the Spotify developer app that Home Assistant's Spotify integration uses.",
+      "missing_configuration": "Jukebox has no application credentials to sign in to Spotify with.",
+      "authorize_url_timeout": "Spotify took too long to give the address to sign in at.",
+      "no_url_available": "Home Assistant has no address that Spotify can send the sign-in back to. Set its address under Settings, System, Network.",
+      "oauth_error": "Spotify sent back a sign-in that couldn't be read.",
+      "oauth_timeout": "Spotify took too long to finish the sign-in.",
+      "oauth_unauthorized": "Spotify refused the sign-in. Check the client ID and secret.",
+      "oauth_failed": "Spotify didn't finish the sign-in.",
+      "user_rejected_authorize": "The sign-in was turned down on Spotify's page."
     }
+  },
+  "application_credentials": {
+    "description": "Jukebox signs in to Spotify itself, so that Spotify can be played on a phone. Enter the client ID and client secret of the Spotify developer app that Home Assistant's Spotify integration uses. That app needs the Web Playback SDK ticked among its APIs."
   },
   "options": {
     "step": {

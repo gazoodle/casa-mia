@@ -185,6 +185,74 @@ tablet's dashboard, add any button that navigates to `/jukebox`.
 Everything the page does goes through Jukebox and is written to Home Assistant's log
 with the name of who did it.
 
+## Listening on your own phone
+
+The device you are holding is listed with the quiet rooms, as **This phone** (or **This
+tablet**, or **This computer**). Tap it and choose something from Favourites or Search,
+as you would for a room. It plays through the device's own speaker, or the earbuds
+connected to it, and nothing changes on the Sonos speakers.
+
+It has a player and a queue like any room's: play next, add to the end, move a song,
+take one out, shuffle and repeat. It plays:
+
+- a Sonos playlist or favourite, and anything found by Search;
+- songs from the music library;
+- songs from Spotify;
+- radio stations, from TuneIn or with a web address of their own.
+
+A song from any other music service can't be played on a phone. It is left out, and
+the player says how many were.
+
+Some things are different from a Sonos room:
+
+- The queue is kept by the page, on the device, so it is still there when you open
+  Jukebox again. Another phone has its own.
+- The device's own volume buttons set how loud it is. There is no volume slider,
+  because a web page can't set an iPhone's volume.
+- It plays by itself. It can't be joined to the Sonos rooms, and there is no party
+  lock for it.
+- The lock screen shows the song, and its buttons, like the buttons on earbuds, play,
+  pause and skip through Jukebox's queue.
+- A station shows its name, but not the song it is playing.
+- A login listed under **The house's own screens**, such as a wall tablet's, isn't
+  offered itself as a room.
+
+If a song can't be played, the player says which and why, and goes on to the next.
+After three in a row it stops.
+
+### Songs from the music library
+
+A phone can't reach the share your music is on, so Home Assistant sends it the file.
+For that the share has to be among Home Assistant's media: add it under **Settings →
+System → Storage → Add network storage**, with **Media** as its usage. Any name will
+do. Jukebox finds a song there by its folders and file name.
+
+Until then, a library song is refused with a message that says so.
+
+### Songs from Spotify
+
+Spotify plays on a phone through Spotify's own player for web pages. That needs a
+Spotify Premium account, a page reached over `https`, and a sign-in of Jukebox's own:
+Home Assistant's Spotify integration is a remote control, and Spotify doesn't let its
+sign-in play music.
+
+1. Open your Spotify developer app, the one you made for Home Assistant's Spotify
+   integration, on Spotify's developer dashboard. Make sure **Web Playback SDK** is
+   ticked among the APIs it uses.
+2. In Home Assistant, go to **Settings → Devices & services → Jukebox**, open the
+   entry's menu and choose **Reconfigure**.
+3. The first time, Home Assistant asks for application credentials. Enter that
+   developer app's client ID and client secret.
+4. Sign in on Spotify's page with the account the house uses, and agree.
+
+Only administrators and the logins listed under **Who may run a party** can then
+listen to Spotify on their own device. The page is given a key to the Spotify account
+to play with, so it is not handed to every login. The library and radio stations need
+no sign-in and are for everyone.
+
+Spotify plays in one place at a time for one account. If the same account starts
+playing on the speakers, it stops on the phone, and the player says so.
+
 ## The party lock
 
 Anyone on the house's network can change the music with the Sonos app, and Sonos has no

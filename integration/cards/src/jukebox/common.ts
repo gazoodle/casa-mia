@@ -2,6 +2,12 @@
 // it (its house.py), the feed they follow and the one way they ask for anything (its
 // feed.py). Nothing here talks to a speaker or to Home Assistant's media players directly:
 // everything goes through Jukebox, so it knows which changes were its own.
+//
+// One room isn't Home Assistant's: the device the page is on (phone.ts), which is put into
+// the house here and answers for itself what is asked of it.
+import { PHONE, phone } from "./phone.ts";
+
+export { PHONE };
 const DOMAIN = "casa_mia_jukebox";
 export const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
 export const CARDS_VERSION = `${DOMAIN}/cards`;
@@ -37,6 +43,8 @@ export type Group = {
   cover?: string | null;
   /** The Sonos playlist (`SQ:3`) this queue was loaded from or last saved as, from Jukebox. */
   source?: string | null;
+  /** This device's own room only (phone.ts): something that went wrong there, to say. */
+  trouble?: string;
 };
 /** Love it or Loathe it's account of a player (its Last match sensor's `players`): what it
  * did (empty while it is doing it), why, when, and whether that is still in force; `next`
@@ -47,7 +55,7 @@ export type Love = { did: string; why: string; because?: string; at: string; now
 export type Party = { since: string; undone: { at: string; what: string; failed: boolean }[]; unwatched: string | null; /** The screens may change the music. */ open: boolean };
 /** `me` is this login's part while a party is on (the integration's may.py): a host runs
  * it, a screen may change the music once a host lets the screens, anyone else only looks. */
-export type House = { groups: Group[]; rooms: Record<string, Room>; me: "host" | "screen" | "other"; /** This login may save, change and delete playlists now. */ curates?: boolean };
+export type House = { groups: Group[]; rooms: Record<string, Room>; me: "host" | "screen" | "other"; /** This login may save, change and delete playlists now. */ curates?: boolean; /** This login may have Spotify's player on its own device. */ spotify?: boolean };
 
 /** Whether this login can't change this group's music now: a party is on and it is neither
  * a host nor a screen that has been let. Jukebox itself refuses; this is so the page says. */
@@ -96,26 +104,49 @@ type Asking = { connection?: any; [key: string]: any };
 /** Follow the house's music until the function returned is called. `heard` gets none,
  * with the reason, when Home Assistant refuses (Jukebox isn't set up). */
 export function follow(conn: any, heard: (house: House | undefined, why?: string) => void): () => void {
-  const off: Promise<() => void> = conn.subscribeMessage((house: House) => heard(house), { type: `${DOMAIN}/house` });
+  // The house as Jukebox sent it, told again with this device's room in it whenever
+  // that room changes.
+  let last: House | undefined;
+  const tell = () => last && heard(phone.within(last));
+  const off: Promise<() => void> = conn.subscribeMessage((house: House) => ((last = house), tell()), { type: `${DOMAIN}/house` });
   off.catch((err: any) => heard(undefined, err?.code === "unknown_command" ? "Jukebox isn't set up in Home Assistant" : (err?.message ?? String(err))));
+  const quit = phone.listen(tell);
   // Nothing to stop if it was refused, or the connection has gone.
-  return () => void off.then((stop) => stop()).catch(() => undefined);
+  return () => (quit(), void off.then((stop) => stop()).catch(() => undefined));
 }
 
-/** Ask Jukebox to do one thing for the group `room` is in. Rejects with the reason. */
+/** Ask Jukebox itself something about a room. For this device, which is no room of
+ * Home Assistant's, through a Sonos room: the favourites, the library and a playlist's
+ * songs are read from a speaker. */
+function send(hass: Asking, type: string, room: string, more: object = {}): Promise<any> {
+  if (room === PHONE) phone.wake(hass);
+  const entity = room === PHONE ? phone.speaker() : room;
+  if (!entity) return Promise.reject(new Error("No Sonos speaker is answering, and the music is listed by one"));
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/${type}`, entity_id: entity, ...more });
+}
+
+/** What was listed, remembered for this device's room: it is asked to play a thing by
+ * its address alone, and shows it by the title and picture it was listed with. */
+const noted = (items: Favourite[]): Favourite[] => (phone.seen(items), items);
+
+/** Ask Jukebox to do one thing for the group `room` is in. Rejects with the reason.
+ * This device's room does it itself, but for a change to a Sonos playlist, which is
+ * the house's and not a room's. */
 export function ask(hass: Asking, action: string, room: string, data: object = {}): Promise<unknown> {
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/do`, action, entity_id: room, ...data });
+  if (room === PHONE && !action.startsWith("playlist_")) return phone.do(hass, action, data);
+  return send(hass, "do", room, { action, ...data });
 }
 
 export function favourites(hass: Asking, room: string): Promise<Favourite[]> {
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/favourites`, entity_id: room });
+  return send(hass, "favourites", room).then(noted);
 }
 
 /** The queue of the group `room` is in: its songs in order (the first few hundred), and how
  * many there are in all. */
 /** The queue of the group a room is in, or the songs of a Sonos playlist (`SQ:3`). */
 export function queue(hass: Asking, room: string, playlist?: string): Promise<{ songs: Song[]; total: number }> {
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/queue`, entity_id: room, ...(playlist ? { playlist } : {}) });
+  if (room === PHONE && !playlist) return phone.wake(hass), phone.queue();
+  return send(hass, "queue", room, playlist ? { playlist } : {});
 }
 
 /** What one source of a search found, or why it found nothing. */
@@ -123,19 +154,19 @@ export type Source = { name: string; items: Favourite[]; why: string | null };
 
 /** Search the music library and Spotify together, for the group `room` is in. */
 export function search(hass: Asking, room: string, query: string): Promise<{ sources: Source[] }> {
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/search`, entity_id: room, query });
+  return send(hass, "search", room, { query }).then((found: { sources: Source[] }) => (found.sources.forEach((source) => noted(source.items)), found));
 }
 
 /** What is in one place of what a speaker can play: the top when `at` is none. */
 export function browse(hass: Asking, room: string, at?: Favourite): Promise<{ title: string; items: Favourite[] }> {
   const where = at ? { media_content_type: at.media_content_type, media_content_id: at.media_content_id } : {};
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/browse`, entity_id: room, ...where });
+  return send(hass, "browse", room, where).then((found: { title: string; items: Favourite[] }) => (noted(found.items), found));
 }
 
 /** Keep the order the page's players were dragged into, for every screen in the house. The
  * house comes again, in that order, by the feed. */
 export function arrange(hass: Asking, rooms: string[]): Promise<unknown> {
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/order`, rooms });
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/order`, rooms: rooms.filter((room) => room !== PHONE) });
 }
 
 /** Why a failure happened, in words to show. */
@@ -151,6 +182,10 @@ export function average(house: House, group: Group): number {
   const known = group.rooms.map((r) => house.rooms[r]?.volume).filter((v): v is number => typeof v === "number");
   return known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : 0;
 }
+
+/** Whether a group has a volume to set from here: this device's own room has none, as a
+ * page can't set a phone's. */
+export const loud = (house: House, group: Group): boolean => group.rooms.some((r) => typeof house.rooms[r]?.volume === "number");
 
 /** Whether a group is muted: every one of its rooms is. */
 export const muted = (house: House, group: Group): boolean => group.rooms.length > 0 && group.rooms.every((r) => house.rooms[r]?.muted);

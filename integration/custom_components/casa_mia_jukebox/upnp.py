@@ -171,6 +171,46 @@ def _about(item: Element) -> str:
     )
 
 
+async def favourite_item(
+    session: aiohttp.ClientSession, host: str, favourite: str
+) -> tuple[Element, str]:
+    """A Sonos favourite (`FV:2/7`) or playlist (`SQ:3`) as the speaker lists it, and
+    the address it plays from."""
+    listed, _ = await _listed(
+        session, host, favourite.rpartition("/")[0] or SAVED_QUEUES, "favourites"
+    )
+    item = next((i for i in listed if i.get("id") == favourite), None)
+    address = item.findtext(f"{DIDL}res") if item is not None else None
+    if item is None or not address:
+        raise HomeAssistantError("Sonos doesn't have that favourite any more")
+    return item, address
+
+
+def named(item: Element) -> tuple[str, str | None]:
+    """What a thing a speaker lists is called, and its picture as the speaker
+    addresses it."""
+    return item.findtext(f"{DC}title") or "", item.findtext(f"{UPNP}albumArtURI")
+
+
+async def library(
+    session: aiohttp.ClientSession, host: str, place: str, deep: int = 2
+) -> list[dict[str, Any]]:
+    """Every song in one place of the music library (`A:ALBUM/…`), in order, as
+    `detailed` gives a playlist's. A place that holds other places (an artist's
+    albums) is read `deep` levels down. An artist is listed with an "All" beside the
+    albums, so a song met twice is kept once."""
+    items, _ = await _everything(session, host, place, "music library")
+    songs: dict[str, dict[str, Any]] = {}
+    for item in items:
+        if item.tag != f"{DIDL}container":
+            song = _song(item)
+            songs.setdefault(song["address"], song)
+        elif deep > 1 and len(songs) < MOST:
+            for song in await library(session, host, item.get("id") or "", deep - 1):
+                songs.setdefault(song["address"], song)
+    return list(songs.values())[:MOST]
+
+
 async def queue_favourite(
     session: aiohttp.ClientSession, host: str, favourite: str, after: int | None
 ) -> int:
@@ -179,14 +219,7 @@ async def queue_favourite(
     must be its group's coordinator: straight after song number `after`, or at the end
     when that is None. The queue is otherwise left as it is, and nothing starts or
     stops. Gives how many songs were added."""
-    listed, _ = await _listed(
-        session, host, favourite.rpartition("/")[0] or SAVED_QUEUES, "favourites"
-    )
-    item = next((i for i in listed if i.get("id") == favourite), None)
-    address = item.findtext(f"{DIDL}res") if item is not None else None
-    if item is None or not address:
-        raise HomeAssistantError("Sonos doesn't have that favourite any more")
-
+    item, address = await favourite_item(session, host, favourite)
     added = await call(
         session,
         host,

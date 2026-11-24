@@ -7,7 +7,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
 import { open } from "./big.ts";
-import { type Group, type House, ask, average, colours, latest, muted, names, playing, position, reason } from "./common.ts";
+import { type Group, type House, ask, average, colours, latest, loud, muted, names, playing, position, reason } from "./common.ts";
 import { Busy, Clock, icon, shared, sleeve } from "./parts.ts";
 
 export const MINI = "casa-mia-jukebox-mini";
@@ -90,7 +90,7 @@ export class Mini extends LitElement {
       <button class="meta" @click=${show}>
         <b><casa-mia-jukebox-marquee .text=${title}></casa-mia-jukebox-marquee></b>
         <span><casa-mia-jukebox-marquee .text=${by}></casa-mia-jukebox-marquee></span>
-        <small><casa-mia-jukebox-marquee .text=${`${names(house, group)}${group.party ? " · Party" : ""}${group.love?.now && group.love.did ? ` · ${group.love.did} (Love it or Loathe it)` : ""}`}></casa-mia-jukebox-marquee></small>
+        <small><casa-mia-jukebox-marquee .text=${`${names(house, group)}${group.party ? " · Party" : ""}${group.love?.now && group.love.did ? ` · ${group.love.did} (Love it or Loathe it)` : ""}${group.trouble ? ` · ${group.trouble}` : ""}`}></casa-mia-jukebox-marquee></small>
       </button>
       <span class="tp">
         <button class="ib ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play", "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
@@ -98,11 +98,13 @@ export class Mini extends LitElement {
           ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>`
           : html`<button class="ib ${this._busy.on("stop")}" @click=${() => this._sure(true)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>`}
       </span>
-      <div class="vol ${hush ? "hush" : ""}">
-        <button class=${this._busy.on("mute")} @click=${() => this._ask("group_mute", "mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
-        <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._slid(e, false)} @jb-set=${(e: CustomEvent) => this._slid(e, true)}></casa-mia-jukebox-slider>
-        <output aria-hidden="true">${this._vol ?? average(house, group)}%</output>
-      </div>
+      ${loud(house, group)
+        ? html`<div class="vol ${hush ? "hush" : ""}">
+            <button class=${this._busy.on("mute")} @click=${() => this._ask("group_mute", "mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
+            <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._slid(e, false)} @jb-set=${(e: CustomEvent) => this._slid(e, true)}></casa-mia-jukebox-slider>
+            <output aria-hidden="true">${this._vol ?? average(house, group)}%</output>
+          </div>`
+        : nothing}
       ${at !== null && group.duration ? html`<i class="prog" style="width:${(100 * at) / group.duration}%"></i>` : nothing}
     </div>`;
   }

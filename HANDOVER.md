@@ -385,6 +385,44 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   stand-ins for the speakers), `tests_ha/test_jukebox_page.py` (the panel, feed and `do`),
   `integration/cards/src/jukebox/common.test.ts`. A test that holds a clip must use plain asyncio tasks and
   its `settle()`: `async_block_till_done` waits for the held clip and hangs.
+- **Listening on your own device** (b26, owner 2026-11-24: "this phone" as one more
+  room, the page keeping the queue). Home Assistant knows nothing of that room.
+  - **On the page:** `phone.ts` is the room, `lineup.ts` its queue's rules (no page in
+    it, tested in node) and `sound.ts` the two players: an `<audio>` element for a
+    library file or a station, Spotify's Web Playback SDK for a Spotify song.
+    `common.ts` puts the room into the house (`follow`) and sends its requests to
+    `phone.do` and `phone.queue`, so the players, queue, favourites, search and editor
+    needed no change of their own. Its id is `PHONE` (`this_device`). Favourites,
+    search and a playlist's songs are asked through any Sonos room that answers.
+  - **In the integration:** `phone.py` answers `phone/songs` (a thing's songs, as a
+    phone can play them), `phone/address` (where one is fetched from, asked as each
+    song starts) and `phone/token` (Spotify). `playable.py` has the rules, with no Home
+    Assistant in it.
+  - **A library song** is a signed link to the file among Home Assistant's media.
+    `playable.placed` finds where a share is mounted by looking for the song's own path,
+    once for each share. **A station** is its own web address, or TuneIn's answer for
+    its number; a plain-http one is passed on by `phone.Stream` to an https page,
+    which would refuse it. Only sound is passed on.
+  - **Spotify needs a sign-in of Jukebox's own** (`config_flow.py`: Reconfigure, with
+    Home Assistant's OAuth helper and application credentials). Home Assistant's
+    Spotify sign-in has no `streaming` scope. The token is kept in the entry's data and
+    renewed there hourly, so **the entry starts again only when its options change**
+    (`__init__.py`). It is given to hosts only (`may.HOST`): it is a key to the house's
+    one account. My choice; the owner hasn't ruled on it.
+  - **The measured oddities are in `sound.ts`'s header**: sound starts only from a tap
+    (`unlock`, called in `phone.do` before anything is awaited: keep it first), a
+    Spotify song's end is "paused at 0:00", and Spotify forgets a sleeping page's
+    player (404, then connect again).
+  - **No wake lock:** the measurement showed a locked phone carries on. No volume
+    slider: a page can't set an iPhone's volume.
+  - **A room hidden on the house's own screens** (`me === "screen"`): my choice.
+  - **Seen:** the built bundle in headless Chromium against a pretend `hass`, playing
+    sound files (offered as a room, a playlist played, the next song by itself, the
+    queue's end, kept across a reload, a station, a song that fails). **Not seen:**
+    anything on a real phone or in a real Home Assistant; Spotify's player at all (the
+    throwaway page of 2026-11-24 is the only proof it plays); a real library file's
+    link; a real TuneIn answer; the sign-in against Spotify (the flow is tested to
+    the token, with a stand-in for Spotify).
 - **Not seen in a real Home Assistant yet** (2026-11-23): the tests and a run of
   `speaker.py` against a real speaker (subscribing only) are all there is. Not checked:
   the config and options dialogs, the chime's address reaching a speaker, a whole
@@ -1750,8 +1788,17 @@ CLAUDE.md has them all. What trips agents here:
   parts on their own (the backlog's appetite gate), and promises a Heating Flow guide next
   release: edit the topic to link it once it's out.
 - **Casa Mia is non-commercial, always** (the owner's commitment); the MIT licence stays.
-- **Seen occasionally:** "Invalid configuration" on a card that clears after a refresh.
-  Possibly HA frontend issue #53890. Unconfirmed; watch for it.
+- **Seen often after an update (owner, 2026-11-24):** Jukebox's and Sensor Watch's pages
+  and cards stay on "Invalid configuration" until a forced reload. `offerReload` can't help:
+  it runs inside the bundle, and here no bundle code is running. Two suspects, unproven:
+  (1) the page loaded while HA was starting, before the component added its `cards.js` and
+  static path; the app's kiosk reload (`__main__.py`, `on_cards`) fires on Casa Mia's cards
+  only and may land a tablet in that window; (2) a new `cards.js` loaded into a page holding
+  the old one, where `define` skips existing tags. **Next time:** the owner has agreed
+  (2026-11-24) that a stuck tablet's console is read through Kiosk Satellite (`getConsole`)
+  before it is reloaded, against HA's log (each component's set-up time, the kiosk reload).
+  If (1), the app holds the kiosk reload until every bundled component serves its version.
+  Earlier guess: HA frontend issue #53890.
 - **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
   `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
   viewers' addresses only; the Tablet Layout guide's examples.

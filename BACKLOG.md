@@ -90,32 +90,37 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     make its text, buttons, pictures and rows multiples of that scale, then Casa Mia's
     other cards where it matters. Not yet tried on a tablet; the owner is to try the
     theme setting first.
-  - **Listening on a phone's or tablet's own earbuds** (asked 2026-11-24, and put off
-    the same day as too much for now). Wanted: the same Jukebox, with playlists,
-    Spotify, the library and radio, heard on the device in the listener's hand, with
-    nothing to think about. Decided by the owner: no Music Assistant, and no Sonos Port
-    bought to capture from. Found (from documentation and forums, none of it measured
-    here):
-    - No Sonos speaker sends sound to Bluetooth headphones, and only the Port has an
-      output to capture.
-    - Home Assistant's Spotify integration is a remote control and carries no sound.
-      It can start music in the Spotify app on a phone (Spotify Connect), which covers
-      Spotify only, needs the listener's own Premium account and the app awake, and
-      shows changes made elsewhere up to 30 s late (it polls).
-    - Home Assistant's companion app has no player of its own. A page playing sound
-      inside it is reported to stop when the screen locks; in Safari one stream is
-      reported to carry on, but a locked page can't start the next song, so the server
-      must send one continuous stream.
-    - Spotify's in-browser player is unreliable on iOS, so Spotify's sound would need
-      librespot (reverse-engineered, needs Premium, breaks when Spotify changes).
-    What is left is a player in the Casa Mia app that sends each listener one
-    continuous stream, driven by Jukebox as one more room. **The house's own radio
-    station** (the `radio` module) already plays local media out through Icecast, so a
-    revision of it could be that player for the library and radio (owner's idea,
-    2026-11-24): Jukebox hands it a queue, and it gives that listener a stream of their
-    own. Spotify would still be the missing part. Before anything is built, measure
-    the last step with no code: a long stream on a phone, in Safari and in the
-    companion app, on earbuds, screen locked, for twenty minutes.
+  - **Listening on a phone's or tablet's own earbuds** was built in b26 (owner,
+    2026-11-24; HANDOVER, "Listening on your own device"): "this phone" as one more
+    room, with Spotify through its Web Playback SDK and the library and radio in an
+    `<audio>` element. Decided by the owner on the way: no Music Assistant, no Sonos
+    Port, and a Spotify song is not handed over to the Spotify app. Left:
+    - **Nothing of the build has met a real phone, Spotify or the owner's Home
+      Assistant.** What was measured, on the owner's iPhone (iOS 18.7, Safari and the
+      companion app) with a throwaway page, is that the approach works: a Spotify
+      song, an MP3 from Home Assistant and a station played one after another, each
+      starting by itself, screen on and locked. First things to look at: Spotify's
+      player loaded into Home Assistant's own page (the throwaway page was in a frame
+      of its own); the lock screen's buttons while Spotify's player has the sound; a
+      library song in its real format (a browser plays MP3, AAC and FLAC, not WMA); a
+      TuneIn station; the token renewed after its hour; a long listen with the phone
+      locked in the companion app (the longest measured was two minutes, in Safari).
+    - Who may have Spotify on their own device is hosts only, and the room isn't
+      offered on the house's own screens: both my choices, for the owner to rule on.
+    - A station shows its name and not the song it is playing (the stream's own
+      titles aren't read).
+    - Shuffle picks any other song, so one can come round again before all have
+      played. An artist found on Spotify can't be played whole: open it and choose.
+    - A library song found by Search has only its title until it plays; one from a
+      playlist or an album has everything.
+    - No volume slider (a page can't set an iPhone's volume), no thumbs, no saving the
+      phone's queue as a Sonos playlist, and the screen isn't kept on (the measurement
+      showed it needn't be; the wake lock worked in both browsers if it is wanted).
+    - The earlier plan, one continuous stream for each listener sent by the app, is
+      kept in reserve for a phone that stops when it locks.
+    - The throwaway page is still on the box (`www/jukebox-earbuds-test.html` and its
+      `-song.mp3`, and an "Earbuds test" view on the owner's test dashboard): remove
+      all three, with the owner's agreement, once the build has played on a phone.
   - **Who may run a party, the thumbs and Love it or Loathe it's reasons** were built
     in b18 (owner, 2026-11-24). Decided then: thumbs up and down as Love it or Loathe
     it's card has, not the mock-up's heart (one picture for one action, and a heart

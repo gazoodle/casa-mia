@@ -1,20 +1,27 @@
 """Jukebox's config flow: one entry, with nothing to fill in (the manifest's
 `single_config_entry` refuses a second). Its options are the rooms, the voice, the chime
-and quiet hours, changed in the Configure dialog."""
+and quiet hours, changed in the Configure dialog.
+
+Reconfigure signs Jukebox in to Spotify, for listening on a phone (phone.py). It is a
+sign-in of Jukebox's own, with Home Assistant's OAuth helper: Spotify's player in a
+page needs leave to play, which Home Assistant's Spotify integration doesn't ask for.
+The sign-in is kept in the entry's data, where the helper renews it."""
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
+    SOURCE_REAUTH,
     ConfigEntry,
-    ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import config_entry_oauth2_flow, selector
 
 from .const import (
     CHIME,
@@ -28,6 +35,9 @@ from .const import (
     DOMAIN,
     TITLE,
 )
+from .phone import SCOPES
+
+_LOGGER = logging.getLogger(__name__)
 
 OPTIONS = vol.Schema(
     {
@@ -63,8 +73,18 @@ async def _logins(hass: HomeAssistant) -> dict[Any, Any]:
     return {vol.Optional(CONF_HOSTS): several, vol.Optional(CONF_SCREENS): several}
 
 
-class JukeboxFlow(ConfigFlow, domain=DOMAIN):
+class JukeboxFlow(config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN):
+    DOMAIN = DOMAIN
     VERSION = 1
+
+    @property
+    def logger(self) -> logging.Logger:
+        return _LOGGER
+
+    @property
+    def extra_authorize_data(self) -> dict[str, Any]:
+        # Asked every time, so the account can be seen and changed.
+        return {"scope": SCOPES, "show_dialog": "true"}
 
     @staticmethod
     @callback
@@ -77,6 +97,27 @@ class JukeboxFlow(ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="user")
         return self.async_create_entry(title=TITLE, data={})
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Sign in to Spotify: Home Assistant's own steps, from choosing the
+        application credentials on."""
+        return await self.async_step_pick_implementation()
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Spotify refused to renew the sign-in, and Home Assistant asks for it
+        again."""
+        return await self.async_step_pick_implementation()
+
+    async def async_oauth_create_entry(self, data: dict[str, Any]) -> ConfigFlowResult:
+        """Signed in: kept in the entry there is, never a second one."""
+        again = self.source == SOURCE_REAUTH
+        entry = self._get_reauth_entry() if again else self._get_reconfigure_entry()
+        _LOGGER.info("Jukebox is signed in to Spotify")
+        return self.async_update_reload_and_abort(entry, data_updates=data)
 
 
 class JukeboxOptions(OptionsFlow):

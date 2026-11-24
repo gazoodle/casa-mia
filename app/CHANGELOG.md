@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.11.12-b26
+
+- Jukebox can play on the device you are holding. It is listed with the quiet rooms as
+  **This phone** (or tablet, or computer): tap it and choose something from Favourites
+  or Search. It plays through the phone's own speaker or earbuds, with a queue of its
+  own that is kept on the phone, and leaves the Sonos speakers alone. The lock screen
+  and the buttons on earbuds play, pause and skip through that queue.
+- It plays Sonos playlists and favourites, songs from the music library, songs from
+  Spotify and radio stations. A song from another music service is left out, and the
+  player says how many were.
+- For library songs, add the music share to Home Assistant under Settings, System,
+  Storage, with Media as its usage.
+- For Spotify, sign Jukebox in: Settings, Devices & services, Jukebox, then
+  **Reconfigure** in the entry's menu. It uses the Spotify developer app you made for
+  Home Assistant's Spotify integration, which needs Web Playback SDK ticked. Only
+  administrators and the logins under **Who may run a party** can listen to Spotify
+  on their own device. The guide has the steps.
+- A song that can't be played on the phone is said on the player, with the reason, and
+  the next one is tried.
+
 ## 2026.11.12-b25
 
 - **Breaking:** the Dash-Bored page no longer reloads itself after an update unless you
