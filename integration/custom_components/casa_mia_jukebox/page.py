@@ -131,6 +131,7 @@ def _ws_house(
         vol.Optional("media_content_type"): str,
         vol.Optional("enqueue"): vol.In(ENQUEUE),
         vol.Optional("name"): vol.All(str, vol.Length(max=60)),
+        vol.Optional("playlist"): str,
     }
 )
 @websocket_api.async_response
@@ -167,16 +168,22 @@ async def _ws_favourites(
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): QUEUE, vol.Required(ATTR_ENTITY_ID): str}
+    {
+        vol.Required("type"): QUEUE,
+        vol.Required(ATTR_ENTITY_ID): str,
+        vol.Optional("playlist"): str,
+    }
 )
 @websocket_api.async_response
 async def _ws_queue(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """The queue of the group a room is in. The page asks again when the house's music
+    """The queue of the group a room is in, or the songs of a Sonos playlist. The page asks again when the house's music
     says the queue or the song has changed; it is never asked on a timer."""
     try:
-        found = await queue(hass.data[FEED], msg[ATTR_ENTITY_ID])
+        found = await queue(
+            hass.data[FEED], msg[ATTR_ENTITY_ID], msg.get("playlist", "")
+        )
     except HomeAssistantError as err:
         connection.send_error(msg["id"], "failed", str(err))
         return

@@ -41,6 +41,9 @@ async def test_each_player_says_what_was_done_why_and_whether_it_still_holds(has
     said = doing(hass)
     assert said["did"] == "Muted until the next track"
     assert said["why"] == "Last Christmas by Wham! is in Christmas (loathe)"
+    assert said["because"] == (
+        "“Last Christmas” by Wham! is in the loathed group “Christmas”"
+    )
     assert said["now"] is True and said["at"]
 
     # The next track: unmuted, and no longer in force, though still what was last done.
@@ -60,7 +63,7 @@ async def test_a_loathed_song_in_a_queue_is_skipped_and_a_stations_is_not(hass):
     assert [call.data["entity_id"] for call in skips] == [PLAYER]
     assert not calls["volume_mute"]
     assert events[0].data["action"] == "skip"
-    assert doing(hass)["did"] == "Skipped: it was one of a queue"
+    assert doing(hass)["did"] == "Skipped to the next song"
     assert doing(hass)["now"] is False  # nothing to put back
 
     # The same song from a station can't be skipped: muted, as the group says.

@@ -104,7 +104,7 @@ async def test_a_login_named_as_a_host_runs_the_party_and_others_cant_start_one(
     # With no party, anyone may change the music, but only a host may start one, or
     # save or delete a playlist.
     await options(hass, hosts=[])
-    for action in ("queue_save", "playlist_delete"):
+    for action in ("queue_save", "playlist_delete", "playlist_remove", "playlist_add"):
         kept = await ask(someone, DO, action=action, entity_id=KITCHEN, name="A list")
         assert (
             not kept["success"] and "look after the music" in kept["error"]["message"]

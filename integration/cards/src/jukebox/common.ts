@@ -36,7 +36,7 @@ export type Group = {
 /** Love it or Loathe it's account of a player (its Last match sensor's `players`): what it
  * did (empty while it is doing it), why, when, and whether that is still in force; `next`
  * when a return from another station is waiting on something. */
-export type Love = { did: string; why: string; at: string; now: boolean; next?: string };
+export type Love = { did: string; why: string; because?: string; at: string; now: boolean; next?: string };
 /** A party: since when, what was put back (the newest first; `failed` when it couldn't be),
  * and since when a song moved in another app isn't being noticed (none while it is). */
 export type Party = { since: string; undone: { at: string; what: string; failed: boolean }[]; unwatched: string | null; /** The screens may change the music. */ open: boolean };
@@ -53,10 +53,14 @@ const LATELY = 10 * 60_000;
 
 /** What to say of Love it or Loathe it on a player: what it did and why, while that is in
  * force and for a while after (a skip is over at once, and still wants explaining). */
-export function loved(group: Group, now: number): { what: string; why: string; over: boolean } | undefined {
+export function loved(group: Group, now: number): { text: string; over: boolean } | undefined {
   const love = group.love;
   if (!love || (!love.now && now - Date.parse(love.at) > LATELY)) return undefined;
-  return { what: [love.did || "Changing this player", love.next].filter(Boolean).join(". "), why: love.why, over: !love.now };
+  // One sentence a person would say: "Muted until the next track, because “Last
+  // Christmas” by Wham! is in the loathed group “Christmas”."
+  const did = love.did || "Changing this player";
+  const said = love.because ? `${did}, because ${love.because}.` : `${did}. ${love.why}.`;
+  return { text: love.next ? `${said} ${love.next}.` : said, over: !love.now };
 }
 export type Favourite = {
   folder: string;
@@ -99,8 +103,9 @@ export function favourites(hass: Asking, room: string): Promise<Favourite[]> {
 
 /** The queue of the group `room` is in: its songs in order (the first few hundred), and how
  * many there are in all. */
-export function queue(hass: Asking, room: string): Promise<{ songs: Song[]; total: number }> {
-  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/queue`, entity_id: room });
+/** The queue of the group a room is in, or the songs of a Sonos playlist (`SQ:3`). */
+export function queue(hass: Asking, room: string, playlist?: string): Promise<{ songs: Song[]; total: number }> {
+  return hass.connection.sendMessagePromise({ type: `${DOMAIN}/queue`, entity_id: room, ...(playlist ? { playlist } : {}) });
 }
 
 /** What one source of a search found, or why it found nothing. */

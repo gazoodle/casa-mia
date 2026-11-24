@@ -16,13 +16,16 @@ const PAUSE = 400;
 type Place = { title: string; items?: Favourite[]; why?: string };
 
 export class Find extends LitElement {
-  static properties = { room: {}, changes: { type: Number }, _query: { state: true }, _found: { state: true }, _why: { state: true }, _trail: { state: true } };
+  static properties = { room: {}, changes: { type: Number }, fresh: { type: Number }, _query: { state: true }, _found: { state: true }, _why: { state: true }, _trail: { state: true } };
   hass!: { connection?: any; hassUrl?: (path: string) => string; [key: string]: any };
   room = "";
   /** The class for a thing the player is waiting on a speaker for, and a count that
    * changes whenever that does, so the rows are drawn again. */
   waiting: (key: string) => string = () => "";
   changes = 0;
+  /** Changed by the player to start again with an empty box (adding to a queue or a
+   * playlist starts clean, whatever was searched for before). */
+  fresh = 0;
   _query = "";
   /** What the search found: none while it is being made. */
   _found?: Source[];
@@ -40,6 +43,10 @@ export class Find extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     clearTimeout(this._typed);
+  }
+
+  protected updated(changed: Map<string, unknown>) {
+    if (changed.has("fresh") && changed.get("fresh") !== undefined && this._query) this._clear();
   }
 
   /** Open a place to browse: the top, or something that holds more. */

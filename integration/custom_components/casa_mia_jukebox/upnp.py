@@ -12,6 +12,10 @@ description are read from the speaker's list of favourites and handed to the que
 
 from __future__ import annotations
 
+import logging
+import re
+from urllib.parse import quote
+
 # The standard library's reader: what it reads comes from the owner's own speaker, and
 # Home Assistant's Python has expat's guard against entity bombs. defusedxml would be
 # the first requirement of any Casa Mia component.
@@ -21,6 +25,7 @@ from xml.sax.saxutils import escape, quoteattr
 import aiohttp
 from homeassistant.exceptions import HomeAssistantError
 
+_LOGGER = logging.getLogger(__name__)
 PORT = 1400
 # Seconds for the speaker to answer. A long playlist takes a while to add.
 ANSWER = 30
@@ -42,6 +47,9 @@ UPNP = "{urn:schemas-upnp-org:metadata-1-0/upnp/}"
 # Where a speaker keeps the Sonos playlists.
 SAVED_QUEUES = "SQ:"
 QUEUE = "Q:0"
+# How the name of a playlist starts that is a party's copy of its queue (party.py), kept
+# by the speaker for Jukebox: not one of the household's, so it isn't listed with them.
+COPY = "Jukebox party copy"
 # How a speaker names its own queue as what it plays from.
 OWN_QUEUE = "x-rincon-queue:"
 ABOUT = (
@@ -176,10 +184,13 @@ def _seconds(length: str | None) -> int | None:
         return None
 
 
-async def queue(session: aiohttp.ClientSession, host: str) -> dict[str, object]:
-    """The queue of the speaker at `host`, in order: each song's title, artist, album
-    and length in seconds, and how many songs there are in all."""
-    items, total = await _listed(session, host, QUEUE, "queue")
+async def queue(
+    session: aiohttp.ClientSession, host: str, what: str = QUEUE
+) -> dict[str, object]:
+    """The queue of the speaker at `host`, or the Sonos playlist `what` (`SQ:3`), in
+    order: each song's title, artist, album and length in seconds, and how many songs
+    there are in all."""
+    items, total = await _listed(session, host, what, "queue")
     songs = [
         {
             "title": item.findtext(f"{DC}title") or "",
@@ -205,6 +216,172 @@ async def playlists(session: aiohttp.ClientSession, host: str) -> list[dict[str,
         {"id": item.get("id") or "", "title": item.findtext(f"{DC}title") or ""}
         for item in listed
     ]
+
+
+# ---- Changing a Sonos playlist where it is kept. A playlist's songs are numbered from 0
+# by the speaker; here, as everywhere in Jukebox, from 1.
+# Tried on a real speaker, 2026-11-24. Each change must name the playlist's change
+# number as it stands (`_changes`): one that is out of date is refused, error 1028.
+
+
+async def _changes(session: aiohttp.ClientSession, host: str, playlist: str) -> int:
+    """A playlist's change number: 0 when made, and one more after each change."""
+    found = await call(
+        session,
+        host,
+        "ContentDirectory",
+        "Browse",
+        ObjectID=playlist,
+        BrowseFlag="BrowseDirectChildren",
+        Filter="*",
+        StartingIndex=0,
+        RequestedCount=1,
+        SortCriteria="",
+    )
+    return int(found.get("UpdateID") or 0)
+
+
+async def _reorder(
+    session: aiohttp.ClientSession, host: str, playlist: str, song: int, to: str
+) -> None:
+    await call(
+        session,
+        host,
+        "AVTransport",
+        "ReorderTracksInSavedQueue",
+        InstanceID=0,
+        ObjectID=playlist,
+        UpdateID=await _changes(session, host, playlist),
+        TrackList=song - 1,
+        NewPositionList=to,
+    )
+
+
+async def playlist_move(
+    session: aiohttp.ClientSession, host: str, playlist: str, song: int, to: int
+) -> None:
+    """Move song number `song` of a Sonos playlist to be number `to`."""
+    await _reorder(session, host, playlist, song, str(to - 1))
+
+
+async def playlist_remove(
+    session: aiohttp.ClientSession, host: str, playlist: str, song: int
+) -> None:
+    """Take song number `song` out of a Sonos playlist: no new place for it."""
+    await _reorder(session, host, playlist, song, "")
+
+
+# Spotify as Sonos numbers it among its music services, and how each kind of thing from
+# Spotify is addressed and described to a speaker: what its address starts with, what
+# its id starts with, and its class. As SoCo's share links have them, which is how Home
+# Assistant's Sonos integration queues a Spotify song. The speaker picks the account.
+# ponytail: 2311 is Spotify outside the United States (3079 there). Read it from a
+# Spotify song already in a queue (its `sid`, times 256, plus 7) if that is ever wanted.
+SPOTIFY = 2311
+_SPOTIFY = {
+    "track": ("", "00032020", "object.item.audioItem.musicTrack"),
+    "album": (
+        "x-rincon-cpcontainer:1004206c",
+        "00040000",
+        "object.container.album.musicAlbum",
+    ),
+    "playlist": (
+        "x-rincon-cpcontainer:1006206c",
+        "1006206c",
+        "object.container.playlistContainer",
+    ),
+}
+
+
+def spotify(thing: str, title: str = "") -> tuple[str, str] | None:
+    """The address and description a speaker takes for something from Spotify
+    (`…spotify:track:4uLU6h…`), or None when it isn't a song, an album or a playlist
+    of Spotify's."""
+    found = re.search(r"spotify:(track|album|playlist):(\w+)", thing)
+    if not found:
+        return None
+    start, key, kind = _SPOTIFY[found[1]]
+    named = quote(found[0], safe="")
+    about = (
+        '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"'
+        ' xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"'
+        ' xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/"'
+        ' xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
+        f'<item id="{key}{named}" restricted="true"><dc:title>{escape(title)}</dc:title>'
+        f"<upnp:class>{kind}</upnp:class>"
+        '<desc id="cdudn" nameSpace="urn:schemas-rinconnetworks-com:metadata-1-0/">'
+        f"SA_RINCON{SPOTIFY}_X_#Svc{SPOTIFY}-0-Token</desc></item></DIDL-Lite>"
+    )
+    return start + named, about
+
+
+async def playlist_add(
+    session: aiohttp.ClientSession,
+    host: str,
+    playlist: str,
+    thing: str,
+    title: str = "",
+) -> None:
+    """Add something to the end of a Sonos playlist. From the music library: a song, by
+    the address of its file, or an album, artist or the like by the speaker's id for
+    it (`A:ALBUM/…`); the speaker is asked for its own description of the thing, which
+    is what it is then given. From Spotify: a song, an album or a playlist (`spotify`),
+    with `title` to list it by."""
+    if streamed := spotify(thing, title):
+        await _add_to(session, host, playlist, *streamed)
+        return
+    if thing.startswith("x-file-cifs:"):
+        # A song's file. The speaker lists the same file as `S://…`, and won't describe
+        # one song when asked (a real speaker, 2026-11-24), so it is given the short
+        # description Sonos's own apps give, and looks the rest up in its library.
+        about = ABOUT.format(
+            id=quoteattr("S:" + thing.partition(":")[2]),
+            parent=quoteattr("A:TRACKS"),
+            title=escape(title),
+            kind="object.item.audioItem.musicTrack",
+        )
+        await _add_to(session, host, playlist, thing, about)
+        return
+    found = await call(
+        session,
+        host,
+        "ContentDirectory",
+        "Browse",
+        ObjectID=thing,
+        BrowseFlag="BrowseMetadata",
+        Filter="*",
+        StartingIndex=0,
+        RequestedCount=1,
+        SortCriteria="",
+    )
+    try:
+        item = next(
+            e for e in fromstring(found.get("Result") or "<none/>") if e.get("id")
+        )
+    except (ParseError, ValueError, StopIteration) as err:
+        raise HomeAssistantError("The speaker couldn't describe that") from err
+    address = item.findtext(f"{DIDL}res")
+    if not address:
+        raise HomeAssistantError("The speaker gave no address for that")
+    await _add_to(session, host, playlist, address, _described(item))
+
+
+async def _add_to(
+    session: aiohttp.ClientSession, host: str, playlist: str, address: str, about: str
+) -> None:
+    await call(
+        session,
+        host,
+        "AVTransport",
+        "AddURIToSavedQueue",
+        InstanceID=0,
+        ObjectID=playlist,
+        UpdateID=await _changes(session, host, playlist),
+        EnqueuedURI=address,
+        EnqueuedURIMetaData=about,
+        # Sonos's own number for "at the end".
+        AddAtIndex=4294967295,
+    )
 
 
 async def move(session: aiohttp.ClientSession, host: str, song: int, to: int) -> None:
@@ -315,11 +492,28 @@ async def track(session: aiohttp.ClientSession, host: str) -> int:
         return 0
 
 
+async def place(session: aiohttp.ClientSession, host: str) -> tuple[int, int]:
+    """Where the speaker is: the number of the song in its queue, from 1, and how many
+    seconds into it."""
+    told = await call(session, host, "AVTransport", "GetPositionInfo", InstanceID=0)
+    try:
+        song = int(told.get("Track") or 0)
+    except ValueError:
+        song = 0
+    return song, _seconds(told.get("RelTime")) or 0
+
+
 async def play_from(
-    session: aiohttp.ClientSession, host: str, uri: str, about: str, song: int
+    session: aiohttp.ClientSession,
+    host: str,
+    uri: str,
+    about: str,
+    song: int,
+    seconds: int = 0,
 ) -> None:
     """Make the speaker play from `uri` again (see `source`), and when that is its
-    queue, from song number `song`."""
+    queue, from song number `song`, `seconds` into it. A song that can't be moved
+    within plays from its start."""
     await call(
         session,
         host,
@@ -330,16 +524,29 @@ async def play_from(
         CurrentURIMetaData=about,
     )
     if uri.startswith(OWN_QUEUE) and song:
-        await call(
-            session,
-            host,
-            "AVTransport",
-            "Seek",
-            InstanceID=0,
-            Unit="TRACK_NR",
-            Target=song,
-        )
+        await go_to(session, host, song)
+        if seconds:
+            clock = f"{seconds // 3600}:{seconds // 60 % 60:02}:{seconds % 60:02}"
+            try:
+                await call(
+                    session,
+                    host,
+                    "AVTransport",
+                    "Seek",
+                    InstanceID=0,
+                    Unit="REL_TIME",
+                    Target=clock,
+                )
+            except HomeAssistantError as err:
+                _LOGGER.info("%s: playing song %s from its start (%s)", host, song, err)
     await call(session, host, "AVTransport", "Play", InstanceID=0, Speed=1)
+
+
+async def go_to(session: aiohttp.ClientSession, host: str, song: int) -> None:
+    """Move to song number `song` of the queue. Nothing starts or stops."""
+    await call(
+        session, host, "AVTransport", "Seek", InstanceID=0, Unit="TRACK_NR", Target=song
+    )
 
 
 async def songs(session: aiohttp.ClientSession, host: str) -> list[tuple[str, str]]:

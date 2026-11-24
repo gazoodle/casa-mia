@@ -31,7 +31,15 @@ HOST, SCREEN, OTHER = "host", "screen", "other"
 # What changes a party itself, as `feed.ACTIONS` names it.
 PARTY = frozenset({"party", "party_open"})
 # What makes or deletes a Sonos playlist.
-PLAYLISTS = frozenset({"queue_save", "playlist_delete"})
+PLAYLISTS = frozenset(
+    {
+        "queue_save",
+        "playlist_delete",
+        "playlist_move",
+        "playlist_remove",
+        "playlist_add",
+    }
+)
 
 
 class Who(NamedTuple):
@@ -66,7 +74,7 @@ def refusal(asker: Who, action: str, party_on: bool, opened: bool) -> str | None
     if action in PARTY:
         return "Only the people who may run a party can start, change or end one"
     if action in PLAYLISTS:
-        return "Only the people who look after the music can save or delete a playlist"
+        return "Only the people who look after the music can save or change a playlist"
     if party_on and not (asker.role == SCREEN and opened):
         return (
             "A party is on in these rooms, so the music can't be changed from this "

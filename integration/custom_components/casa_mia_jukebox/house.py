@@ -38,7 +38,9 @@ def kind(attributes: Mapping[str, Any], sounding: bool = False) -> str:
 
     A speaker that is playing is never playing nothing. Some streams give Home Assistant
     neither a title nor a station's name, and such a speaker was listed with the quiet
-    rooms while it played (2026-11-24). It is a station unless it has a length.
+    rooms while it played (2026-11-24). Unless its stream is addressed as a station's
+    it is a song: a streamed song in a queue can have neither title nor length, and was
+    taken for a station, with no Next button (the same day).
 
     A station is known by its name or by how its stream is addressed. For one model of
     speaker Home Assistant had the station's name when the station started and lost it
@@ -51,11 +53,7 @@ def kind(attributes: Mapping[str, Any], sounding: bool = False) -> str:
             return what
     if attributes.get("media_channel") or address.startswith(_STREAMS):
         return RADIO
-    if attributes.get("media_title"):
-        return QUEUE
-    if sounding:
-        return QUEUE if attributes.get("media_duration") else RADIO
-    return NOTHING
+    return QUEUE if attributes.get("media_title") or sounding else NOTHING
 
 
 def _percent(level: Any) -> int | None:

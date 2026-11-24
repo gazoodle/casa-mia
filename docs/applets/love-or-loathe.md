@@ -584,7 +584,7 @@ Its attributes:
 | `repeats` | How many times the song has been played in the entry's hours, when that is why it was struck; 0 when a group had it. |
 | `at` | When. |
 | `away` | Each player now on another station, and when it goes back. |
-| `players` | For each player, what was last done to it: `did` (in words), `why` (the song and the group that had it), `at`, and `now`, which is true while that is still in force (a volume or mute to be put back, or another station to come back from). |
+| `players` | For each player, what was last done to it: `did` (in words), `because` (the song and why, in words that follow "because"), `why` (the same as the log words it), `at`, and `now`, which is true while that is still in force (a volume or mute to be put back, or another station to come back from). |
 | `no_titles` | Players that are playing but report no title, so nothing can be matched. |
 
 `action` is the group's action, or `skip` for a song in a queue that was skipped. Jukebox

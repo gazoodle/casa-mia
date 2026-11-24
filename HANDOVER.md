@@ -266,6 +266,24 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   `Party.playing` and the music didn't carry on; `upnp._described` writes a song's
   description with the speaker's own XML names (`dc:`, `upnp:`, `r:`), because a
   description with the standard library's made-up names lost a streamed song its title.
+- **The party's copy is the speaker's** (b20, owner 2026-11-24): `Party._keep` saves the
+  queue as a Sonos playlist (`upnp.COPY` and the room's name) at the start and after
+  each of Jukebox's own changes to the music; when songs are missing, `_reload` empties
+  the queue and has the speaker load that playlist, then goes back to the song. Why: a
+  song put back by `upnp.insert` from the queue's listing lost its length, and a
+  streamed one its title. Songs only added or moved are still undone one at a time.
+  `Party.queue` is kept for comparing, and for putting back when there is no copy.
+- **A playlist's songs** (b20): the big player's queue element (`queue.ts`) lists a
+  Sonos playlist when given `playlist`, and its move and take-out become
+  `playlist_move` and `playlist_remove`; `feed.queue` and the `/queue` request take
+  the playlist's id. Changing a playlist (`upnp.playlist_*`, tried on a real speaker
+  2026-11-24) needs its change number read first (`_changes`); a Spotify thing is
+  named to the speaker as SoCo's share links name it (`upnp.spotify`), and the speaker
+  picks the account. `_adding` in `big.ts` says Search was opened to add to the queue
+  or to the playlist looked at (`_viewing`), and sends the player back afterwards.
+- **Back to the place in the song** (b20): `Party.at` is how far in the music was at the
+  last quiet comparison and when; `_since` is when the first report of a burst came,
+  taken as when another app cut in; `_where` adds the time between.
 - **Who may change what at a party** (`may.py`, owner 2026-11-24): decided in `feed.do`,
   never on the page, because Home Assistant doesn't limit what a login may ask for. A
   host (administrator, a login on the options' `hosts`, or no login at all) runs the

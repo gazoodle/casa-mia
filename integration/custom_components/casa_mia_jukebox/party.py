@@ -87,6 +87,14 @@ class Party:
         self.queue: list[tuple[str, str]] = []
         self.song = 0
         self.playing = False  # whether the music was playing when last compared
+        # How many seconds into its song the music was when last compared, and when
+        # that was (the loop's clock); and when the first report came of the changes
+        # now waited on, which is when someone else's music cut in.
+        self.at: tuple[int, float] = (0, 0.0)
+        self._since: float | None = None
+        # The speaker's own copy of the queue: the id of a Sonos playlist of Jukebox's
+        # (`_keep`), or none when the queue is empty or it couldn't be saved.
+        self.copy = ""
         self.since = dt_util.utcnow().isoformat()
         self.undone: list[dict[str, Any]] = []
         # When the watch on the queue was lost; none while it is held, or not yet made.
@@ -127,6 +135,21 @@ class Party:
         if self._due:
             self._due.cancel()
         self._unfollow()
+        if self.copy:
+            self.hass.async_create_background_task(
+                self._forget(self.copy), f"{DOMAIN} party copy {self.leader}"
+            )
+
+    async def _forget(self, copy: str) -> None:
+        try:
+            await upnp.delete_playlist(*self._speaker(), copy)
+        except (HomeAssistantError, aiohttp.ClientError, OSError, TimeoutError) as err:
+            _LOGGER.warning(
+                "Party in %s ended, but its copy of the queue is still among the "
+                "Sonos playlists (it couldn't be deleted: %s)",
+                self._names(),
+                err or type(err).__name__,
+            )
 
     def _follow(self) -> None:
         """Hear of every change in the party's rooms, and watch the leader's queue."""
@@ -215,8 +238,59 @@ class Party:
         session, host = self._speaker()
         self.uri, self.about = await upnp.source(session, host)
         self.queue = await upnp.songs(session, host)
-        self.song = await upnp.track(session, host)
+        await self._note_place(session, host)
+        await self._keep(session, host)
+
+    async def _note_place(self, session: aiohttp.ClientSession, host: str) -> None:
+        """Remember where the music is, to return to it."""
+        self.song, seconds = await upnp.place(session, host)
+        self.at = (seconds, self.hass.loop.time())
         self.playing = await upnp.playing(session, host)
+
+    def _where(self) -> int:
+        """How far into its song the music had got when it was cut into: where it was
+        last seen, and the time it played on after that. From the start of the song
+        when that is only a few seconds."""
+        seconds, when = self.at
+        if self.playing:
+            seconds += int((self._since or self.hass.loop.time()) - when)
+        return seconds if seconds >= 5 else 0
+
+    async def _back_to_the_song(
+        self, session: aiohttp.ClientSession, host: str, found: str
+    ) -> None:
+        seconds = self._where()
+        _LOGGER.info(
+            "Party in %s: back to song %s, %s s into it (%s)",
+            self._names(),
+            self.song,
+            seconds,
+            found,
+        )
+        await upnp.play_from(session, host, self.uri, self.about, self.song, seconds)
+
+    async def _keep(self, session: aiohttp.ClientSession, host: str) -> None:
+        """Have the speaker keep the queue as a playlist of Jukebox's own, to put the
+        queue back from.
+
+        A song put back one at a time, from what the queue's listing said of it, came
+        back with less than it had: no length, and for a streamed song sometimes no
+        title (a real speaker, 2026-11-24). A playlist that the speaker loads itself
+        comes back as the queue was made. One left by a party that never ended (a
+        restart of Home Assistant) has the same name, and is replaced."""
+        name = f"{upnp.COPY} ({room_name(self.hass, self.leader)})"
+        try:
+            for old in await upnp.playlists(session, host):
+                if old["title"] == name:
+                    await upnp.delete_playlist(session, host, old["id"])
+            self.copy = await upnp.save(session, host, name) if self.queue else ""
+        except HomeAssistantError as err:
+            self.copy = ""
+            self._record(
+                "The speaker couldn't keep a copy of the queue, so a song someone "
+                f"takes out will be put back with fewer of its details: {err}",
+                True,
+            )
 
     def _settle(self) -> None:
         self._quiet_until = self.hass.loop.time() + SETTLE
@@ -234,6 +308,8 @@ class Party:
         last change have had time to arrive."""
         if self._due:
             self._due.cancel()
+        if self._since is None:
+            self._since = self.hass.loop.time()
         wait = max(BURST, self._quiet_until - self.hass.loop.time())
         self._due = self.hass.loop.call_later(wait, self._compare)
 
@@ -263,6 +339,7 @@ class Party:
                 )
             if len(self.undone) != before:
                 self._settle()
+            self._since = None
 
     async def _put_back(self, what: str, how: Awaitable[Any]) -> None:
         try:
@@ -347,9 +424,8 @@ class Party:
                 self._queue_change(have), self._queue_back(session, host, have)
             )
         elif uri == self.uri:
-            # Nothing to put back: remember where the music is, to return to it.
-            self.song = await upnp.track(session, host)
-            self.playing = await upnp.playing(session, host)
+            # Nothing to put back.
+            await self._note_place(session, host)
 
     def _queue_change(self, have: list[tuple[str, str]]) -> str:
         want, now = (Counter(s[0] for s in songs) for songs in (self.queue, have))
@@ -363,6 +439,36 @@ class Party:
             return "moved songs in the queue"
         return f"changed the queue ({' and '.join(f'{part} it' for part in said)})"
 
+    async def _reload(self, session: aiohttp.ClientSession, host: str) -> bool:
+        """Songs are missing: have the speaker load its own copy of the queue (`_keep`)
+        in place of what is there, and go back to the song it was on, playing if it
+        was. False when there is no copy to load, with the queue left as it was found.
+
+        ponytail: the whole queue for one song taken out, so the song that is playing
+        starts again. Put the one song back from the copy's own listing if that jars."""
+        if not self.copy:
+            return False
+        # Looked for before the queue is emptied: someone may have deleted it.
+        if self.copy not in [p["id"] for p in await upnp.playlists(session, host)]:
+            self.copy = ""
+            self._record(
+                "The party's copy of the queue was deleted from the Sonos playlists, "
+                "so songs are put back with fewer of their details",
+                True,
+            )
+            return False
+
+        await upnp.clear(session, host)
+        await upnp.queue_favourite(session, host, self.copy, None)
+        if self.uri.startswith(upnp.OWN_QUEUE):
+            if self.playing:
+                await self._back_to_the_song(
+                    session, host, "the queue was loaded again"
+                )
+            elif self.song:
+                await upnp.go_to(session, host, self.song)
+        return True
+
     async def _queue_back(
         self, session: aiohttp.ClientSession, host: str, have: list[tuple[str, str]]
     ) -> None:
@@ -370,6 +476,10 @@ class Party:
         shouldn't be there is taken out, then each place is given its song, put in if
         it has gone and moved up if it is further down."""
         now = [song[0] for song in have]
+        gone = Counter(song[0] for song in self.queue) - Counter(now)
+        if gone and await self._reload(session, host):
+            return
+
         wanted = Counter(song[0] for song in self.queue)
         keep = []
         for at, uri in enumerate(now):
@@ -402,8 +512,10 @@ class Party:
         if not self.playing or not self.uri.startswith(upnp.OWN_QUEUE):
             return
         carried_on = await upnp.playing(session, host)
-        if not carried_on or await upnp.track(session, host) != self.song:
-            await upnp.play_from(session, host, self.uri, self.about, self.song)
+        at = await upnp.track(session, host)
+        if not carried_on or at != self.song:
+            found = f"the speaker was at song {at}, playing: {carried_on}"
+            await self._back_to_the_song(session, host, found)
 
 
 class Parties:

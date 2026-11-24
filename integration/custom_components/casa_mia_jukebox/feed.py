@@ -391,6 +391,32 @@ class _Doing:
             raise Refused("Only a Sonos playlist can be deleted here")
         await upnp.delete_playlist(*self._speaker(), playlist)
 
+    # A Sonos playlist where it is kept: its songs moved, taken out and added to.
+    def _playlist(self) -> str:
+        playlist = str(self._value("playlist"))
+        if not playlist.startswith(upnp.SAVED_QUEUES):
+            raise Refused("Only a Sonos playlist can be changed here")
+        return playlist
+
+    async def playlist_move(self) -> None:
+        await upnp.playlist_move(
+            *self._speaker(), self._playlist(), self._song(), self._song("to")
+        )
+
+    async def playlist_remove(self) -> None:
+        await upnp.playlist_remove(*self._speaker(), self._playlist(), self._song())
+
+    async def playlist_add(self) -> None:
+        thing = str(self._value("media_content_id"))
+        if "spotify:" in thing and upnp.spotify(thing) is None:
+            raise Refused(
+                "From Spotify, only a song, an album or a playlist can be added to a "
+                "playlist"
+            )
+        # The name is what a Spotify song is listed by until the speaker has its own.
+        name = str(self.data.get("name", ""))
+        await upnp.playlist_add(*self._speaker(), self._playlist(), thing, name)
+
     def _song(self, name: str = "value") -> int:
         if (song := int(self._value(name))) < 1:
             raise Refused("The queue's songs are numbered from 1")
@@ -507,6 +533,9 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "group_volume": _Doing.group_volume,
     "join": _Doing.join,
     "leave": _Doing.leave,
+    "playlist_move": _Doing.playlist_move,
+    "playlist_remove": _Doing.playlist_remove,
+    "playlist_add": _Doing.playlist_add,
     "party": _Doing.party,
     "party_open": _Doing.party_open,
 }
@@ -542,10 +571,13 @@ async def do(
     _LOGGER.info("%s: %s in %s %s", who, action, entity, said)
 
 
-async def queue(feed: Feed, entity: str) -> dict[str, Any]:
-    """The queue of the group `entity` is in (upnp.queue)."""
+async def queue(feed: Feed, entity: str, playlist: str = "") -> dict[str, Any]:
+    """The queue of the group `entity` is in, or the songs of a Sonos playlist, read
+    through that group's speaker (upnp.queue)."""
     doing = _Doing(feed.hass, feed.model(), entity, {}, feed.parties)
-    return await upnp.queue(*doing._speaker())
+    if playlist and not playlist.startswith(upnp.SAVED_QUEUES):
+        raise Refused("Only a Sonos playlist's songs can be listed")
+    return await upnp.queue(*doing._speaker(), playlist or upnp.QUEUE)
 
 
 async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
@@ -602,6 +634,7 @@ async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
             PLAYLISTS, p["title"], p["id"], playlist=True, picture=pictures.get(p["id"])
         )
         for p in await upnp.playlists(async_get_clientsession(hass), host)
+        if not p["title"].startswith(upnp.COPY)
     ]
     # The playlists lead, in their folder with any favourite that is a playlist too.
     return (

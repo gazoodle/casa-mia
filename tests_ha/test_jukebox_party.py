@@ -39,6 +39,8 @@ class Speaker:
         self.uri = OWN_QUEUE
         self.song = 2
         self.playing = True
+        self.saved = {}  # the Sonos playlists: id to (name, songs)
+        self.rel = "0:00:00"  # how far into the song
         self.asked = []
         self.refuses = set()
         aioclient_mock.post(BROWSE, side_effect=self.answer)
@@ -51,23 +53,46 @@ class Speaker:
         self.asked.append(action)
         if action in self.refuses:
             return AiohttpClientMockResponse(method, url, status=500, text="<e/>")
-        service = "ContentDirectory" if action == "Browse" else "AVTransport"
+        listing = action in ("Browse", "DestroyObject")
+        service = "ContentDirectory" if listing else "AVTransport"
         text = answered(service, action, **(getattr(self, action)(said) or {}))
         return AiohttpClientMockResponse(method, url, text=text)
 
     def Browse(self, said):
-        items = "".join(
-            f'<item id="Q:0/{n}"><res>{uri}</res></item>'
-            for n, uri in enumerate(self.queue, 1)
-        )
+        if said["ObjectID"] == "SQ:":
+            items = "".join(
+                f'<container id="{id}" parentID="SQ:"><dc:title>{name}</dc:title>'
+                f"<res>file:///saved#{id}</res></container>"
+                for id, (name, _songs) in self.saved.items()
+            )
+        else:
+            items = "".join(
+                f'<item id="Q:0/{n}"><res>{uri}</res></item>'
+                for n, uri in enumerate(self.queue, 1)
+            )
         didl = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"
-        return {"Result": f'<DIDL-Lite xmlns="{didl}">{items}</DIDL-Lite>'}
+        dc = "http://purl.org/dc/elements/1.1/"
+        return {
+            "Result": f'<DIDL-Lite xmlns="{didl}" xmlns:dc="{dc}">{items}</DIDL-Lite>'
+        }
+
+    def SaveQueue(self, said):
+        self.made = getattr(self, "made", 0) + 1
+        id = f"SQ:{self.made}"
+        self.saved[id] = (said["Title"], list(self.queue))
+        return {"AssignedObjectID": id}
+
+    def DestroyObject(self, said):
+        del self.saved[said["ObjectID"]]
+
+    def RemoveAllTracksFromQueue(self, said):
+        self.queue, self.song, self.playing = [], 0, False
 
     def GetMediaInfo(self, said):
         return {"CurrentURI": self.uri, "CurrentURIMetaData": ""}
 
     def GetPositionInfo(self, said):
-        return {"Track": self.song}
+        return {"Track": self.song, "RelTime": self.rel}
 
     def GetTransportInfo(self, said):
         return {"CurrentTransportState": "PLAYING" if self.playing else "STOPPED"}
@@ -76,7 +101,10 @@ class Speaker:
         self.uri = said["CurrentURI"]
 
     def Seek(self, said):
-        self.song = int(said["Target"])
+        if said["Unit"] == "REL_TIME":
+            self.rel = said["Target"]
+        else:
+            self.song, self.rel = int(said["Target"]), "0:00:00"
 
     def Play(self, said):
         self.playing = True
@@ -85,6 +113,10 @@ class Speaker:
         del self.queue[int(said["ObjectID"].split("/")[1]) - 1]
 
     def AddURIToQueue(self, said):
+        if said["EnqueuedURI"].startswith("file:///saved#"):
+            # A playlist: the speaker loads every song of it itself.
+            self.queue += self.saved[said["EnqueuedURI"].split("#")[1]][1]
+            return {"NumTracksAdded": len(self.queue)}
         at = int(said["DesiredFirstTrackNumberEnqueued"])
         self.queue.insert(at - 1 if at else len(self.queue), said["EnqueuedURI"])
 
@@ -275,6 +307,68 @@ async def test_a_queue_replaced_from_another_app_plays_on_from_where_it_was(
     await house.settled()
     assert house.speaker.queue == ["a", "b", "c"] and not house.speaker.playing
     assert "Play" not in house.speaker.asked
+
+
+async def test_the_speaker_keeps_the_partys_copy_and_loads_it_back_whole(hass, house):
+    """A song put back one at a time came back with less than it had. The speaker
+    loading a playlist of its own brings the queue back as it was made."""
+    [(copy, (name, songs))] = house.speaker.saved.items()
+    assert name.startswith("Jukebox party copy (") and songs == ["a", "b", "c"]
+    assert house.party.copy == copy
+
+    # A song is taken out: the queue is emptied and the copy loaded, in one go.
+    house.speaker.queue = ["a", "c"]
+    house.speaker.asked.clear()
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b", "c"]
+    adds = [a for a in house.speaker.asked if a == "AddURIToQueue"]
+    assert len(adds) == 1 and "RemoveAllTracksFromQueue" in house.speaker.asked
+
+    # Songs added or moved lose nothing: taken out and moved back, nothing reloaded.
+    house.speaker.queue = ["c", "a", "b", "z"]
+    house.speaker.asked.clear()
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b", "c"]
+    assert "RemoveAllTracksFromQueue" not in house.speaker.asked
+
+    # Jukebox's own change to the queue: the copy is made again, and the old one goes.
+    assert (await house.do("queue_remove", value=3))["success"]
+    [(_id, (_name, songs))] = house.speaker.saved.items()
+    assert songs == ["a", "b"]
+
+    # Someone deletes the copy: said on the page, and songs go back one at a time.
+    house.speaker.saved.clear()
+    house.speaker.queue = ["a"]
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b"]
+    assert any("copy of the queue was deleted" in u["what"] for u in house.party.undone)
+
+
+async def test_the_music_goes_back_to_where_it_was_in_the_song(hass, house):
+    """Not to the start of the song, which a guest could use to make it start again
+    and again (owner, 2026-11-24)."""
+    house.speaker.rel = "0:01:10"
+    await house.a_guest(KITCHEN, media_position=70)  # a report: where it is is noted
+    assert house.party.at[0] == 70
+
+    house.speaker.queue, house.speaker.song = ["x", "y"], 1
+    house.speaker.playing, house.speaker.rel = False, "0:00:03"
+    house.watch["changed"]()
+    await house.settled()
+    assert house.speaker.queue == ["a", "b", "c"] and house.speaker.playing
+    assert house.speaker.song == 2
+    minutes, seconds = house.speaker.rel.split(":")[1:]
+    assert int(minutes) * 60 + int(seconds) >= 70
+
+
+async def test_the_copy_goes_when_the_party_ends(hass, house):
+    assert house.speaker.saved
+    assert (await house.do("party", on=False))["success"]
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert house.speaker.saved == {}
 
 
 def test_a_song_is_described_to_the_speaker_as_the_speaker_writes_it():

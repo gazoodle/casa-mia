@@ -1,4 +1,5 @@
-// The queue of one group, in the big player: tap a song to play it, drag it by its handle
+// The queue of one group, in the big player (or, given `playlist`, the songs of a Sonos
+// playlist, which are moved and taken out the same way but not played one by one): tap a song to play it, drag it by its handle
 // to move it, or take it out. Everything is asked of Jukebox, and after each change the
 // speaker is asked what the queue now is, so what is shown is the speaker's and not a guess.
 // The queue is asked for again when the house's music says its size or the song has
@@ -13,9 +14,13 @@ export const QUEUE = "casa-mia-jukebox-queue";
 const ROW = 56;
 
 export class Queue extends LitElement {
-  static properties = { group: { attribute: false }, stamp: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
+  static properties = { group: { attribute: false }, playlist: {}, locked: { type: Boolean }, stamp: { type: Number }, _songs: { state: true }, _total: { state: true }, _why: { state: true }, _drag: { state: true } };
   hass!: { connection?: any; [key: string]: any };
   group?: Group;
+  /** A Sonos playlist's id (`SQ:3`): its songs are listed, not the queue's. */
+  playlist?: string;
+  /** Only to look at: nothing can be moved or taken out. */
+  locked = false;
   /** Ask Jukebox for something; true when it was done. The big player's own, so that a
    * refusal is said on the player. */
   do!: (action: string, data: object) => Promise<boolean>;
@@ -33,18 +38,18 @@ export class Queue extends LitElement {
     const was = changed.get("group") as Group | undefined;
     const now = this.group;
     if (changed.has("group") && now && (!was || was.id !== now.id || was.queue_size !== now.queue_size || was.queue_position !== now.queue_position || was.kind !== now.kind)) this._fetch();
-    else if (changed.has("stamp") && now) this._fetch();
+    else if ((changed.has("stamp") || changed.has("playlist")) && now) this._fetch();
   }
 
   private _fetch() {
     const asked = ++this._asked;
-    queue(this.hass, this.group!.id).then(
+    queue(this.hass, this.group!.id, this.playlist).then(
       (found) => {
         // An answer that was overtaken is dropped, and a drag isn't redrawn under the finger
         // (the queue is asked for again when it ends).
         if (asked !== this._asked || this._drag) return;
         [this._songs, this._total, this._why] = [found.songs, found.total, undefined];
-        fire(this, "jb-queued", found.total); // the player's count of the queue is the speaker's
+        if (!this.playlist) fire(this, "jb-queued", found.total); // the player's count of the queue is the speaker's
       },
       (err) => asked === this._asked && (this._why = reason(err)),
     );
@@ -55,7 +60,9 @@ export class Queue extends LitElement {
     const songs = [...(this._songs ?? [])];
     change(songs);
     this._songs = songs;
-    await this._busy.during(`row:${row}`, this.do(action, data));
+    // A playlist's own actions, named as the queue's are.
+    const [what, more] = this.playlist ? [action.replace("queue_", "playlist_"), { playlist: this.playlist }] : [action, {}];
+    await this._busy.during(`row:${row}`, this.do(what, { ...data, ...more }));
     this._fetch();
   }
 
@@ -82,19 +89,23 @@ export class Queue extends LitElement {
   render() {
     const { group, _songs: songs, _drag: drag } = this;
     if (!group) return nothing;
-    if (!songs) return html`<p class="empty">${this._why ? `The queue couldn't be read: ${this._why}` : "Asking the speaker for its queue…"}</p>`;
-    if (!songs.length) return html`<p class="empty">The queue is empty. Add something from the favourites.</p>`;
+    const list = this.playlist ? "playlist" : "queue";
+    if (!songs) return html`<p class="empty">${this._why ? `The ${list} couldn't be read: ${this._why}` : `Asking the speaker for the ${list}…`}</p>`;
+    if (!songs.length) return html`<p class="empty">${this.playlist ? "This playlist is empty." : "The queue is empty. Press + to add something."}</p>`;
     // The song that is playing, when it is the queue that plays.
-    const now = group.kind === "queue" ? group.queue_position : null;
+    const now = !this.playlist && group.kind === "queue" ? group.queue_position : null;
+    const fixed = this.locked;
     return html`${this._why ? html`<p class="empty">The queue couldn't be read again: ${this._why}</p>` : nothing}
       ${songs.map((song, i) => {
         // While one is dragged, the rows it passes move aside to show where it would land.
         const shift = !drag ? 0 : i === drag.from ? drag.dy : drag.from < i && i <= drag.to ? -ROW : drag.to <= i && i < drag.from ? ROW : 0;
         return html`<div class="row ${i + 1 === now ? "now" : ""} ${drag?.from === i ? "held" : ""} ${this._busy.on(`row:${i}`)}" style="transform:translateY(${shift}px)">
-          <span class="handle" @pointerdown=${(e: PointerEvent) => this._down(e, i)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${icon("drag")}</span>
-          <button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}"><b>${song.title}</b><small>${song.artist}</small></button>
+          ${fixed ? html`<span></span>` : html`<span class="handle" @pointerdown=${(e: PointerEvent) => this._down(e, i)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${icon("drag")}</span>`}
+          ${this.playlist
+            ? html`<span class="t"><b>${song.title || "A song with no title"}</b><small>${song.artist}</small></span>`
+            : html`<button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}"><b>${song.title || "A song with no title"}</b><small>${song.artist}</small></button>`}
           <span class="len">${i + 1 === now ? icon("volume") : song.duration ? mmss(song.duration) : nothing}</span>
-          <button class="ib" @click=${() => this._act("queue_remove", { value: i + 1 }, (all) => all.splice(i, 1))} aria-label="Take ${song.title} out of the queue">${icon("close")}</button>
+          ${fixed ? html`<span></span>` : html`<button class="ib" @click=${() => this._act("queue_remove", { value: i + 1 }, (all) => all.splice(i, 1))} aria-label="Take ${song.title} out of the ${list}">${icon("close")}</button>`}
         </div>`;
       })}
       ${this._total > songs.length ? html`<p class="empty">and ${this._total - songs.length} more, which aren't shown</p>` : nothing}`;

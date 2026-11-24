@@ -135,8 +135,9 @@ class Base:
 
     @property
     def doing(self) -> dict[str, dict[str, Any]]:
-        """What was last done to each player and why, and whether it is still in force
-        (`now`): a volume or a mute to be put back, another station to come back from
+        """What was last done to each player (`did`) and why (`because`, to follow
+        "…, because"; `why` is the same as the trail words it), and whether it is still
+        in force (`now`): a volume or a mute to be put back, another station to come back from
         (`until`, and `next` once the return waits on something), or an action being
         carried out this moment. For whoever shows the player, and for anything that
         must tell these changes from a person's (Jukebox's party lock)."""

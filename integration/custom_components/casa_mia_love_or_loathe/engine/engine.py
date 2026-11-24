@@ -248,9 +248,17 @@ class Engine(Stations):
                 # these changes from a person's knows of it before the speaker reports
                 # the change (Base.doing).
                 player.acting = True
+                # `because` is for a sentence shown to the household ("Muted until the
+                # next track, because …"); `why` is the trail's own line, kept as it was.
+                reason = (
+                    f"has been {why}"
+                    if repeats
+                    else f"is in the {group.feeling}d group “{group.name}”"
+                )
                 player.last = {
                     "did": "",
                     "why": f"{title}{by} {why}",
+                    "because": f"“{title}”{by} {reason}",
                     "at": dt_util.utcnow().isoformat(),
                 }
                 self._tell()
@@ -320,4 +328,4 @@ class Engine(Stations):
         except HomeAssistantError as exc:
             own = await self._actions[group.act.action](entity, player, group, state)
             return f"could not skip ({exc}): {own}"
-        return "skipped: it was one of a queue"
+        return "skipped to the next song"

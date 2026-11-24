@@ -19,6 +19,17 @@ const TABS: [Tab, string][] = [
   ["search", "Search"],
 ];
 const REPEAT = { off: "all", all: "one", one: "off" } as const;
+/** Where this device keeps which folders of favourites are closed. A convenience only:
+ * a browser that won't keep it (a private window) shows them all open. */
+const FOLDED = "casa-mia-jukebox-folded";
+function remembered(): string[] {
+  try {
+    const kept = JSON.parse(localStorage.getItem(FOLDED) ?? "[]");
+    return Array.isArray(kept) ? kept.filter((k) => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 /** Show the big player for the group `room` is in, in place of any already open. */
 export function open(hass: Hass, room: string, tab?: Tab): void {
@@ -27,7 +38,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _toast: { state: true } };
+  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -37,6 +48,14 @@ export class Big extends LitElement {
   _why?: string;
   /** None until asked for; a string is why they couldn't be had. */
   _favourites?: Favourite[] | string;
+  /** The Sonos playlist whose songs are being looked at, in the Favourites tab. */
+  _viewing?: Favourite;
+  /** Search was opened to add to the queue or to the playlist being looked at: a thing
+   * chosen goes there, and the player goes back to where it came from. */
+  _adding?: "queue" | "playlist";
+  private _fresh = 0;
+  /** The folders of favourites that are closed up, remembered on this device. */
+  _folded: string[] = remembered();
   _menu?: Favourite;
   /** Something that can't be undone, asked about again in large letters. */
   _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
@@ -146,14 +165,43 @@ export class Big extends LitElement {
     this._menu = this._confirm = undefined;
     const done = await this._do("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) }, `fav:${favourite.media_content_id}`);
     const said = { next: "Playing next", add: "Added to the end" } as Record<string, string>;
-    if (done) this._say(`${said[enqueue ?? ""] ?? "Playing"}: ${favourite.title}`);
+    if (!done) return;
+    this._say(`${said[enqueue ?? ""] ?? "Playing"}: ${favourite.title}`);
+    // Search was opened from the queue, to add to it: back to the queue, to carry on.
+    if (this._adding === "queue") [this._adding, this.tab] = [undefined, "queue"];
+  }
+
+  private _fold(folder: string) {
+    this._folded = this._folded.includes(folder) ? this._folded.filter((f) => f !== folder) : [...this._folded, folder];
+    try {
+      localStorage.setItem(FOLDED, JSON.stringify(this._folded));
+    } catch {
+      // Not kept on this device: it still folds until the page is left.
+    }
+  }
+
+  /** Open Search with an empty box, to add to the queue or to the playlist looked at. */
+  private _add(to: "queue" | "playlist") {
+    [this._adding, this.tab] = [to, "search"];
+    this._fresh++;
+  }
+
+  /** Add a thing found to the end of the playlist being looked at, and go back to it. */
+  private async _addToPlaylist(playlist: Favourite, found: Favourite) {
+    const done = await this._do("playlist_add", { playlist: playlist.media_content_id, media_content_id: found.media_content_id, name: found.title.slice(0, 60) }, `fav:${found.media_content_id}`);
+    if (!done) return;
+    this._say(`Added to ${playlist.title}: ${found.title}`);
+    [this._adding, this.tab] = [undefined, "favourites"];
+    this._stamp++;
   }
 
   private _choose(group: Group, favourite: Favourite) {
     // A station plays at once and leaves the queue as it is; so does anything in a room
     // that is playing nothing. The rest is lined up, so there is a choice of where. A
     // Sonos playlist always has a choice: it can be deleted.
-    if (favourite.live || (group.kind === "nothing" && !favourite.playlist)) this._play(favourite);
+    // Adding to a playlist: there is only its end to add to, so nothing is asked.
+    if (this._adding === "playlist" && this._viewing) this._addToPlaylist(this._viewing, favourite);
+    else if (favourite.live || (group.kind === "nothing" && !favourite.playlist)) this._play(favourite);
     else this._menu = favourite;
   }
 
@@ -161,7 +209,7 @@ export class Big extends LitElement {
     const shown = this.tab ?? "rooms";
     return html`<div class="tabs">
       ${TABS.map(
-        ([tab, label]) => html`<button class=${this.tab === tab ? "up" : shown === tab ? "shown" : ""} @click=${() => (this.tab = this.tab === tab ? undefined : tab)}>
+        ([tab, label]) => html`<button class=${this.tab === tab ? "up" : shown === tab ? "shown" : ""} @click=${() => ([this._adding, this._viewing, this.tab] = [undefined, undefined, this.tab === tab ? undefined : tab])}>
           ${icon(tab)}${label}${tab === "rooms" && group.rooms.length > 1 ? html` (${group.rooms.length})` : nothing}
         </button>`,
       )}
@@ -193,7 +241,7 @@ export class Big extends LitElement {
         <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
              element, and it shows nothing where this login can't rate. -->
         <casa-mia-thumbs quiet .hass=${this.hass} .entityId=${group.id}></casa-mia-thumbs>
-        ${love ? html`<p class="love ${love.over ? "over" : ""}"><strong>Love it or Loathe it${love.over ? `, ${clock(group.love!.at)}` : ""}:</strong> ${love.what}. ${love.why}.</p>` : nothing}
+        ${love ? html`<p class="love ${love.over ? "over" : ""}"><strong>Love it or Loathe it${love.over ? `, at ${clock(group.love!.at)}` : ""}:</strong> ${love.text}</p>` : nothing}
       </div>
       ${at !== null && group.duration
         ? html`<div class="seek">
@@ -274,16 +322,26 @@ export class Big extends LitElement {
   private _waiting = (key: string) => this._busy.on(key);
 
   private _search(group: Group) {
-    return html`${this._head("Search", "The music library and Spotify. Press + to play something or add it to the queue.")}
+    const adding = this._adding === "playlist" && this._viewing;
+    const head = adding
+      ? this._head(`Add to ${adding.title}`, "Press + beside a song or an album to add it to the end of the playlist.")
+      : this._adding === "queue"
+        ? this._head("Add to the queue", "Press + beside what you find to play it next or add it to the end.")
+        : this._head("Search", "The music library and Spotify. Press + to play something or add it to the queue.");
+    return html`${head}
       <div class="scroll">
-        <casa-mia-jukebox-find .hass=${this.hass} .room=${group.id} .waiting=${this._waiting} .changes=${this._busy.changes} @jb-choose=${(e: CustomEvent) => this._choose(group, e.detail)}></casa-mia-jukebox-find>
+        <casa-mia-jukebox-find .hass=${this.hass} .room=${group.id} .fresh=${this._fresh} .waiting=${this._waiting} .changes=${this._busy.changes} @jb-choose=${(e: CustomEvent) => this._choose(group, e.detail)}></casa-mia-jukebox-find>
       </div>`;
   }
 
   private _queue(group: Group) {
     const none = this._queued === 0;
     return html`${this._head("Queue", "Tap a song to play it. Drag one by its handle to move it.")}
+      ${group.kind !== "queue" && !none
+        ? html`<div class="tools"><button class="go ${this._busy.on("queue_play")}" @click=${() => this._do("queue_play", { value: 1 })}>${icon("play")}Play the queue${group.kind === "radio" ? " in place of the radio" : ""}</button></div>`
+        : nothing}
       <div class="tools">
+        <button @click=${() => this._add("queue")}>${icon("plus")}Add</button>
         ${this._house?.me === "host" ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>` : nothing}
         <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)}>${icon("trash")}Clear the queue</button>
       </div>
@@ -316,6 +374,19 @@ export class Big extends LitElement {
     const found = this._favourites;
     const folders = Array.isArray(found) ? [...new Set(found.map((f) => f.folder))] : [];
     const tile = (f: Favourite) => html`<button class=${this._busy.on(`fav:${f.media_content_id}`)} @click=${() => this._choose(group, f)}>${art(this.hass, f.picture, f.title)}<b>${f.title}</b></button>`;
+    const viewing = this._viewing;
+    if (viewing) {
+      // A playlist's songs, to see what is in it before it is played. The people who
+      // may change playlists can move, take out and add; anyone else only looks.
+      const host = this._house?.me === "host";
+      return html`${this._head(viewing.title, host ? "Drag a song by its handle to move it, or take it out with the cross." : "The songs in this playlist.")}
+        <div class="tools">
+          <button @click=${() => (this._viewing = undefined)}>${icon("back")}Favourites</button>
+          <button @click=${() => (this._menu = viewing)}>${icon("play")}Play…</button>
+          ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button>` : nothing}
+        </div>
+        <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp}></casa-mia-jukebox-queue></div>`;
+    }
     return html`${this._head("Favourites", "The stations, playlists and songs saved in Sonos")}
       <div class="scroll">
         ${found === undefined
@@ -323,7 +394,12 @@ export class Big extends LitElement {
           : typeof found === "string"
             ? html`<p class="empty">The favourites couldn't be fetched: ${found}</p>`
             : found.length
-              ? folders.map((folder) => html`<h3>${folder}</h3><div class="tiles">${found.filter((f) => f.folder === folder).map(tile)}</div>`)
+              ? folders.map((folder) => {
+                  const inside = found.filter((f) => f.folder === folder);
+                  const shut = this._folded.includes(folder);
+                  return html`<h3><button class="fold" aria-expanded=${!shut} @click=${() => this._fold(folder)}>${icon(shut ? "chevron" : "down")}${folder} (${inside.length})</button></h3>
+                    ${shut ? nothing : html`<div class="tiles">${inside.map(tile)}</div>`}`;
+                })
               : html`<p class="empty">There are no favourites saved in Sonos yet.</p>`}
       </div>`;
   }
@@ -390,6 +466,7 @@ export class Big extends LitElement {
               : html`<button class="main" @click=${() => this._play(menu, "next")}>Play next</button>
                   <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
                   <button class="danger sep" @click=${() => ([this._menu, this._confirm] = [undefined, replace])}>Play now and replace the queue…</button>`}
+            ${menu.playlist && this._viewing !== menu ? html`<button class="sep" @click=${() => ([this._menu, this._viewing, this.tab] = [undefined, menu, "favourites"])}>See what is in it</button>` : nothing}
             ${menu.playlist && house.me === "host" ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
           </div>
         </div>
@@ -495,6 +572,9 @@ export class Big extends LitElement {
       .tools { display: flex; gap: 8px; padding: 0 12px 8px; }
       .tools button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 6px; border-radius: 12px; background: rgb(255 255 255 / 10%); font-size: 13px; font-weight: 600; }
       .tools svg { width: 18px; height: 18px; flex: none; }
+      .tools .go { background: #fff; color: #111; }
+      .fold { display: flex; align-items: center; gap: 4px; width: 100%; min-height: 36px; text-transform: inherit; letter-spacing: inherit; }
+      .fold svg { width: 18px; height: 18px; }
       .scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 6px max(16px, env(safe-area-inset-bottom)); }
       .scroll h3 { margin: 16px 10px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
       .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }

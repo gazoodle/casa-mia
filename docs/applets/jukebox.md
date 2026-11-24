@@ -69,7 +69,10 @@ Tap a player to open it over the whole screen. There you have:
   what it was playing; Stop clears it.
 - **Queue:** the songs lined up, with the one that is playing marked. Tap a song to
   play it, drag one by the handle on its left to move it, or press the cross to take
-  it out. The first 500 songs are shown. Above the songs, **Save as a playlist** keeps
+  it out. The first 500 songs are shown. **Add** opens Search with an empty box, and
+  brings you back to the queue once you have added something. While a radio station
+  is playing and the queue has songs in it, **Play the queue** starts the queue in
+  the station's place. Above the songs, **Save as a playlist** keeps
   the queue as a new Sonos playlist under a name you give it, and **Clear the queue**
   empties it, after asking again. **Save as a playlist** is shown only to the people
   who may change playlists (see [Setting it up](#setting-it-up)).
@@ -81,7 +84,11 @@ Tap a player to open it over the whole screen. There you have:
   choose **Play next**, **Add to the end of the queue**, or **Play now and replace
   the queue**, which asks again before the queue is lost. A Sonos playlist also has
   **Delete this playlist**, which removes it from Sonos for good and asks first. It
-  is shown only to the people who may change playlists.
+  is shown only to the people who may change playlists. **See what is in it** lists a
+  playlist's songs before you play it. There, the people who may change playlists can
+  drag a song to move it, take one out with the cross, and press **Add** to put
+  something on the end: a song or an album from the music library, or a song, an
+  album or a playlist from Spotify. Each heading in Favourites folds its section away.
 
 - **Search:** one box searches the Sonos music library and Spotify together, and shows
   what each found under its own heading. Press **+** beside a result to play it, play
@@ -121,6 +128,12 @@ change playlists** in Jukebox's Configure dialog. While it is on for those rooms
   is taken out.
 - **The volume** of each room is kept, including a change made with the buttons on a
   speaker.
+
+During a party the speaker keeps a copy of the queue, as a Sonos playlist called
+"Jukebox party copy" with the room's name. You will see it in the Sonos app; Jukebox
+doesn't list it. When a song has been taken out, or the queue replaced, the speaker
+loads the copy back, and the music carries on from about where the other app cut in.
+The copy is deleted when the party ends.
 
 A change is put back a few seconds after it is made, once the other app has finished
 making it, and each one is listed with its time when you press **Party on**. If the
@@ -168,7 +181,10 @@ For example, to run a disco ball for as long as the party lasts, switch it on wh
 
 Limits:
 
-- A party ends when Home Assistant restarts.
+- A party ends when Home Assistant restarts. Its copy of the queue is then left among
+  the Sonos playlists until the next party in that room replaces it, or you delete it.
+- If someone deletes the copy during a party, the page says so, and songs are put back
+  one at a time with fewer of their details.
 - The room that leads the group (the one the party was started from, in Sonos's terms
   the coordinator) can't be taken out of the group until the party is ended.
 - Songs moved in another app are noticed through the leading speaker's own report of
@@ -187,8 +203,8 @@ Jukebox works with it. The two share no settings; there is nothing to set up.
   for a login that may rate.
 - **Why a player was changed.** When Love it or Loathe it mutes a song, changes its
   volume, switches station or skips it, the big player says what it did and why, under
-  the title: "Muted until the next track. Last Christmas by Wham! is in Christmas
-  (loathe)". It stays while that is in force and for ten minutes after, or until you
+  the title: "Muted until the next track, because “Last Christmas” by Wham! is in the
+  loathed group “Christmas”". It stays while that is in force and for ten minutes after, or until you
   put other music on from Jukebox. A small player says what was done for as long as it
   is in force.
 - **At a party**, what Love it or Loathe it does is not taken for a guest's change. The

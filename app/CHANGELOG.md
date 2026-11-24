@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026.11.12-b20
+
+- Fixed: Jukebox showed Stop where Next should be for a song in a queue that had no
+  title or length, such as a streamed song the speaker hasn't fetched the details of.
+  It was taken for a radio station (since b18).
+- Jukebox's party lock has the speaker keep its own copy of the queue, as a Sonos
+  playlist named "Jukebox party copy" with the room's name. When a song has been taken
+  out or the queue replaced from another app, the speaker loads that copy back, so the
+  songs return with everything they had. Until now each song was put back one at a
+  time and came back with less: no length, and sometimes no title. The copy is made
+  again after each change from Jukebox, isn't listed with your playlists in Jukebox,
+  and is deleted when the party ends. You will see it in the Sonos app during a party.
+- When the party lock puts the music back, it returns to the place in the song where
+  another app cut in, not to the start of the song.
+- Jukebox's Queue tab has **Play the queue**, shown when something else is playing (a
+  radio station) and the queue has songs in it, and **Add**, which opens Search with
+  an empty box and returns to the queue once something has been added.
+- Jukebox can show what is in a Sonos playlist before it is played: choose a playlist
+  in Favourites, then **See what is in it**. The people who may change playlists can
+  move its songs, take one out, and add to its end: a song or an album from the music
+  library, or a song, an album or a playlist from Spotify.
+- Jukebox's Favourites tab: each heading (Playlists, Radio and so on) folds its
+  section away, remembered on that device.
+- Jukebox's line about what Love it or Loathe it did is one plain sentence: "Muted
+  until the next track, because “Last Christmas” by Wham! is in the loathed group
+  “Christmas”."
+- Love it or Loathe it's `players` attribute has `because`, the reason in words that
+  follow "because". A skipped song's result now reads "skipped to the next song".
+
 ## 2026.11.12-b19
 
 - Fixed: at a party, a queue replaced from another app (the Sonos app's "play this

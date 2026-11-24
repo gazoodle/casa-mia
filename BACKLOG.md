@@ -111,18 +111,43 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     among them came back with no title, artist or album (read from the speaker afterwards;
     they still played, and the saved playlist still had the details). Fixed in b19:
     the music is started again where it was, and a song is described to the speaker in
-    the speaker's own XML names. **Not proven:** that the names were the cause of the
+    the speaker's own XML names. **Disproved the same day:** the names were not the cause of the lost titles. A
+    streamed song has no title straight after its playlist is queued (the speaker
+    fetches the details from the service, slowly and not for all), and library songs
+    put back one at a time lose their lengths. b20 has the speaker keep and load its
+    own copy of the queue instead (HANDOVER); that has not met a real speaker either.
+    Left of it: one song taken out reloads the whole queue, so the song playing starts
+    again; a party ended by a restart leaves its copy among the Sonos playlists.
+    The earlier guess, for the record: that the names were the cause of the
     lost titles. It is the likeliest reading (library songs, which the speaker looks
     up itself, were unharmed), but no streamed song has been put back by b19 on a real
     speaker. If titles are still lost, log what `upnp.songs` read and what `insert`
     sent before guessing again; the saved playlist's own `r:resMD` for a song is the
     known-good description.
+  - **From the owners' first evening with it** (2026-11-24, built in b20): play the
+    queue while the radio is on; add from the queue's own view; see a playlist's songs
+    before playing it, and move, take out and add there; folds on Favourites; the
+    Love it or Loathe it line as one plain sentence; the music back at the place in
+    the song after a put-back. Left:
+    - The playlist changes were tried on a real speaker the same day, on a playlist
+      made for the purpose and deleted after: a library song and album added, a
+      Spotify song and album added, a song moved up and down, one taken out. Learned:
+      each change must carry the playlist's change number as it stands, or it is
+      refused (error 1028); a speaker won't describe one library song when asked, but
+      fills in its title and artist itself; and a Spotify song is named to the
+      speaker with no account, which the speaker picks. So the first reading, that
+      Jukebox needed the account's number, was wrong. Not seen: any of it from the
+      page itself, against a real speaker.
+    - A playlist's listing gives no lengths for its songs, so none are shown there.
+    - The same way of naming a Spotify song serves the clean-up of the old playlists
+      (below): a replacement can be written into a new playlist with no account.
+    - **Asked the same day, for discussion:** pictures for the songs of a queue and
+      a playlist; more about what a radio station is playing.
+    - After a put-back the music once started at the next song, not the one playing
+      (b19, on a real speaker; the cause wasn't found). b20 loads the queue back whole
+      and logs where it returns to ("back to song N"): read that line if it recurs.
   - **Playlists, asked 2026-11-24, not built:**
-    - **Change an existing playlist.** Only save and delete were asked for at first.
-      The speaker has the actions (SaveQueue over an existing one, AddURIToSavedQueue,
-      ReorderTracksInSavedQueue), none tried here. Proposed order: save the queue over
-      an existing playlist, with the large-letters warning; "add to a playlist" from
-      Search; a song-by-song editor last. For the people who may change playlists.
+    - **Save the queue over an existing playlist**, with the large-letters warning.
     - **Keep a copy of every playlist** (owner: "snaffle a copy"), so one deleted or
       changed in the Sonos app can be put back. A party's queue is already safe from a
       deleted playlist (the queue is its own copy); this is for the playlist itself.
