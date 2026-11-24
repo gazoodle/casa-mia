@@ -79,3 +79,39 @@ async def test_a_songs_picture_is_the_speakers_passed_on_by_jukebox(
     aioclient_mock.clear_requests()
     aioclient_mock.get(f"{SPEAKER}{COVER}", status=404)
     assert (await page.get(own)).status == 404
+
+
+async def test_a_playlists_tile_is_made_of_the_covers_of_its_first_albums(
+    hass,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    def song(n, album):
+        return (
+            f'<item id="S://nas.example/{n}.mp3"><upnp:album>{album}</upnp:album>'
+            f"<upnp:albumArtURI>/getaa?u={n}</upnp:albumArtURI></item>"
+        )
+
+    albums = ["Harbour Lights", "Harbour Lights", "Neon Arcade", "Lido", "Slow", "More"]
+    listed = (
+        '<DIDL-Lite xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"'
+        ' xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
+        + "".join(song(n, album) for n, album in enumerate(albums))
+        + "</DIDL-Lite>"
+    )
+    aioclient_mock.post(
+        BROWSE, text=answered("ContentDirectory", "Browse", Result=listed)
+    )
+    feed = hass.data[FEED]
+    found = [
+        {"playlist": True, "media_content_id": "SQ:4"},
+        {"playlist": False, "media_content_id": "FV:2/1"},
+    ]
+    await art.tiled(feed, KITCHEN, found)
+
+    # Four, one for each album and not two of the same; a favourite is left alone.
+    start = f"{art.URL}/{feed.art_key}/{KITCHEN}?u="
+    assert found[0]["pictures"] == [
+        start + quote(f"/getaa?u={n}", safe="") for n in (0, 2, 3, 4)
+    ]
+    assert "pictures" not in found[1]

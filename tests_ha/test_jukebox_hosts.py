@@ -174,3 +174,43 @@ async def test_what_was_done_to_the_last_music_isnt_said_over_new_music(
         "success"
     ]
     assert (await page.receive_json())["event"]["groups"][0]["love"] is None
+
+
+async def test_a_screen_changes_playlists_except_while_a_party_is_on_anywhere(
+    hass,
+    house,  # noqa: F811
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+):
+    await options(hass, screens=[hass_read_only_user.id])
+    tablet = await hass_ws_client(hass, hass_read_only_access_token)
+
+    async def curates():
+        page = await hass_ws_client(hass, hass_read_only_access_token)
+        await ask(page, HOUSE)
+        return (await page.receive_json())["event"]["curates"]
+
+    async def save():
+        named = {"action": "queue_save", "entity_id": KITCHEN, "name": "A list"}
+        return await ask(tablet, DO, **named)
+
+    # A party is on: the tablet's page isn't offered the playlists, and is refused.
+    assert await curates() is False
+    refused = await save()
+    assert not refused["success"] and "until it ends" in refused["error"]["message"]
+    # Not even once the tablets are let to change the party's music.
+    assert (await house.do("party_open", on=True))["success"]
+    assert not (await save())["success"]
+
+    # The party over, a playlist is the tablet's to save, change and delete.
+    assert (await house.do("party", on=False))["success"]
+    assert await curates() is True
+    assert (await save())["success"]
+    [kept] = house.speaker.saved
+    gone = {"action": "playlist_delete", "media_content_id": kept}
+    assert (await ask(tablet, DO, entity_id=KITCHEN, **gone))["success"]
+
+    # A login on neither list still can't, party or no party.
+    await options(hass, screens=[])
+    assert await curates() is False and not (await save())["success"]

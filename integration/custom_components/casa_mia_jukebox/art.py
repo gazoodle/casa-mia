@@ -15,12 +15,13 @@ from __future__ import annotations
 
 import hmac
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 import aiohttp
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from yarl import URL as Address
 
@@ -36,6 +37,8 @@ _LOGGER = logging.getLogger(__name__)
 URL = f"/api/{DOMAIN}/art"
 # How a speaker addresses a picture it serves itself.
 _OWN = "/getaa?"
+# How many pictures a playlist's tile is made of.
+TILE = 4
 # A cover is tens of kilobytes; nothing bigger than this is passed on.
 _MOST = 4 * 1024 * 1024
 
@@ -48,6 +51,29 @@ def shown(key: str, room: str, picture: str | None) -> str | None:
     if picture.startswith(_OWN):
         return f"{URL}/{key}/{room}?u={quote(picture, safe='')}"
     return picture if picture.startswith("https://") else None
+
+
+async def tiled(feed: Feed, room: str, favourites: list[dict[str, Any]]) -> None:
+    """Give each Sonos playlist among the favourites the pictures of its first songs
+    (`pictures`), for a tile that shows what is in it: a playlist has no picture of
+    its own, and a row of the same blank tiles isn't told apart (owner, 2026-11-24).
+
+    ponytail: the speaker is asked about each playlist every time the favourites are
+    fetched, one after another. Remember them by the playlist's change number if a
+    house with many playlists finds that slow."""
+    host = address(feed.hass, room)
+    session = async_get_clientsession(feed.hass)
+    for playlist in favourites:
+        if not playlist["playlist"] or host is None:
+            continue
+        try:
+            found = await upnp.covers(session, host, playlist["media_content_id"])
+        except HomeAssistantError as err:
+            # The tile is drawn without them; the playlist can still be played.
+            _LOGGER.warning("%s: no pictures for a playlist's tile: %s", room, err)
+            continue
+        addresses = (shown(feed.art_key, room, picture) for picture in found)
+        playlist["pictures"] = [a for a in addresses if a][:TILE]
 
 
 class View(HomeAssistantView):
@@ -79,7 +105,12 @@ class View(HomeAssistantView):
                     # Usual for a song with no cover: the page draws its own tile.
                     _LOGGER.debug("%s has no picture there (%s)", room, got.status)
                     return web.Response(status=404)
-                picture = await got.content.read(_MOST)
+                if int(got.headers.get("Content-Length") or 0) > _MOST:
+                    _LOGGER.warning("%s: a song's picture is too big to pass on", room)
+                    return web.Response(status=404)
+                # All of it. Reading "up to" a size gives only what has arrived so far,
+                # and the page was then sent the top part of a cover (b21 to b23).
+                picture = await got.read()
         except (aiohttp.ClientError, OSError, TimeoutError) as err:
             _LOGGER.warning(
                 "%s: a song's picture couldn't be fetched from the speaker: %s",

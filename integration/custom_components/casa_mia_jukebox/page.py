@@ -109,10 +109,12 @@ def _ws_house(
     def send(model: dict[str, Any]) -> None:
         # With this login's part (may.py), so the page offers only what it may do. It
         # is looked up at each send; Jukebox decides again when something is asked.
-        me = may.who(hass, connection.user).role
-        connection.send_message(
-            websocket_api.event_message(msg["id"], {**model, "me": me})
-        )
+        me = may.who(hass, connection.user)
+        mine = {
+            "me": me.role,
+            "curates": may.curates(me, hass.data[FEED].parties.on),
+        }
+        connection.send_message(websocket_api.event_message(msg["id"], model | mine))
 
     connection.send_result(msg["id"])
     connection.subscriptions[msg["id"]] = hass.data[FEED].listen(send)
@@ -162,6 +164,7 @@ async def _ws_favourites(
 ) -> None:
     try:
         found = await favourites(hass, msg[ATTR_ENTITY_ID])
+        await art.tiled(hass.data[FEED], msg[ATTR_ENTITY_ID], found)
     except HomeAssistantError as err:
         connection.send_error(msg["id"], "failed", str(err))
         return

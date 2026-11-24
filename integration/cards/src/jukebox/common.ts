@@ -32,6 +32,9 @@ export type Group = {
   party: Party | null;
   /** What Love it or Loathe it last did to this player, where it is installed. */
   love: Love | null;
+  /** On a station: the cover of the song it is playing, found on Spotify. `picture` is
+   * then the station's own, and is shown on the cover as a badge. */
+  cover?: string | null;
   /** The Sonos playlist (`SQ:3`) this queue was loaded from or last saved as, from Jukebox. */
   source?: string | null;
 };
@@ -44,10 +47,13 @@ export type Love = { did: string; why: string; because?: string; at: string; now
 export type Party = { since: string; undone: { at: string; what: string; failed: boolean }[]; unwatched: string | null; /** The screens may change the music. */ open: boolean };
 /** `me` is this login's part while a party is on (the integration's may.py): a host runs
  * it, a screen may change the music once a host lets the screens, anyone else only looks. */
-export type House = { groups: Group[]; rooms: Record<string, Room>; me: "host" | "screen" | "other" };
+export type House = { groups: Group[]; rooms: Record<string, Room>; me: "host" | "screen" | "other"; /** This login may save, change and delete playlists now. */ curates?: boolean };
 
 /** Whether this login can't change this group's music now: a party is on and it is neither
  * a host nor a screen that has been let. Jukebox itself refuses; this is so the page says. */
+/** Whether this login may save, change and delete playlists now: the people who look
+ * after the music always, and the house's own screens while no party is on. */
+export const curates = (house?: House): boolean => house?.curates ?? house?.me === "host";
 export const shut = (house: House, group: Group): boolean => !!group.party && house.me !== "host" && !(house.me === "screen" && group.party.open);
 
 /** How long what Love it or Loathe it did stays on the big player after it is over. */
@@ -65,6 +71,8 @@ export function loved(group: Group, now: number): { text: string; over: boolean 
   return { text: love.next ? `${said} ${love.next}.` : said, over: !love.now };
 }
 export type Favourite = {
+  /** A Sonos playlist's tile: the covers of the first albums in it. */
+  pictures?: string[];
   folder: string;
   title: string;
   /** A station: it plays now and leaves the queue alone. */

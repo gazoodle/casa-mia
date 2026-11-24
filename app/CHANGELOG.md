@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026.11.12-b24
+
+- Jukebox's buttons above the queue are now **Add**, **Edit…**, **Save…** and
+  **Clear…**, and the editor's button above a playlist's songs is **Edit…**. With the
+  longer names ("Edit side by side", "Save as a playlist", "Clear the queue") each row
+  of buttons was two lines tall. They do what they did.
+- Jukebox: a wall tablet can now save, change and delete Sonos playlists, so a playlist
+  can be put together sitting at one. It applies to the logins on the Configure
+  dialog's second list, now named **The house's own screens**, and only while no
+  party is on anywhere in the house: during a party the tablets can't touch a
+  playlist, even when they have been let to change the party's music. The people on
+  the first list, now named **Who may run a party**, still may at any time, and any
+  other login still never can.
+- Jukebox's Favourites: a Sonos playlist's tile is made of the covers of the first
+  four albums in it, two by two, so the playlists can be told apart at a glance. A
+  playlist with fewer than four albums near its start shows the first cover alone.
+- Jukebox's small and big players show the volume as a number beside the slider (the
+  average, for rooms playing together). It follows your finger as you drag. Each
+  room's own number was already on the Rooms tab.
+- Jukebox shows the cover of the song a radio station is playing, where Home
+  Assistant's Spotify integration is set up. The song is looked up on Spotify by the
+  title and artist the station sends, tried both ways round because some stations
+  send them swapped, and its cover becomes the player's picture with the station's
+  own picture on it as a small round badge. A cover is shown only when title and
+  artist both agree; otherwise the station's picture is shown alone, as before. Each
+  song's title and artist are sent to Spotify as a search from your account.
+- Jukebox's Search shows a cover for each song found on Spotify. A song carries its
+  album's pictures, which weren't being read.
+- Fixed: a song's picture in Jukebox's queue or a playlist could arrive cut short, so
+  only the top part of the cover was drawn. Jukebox passed on whatever part of the
+  picture the speaker had sent so far, not the whole of it (since b21).
+
 ## 2026.11.12-b23
 
 - Tablet Layout: a gap line's `color` from a dashboard's YAML could close its attribute

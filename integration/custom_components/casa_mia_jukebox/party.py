@@ -551,6 +551,11 @@ class Parties:
             for party in self._parties
         ]
 
+    @property
+    def on(self) -> bool:
+        """A party is on somewhere in the house."""
+        return bool(self._parties)
+
     def of(self, room: str) -> Party | None:
         """The party a room is in."""
         return next((p for p in self._parties if room in p.rooms), None)

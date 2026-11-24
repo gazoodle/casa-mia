@@ -168,3 +168,27 @@ def test_a_speaker_playing_with_no_title_is_not_a_quiet_room():
     bare = {"media_content_id": "http://example/clip.mp3"}
     [idle] = house.house({"media_player.den": ("Den", "idle", bare)})["groups"]
     assert idle["kind"] == "nothing" and idle["quiet"]
+
+
+cover = load_component_file("casa_mia_jukebox", "cover")
+SONGS = [
+    ("Paper Lanterns (Remastered 2011)", "The Marigolds, A Guest", "/right.jpg"),
+    ("Paper Lanterns", "Somebody Else", "/wrong.jpg"),
+]
+
+
+def test_a_stations_song_is_found_on_spotify_whichever_way_round_it_is_named():
+    assert cover.cover(("The Marigolds", "Paper Lanterns"), SONGS) == "/right.jpg"
+    # A station that sends the two swapped, and one that shouts.
+    assert cover.cover(("Paper Lanterns", "The Marigolds"), SONGS) == "/right.jpg"
+    assert cover.cover(("THE MARIGOLDS", "PAPER LANTERNS"), SONGS) == "/right.jpg"
+    # "Artist - Title" as the title, with no artist.
+    assert cover.names("", "The Marigolds - Paper Lanterns") == (
+        "The Marigolds",
+        "Paper Lanterns",
+    )
+    # The title alone agreeing isn't enough: a wrong cover is worse than none.
+    assert cover.cover(("Velvet Arcade", "Paper Lanterns"), SONGS) is None
+    # One name only (a show's, an advert's) is never looked for.
+    assert cover.names("", "The Breakfast Show") is None
+    assert cover.names("Harbour FM", "  ") is None

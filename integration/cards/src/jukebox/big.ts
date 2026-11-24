@@ -8,8 +8,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { EDITOR, edit } from "./editor.ts";
-import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
-import { Busy, Clock, art, icon, shared } from "./parts.ts";
+import { type Favourite, type Group, type House, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
+import { Busy, Clock, icon, mosaic, shared, sleeve } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
 type Tab = "queue" | "rooms" | "favourites" | "search";
@@ -39,7 +39,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true } };
+  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _vol: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -55,6 +55,10 @@ export class Big extends LitElement {
    * chosen goes there, and the player goes back to where it came from. */
   _adding?: "queue" | "playlist";
   private _fresh = 0;
+  /** The volume a finger on the slider is asking for, shown as its number until the
+   * house has answered: the house's own number comes a moment behind the finger. */
+  _vol?: number;
+  private _settling = false;
   /** The folders of favourites that are closed up, remembered on this device. */
   _folded: string[] = remembered();
   _menu?: Favourite;
@@ -99,6 +103,7 @@ export class Big extends LitElement {
   }
 
   protected willUpdate(changed: Map<string, unknown>) {
+    if (changed.has("_house") && this._settling) [this._vol, this._settling] = [undefined, false];
     if (changed.has("_house") && this._house) {
       // Something put back by the party lock is said as it happens, not at first sight.
       const last = groupOf(this._house, this.room)?.party?.undone[0];
@@ -154,6 +159,12 @@ export class Big extends LitElement {
         ),
       );
     return (e: CustomEvent) => this._sliders.get(key)!(e.detail.value);
+  }
+
+  /** The group's slider moved: show the number it asks for, and ask for it. */
+  private _slid(group: Group, e: CustomEvent, done: boolean) {
+    [this._vol, this._settling] = [e.detail.value, done];
+    this._slide("group_volume", group.id)(e);
   }
 
   private _toggleRoom(group: Group, room: string) {
@@ -238,7 +249,7 @@ export class Big extends LitElement {
           : nothing}
       </div>
       ${shut(house, group) ? html`<p class="barred">A party is on: the music can't be changed from this screen.</p>` : nothing}
-      <div class="cover">${art(this.hass, group.picture, title)}</div>
+      <div class="cover">${sleeve(this.hass, group, title)}</div>
       <div class="title">
         <b>${title}</b><span>${by}</span>
         <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
@@ -268,7 +279,8 @@ export class Big extends LitElement {
       </div>
       <div class="gvol ${hush ? "hush" : ""}">
         <button class="ib ${this._busy.on("group_mute")}" @click=${() => this._do("group_mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
-        <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${this._slide("group_volume", group.id)} @jb-set=${this._slide("group_volume", group.id)}></casa-mia-jukebox-slider>
+        <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._slid(group, e, false)} @jb-set=${(e: CustomEvent) => this._slid(group, e, true)}></casa-mia-jukebox-slider>
+        <output aria-hidden="true">${this._vol ?? average(house, group)}%</output>
         <button class="ib ${this._busy.on("stop")}" @click=${() => this._stop(house, group)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>
       </div>
       ${this._tabs(group)}
@@ -384,9 +396,9 @@ export class Big extends LitElement {
         : nothing}
       <div class="tools">
         <button @click=${() => this._add("queue")}>${icon("plus")}Add</button>
-        <button class="wide" @click=${() => this._edit()}>${icon("drag")}Edit side by side</button>
-        ${this._house?.me === "host" ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)}>${icon("save")}Save as a playlist</button>` : nothing}
-        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)}>${icon("trash")}Clear the queue</button>
+        <button class="wide" @click=${() => this._edit()} aria-label="Edit the queue side by side with Search">${icon("drag")}Edit…</button>
+        ${curates(this._house) ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)} aria-label="Save the queue as a playlist">${icon("save")}Save…</button>` : nothing}
+        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)} aria-label="Clear the queue">${icon("trash")}Clear…</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e: CustomEvent) => (this._queued = e.detail)}></casa-mia-jukebox-queue></div>`;
   }
@@ -416,17 +428,17 @@ export class Big extends LitElement {
   private _favouritesPanel(group: Group) {
     const found = this._favourites;
     const folders = Array.isArray(found) ? [...new Set(found.map((f) => f.folder))] : [];
-    const tile = (f: Favourite) => html`<button class=${this._busy.on(`fav:${f.media_content_id}`)} @click=${() => this._choose(group, f)}>${art(this.hass, f.picture, f.title)}<b>${f.title}</b></button>`;
+    const tile = (f: Favourite) => html`<button class=${this._busy.on(`fav:${f.media_content_id}`)} @click=${() => this._choose(group, f)}>${mosaic(this.hass, f.pictures, f.picture, f.title)}<b>${f.title}</b></button>`;
     const viewing = this._viewing;
     if (viewing) {
       // A playlist's songs, to see what is in it before it is played. The people who
       // may change playlists can move, take out and add; anyone else only looks.
-      const host = this._house?.me === "host";
+      const host = curates(this._house);
       return html`${this._head(viewing.title, host ? "Drag a song by its handle to move it, or take it out with the cross." : "The songs in this playlist.")}
         <div class="tools">
           <button @click=${() => (this._viewing = undefined)}>${icon("back")}Favourites</button>
           <button @click=${() => (this._menu = viewing)}>${icon("play")}Play…</button>
-          ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button><button class="wide" @click=${() => this._edit(viewing)}>${icon("drag")}Edit side by side</button>` : nothing}
+          ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button><button class="wide" @click=${() => this._edit(viewing)} aria-label="Edit the playlist side by side with Search">${icon("drag")}Edit…</button>` : nothing}
         </div>
         <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp}></casa-mia-jukebox-queue></div>`;
     }
@@ -511,7 +523,7 @@ export class Big extends LitElement {
                   <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
                   <button class="danger sep" @click=${() => ([this._menu, this._confirm] = [undefined, replace])}>Play now and replace the queue…</button>`}
             ${menu.playlist && this._viewing !== menu ? html`<button class="sep" @click=${() => ([this._menu, this._viewing, this.tab] = [undefined, menu, "favourites"])}>See what is in it</button>` : nothing}
-            ${menu.playlist && house.me === "host" ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
+            ${menu.playlist && curates(house) ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
           </div>
         </div>
       </div>`;
@@ -568,6 +580,7 @@ export class Big extends LitElement {
       .cover .art:has(img) { overflow: visible; background: none; box-shadow: none; }
       .cover .art:has(img) i { display: none; }
       .cover .art img { object-fit: contain; border-radius: 18px; filter: drop-shadow(0 16px 30px rgb(0 0 0 / 50%)); }
+      .cover .art img.badge { object-fit: cover; border-radius: 50%; filter: none; }
       .title { text-align: center; }
       /* Two lines at most: enough to tell one version of a song from another, and no title
          can squeeze the artwork. */
@@ -597,6 +610,7 @@ export class Big extends LitElement {
       .tp .play svg { width: 36px; height: 36px; }
       .gvol { display: flex; align-items: center; gap: 12px; color: var(--muted); }
       .gvol svg { width: 20px; height: 20px; flex: none; }
+      .gvol output { flex: none; min-width: 2.8em; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
       .gvol .ib:first-child { margin: 0 -11px; }
       .room .mute { justify-self: center; color: var(--muted); }
       .room .mute svg { width: 20px; height: 20px; }

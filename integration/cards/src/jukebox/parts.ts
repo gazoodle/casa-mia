@@ -40,10 +40,30 @@ export const icon = (name: keyof typeof PATHS) => html`<svg viewBox="0 0 24 24" 
  * from the title's own two colours. */
 // A picture's address is Home Assistant's own, to be read from wherever the page reached
 // it, or a whole address of somewhere else (a station's logo, as its speaker gives it).
-export function art(hass: { hassUrl?: (path: string) => string; [key: string]: any } | undefined, picture: string | null | undefined, title: string) {
+type Urls = { hassUrl?: (path: string) => string; [key: string]: any } | undefined;
+const from = (hass: Urls, picture: string) => (/^https?:/.test(picture) ? picture : (hass?.hassUrl?.(picture) ?? picture));
+const gone = (e: Event) => (e.target as HTMLElement).remove();
+
+export function art(hass: Urls, picture: string | null | undefined, title: string) {
   const [a, b] = colours(title);
-  const gone = (e: Event) => (e.target as HTMLElement).remove();
-  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${/^https?:/.test(picture) ? picture : (hass?.hassUrl?.(picture) ?? picture)} alt="" loading="lazy" @error=${gone} />` : nothing}</span>`;
+  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${from(hass, picture)} alt="" loading="lazy" @error=${gone} />` : nothing}</span>`;
+}
+
+/** What a player shows for its music: its picture, or, on a station whose song's cover
+ * was found, that cover with the station's own picture on it as a badge, so that it is
+ * still seen to be a station. */
+export function sleeve(hass: Urls, group: { picture: string | null; cover?: string | null }, title: string) {
+  if (!group.cover) return art(hass, group.picture, title);
+  const [a, b] = colours(title);
+  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i><img src=${from(hass, group.cover)} alt="" @error=${gone} />${group.picture ? html`<img class="badge" src=${from(hass, group.picture)} alt="" @error=${gone} />` : nothing}</span>`;
+}
+
+/** A playlist's tile: the covers of four of its albums, two by two, so that one playlist
+ * is told from the next at a glance. With fewer than four, the first by itself. */
+export function mosaic(hass: Urls, pictures: string[] | undefined, fallback: string | null | undefined, title: string) {
+  if (!pictures || pictures.length < 4) return art(hass, pictures?.[0] ?? fallback, title);
+  const [a, b] = colours(title);
+  return html`<span class="art four" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${pictures.slice(0, 4).map((p) => html`<img src=${from(hass, p)} alt="" loading="lazy" @error=${gone} />`)}</span>`;
 }
 
 /** How long a finger rests on a thing before it lifts to be dragged (ms), and how far it
@@ -319,4 +339,10 @@ export const shared = css`
     background: radial-gradient(circle at 28% 22%, rgb(255 255 255 / 38%), transparent 42%), conic-gradient(from 200deg at 68% 72%, var(--a), var(--b), var(--a)); }
   .art i { font-style: normal; font-size: 30cqw; letter-spacing: -0.02em; text-shadow: 0 2px 12px rgb(0 0 0 / 30%); }
   .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .art img.badge { inset: auto 5% 5% auto; width: 32%; height: 32%; border-radius: 50%; border: 2px solid rgb(255 255 255 / 85%); background: #111; box-shadow: 0 2px 10px rgb(0 0 0 / 55%); box-sizing: border-box; }
+  .art.four img { inset: auto; width: 50%; height: 50%; }
+  .art.four img:nth-of-type(1) { top: 0; left: 0; }
+  .art.four img:nth-of-type(2) { top: 0; left: 50%; }
+  .art.four img:nth-of-type(3) { top: 50%; left: 0; }
+  .art.four img:nth-of-type(4) { top: 50%; left: 50%; }
 `;

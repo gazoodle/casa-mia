@@ -702,7 +702,7 @@ async def test_the_library_and_spotify_are_searched_together(
                 Of(
                     name="Garden Party",
                     uri="spotify:playlist:4",
-                    owner=Of(display_name="Sam"),
+                    owner=Of(display_name="Ann"),
                     images=[],
                 ),
             ],
@@ -728,7 +728,7 @@ async def test_the_library_and_spotify_are_searched_together(
     assert [(i["folder"], i["title"], i["by"]) for i in spotify["items"]] == [
         ("Songs", "Paper Lanterns", "The Marigolds"),
         ("Albums", "Slow Sunday", "The Marigolds"),
-        ("Playlists", "Garden Party", "Sam"),
+        ("Playlists", "Garden Party", "Ann"),
     ]
     song, album, _ = spotify["items"]
     assert song["media_content_id"] == f"spotify://{entry.entry_id}/spotify:track:2"

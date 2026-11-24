@@ -104,7 +104,7 @@ async def call(
 
 
 async def _listed(
-    session: aiohttp.ClientSession, host: str, what: str, name: str
+    session: aiohttp.ClientSession, host: str, what: str, name: str, count: int = PAGE
 ) -> tuple[list[Element], int]:
     """What a speaker lists under `what` (its queue, favourites or playlists): each
     thing listed, a favourite or a song as an item and a playlist as a container, and
@@ -120,7 +120,7 @@ async def _listed(
         StartingIndex=0,
         # ponytail: the first page only, and the caller is told how many there are in
         # all. Read on from StartingIndex when a list is longer than this.
-        RequestedCount=PAGE,
+        RequestedCount=count,
         SortCriteria="",
     )
     try:
@@ -206,6 +206,18 @@ async def queue(
         for item in items
     ]
     return {"songs": songs, "total": total}
+
+
+async def covers(session: aiohttp.ClientSession, host: str, playlist: str) -> list[str]:
+    """The pictures of a Sonos playlist's first songs, one for each album among them,
+    as the speaker addresses them: what its tile is made of. Every song has a picture
+    address of its own, even two of one album, so they are told apart by the album."""
+    listed, _ = await _listed(session, host, playlist, "playlist", count=16)
+    found: dict[str, str] = {}
+    for item in listed:
+        if picture := item.findtext(f"{UPNP}albumArtURI"):
+            found.setdefault(item.findtext(f"{UPNP}album") or picture, picture)
+    return list(found.values())
 
 
 async def size(session: aiohttp.ClientSession, host: str) -> int:

@@ -16,11 +16,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+
+from . import cover
 
 _LOGGER = logging.getLogger(__name__)
 PLAYER = "media_player"
@@ -122,7 +125,8 @@ async def _library(hass: HomeAssistant, entity: str, query: str) -> list[dict]:
     return [found for kind in kinds for found in kind]
 
 
-async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
+async def _seek(hass: HomeAssistant, query: str, kinds: list[str]) -> tuple[Any, Any]:
+    """Ask Spotify, through Home Assistant's integration: its entry and what it found."""
     entries = hass.config_entries.async_loaded_entries(SPOTIFY)
     if not entries:
         raise HomeAssistantError(
@@ -138,8 +142,7 @@ async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
             "This version of Home Assistant's Spotify integration can't be searched"
         )
     try:
-        kinds = ["track", "album", "playlist", "artist"]
-        found = await seek(query, kinds, limit=SPOTIFY_EACH)
+        return entry, await seek(query, kinds, limit=SPOTIFY_EACH)
     except Exception as err:
         # Whatever Spotify's library raises (no network, a refused token, a change in
         # what Spotify sends) is this source's reason, never the whole search's end.
@@ -147,10 +150,83 @@ async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
             f"Spotify didn't answer: {err or type(err).__name__}"
         ) from err
 
+
+def _images(thing: Any) -> list[Any]:
+    """A thing's pictures, biggest first. A song has none of its own: its album's."""
+    album = getattr(thing, "album", None)
+    return getattr(thing, "images", None) or getattr(album, "images", None) or []
+
+
+def _by(thing: Any) -> str:
+    return ", ".join(artist.name for artist in thing.artists)
+
+
+class Covers:
+    """The cover of the song a radio station is playing, found on Spotify from the
+    station's own words for it (cover.py). Asked once for each song, when a speaker
+    is first seen playing it, never on a timer; `changed` is called when one is found.
+    The station's logo stays the group's picture: this is shown as well, not in its
+    place (owner, 2026-11-24)."""
+
+    # ponytail: the newest few hundred songs are remembered, in memory.
+    KEPT = 500
+
+    def __init__(self, hass: HomeAssistant, changed: Callable[[], None]) -> None:
+        self.hass, self._changed = hass, changed
+        self._known: dict[tuple[str, str], str | None] = {}
+        self._asking: set[tuple[str, str]] = set()
+        self._why = ""
+
+    def of(self, artist: str, title: str) -> str | None:
+        """The cover, if it is known; if it hasn't been asked for, it is now."""
+        pair = cover.names(artist, title)
+        if pair is None:
+            return None
+        if pair not in self._known and pair not in self._asking:
+            self._asking.add(pair)
+            self.hass.async_create_background_task(
+                self._ask(pair), f"{PLAYER} cover on Spotify"
+            )
+        return self._known.get(pair)
+
+    async def _ask(self, pair: tuple[str, str]) -> None:
+        found: str | None = None
+        try:
+            _, answer = await _seek(self.hass, " ".join(pair), ["track"])
+            songs = [
+                (song.name, _by(song), images[0].url)
+                for song in answer.tracks or []
+                if song is not None and (images := _images(song))
+            ]
+            found = cover.cover(pair, songs)
+            _LOGGER.info(
+                "A station's song, %s / %s: %s on Spotify",
+                *pair,
+                "its cover found" if found else f"none of {len(songs)} songs is it",
+            )
+            self._why = ""
+        except HomeAssistantError as err:
+            # Said once for each reason, not at every song: a house without Spotify
+            # would otherwise fill its log.
+            if str(err) != self._why:
+                self._why = str(err)
+                _LOGGER.warning("No covers for stations' songs: %s", err)
+        finally:
+            self._asking.discard(pair)
+        self._known[pair] = found
+        while len(self._known) > self.KEPT:
+            del self._known[next(iter(self._known))]
+        if found:
+            self._changed()
+
+
+async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
+    entry, found = await _seek(hass, query, ["track", "album", "playlist", "artist"])
+
     def one(
         heading: str, kind: str, thing: Any, by: str = "", expand: bool = False
     ) -> dict:
-        images = getattr(thing, "images", None) or []
+        images = _images(thing)
         return {
             "folder": heading,
             "title": thing.name,
@@ -164,16 +240,13 @@ async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
             "media_content_type": f"{SPOTIFY}://{kind}",
         }
 
-    def by(thing: Any) -> str:
-        return ", ".join(artist.name for artist in thing.artists)
-
     # Spotify leaves a gap in a list for something it has withdrawn.
     def each(things: Any) -> list[Any]:
         return [thing for thing in things or [] if thing is not None]
 
     return [
-        *(one("Songs", "track", t, by(t)) for t in each(found.tracks)),
-        *(one("Albums", "album", a, by(a), expand=True) for a in each(found.albums)),
+        *(one("Songs", "track", t, _by(t)) for t in each(found.tracks)),
+        *(one("Albums", "album", a, _by(a), expand=True) for a in each(found.albums)),
         *(
             one("Playlists", "playlist", p, p.owner.display_name or "", expand=True)
             for p in each(found.playlists)

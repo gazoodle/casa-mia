@@ -77,6 +77,8 @@ class Feed:
         # ponytail: a queue replaced from another app isn't noticed, so the page may
         # offer the wrong playlist first. It asks before replacing, with both counts.
         self.sources: dict[str, str] = {}
+        # The cover of the song a station is playing, found on Spotify (find.Covers).
+        self.covers = find.Covers(hass, self._changed)
         # What a page shows a song's picture with (art.py): new at each start.
         self.art_key = secrets.token_urlsafe(16)
         # The order the owner arranged the page's players in, kept across restarts.
@@ -124,6 +126,12 @@ class Feed:
             ):
                 stream = players[group["id"]][2].get("media_content_id")
                 self._station(group, str(stream or ""))
+            # A station's song has its own cover as well as the station's picture.
+            group["cover"] = (
+                self.covers.of(group["artist"], group["title"])
+                if group["kind"] == house.RADIO
+                else None
+            )
             party = self.parties.led_by(group["id"])
             group["party"] = party.view() if party else None
             # What Love it or Loathe it last did to this player, and why (love.py),
@@ -606,7 +614,8 @@ async def do(
     said = {k: v for k, v in data.items() if k != "media_content_id"}
     try:
         opened = bool(party and party.open)
-        if why := may.refusal(who, action, party is not None, opened):
+        partying = feed.parties.on
+        if why := may.refusal(who, action, party is not None, opened, partying):
             raise Refused(why)
         if party is None or action in may.PARTY:
             await ACTIONS[action](doing)

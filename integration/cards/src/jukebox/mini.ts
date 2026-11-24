@@ -8,12 +8,12 @@ import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
 import { open } from "./big.ts";
 import { type Group, type House, ask, average, colours, latest, muted, names, playing, position, reason } from "./common.ts";
-import { Busy, Clock, art, icon, shared } from "./parts.ts";
+import { Busy, Clock, icon, shared, sleeve } from "./parts.ts";
 
 export const MINI = "casa-mia-jukebox-mini";
 
 export class Mini extends LitElement {
-  static properties = { hass: { attribute: false }, house: { attribute: false }, group: { attribute: false }, _stopping: { state: true } };
+  static properties = { hass: { attribute: false }, house: { attribute: false }, group: { attribute: false }, _stopping: { state: true }, _vol: { state: true } };
   /** Stop was pressed and the player is asking, in place, whether it was meant: Stop
    * empties the queue. It stops asking by itself after a moment. */
   _stopping = false;
@@ -21,6 +21,20 @@ export class Mini extends LitElement {
   hass?: Hass;
   house?: House;
   group?: Group;
+  /** The volume a finger on the slider is asking for, shown as its number until the
+   * house has answered: the house's own number comes a moment behind the finger. */
+  _vol?: number;
+  private _settling = false;
+
+  protected willUpdate(changed: Map<string, unknown>) {
+    if (changed.has("house") && this._settling) [this._vol, this._settling] = [undefined, false];
+  }
+
+  private _slid(e: CustomEvent, done: boolean) {
+    [this._vol, this._settling] = [e.detail.value, done];
+    this._volume(e.detail.value);
+  }
+
   private _volume = latest<number>(
     (value) => ask(this.hass!, "group_volume", this.group!.id, { value }),
     (err) => this._failed(err),
@@ -64,7 +78,7 @@ export class Mini extends LitElement {
     const show = () => open(hass, group.id);
     if (this._stopping)
       return html`<div class="mini" style="--a:${colours(title)[0]}">
-        <span class="pic">${art(hass, group.picture, title)}</span>
+        <span class="pic">${sleeve(hass, group, title)}</span>
         <span class="meta"><b>Stop and clear?</b><span>Empties the queue</span><small>${names(house, group)}</small></span>
         <span class="tp">
           <button class="say" @click=${() => this._sure(false)}>Keep</button>
@@ -72,7 +86,7 @@ export class Mini extends LitElement {
         </span>
       </div>`;
     return html`<div class="mini" style="--a:${colours(title)[0]}">
-      <button class="pic" @click=${show} aria-label="Open the player">${art(hass, group.picture, title)}</button>
+      <button class="pic" @click=${show} aria-label="Open the player">${sleeve(hass, group, title)}</button>
       <button class="meta" @click=${show}>
         <b><casa-mia-jukebox-marquee .text=${title}></casa-mia-jukebox-marquee></b>
         <span><casa-mia-jukebox-marquee .text=${by}></casa-mia-jukebox-marquee></span>
@@ -86,7 +100,8 @@ export class Mini extends LitElement {
       </span>
       <div class="vol ${hush ? "hush" : ""}">
         <button class=${this._busy.on("mute")} @click=${() => this._ask("group_mute", "mute", { on: !hush })} aria-label=${hush ? "Unmute" : "Mute"} aria-pressed=${hush}>${icon(hush ? "muted" : "volume")}</button>
-        <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._volume(e.detail.value)} @jb-set=${(e: CustomEvent) => this._volume(e.detail.value)}></casa-mia-jukebox-slider>
+        <casa-mia-jukebox-slider .value=${average(house, group)} label="Volume" @jb-slide=${(e: CustomEvent) => this._slid(e, false)} @jb-set=${(e: CustomEvent) => this._slid(e, true)}></casa-mia-jukebox-slider>
+        <output aria-hidden="true">${this._vol ?? average(house, group)}%</output>
       </div>
       ${at !== null && group.duration ? html`<i class="prog" style="width:${(100 * at) / group.duration}%"></i>` : nothing}
     </div>`;
@@ -112,6 +127,7 @@ export class Mini extends LitElement {
       .meta > b, .meta > span, .meta > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .vol { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--secondary-text-color); --jb-fill: #c4552d; }
       .vol svg { width: 18px; height: 18px; flex: none; }
+      .vol output { flex: none; min-width: 2.8em; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
       /* A finger's worth to press, taking no more of the line than the picture did. */
       .vol button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; margin: -8px; border-radius: 50%; }
       .prog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--a); }

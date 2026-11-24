@@ -293,8 +293,25 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   from real speakers 2026-11-24, with title and album for all of them). `art.py`
   fetches it and passes it on, at an address that carries a key made at each start
   (`Feed.art_key`), since an `<img>` can't sign in; `feed.queue` writes the addresses.
+- **A station's song's cover** (b24, owner 2026-11-24: the cover is the main picture,
+  the station's logo a badge on it; both orders of artist and title are tried, since
+  one of the owner's stations always sends them swapped): `find.Covers` asks Spotify
+  once for each song, through Home Assistant's Spotify integration, and `cover.py`
+  (no Home Assistant in it) decides which song it is. The group's `cover` goes to the
+  page beside `picture`; `sleeve` in `parts.ts` draws the two. Not seen with a real
+  Spotify answer: that a song's pictures are its album's is from memory of the
+  library, which isn't installed in the test environment.
+- **A playlist's tile** (b24) is four covers: `art.tiled` asks the speaker for each
+  playlist's first songs when the favourites are fetched (`upnp.covers`, one for each
+  album) and the page draws them two by two (`mosaic` in `parts.ts`).
 - **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
   and the players' card both extend. Until then only the page had it.
+- **Who changes playlists** (b24, owner 2026-11-24): hosts at any time, and the
+  house's own screens while no party is on anywhere (`may.curates`, sent to each page
+  as `curates`). Before b24 it was hosts only. Why: the owners put playlists together
+  at a tablet, and a party is when guests are at the tablets. A guest with the Sonos
+  app can still change a playlist at any time; the owner will deal with that
+  separately.
 - **Jukebox is published by itself too** (b22, owner 2026-11-24): in
   `components.PUBLISHED`, mirror `gazoodle/casa-mia-jukebox`, its manifest's links
   naming that repository (`docs/design/marketplace-mirrors.md`, the fourth item). Its

@@ -67,9 +67,13 @@ integration is installed too; without it, Jukebox leaves them out.
      box for none.
    - **Quiet hours:** an entity that is on while announcements should be kept back. A
      schedule helper suits it; a toggle or a binary sensor works too.
-   - **Who may run a party and change playlists** and **Screens that may be opened up
-     at a party:** see [The party lock](#the-party-lock). The first list is also who
-     may save the queue as a playlist or delete a playlist, party or no party.
+   - **Who may run a party** and **The house's own screens:** see
+     [The party lock](#the-party-lock). The two lists are also who may change
+     playlists: save the queue as one, change one's songs, or delete one. The people
+     on the first list may at any time. A screen on the second, such as a wall tablet,
+     may whenever no party is on anywhere in the house, so that you can sit at a tablet
+     and put a playlist together; while a party is on, when guests are at the tablets,
+     it can't. Administrators always may, and any other login never can.
 
 Each room you choose gets a number, **announcement volume**, on Jukebox's device page.
 It starts at 25%. It is separate from the volume of the room's music: a clip carries its
@@ -105,15 +109,15 @@ Tap a player to open it over the whole screen. There you have:
   it out. The first 500 songs are shown. **Add** opens Search with an empty box, and
   brings you back to the queue once you have added something. While a radio station
   is playing and the queue has songs in it, **Play the queue** starts the queue in
-  the station's place. Above the songs, **Save as a playlist** keeps
+  the station's place. Above the songs, **Save…** keeps
   the queue as a new Sonos playlist under a name you give it, or saves it over one of
   the playlists you have, which are listed under the name box. If the queue was
   started from a playlist in Jukebox, that playlist is first in the list, as **Save
   back to …**. Before a playlist is replaced Jukebox asks, and says how many songs it
   holds now and how many the queue has: what it held can't be got back. Jukebox
   doesn't know which playlist a queue came from when it was started in another app,
-  or after Home Assistant restarts. **Clear the queue**
-  empties it, after asking again. **Save as a playlist** is shown only to the people
+  or after Home Assistant restarts. **Clear…**
+  empties the queue, after asking again. **Save…** is shown only to the people
   who may change playlists (see [Setting it up](#setting-it-up)).
 - **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
   room in the group has its own volume and its own mute. A room that is playing something else is
@@ -127,10 +131,10 @@ Tap a player to open it over the whole screen. There you have:
   playlist's songs before you play it. There, the people who may change playlists can
   drag a song to move it, take one out with the cross, and press **Add** to put
   something on the end: a song or an album from the music library, or a song, an
-  album or a playlist from Spotify. Each heading in Favourites folds its section away.
-<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Borrowed Sunglasses by Velvet Arcade, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit side by side, Save as a playlist and Clear the queue, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
+  album or a playlist from Spotify. Each heading in Favourites folds its section away. A playlist's tile shows the covers of the first four albums in it.
+<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Borrowed Sunglasses by Velvet Arcade, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit, Save and Clear, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
 
-- **Edit side by side** (on a wide screen only, on the Queue tab and on a playlist's
+- **Edit…** (on a wide screen only, on the Queue tab and on a playlist's
   songs) opens an editor over the whole screen: the queue or the playlist on the left,
   Search and Browse on the right. Rest a finger on a song or an album on the right
   until it lifts, then drag it across and let go where it should go. A line shows the
@@ -166,8 +170,8 @@ way to stop them. The party lock doesn't stop them either: it puts back what the
 change.
 
 Press **Party** at the top of the big player. Only the people who may run a party see
-the button: administrators, and the logins you choose under **Who may run a party and
-change playlists** in Jukebox's Configure dialog. While it is on for those rooms:
+the button: administrators, and the logins you choose under **Who may run a party** in
+Jukebox's Configure dialog. While it is on for those rooms:
 
 - **The queue** is kept as you made it. A song a guest adds is taken out, one they take
   out is put back in its place, and songs they move go back to their order.
@@ -199,8 +203,9 @@ the Sonos app. So during a party Jukebox itself is limited too:
 | A screen, such as a wall tablet | Looks only, until someone running the party turns on **Let the wall tablets change the music**. Then it can change the music, but never the party. |
 | Any other login, such as a guest's | Looks only. |
 
-The screens are the logins you choose under **Screens that may be opened up at a
-party** in the Configure dialog. The switch is on the sheet that **Party on** opens. It
+The screens are the logins you choose under **The house's own screens** in the
+Configure dialog. Whatever the switch says, a screen can't change a playlist while a
+party is on. The switch is on the sheet that **Party on** opens. It
 is off at the start of every party, and can be turned on and off as the party goes.
 With it on, anyone standing at a wall tablet can change the music; the log names the
 tablet, not the person.
@@ -241,6 +246,22 @@ Limits:
   only at the next change it does hear of.
 - While a radio station is playing, a speaker doesn't report changes to its queue, so
   those are put back when the next thing happens that it does report.
+
+## The cover of a song on the radio
+
+While a station plays, a player's picture is the station's own. Where Home Assistant's
+Spotify integration is set up, Jukebox also looks the song up on Spotify, by the title
+and artist the station sends, and shows the song's cover with the station's picture on
+it as a small round badge. The badge is how you tell a station from a queue.
+
+- A cover is shown only when Spotify has a song whose title and artist both agree with
+  the station's. Otherwise you see the station's picture alone, as before.
+- Some stations send the artist and the title the wrong way round, and some send
+  "Artist - Title" as the title. Jukebox tries both ways.
+- A show's name or an advert, with no artist, isn't looked up.
+- Each song is looked up once, when a speaker starts playing it. The title and artist
+  of every song your stations play are sent to Spotify as a search from your account.
+- Without the Spotify integration nothing changes.
 
 ## With Love it or Loathe it
 

@@ -142,8 +142,11 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
       none is shown for those; streamed songs have theirs.
     - The same way of naming a Spotify song serves the clean-up of the old playlists
       (below): a replacement can be written into a new playlist with no account.
-    - **Asked the same day, for discussion:** more about what a radio station is
-      playing. (Pictures for the songs of a queue and a playlist: built in b21.)
+    - **More about what a radio station is playing:** its song's cover is built
+      (b24). Left: a + beside the title to add "this song on the radio" to the queue
+      or a playlist (the match is a Spotify song), once the covers prove reliable on
+      the owner's stations; and showing the names the right way round for a station
+      that sends them swapped.
     - **The editor on a wide screen** (built in b22, owner 2026-11-24). Not seen
       against a real speaker or on a real tablet. Adding to the queue at a place moves
       each added song up one at a time (`feed.queue_add`): the speaker's move takes a
