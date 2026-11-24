@@ -14,6 +14,10 @@ CONF_TTS = "tts"
 CONF_CHIME = "chime"
 CONF_QUIET = "quiet"
 CONF_SIDEBAR = "sidebar"
+# Logins (Home Assistant user ids): who may run a party, and the screens they may open up
+# during one (may.py).
+CONF_HOSTS = "hosts"
+CONF_SCREENS = "screens"
 
 # Where www/ is served, and the chime that comes with Jukebox (tools/jukebox_chime.py).
 URL = f"/{DOMAIN}"

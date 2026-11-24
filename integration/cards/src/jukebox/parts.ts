@@ -38,10 +38,12 @@ export const icon = (name: keyof typeof PATHS) => html`<svg viewBox="0 0 24 24" 
 
 /** The picture of what is playing; where there is none, or it won't load, a picture made
  * from the title's own two colours. */
+// A picture's address is Home Assistant's own, to be read from wherever the page reached
+// it, or a whole address of somewhere else (a station's logo, as its speaker gives it).
 export function art(hass: { hassUrl?: (path: string) => string; [key: string]: any } | undefined, picture: string | null | undefined, title: string) {
   const [a, b] = colours(title);
   const gone = (e: Event) => (e.target as HTMLElement).remove();
-  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${hass?.hassUrl?.(picture) ?? picture} alt="" @error=${gone} />` : nothing}</span>`;
+  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${/^https?:/.test(picture) ? picture : (hass?.hassUrl?.(picture) ?? picture)} alt="" @error=${gone} />` : nothing}</span>`;
 }
 
 /** Redraws its element once a second while it is on the page, for what moves by itself

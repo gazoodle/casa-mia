@@ -76,7 +76,7 @@ export class Mini extends LitElement {
       <button class="meta" @click=${show}>
         <b><casa-mia-jukebox-marquee .text=${title}></casa-mia-jukebox-marquee></b>
         <span><casa-mia-jukebox-marquee .text=${by}></casa-mia-jukebox-marquee></span>
-        <small><casa-mia-jukebox-marquee .text=${`${names(house, group)}${group.party ? " · Party" : ""}`}></casa-mia-jukebox-marquee></small>
+        <small><casa-mia-jukebox-marquee .text=${`${names(house, group)}${group.party ? " · Party" : ""}${group.love?.now && group.love.did ? ` · ${group.love.did} (Love it or Loathe it)` : ""}`}></casa-mia-jukebox-marquee></small>
       </button>
       <span class="tp">
         <button class="ib ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play", "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>

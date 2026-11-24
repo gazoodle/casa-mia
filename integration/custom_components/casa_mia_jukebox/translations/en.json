@@ -19,14 +19,18 @@
           "tts": "Voice",
           "chime": "Chime",
           "quiet": "Quiet hours",
-          "sidebar": "Show Jukebox in the sidebar"
+          "sidebar": "Show Jukebox in the sidebar",
+          "hosts": "Who may run a party",
+          "screens": "Screens that may be opened up at a party"
         },
         "data_description": {
           "players": "The Sonos speakers an announcement goes to when the action names none. Each gets a number for its announcement volume.",
           "tts": "The text-to-speech voice that says a message.",
           "chime": "The sound played before each announcement: a web address or a media id. Jukebox's own is filled in; empty the box for none.",
           "quiet": "While this is on, announcements are not played unless they have priority. A schedule helper suits it.",
-          "sidebar": "Jukebox's own page, in Home Assistant's sidebar. Turn it off if you use a dashboard of your own made from Jukebox's cards. The page stays at /jukebox either way."
+          "sidebar": "Jukebox's own page, in Home Assistant's sidebar. Turn it off if you use a dashboard of your own made from Jukebox's cards. The page stays at /jukebox either way.",
+          "hosts": "The logins that may turn the party lock on and off, and change the music while it is on. Administrators always may.",
+          "screens": "Logins of shared screens, such as wall tablets. During a party they can change the music only while someone who runs it has let them, and never the party itself. Any other login can only look."
         }
       }
     }

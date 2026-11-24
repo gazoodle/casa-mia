@@ -24,10 +24,12 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
-from . import find, house, speaker, upnp
+from . import find, house, may, speaker, upnp
 from .announce import address, room_name
 from .const import DOMAIN
 from .house import QUEUE
+from .love import Love
+from .may import Who
 from .party import Parties
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,7 +57,13 @@ class Feed:
         self._rooms: frozenset[str] | None = None
         self._last: dict[str, Any] | None = None
         self._due = False
-        self.parties = Parties(hass, self._changed)
+        self.love = Love(hass, self._love_changed)
+        self.parties = Parties(hass, self._changed, self.love.acting)
+        # A station's name and picture where Home Assistant has none, as the speaker
+        # gave them: {room: (the stream it was asked about, name, picture)}. Asked once
+        # for each stream, when a speaker is seen on it, never on a timer.
+        self._stations: dict[str, tuple[str, str, str | None]] = {}
+        self._asking: set[str] = set()
         # The order the owner arranged the page's players in, kept across restarts.
         self._store: Store[dict[str, list[str]]] = Store(hass, 1, f"{DOMAIN}.order")
         self.order: list[str] = []
@@ -64,7 +72,7 @@ class Feed:
         """Read the saved order. Once, before the page is shown."""
         self.order = list((await self._store.async_load() or {}).get("rooms", []))
 
-    async def arrange(self, who: str, rooms: list[str]) -> None:
+    async def arrange(self, who: Who, rooms: list[str]) -> None:
         """Keep the order the page's players were dragged into, and tell every page."""
         self.order = rooms
         await self._store.async_save({"rooms": rooms})
@@ -96,9 +104,56 @@ class Feed:
             )
         model = house.house(players, self.order)
         for group in model["groups"]:
+            if group["kind"] == house.RADIO and not (
+                group["channel"] and group["picture"]
+            ):
+                stream = players[group["id"]][2].get("media_content_id")
+                self._station(group, str(stream or ""))
             party = self.parties.led_by(group["id"])
             group["party"] = party.view() if party else None
+            # What Love it or Loathe it last did to this player, and why (love.py).
+            group["love"] = self.love.of(group["id"])
         return model
+
+    def _station(self, group: dict[str, Any], stream: str) -> None:
+        """Fill in a station's name and picture from what its speaker said, and ask the
+        speaker if it hasn't been asked about this stream."""
+        room = group["id"]
+        known = self._stations.get(room)
+        if known and known[0] == stream:
+            group["channel"] = group["channel"] or known[1]
+            group["picture"] = group["picture"] or known[2]
+        elif room not in self._asking:
+            self._asking.add(room)
+            self.hass.async_create_background_task(
+                self._ask_station(room, stream), f"{DOMAIN} station {room}"
+            )
+
+    async def _ask_station(self, room: str, stream: str) -> None:
+        name: str = ""
+        picture: str | None = None
+        try:
+            host = address(self.hass, room)
+            if host is None:
+                raise HomeAssistantError("Home Assistant has no address for it")
+            session = async_get_clientsession(self.hass)
+            name, picture = await upnp.station(session, host)
+        except (HomeAssistantError, aiohttp.ClientError, OSError, TimeoutError) as err:
+            # Kept as asked, so a speaker that can't answer isn't asked at every change.
+            _LOGGER.warning(
+                "%s: the speaker couldn't be asked which station it is on: %s",
+                room,
+                err or type(err).__name__,
+            )
+        finally:
+            self._asking.discard(room)
+        self._stations[room] = (stream, name, picture)
+        self._changed()
+
+    @callback
+    def _love_changed(self) -> None:
+        self.parties.recheck()
+        self._changed()
 
     @callback
     def listen(self, heard: Callable[[dict[str, Any]], None]) -> Callable[[], None]:
@@ -398,6 +453,12 @@ class _Doing:
                 },
             )
 
+    async def party_open(self) -> None:
+        party = self.parties.led_by(self.group["id"])
+        if party is None:
+            raise Refused("There is no party in these rooms")
+        self.parties.opened(party, bool(self._value("on")))
+
     def _room(self) -> str:
         room = self._value("room")
         if not self.model["rooms"].get(room, {}).get("available"):
@@ -428,20 +489,25 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "join": _Doing.join,
     "leave": _Doing.leave,
     "party": _Doing.party,
+    "party_open": _Doing.party_open,
 }
 
 
 async def do(
-    feed: Feed, who: str, action: str, entity: str, data: dict[str, Any]
+    feed: Feed, who: Who, action: str, entity: str, data: dict[str, Any]
 ) -> None:
     """Carry out one thing the page asked for, and write down who asked. Raises
-    HomeAssistantError, with the reason, when it can't be done."""
+    HomeAssistantError, with the reason, when it can't be done, or when this asker may
+    not do it while a party is on (may.py)."""
     doing = _Doing(feed.hass, feed.model(), entity, data, feed.parties)
     party = feed.parties.led_by(doing.group["id"])
     # The addresses of what is played stay out of the log: a link can carry a key.
     said = {k: v for k, v in data.items() if k != "media_content_id"}
     try:
-        if party is None or action == "party":
+        opened = bool(party and party.open)
+        if why := may.refusal(who, action, party is not None, opened):
+            raise Refused(why)
+        if party is None or action in may.PARTY:
             await ACTIONS[action](doing)
         else:
             # Held while the speakers are asked and the party's copy is renewed, so
@@ -525,7 +591,7 @@ async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
 
 
 async def play(
-    feed: Feed, who: str, rooms: list[str], name: str, enqueue: str | None
+    feed: Feed, who: Who, rooms: list[str], name: str, enqueue: str | None
 ) -> None:
     """Play a favourite or a Sonos playlist, by its name, in these rooms together: the
     `play` action, for a dashboard button, an automation or a voice command. It goes

@@ -94,6 +94,8 @@ class Volumes(Base):
                 )
         except HomeAssistantError as exc:
             self._problem(entity, f"could not put back {undo[0]}: {exc}")
+        finally:
+            self._tell()  # no longer in force (Base.doing)
 
     async def _give(self, speaker: str, was: float, to: float) -> None:
         await self._call("volume_set", speaker, volume_level=to)

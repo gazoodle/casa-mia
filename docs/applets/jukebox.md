@@ -35,6 +35,8 @@ Mia.
      box for none.
    - **Quiet hours:** an entity that is on while announcements should be kept back. A
      schedule helper suits it; a toggle or a binary sensor works too.
+   - **Who may run a party** and **Screens that may be opened up at a party:** see
+     [The party lock](#the-party-lock).
 
 Each room you choose gets a number, **announcement volume**, on Jukebox's device page.
 It starts at 25%. It is separate from the volume of the room's music: a clip carries its
@@ -52,6 +54,9 @@ Sonos integration.
   to (a station, or music that is paused) the second button is Stop. To change their order, rest a
   finger on a player until it lifts, then drag it to its new place. The order is kept
   for every screen in the house.
+  A speaker that is playing is always shown as a player. If Home Assistant has no name
+  or picture for the station it is on, which happens with some speakers a song or two
+  after a station is started, Jukebox asks the speaker and shows what it says.
 - **Quiet rooms** are listed below. Tap one to choose a favourite to play there.
 - **A speaker that isn't answering** is listed too, so you know why it is missing.
 
@@ -101,7 +106,9 @@ Anyone on the house's network can change the music with the Sonos app, and Sonos
 way to stop them. The party lock doesn't stop them either: it puts back what they
 change.
 
-Press **Party** at the top of the big player. While it is on for those rooms:
+Press **Party** at the top of the big player. Only the people who may run a party see
+the button: administrators, and the logins you choose under **Who may run a party** in
+Jukebox's Configure dialog. While it is on for those rooms:
 
 - **The queue** is kept as you made it. A song a guest adds is taken out, one they take
   out is put back in its place, and songs they move go back to their order.
@@ -112,10 +119,34 @@ Press **Party** at the top of the big player. While it is on for those rooms:
 - **The volume** of each room is kept, including a change made with the buttons on a
   speaker.
 
-Everything is still yours to change from Jukebox's page and card, by anyone signed in
-to Home Assistant. A change is put back about three seconds after it is made, and each
-one is listed with its time when you press **Party on**. End the party from the same
-place.
+A change is put back about three seconds after it is made, and each one is listed with
+its time when you press **Party on**. End the party from the same place.
+
+### Who can change the music during a party
+
+A guest could otherwise walk up to a wall tablet, end the party there and carry on from
+the Sonos app. So during a party Jukebox itself is limited too:
+
+| Who | During a party |
+|---|---|
+| The people who may run a party | Change anything from Jukebox, and end the party. |
+| A screen, such as a wall tablet | Looks only, until someone running the party turns on **Let the wall tablets change the music**. Then it can change the music, but never the party. |
+| Any other login, such as a guest's | Looks only. |
+
+The screens are the logins you choose under **Screens that may be opened up at a
+party** in the Configure dialog. The switch is on the sheet that **Party on** opens. It
+is off at the start of every party, and can be turned on and off as the party goes.
+With it on, anyone standing at a wall tablet can change the music; the log names the
+tablet, not the person.
+
+This is checked by Jukebox where a change is carried out, so it also covers the
+Shortcut card and the `casa_mia_jukebox.play` action pressed from a dashboard. An
+automation is never refused. A change that is refused says why on the page and is
+written to Home Assistant's log with the login that tried.
+
+A wall tablet can still reach a speaker without Jukebox, through another card or the
+speaker's own dialog, because Home Assistant doesn't limit that. Those changes are put
+back like any other made outside Jukebox.
 
 Skipping a song, pausing and moving within a song are left alone, because they can't be
 told from the music moving on by itself.
@@ -141,6 +172,22 @@ Limits:
   only at the next change it does hear of.
 - While a radio station is playing, a speaker doesn't report changes to its queue, so
   those are put back when the next thing happens that it does report.
+
+## With Love it or Loathe it
+
+Where [Love it or Loathe it](love-or-loathe.md) is installed and watches a speaker,
+Jukebox works with it. The two share no settings; there is nothing to set up.
+
+- **The thumbs** are under the song's title on the big player and on the Now playing
+  card. They are Love it or Loathe it's own, so they follow its rules: they show only
+  for a login that may rate.
+- **Why a player was changed.** When Love it or Loathe it mutes a song, changes its
+  volume, switches station or skips it, the big player says what it did and why, under
+  the title: "Muted until the next track. Last Christmas by Wham! is in Christmas
+  (loathe)". It stays while that is in force and for ten minutes after. A small player
+  says what was done for as long as it is in force.
+- **At a party**, what Love it or Loathe it does is not taken for a guest's change. The
+  volume and the station are left alone until it has put them back.
 
 ## The cards
 

@@ -148,3 +148,23 @@ def test_every_jukebox_card_can_be_edited_without_yaml():
         for name in ("card.ts", "pieces.ts")
     )
     assert registered == forms == 4
+
+
+def test_a_speaker_playing_with_no_title_is_not_a_quiet_room():
+    """Some streams give neither a title nor a station's name. Playing is playing."""
+    bare = {"media_content_id": "aac://stream", "volume_level": 0.3}
+    model = house.house({"media_player.den": ("Den", "playing", bare)})
+    [group] = model["groups"]
+    assert (
+        group["kind"] == "radio" and not group["quiet"] and group["state"] == "playing"
+    )
+
+    # A station that Home Assistant has no name for is still a station, song or no song.
+    assert house.kind({**bare, "media_title": "A song"}, True) == "radio"
+
+    # Something with a length and no title is a song; the same speaker stopped is quiet.
+    song = {"media_content_id": "x-file-cifs://nas/a.mp3", "media_duration": 200}
+    assert house.kind(song, True) == "queue"
+    bare = {"media_content_id": "http://example/clip.mp3"}
+    [idle] = house.house({"media_player.den": ("Den", "idle", bare)})["groups"]
+    assert idle["kind"] == "nothing" and idle["quiet"]

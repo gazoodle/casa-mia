@@ -73,6 +73,7 @@ class Party:
         rooms: list[str],
         volumes: dict[str, int],
         changed: Callable[[Party, dict[str, Any] | None], None],
+        excused: Callable[[str], bool],
     ) -> None:
         self.hass = hass
         # The leader (the group's coordinator) first: it holds the queue.
@@ -86,7 +87,13 @@ class Party:
         # When the watch on the queue was lost; none while it is held, or not yet made.
         self.unwatched: str | None = dt_util.utcnow().isoformat()
         self.lock = asyncio.Lock()
+        # Whether the screens (wall tablets) may change the music: a host's choice,
+        # made anew for each party (may.py).
+        self.open = False
         self._changed = changed
+        # Whether a room's volume and what it plays from are in someone else's hands
+        # for now (Love it or Loathe it's, love.py), and so not a guest's change.
+        self._excused = excused
         self._quiet_until = 0.0
         self._due: asyncio.TimerHandle | None = None
         self._unlisten: Callable[[], None] | None = None
@@ -102,6 +109,7 @@ class Party:
             "since": self.since,
             "undone": self.undone,
             "unwatched": self.unwatched,
+            "open": self.open,
         }
 
     # ---- Starting, stopping and following the rooms
@@ -234,8 +242,13 @@ class Party:
             before = len(self.undone)
             try:
                 if await self._rooms_right():
-                    await self._volumes_right()
-                    await self._music_right()
+                    # Love it or Loathe it turning a song down, or away on another
+                    # station: left alone until it has put that back, when its sensor
+                    # says so and the speakers are compared again (Parties.recheck).
+                    excused = self._excused(self.leader)
+                    if not excused:
+                        await self._volumes_right()
+                    await self._music_right(excused)
             except HomeAssistantError as err:
                 self._record(
                     f"The speakers couldn't be compared with the party: {err}", True
@@ -311,10 +324,10 @@ class Party:
                 self._call("volume_set", room, volume_level=want / 100),
             )
 
-    async def _music_right(self) -> None:
+    async def _music_right(self, excused: bool) -> None:
         session, host = self._speaker()
         uri, _ = await upnp.source(session, host)
-        if uri != self.uri:
+        if uri != self.uri and not excused:
             await self._put_back(
                 "played something of their own",
                 upnp.play_from(session, host, self.uri, self.about, self.song),
@@ -377,9 +390,15 @@ class Party:
 class Parties:
     """Every party in the house, and what the entities and the page are told of them."""
 
-    def __init__(self, hass: HomeAssistant, changed: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        changed: Callable[[], None],
+        excused: Callable[[str], bool],
+    ) -> None:
         self.hass = hass
         self._tell_page = changed
+        self._excused = excused
         self._parties: list[Party] = []
         self._listeners: list[Callable[[], None]] = []
         # Since Home Assistant started, for the sensor.
@@ -410,7 +429,7 @@ class Parties:
         """A party for a group: its rooms, leader first, and their volumes now."""
         if any(self.of(room) for room in rooms):
             raise HomeAssistantError("There is already a party in one of these rooms")
-        party = Party(self.hass, rooms, volumes, self._changed)
+        party = Party(self.hass, rooms, volumes, self._changed, self._excused)
         await party.start()
         self._parties.append(party)
         self._changed(party, None)
@@ -418,6 +437,18 @@ class Parties:
     def stop(self, party: Party) -> None:
         party.stop()
         self._parties.remove(party)
+        self._changed(party, None)
+
+    @callback
+    def recheck(self) -> None:
+        """Compare every party with its speakers again: what excused a change may have
+        ended."""
+        for party in self._parties:
+            party.due()
+
+    def opened(self, party: Party, on: bool) -> None:
+        """Let the screens change the music at this party, or stop them."""
+        party.open = on
         self._changed(party, None)
 
     @callback

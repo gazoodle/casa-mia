@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026.11.12-b18
+
+- Jukebox's party lock can only be turned on and off by the people you choose: a new
+  list, **Who may run a party**, in Jukebox's Configure dialog. Administrators always
+  may. Until now any login could end a party, a wall tablet's included.
+- During a party, the music can be changed from Jukebox only by those people. A second
+  list, **Screens that may be opened up at a party**, names the wall tablets' logins:
+  they can change the music once someone running the party turns on **Let the wall
+  tablets change the music** on the party's sheet, and never the party itself. The
+  switch is off at the start of each party. Any other login can only look. A change
+  that is refused says why, and is logged with the login that tried.
+- Jukebox's big player and Now playing card show Love it or Loathe it's thumbs under
+  the song's title, where it is installed and the login may rate.
+- Jukebox says why Love it or Loathe it changed a player: what it did and the song and
+  group that caused it, on the big player while it is in force and for ten minutes
+  after, and on a small player while it is in force.
+- Jukebox's party lock no longer puts back what Love it or Loathe it does to the volume
+  or the station.
+- Love it or Loathe it skips a loathed song that is one of a queue, where its group
+  would mute it or switch station. Nothing to set up. A song from a station is treated
+  as before, and after five skips one after another the next song gets its group's own
+  action.
+- Fixed: Jukebox listed a speaker with the quiet rooms while it was playing, when the
+  stream gave Home Assistant neither a title nor a station's name. A speaker that says
+  it is playing is now always shown as a player, with "Playing, but the speaker gives
+  no title".
+- Fixed: Jukebox took a speaker on a station for one playing a queue, with a Next
+  button, when Home Assistant had no name for the station (seen on one speaker, which
+  lost the name at the song after a station was started). A station is now also known
+  by how its stream is addressed.
+- Where Home Assistant has no name or picture for the station a speaker is on, Jukebox
+  asks the speaker itself, once for each station, and shows what it says. The picture
+  is then loaded from the address the speaker gives, which is the station's own.
+- Love it or Loathe it's Last match sensor has a new attribute, `players`: for each
+  player, what was last done, why, when, and whether it is still in force. The event's
+  `action` is `skip` for a song that was skipped.
+
 ## 2026.11.12-b17
 
 - Jukebox's players can mute. The speaker picture beside a volume slider is now a

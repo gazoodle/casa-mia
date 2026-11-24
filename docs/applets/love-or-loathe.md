@@ -244,6 +244,15 @@ the group's feeling, and it is acted on at once.
   the entry's **Switch back at the end of a song** is on.
 - **Only fire the event.**
 
+**A loathed song that is one of a queue is skipped.** Where the song has a length, comes
+from no station and the player can go to the next, a group that would mute it or switch
+station skips it instead: muting leaves a silence the length of the song, and a queue
+has no station to come back to. There is nothing to set up. It doesn't apply to a group
+that changes the volume or only fires the event, or to a song played too often. After
+five songs skipped one after another, the next is given its group's own action, so a
+queue of nothing but loathed songs isn't skipped round for ever. If the player refuses
+the skip (the last song of a queue has no next), the group's own action is used.
+
 A switch can't end at the next track, as a mute does, because once the player has left
 a station nothing reports what that station is playing.
 
@@ -575,7 +584,12 @@ Its attributes:
 | `repeats` | How many times the song has been played in the entry's hours, when that is why it was struck; 0 when a group had it. |
 | `at` | When. |
 | `away` | Each player now on another station, and when it goes back. |
+| `players` | For each player, what was last done to it: `did` (in words), `why` (the song and the group that had it), `at`, and `now`, which is true while that is still in force (a volume or mute to be put back, or another station to come back from). |
 | `no_titles` | Players that are playing but report no title, so nothing can be matched. |
+
+`action` is the group's action, or `skip` for a song in a queue that was skipped. Jukebox
+reads `players` to show why a player was changed (its guide, "With Love it or Loathe
+it").
 
 Each match also fires the event `casa_mia_love_or_loathe`, with the same fields as far
 as `at`, so an automation can do anything else:

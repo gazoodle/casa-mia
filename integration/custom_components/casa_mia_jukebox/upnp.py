@@ -286,6 +286,26 @@ async def source(session: aiohttp.ClientSession, host: str) -> tuple[str, str]:
     return told.get("CurrentURI", ""), told.get("CurrentURIMetaData", "")
 
 
+async def station(session: aiohttp.ClientSession, host: str) -> tuple[str, str | None]:
+    """The station the speaker at `host` is on, as the speaker itself describes it: its
+    name and the address of its picture. An empty name where it describes none.
+
+    Home Assistant can lose both while the speaker still has them: for one model of
+    speaker it had the name when a station started and none from the next song on
+    (seen 2026-11-24)."""
+    _, about = await source(session, host)
+    if not about.strip().startswith("<"):
+        return "", None
+    try:
+        told = fromstring(about)
+    except ParseError as err:
+        raise HomeAssistantError(
+            f"The speaker's description can't be read: {err}"
+        ) from err
+    name = told.findtext(f".//{DC}title") or ""
+    return name, told.findtext(f".//{UPNP}albumArtURI") or None
+
+
 async def track(session: aiohttp.ClientSession, host: str) -> int:
     """The number of the song the speaker is at in its queue, from 1."""
     told = await call(session, host, "AVTransport", "GetPositionInfo", InstanceID=0)

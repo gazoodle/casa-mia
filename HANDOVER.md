@@ -250,6 +250,31 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   the agreed mock-up and the 2026-11-23 measurements; not yet run against real
   speakers. Not kept across a restart. Entities: `binary_sensor` party, `sensor`
   put_back; event `casa_mia_jukebox_put_back`.
+- **What a speaker is playing from** (`house.kind`, 2026-11-24, from the owner's
+  speakers): a speaker that says it is playing is never `nothing`, and a station is
+  known by its name or by how its stream is addressed (`_STREAMS`). Why: for one
+  speaker (a portable model, alone in its group) Home Assistant had `media_channel` when
+  a station started and lost it, with the picture, at the next song, every time; between
+  songs there was no title either. It was listed as quiet, then as a queue. Not caused
+  by grouping or by a restart (its history, 2026-11-24); why that speaker differs from
+  the others on the same station isn't known.
+  The speaker still has the name and the logo's address (`upnp.station`, from
+  GetMediaInfo), so `Feed._station` asks it once for each stream.
+- **Who may change what at a party** (`may.py`, owner 2026-11-24): decided in `feed.do`,
+  never on the page, because Home Assistant doesn't limit what a login may ask for. A
+  host (administrator, a login on the options' `hosts`, or no login at all) runs the
+  party; a screen (a login on `screens`) may change the music only while a host has set
+  `Party.open`, which starts off at every party; any other login only looks. The page
+  is told its part as `me` with each push of the house. Why: a guest could end the
+  party at a wall tablet and carry on from the Sonos app.
+- **With Love it or Loathe it** (`love.py`): no code is shared. Jukebox reads the
+  `players` attribute of its Last match sensors (found in the entity registry by
+  platform): what was last done to each player, why, and whether it is in force
+  (`now`). The players show it, and a party leaves the volume and the source alone
+  while it is in force (`Party._excused`), comparing again when the sensor changes.
+  Love it or Loathe it writes `now` before it asks the speaker, so the party never
+  sees the change first. The thumbs on the big player are its own element
+  (`casa-mia-thumbs`), drawn only where its bundle has defined it.
 - **Search and browse** (`find.py`, `find.ts`): the library through HA's
   `media_player.search_media` on a Sonos entity, Spotify through the Spotify
   integration's own signed-in client (`entry.runtime_data.coordinator.client.search`:
@@ -293,6 +318,12 @@ Its own integration, `casa_mia_love_or_loathe`, since 2026.11.7-b2 (design agree
 owner, 2026-11-13). Standalone like Sensor Watch: wholly in Home Assistant, nothing
 imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`.
 
+- **What it tells others of each player** (2026.11.12-b18, for Jukebox): the Last match
+  sensor's `players` (`Base.doing`), from `Player.last` with `now` true while an undo or
+  a return is pending or an action is being carried out. It is written before the
+  speaker is asked. A loathed song in a queue is skipped where its group would mute or
+  switch (`Engine._skip_or`, owner 2026-11-24: nothing to set up); `SKIPS` in a row
+  ends it, so a queue of loathed songs on repeat isn't skipped for ever.
 - **Config:** an entry is a name, its players (many) and a delay; several entries can
   be added, a player in only one (owner, 2026-11-13: one entry manages many players,
   separate entries allow variation). A subentry per group of songs and per station

@@ -34,7 +34,7 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   stand-in until someone with S1 tries it.
 - **The page, its players, rooms and favourites, and the small card were built in
   2026.11.12-b9, and the queue (jump to a song, move one, take one out) in b11.** Left
-  of the brief below, in this order: Love it or Loathe it's thumbs on the big player, lyrics. Also left:
+  of the brief below: lyrics. Also left:
   - Built in b12, asked for by the owner on 2026-11-23: the players' order, clear the
     queue, save the queue as a playlist, delete a playlist, and the light round a
     button while a speaker is asked.
@@ -81,6 +81,30 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     own. Spotify would still be the missing part. Before anything is built, measure
     the last step with no code: a long stream on a phone, in Safari and in the
     companion app, on earbuds, screen locked, for twenty minutes.
+  - **Who may run a party, the thumbs and Love it or Loathe it's reasons** were built
+    in b18 (owner, 2026-11-24). Decided then: thumbs up and down as Love it or Loathe
+    it's card has, not the mock-up's heart (one picture for one action, and a heart
+    reads as "save to favourites"); only chosen logins may start or end a party, and
+    during one only they change the music from Jukebox, with a switch of theirs to let
+    the wall tablets change it too, off at the start of each party (why: a guest could
+    end the party at a wall tablet, then use their own phone); a loathed song in a
+    queue is skipped with nothing to set up; a party lets Love it or Loathe it's
+    changes through. Left:
+    - None of it has met real speakers or the owner's Home Assistant: the two lists in
+      the Configure dialog, a wall tablet's login being refused, the real thumbs on the
+      dark player (checked here against a stand-in element), a skip on a real queue.
+    - On a screen that may not change the music, the controls are still drawn and a
+      press is refused with the reason; they aren't greyed. A line at the top says so.
+    - A login's part reaches its page with the next push of the house, so a change to
+      the two lists shows there only when a speaker next changes. Jukebox itself
+      decides afresh each time something is asked.
+    - A wall tablet's login belongs to no person, so the thumbs don't show there. "Who
+      is rating?" on such a screen was put off (owner, 2026-11-24).
+    - Put off the same day: a code typed on a tablet to unlock it for a few minutes,
+      and guests adding a song to the end of the queue from a tablet.
+    - The reason shows what was last done. The last few lines for one player (Love it
+      or Loathe it keeps them per entry, for Casa Mia's page) aren't shown.
+    - A song played too often is never skipped: each skip counts as a play.
   - **Mute** (b17): the party lock guards a room's volume but not its mute, so a
     guest's mute isn't put back.
   - `tests_ha/test_jukebox_page.py` is at 777 lines of the 800 allowed: split it before

@@ -16,7 +16,7 @@ from homeassistant.const import ATTR_ENTITY_ID, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from . import find
+from . import find, may
 from .const import DOMAIN, TITLE, URL
 from .feed import ACTIONS, ENQUEUE, Feed, do, favourites, queue
 
@@ -106,7 +106,12 @@ def _ws_house(
 
     @callback
     def send(model: dict[str, Any]) -> None:
-        connection.send_message(websocket_api.event_message(msg["id"], model))
+        # With this login's part (may.py), so the page offers only what it may do. It
+        # is looked up at each send; Jukebox decides again when something is asked.
+        me = may.who(hass, connection.user).role
+        connection.send_message(
+            websocket_api.event_message(msg["id"], {**model, "me": me})
+        )
 
     connection.send_result(msg["id"])
     connection.subscriptions[msg["id"]] = hass.data[FEED].listen(send)
@@ -137,7 +142,7 @@ async def _ws_do(
     data = {
         k: v for k, v in msg.items() if k not in ("id", "type", "action", "entity_id")
     }
-    who = connection.user.name or "someone"
+    who = may.who(hass, connection.user)
     try:
         await do(hass.data[FEED], who, msg["action"], msg[ATTR_ENTITY_ID], data)
     except HomeAssistantError as err:
@@ -187,7 +192,7 @@ async def _ws_order(
 ) -> None:
     """The order the page's players were dragged into, for the whole house. Every open
     page is sent the house again, in the new order."""
-    await hass.data[FEED].arrange(connection.user.name or "someone", msg["rooms"])
+    await hass.data[FEED].arrange(may.who(hass, connection.user), msg["rooms"])
     connection.send_result(msg["id"])
 
 
@@ -204,7 +209,7 @@ async def _ws_search(
 ) -> None:
     """The music library and Spotify, searched together. A source that fails comes
     back with its reason beside the other's results (find.search)."""
-    who = connection.user.name or "someone"
+    who = may.who(hass, connection.user)
     found = await find.search(hass, who, msg[ATTR_ENTITY_ID], msg["query"])
     connection.send_result(msg["id"], found)
 

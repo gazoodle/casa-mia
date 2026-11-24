@@ -41,7 +41,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
-from . import feed, page, pure
+from . import feed, may, page, pure
 from .announce import Jukebox
 from .const import (
     ANNOUNCE,
@@ -141,7 +141,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         user = await hass.auth.async_get_user(asker) if asker else None
         await feed.play(
             hass.data[page.FEED],
-            (user.name if user else None) or "An automation",
+            may.who(hass, user),
             call.data["rooms"],
             call.data["favourite"],
             call.data.get("enqueue"),

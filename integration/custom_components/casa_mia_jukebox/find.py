@@ -86,7 +86,7 @@ async def browse(
 
 
 async def search(
-    hass: HomeAssistant, who: str, entity: str, query: str
+    hass: HomeAssistant, who: object, entity: str, query: str
 ) -> dict[str, Any]:
     """Search the music library and Spotify at once. Each source comes with what it
     found, or with why it found nothing."""

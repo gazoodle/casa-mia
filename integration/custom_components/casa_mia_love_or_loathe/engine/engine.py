@@ -27,14 +27,17 @@ from ..const import (
     EVENT,
     LOATHE,
     MUTE,
+    SKIP,
     SWITCH,
     VOLUME,
 )
 from ..pure import Group, History, leads, pick
 from .common import (
+    SKIPS,
     Player,
     _said,
     _track,
+    skippable,
 )
 from .stations import Stations
 
@@ -46,7 +49,12 @@ class Engine(Stations):
         super().__init__(hass, entry)
         self._actions: dict[
             str, Callable[[str, Player, Group, State], Awaitable[str]]
-        ] = {VOLUME: self._volume, MUTE: self._mute, SWITCH: self._switch}
+        ] = {
+            VOLUME: self._volume,
+            MUTE: self._mute,
+            SWITCH: self._switch,
+            SKIP: self._skip,
+        }
 
     # --- starting and stopping ---------------------------------------------------
 
@@ -63,6 +71,7 @@ class Engine(Stations):
             if player is None:
                 continue
             player.undo, player.away = was.get("undo"), was.get("away")
+            player.last = was.get("last")
             if player.away:
                 self._arm(entity, player)
         self._tell()  # the sensor was made before this: it shows who is away
@@ -199,6 +208,7 @@ class Engine(Stations):
 
             group, repeats = self.judge(title, artist)
             if group is None:
+                player.skips = 0
                 return
             by = f" by {artist}" if artist else ""
             why = (
@@ -231,8 +241,19 @@ class Engine(Stations):
                     )
                     return
 
-            action = group.act.action
+            action = self._skip_or(entity, player, group, repeats, state)
             act = self._actions.get(action)
+            if act:
+                # Said before anything is done to the player, so that whoever tells
+                # these changes from a person's knows of it before the speaker reports
+                # the change (Base.doing).
+                player.acting = True
+                player.last = {
+                    "did": "",
+                    "why": f"{title}{by} {why}",
+                    "at": dt_util.utcnow().isoformat(),
+                }
+                self._tell()
             try:
                 result = (
                     await act(entity, player, group, state) if act else "event only"
@@ -242,6 +263,11 @@ class Engine(Stations):
                 self._note(trail.PROBLEM, f"Could not {action}: {exc}", entity)
             else:
                 self._note(trail.CHANGE if act else trail.SKIP, _said(result), entity)
+            finally:
+                player.acting = False
+            if player.last and act:
+                player.last["did"] = _said(result)
+            player.skips = player.skips + 1 if action == SKIP else 0
             await self._save()
 
         self.last = {
@@ -259,3 +285,39 @@ class Engine(Stations):
         }
         self.hass.bus.async_fire(EVENT, self.last)
         self._tell()
+
+    # --- a loathed song in a queue -----------------------------------------------
+
+    def _skip_or(
+        self, entity: str, player: Player, group: Group, repeats: int, state: State
+    ) -> str:
+        """The action for this song: its group's own, or a skip. A loathed song that is
+        one of a queue is skipped, with nothing to set up, where its group would mute it
+        or switch station: muting it leaves a silence the length of the song, and there
+        is no station to come back to. Not for a song played too often (each skip
+        counts as a play, so a short queue would soon be skipped whole), and not when
+        the group only changes the volume or fires the event."""
+        action = group.act.action
+        wanted = group.feeling == LOATHE and not repeats and action in (MUTE, SWITCH)
+        if not wanted or not skippable(state):
+            return action
+        if player.skips >= SKIPS:
+            self._note(
+                trail.SKIP,
+                f"{SKIPS} songs skipped one after another: this one isn't skipped",
+                entity,
+            )
+            return action
+        return SKIP
+
+    async def _skip(
+        self, entity: str, player: Player, group: Group, state: State
+    ) -> str:
+        """On to the next song. Where the player refuses (the last song of a queue has
+        no next), the group's own action instead."""
+        try:
+            await self._call("media_next_track", entity)
+        except HomeAssistantError as exc:
+            own = await self._actions[group.act.action](entity, player, group, state)
+            return f"could not skip ({exc}): {own}"
+        return "skipped: it was one of a queue"

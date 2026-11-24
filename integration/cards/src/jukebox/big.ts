@@ -7,7 +7,7 @@
 // a sheet over the player; a wall tablet gets them beside it.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
-import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, mmss, muted, names, playing, position, reason } from "./common.ts";
+import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, reason, shut } from "./common.ts";
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -174,16 +174,27 @@ export class Big extends LitElement {
     const on = group.state === "playing";
     const hush = muted(house, group);
     const queue = group.kind === "queue";
+    const host = house.me === "host";
+    const love = loved(group, Date.now());
     return html`<div class="now">
       <div class="bar">
         ${this._shut()}
         <div class="where"><small>Playing in</small><b>${names(house, group)}</b></div>
-        <button class="pill ${group.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => (group.party ? (this._partying = true) : this._party(true))} aria-label=${group.party ? "The party lock is on" : "Turn the party lock on"}>
-          ${icon("lock")}${group.party ? `Party on${group.party.undone.length ? ` · ${group.party.undone.length}` : ""}` : "Party"}
-        </button>
+        ${group.party || host
+          ? html`<button class="pill ${group.party ? "on" : ""} ${this._busy.on("party")}" @click=${() => (group.party ? (this._partying = true) : this._party(true))} aria-label=${group.party ? "The party lock is on" : "Turn the party lock on"}>
+              ${icon("lock")}${group.party ? `Party on${host && group.party.undone.length ? ` · ${group.party.undone.length}` : ""}` : "Party"}
+            </button>`
+          : nothing}
       </div>
+      ${shut(house, group) ? html`<p class="barred">A party is on: the music can't be changed from this screen.</p>` : nothing}
       <div class="cover">${art(this.hass, group.picture, title)}</div>
-      <div class="title"><b>${title}</b><span>${by}</span></div>
+      <div class="title">
+        <b>${title}</b><span>${by}</span>
+        <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
+             element, and it shows nothing where this login can't rate. -->
+        <casa-mia-thumbs quiet .hass=${this.hass} .entityId=${group.id}></casa-mia-thumbs>
+        ${love ? html`<p class="love ${love.over ? "over" : ""}"><strong>Love it or Loathe it${love.over ? `, ${clock(group.love!.at)}` : ""}:</strong> ${love.what}. ${love.why}.</p>` : nothing}
+      </div>
       ${at !== null && group.duration
         ? html`<div class="seek">
             <span>${mmss(at)}</span>
@@ -319,7 +330,7 @@ export class Big extends LitElement {
 
   /** What is asked before anything is done: where a favourite goes in the queue, a name for
    * a playlist, and once more, in large letters, before something that can't be undone. */
-  private _sheets(group: Group) {
+  private _sheets(house: House, group: Group) {
     const { _menu: menu, _confirm: sure } = this;
     if (sure)
       return html`<div class="veil">
@@ -342,10 +353,16 @@ export class Big extends LitElement {
           ${party.undone.length
             ? html`<ul class="undone">${party.undone.map((u) => html`<li class=${u.failed ? "failed" : ""}><time>${clock(u.at)}</time>${u.failed ? u.what : `Put back: ${u.what.replace(/^Someone/, "someone")}`}</li>`)}</ul>`
             : html`<p>Nothing has had to be put back.</p>`}
-          <div class="acts">
-            <button class="main" @click=${() => (this._partying = false)}>Keep the party going</button>
-            <button class="danger" @click=${() => this._party(false)}>End the party</button>
-          </div>
+          ${house.me === "host"
+            ? html`<button class="switch ${this._busy.on("party_open")}" role="switch" aria-checked=${party.open} @click=${() => this._do("party_open", { on: !party.open })}>
+                  <span><b>Let the wall tablets change the music</b><small>${party.open ? "They can, until you turn this off or the party ends." : "Only the people who run the party can."}</small></span><i></i>
+                </button>
+                <div class="acts">
+                  <button class="main" @click=${() => (this._partying = false)}>Keep the party going</button>
+                  <button class="danger" @click=${() => this._party(false)}>End the party</button>
+                </div>`
+            : html`<p>${shut(house, group) ? "The music can't be changed from this screen." : "This screen has been let to change the music."} Only the people who run the party can end it.</p>
+                <div class="acts"><button class="main" @click=${() => (this._partying = false)}>Close</button></div>`}
         </div>
       </div>`;
     }
@@ -395,7 +412,7 @@ export class Big extends LitElement {
     return html`<div class="big" style="--a:${a};--b:${b};${picture}">
       ${this._now(house, group)}
       <div class="side ${this.tab ? "up" : ""}">${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : shown === "search" ? this._search(group) : this._favouritesPanel(group)}</div>
-      ${this._sheets(group)}
+      ${this._sheets(house, group)}
       <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
     </div>`;
   }
@@ -435,6 +452,17 @@ export class Big extends LitElement {
          can squeeze the artwork. */
       .title b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 21px; line-height: 1.2; overflow-wrap: anywhere; text-wrap: balance; }
       .title span { color: var(--muted); }
+      .title casa-mia-thumbs { display: flex; justify-content: center; --secondary-text-color: rgb(255 255 255 / 66%); --secondary-background-color: rgb(255 255 255 / 12%); }
+      .love { margin: 6px 0 0; font-size: 12.5px; line-height: 1.35; color: #fff; overflow-wrap: anywhere; }
+      .love.over { color: var(--muted); }
+      .barred { margin: 0; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / 12%); font-size: 13px; text-align: center; }
+      .switch { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / 8%); text-align: left; }
+      .switch span { flex: 1; min-width: 0; }
+      .switch small { display: block; color: rgb(255 255 255 / 70%); }
+      .switch i { position: relative; flex: none; width: 44px; height: 26px; border-radius: 999px; background: rgb(255 255 255 / 25%); transition: background 0.15s; }
+      .switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: translate 0.15s; }
+      .switch[aria-checked="true"] i { background: #3fae5a; }
+      .switch[aria-checked="true"] i::after { translate: 18px; }
       .seek { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
       .live { text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
       .tp { display: flex; align-items: center; justify-content: center; gap: 10px; }

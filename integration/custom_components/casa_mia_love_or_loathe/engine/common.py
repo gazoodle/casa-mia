@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
+from homeassistant.components.media_player import MediaPlayerEntityFeature
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import (
     CALLBACK_TYPE,
@@ -35,6 +36,11 @@ REPORT_LAG = 10.0
 # Back at the end of a song (CONF_BACK_AT_END): the longest the return waits for the next
 # track, for a station whose title never changes.
 LONGEST_SONG = timedelta(minutes=10)
+# A loathed song in a queue is skipped. This many skipped one after another, and the
+# next is given its group's own action: a queue of nothing but loathed songs, on repeat,
+# would otherwise be skipped round for ever.
+# ponytail: a count. Tell a queue that has come round again if this proves too blunt.
+SKIPS = 5
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +66,11 @@ class Player:
     # could not be made, so it is made when the player next plays (_back)}.
     away: dict[str, Any] | None = None
     back: CALLBACK_TYPE | None = None  # the timer for the return
+    # What was last done to it, {"did", "why", "at"}, for whoever shows the player
+    # (Base.doing). Kept in storage with `undo` and `away`, which it explains.
+    last: dict[str, Any] | None = None
+    acting: bool = False  # an action is being carried out now
+    skips: int = 0  # songs skipped one after another (SKIPS)
     # One track's work at a time: the undo of the last before the action of the next.
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
@@ -109,6 +120,15 @@ def favourite(state: State) -> str | None:
             if name in sources:
                 return name
     return None
+
+
+def skippable(state: State) -> bool:
+    """Whether what a player is on can be skipped: a song of a known length, not a
+    station's, on a player that can go to the next. A Sonos names the station in
+    `media_channel`, and a station's song has no length."""
+    said = state.attributes
+    can = said.get("supported_features", 0) & MediaPlayerEntityFeature.NEXT_TRACK
+    return bool(can and said.get("media_duration") and not said.get("media_channel"))
 
 
 def _on(speakers: Any) -> str:

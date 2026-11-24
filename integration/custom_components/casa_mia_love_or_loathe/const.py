@@ -55,6 +55,9 @@ VOLUME = "volume"  # change it by a percentage until the next track
 MUTE = "mute"  # until the next track
 SWITCH = "switch"  # to another station, for some minutes
 ONLY_EVENT = "event"  # nothing but the event
+# Not one to choose: what a mute or a switch becomes for a loathed song that is one of a
+# queue (Engine._skip_or).
+SKIP = "skip"
 ACTIONS = (VOLUME, MUTE, SWITCH, ONLY_EVENT)
 # What a new group is offered for each.
 DEFAULT_ACTS = {

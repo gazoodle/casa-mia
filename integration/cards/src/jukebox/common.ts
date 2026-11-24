@@ -30,11 +30,34 @@ export type Group = {
   queue_position: number | null;
   /** The party lock, while it is on for this group. */
   party: Party | null;
+  /** What Love it or Loathe it last did to this player, where it is installed. */
+  love: Love | null;
 };
+/** Love it or Loathe it's account of a player (its Last match sensor's `players`): what it
+ * did (empty while it is doing it), why, when, and whether that is still in force; `next`
+ * when a return from another station is waiting on something. */
+export type Love = { did: string; why: string; at: string; now: boolean; next?: string };
 /** A party: since when, what was put back (the newest first; `failed` when it couldn't be),
  * and since when a song moved in another app isn't being noticed (none while it is). */
-export type Party = { since: string; undone: { at: string; what: string; failed: boolean }[]; unwatched: string | null };
-export type House = { groups: Group[]; rooms: Record<string, Room> };
+export type Party = { since: string; undone: { at: string; what: string; failed: boolean }[]; unwatched: string | null; /** The screens may change the music. */ open: boolean };
+/** `me` is this login's part while a party is on (the integration's may.py): a host runs
+ * it, a screen may change the music once a host lets the screens, anyone else only looks. */
+export type House = { groups: Group[]; rooms: Record<string, Room>; me: "host" | "screen" | "other" };
+
+/** Whether this login can't change this group's music now: a party is on and it is neither
+ * a host nor a screen that has been let. Jukebox itself refuses; this is so the page says. */
+export const shut = (house: House, group: Group): boolean => !!group.party && house.me !== "host" && !(house.me === "screen" && group.party.open);
+
+/** How long what Love it or Loathe it did stays on the big player after it is over. */
+const LATELY = 10 * 60_000;
+
+/** What to say of Love it or Loathe it on a player: what it did and why, while that is in
+ * force and for a while after (a skip is over at once, and still wants explaining). */
+export function loved(group: Group, now: number): { what: string; why: string; over: boolean } | undefined {
+  const love = group.love;
+  if (!love || (!love.now && now - Date.parse(love.at) > LATELY)) return undefined;
+  return { what: [love.did || "Changing this player", love.next].filter(Boolean).join(". "), why: love.why, over: !love.now };
+}
 export type Favourite = {
   folder: string;
   title: string;
@@ -121,8 +144,9 @@ export const muted = (house: House, group: Group): boolean => group.rooms.length
 export function playing(group: Group): { title: string; by: string } {
   const named = { tv: "Television", line_in: "Line-in", nothing: "Nothing playing" } as Record<string, string>;
   if (group.kind in named) return { title: group.title || named[group.kind], by: "" };
-  if (group.kind === "radio") return { title: group.title || group.channel, by: group.artist || (group.title && group.title !== group.channel ? group.channel : "") };
-  return { title: group.title, by: group.artist };
+  // A stream that gives neither a title nor a station's name is still playing: say so.
+  if (group.kind === "radio") return { title: group.title || group.channel || "Playing, but the speaker gives no title", by: group.artist || (group.title && group.title !== group.channel ? group.channel : "") };
+  return { title: group.title || "Playing, but the speaker gives no title", by: group.artist };
 }
 
 /** How far into a song a group is at `now` (ms): the speaker says where it was and when,

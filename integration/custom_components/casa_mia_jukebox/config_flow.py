@@ -13,14 +13,16 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 
 from .const import (
     CHIME,
     CONF_CHIME,
+    CONF_HOSTS,
     CONF_PLAYERS,
     CONF_QUIET,
+    CONF_SCREENS,
     CONF_SIDEBAR,
     CONF_TTS,
     DOMAIN,
@@ -48,6 +50,19 @@ OPTIONS = vol.Schema(
 )
 
 
+async def _logins(hass: HomeAssistant) -> dict[Any, Any]:
+    """The two lists for a party (may.py), of Home Assistant's own logins by name."""
+    users = [
+        selector.SelectOptionDict(value=user.id, label=user.name or user.id)
+        for user in await hass.auth.async_get_users()
+        if not user.system_generated and user.is_active
+    ]
+    several = selector.SelectSelector(
+        selector.SelectSelectorConfig(options=users, multiple=True)
+    )
+    return {vol.Optional(CONF_HOSTS): several, vol.Optional(CONF_SCREENS): several}
+
+
 class JukeboxFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -72,7 +87,8 @@ class JukeboxOptions(OptionsFlow):
             return self.async_show_form(
                 step_id="init",
                 data_schema=self.add_suggested_values_to_schema(
-                    OPTIONS, {CONF_CHIME: CHIME, **self.config_entry.options}
+                    OPTIONS.extend(await _logins(self.hass)),
+                    {CONF_CHIME: CHIME, **self.config_entry.options},
                 ),
             )
         # A box emptied in the dialog comes back missing. For the chime that must be

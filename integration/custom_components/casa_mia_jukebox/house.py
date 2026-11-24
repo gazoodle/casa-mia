@@ -20,18 +20,42 @@ NOTHING = "nothing"
 
 # How Sonos addresses its television and line-in inputs.
 _INPUTS = {"x-sonos-htastream:": TV, "x-rincon-stream:": LINE_IN}
+# How a station's stream is addressed: Sonos's own schemes for one, and the plain `aac:`
+# a speaker reports for a station it is playing (seen on real speakers, 2026-11-24).
+_STREAMS = (
+    "x-sonosapi-stream:",
+    "x-sonosapi-radio:",
+    "x-sonosapi-hls:",
+    "x-rincon-mp3radio:",
+    "hls-radio:",
+    "aac:",
+)
 _ANSWERING = ("playing", "paused", "idle", "buffering", "on", "off")
 
 
-def kind(attributes: Mapping[str, Any]) -> str:
-    """What a speaker is playing from."""
+def kind(attributes: Mapping[str, Any], sounding: bool = False) -> str:
+    """What a speaker is playing from. `sounding` is that it says it is playing now.
+
+    A speaker that is playing is never playing nothing. Some streams give Home Assistant
+    neither a title nor a station's name, and such a speaker was listed with the quiet
+    rooms while it played (2026-11-24). It is a station unless it has a length.
+
+    A station is known by its name or by how its stream is addressed. For one model of
+    speaker Home Assistant had the station's name when the station started and lost it
+    at the next song (the same day, read from its history), and by the name alone the
+    speaker was then taken for a queue, with a Next button, whenever a song had a
+    title."""
     address = str(attributes.get("media_content_id") or "")
     for start, what in _INPUTS.items():
         if address.startswith(start):
             return what
-    if attributes.get("media_channel"):
+    if attributes.get("media_channel") or address.startswith(_STREAMS):
         return RADIO
-    return QUEUE if attributes.get("media_title") else NOTHING
+    if attributes.get("media_title"):
+        return QUEUE
+    if sounding:
+        return QUEUE if attributes.get("media_duration") else RADIO
+    return NOTHING
 
 
 def _percent(level: Any) -> int | None:
@@ -63,13 +87,14 @@ def house(
         if not rooms[entity]["available"] or members[0] != entity:
             continue
         members = [m for m in members if m in rooms and rooms[m]["available"]]
-        what = kind(attributes)
+        sounding = state in ("playing", "buffering")
+        what = kind(attributes, sounding)
         at = attributes.get("media_position_updated_at")
         groups.append(
             {
                 "id": entity,
                 "rooms": members,
-                "state": "playing" if state in ("playing", "buffering") else "paused",
+                "state": "playing" if sounding else "paused",
                 "kind": what,
                 "quiet": what == NOTHING and len(members) == 1,
                 "title": attributes.get("media_title") or "",
