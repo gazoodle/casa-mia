@@ -7,7 +7,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire } from "../ha.ts";
 import { type Group, type Song, mmss, queue, reason } from "./common.ts";
-import { Busy, icon, shared } from "./parts.ts";
+import { Busy, art, icon, shared } from "./parts.ts";
 
 export const QUEUE = "casa-mia-jukebox-queue";
 /** Every row's height in px: a drag is measured in rows. */
@@ -95,15 +95,17 @@ export class Queue extends LitElement {
     // The song that is playing, when it is the queue that plays.
     const now = !this.playlist && group.kind === "queue" ? group.queue_position : null;
     const fixed = this.locked;
+    const words = (song: Song) => html`<b>${song.title || "A song with no title"}</b><small>${[song.artist, song.album].filter(Boolean).join(" · ")}</small>`;
     return html`${this._why ? html`<p class="empty">The queue couldn't be read again: ${this._why}</p>` : nothing}
       ${songs.map((song, i) => {
         // While one is dragged, the rows it passes move aside to show where it would land.
         const shift = !drag ? 0 : i === drag.from ? drag.dy : drag.from < i && i <= drag.to ? -ROW : drag.to <= i && i < drag.from ? ROW : 0;
         return html`<div class="row ${i + 1 === now ? "now" : ""} ${drag?.from === i ? "held" : ""} ${this._busy.on(`row:${i}`)}" style="transform:translateY(${shift}px)">
           ${fixed ? html`<span></span>` : html`<span class="handle" @pointerdown=${(e: PointerEvent) => this._down(e, i)} @pointermove=${this._moved} @pointerup=${this._up} @pointercancel=${this._up}>${icon("drag")}</span>`}
+          ${art(this.hass, song.picture, song.title || song.album || "?")}
           ${this.playlist
-            ? html`<span class="t"><b>${song.title || "A song with no title"}</b><small>${song.artist}</small></span>`
-            : html`<button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}"><b>${song.title || "A song with no title"}</b><small>${song.artist}</small></button>`}
+            ? html`<span class="t">${words(song)}</span>`
+            : html`<button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}">${words(song)}</button>`}
           <span class="len">${i + 1 === now ? icon("volume") : song.duration ? mmss(song.duration) : nothing}</span>
           ${fixed ? html`<span></span>` : html`<button class="ib" @click=${() => this._act("queue_remove", { value: i + 1 }, (all) => all.splice(i, 1))} aria-label="Take ${song.title} out of the ${list}">${icon("close")}</button>`}
         </div>`;
@@ -116,7 +118,7 @@ export class Queue extends LitElement {
     css`
       :host { display: block; }
       .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }
-      .row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 42px; align-items: center; gap: 4px; height: ${ROW}px; padding: 0 4px; border-radius: 14px; transition: transform 0.15s; }
+      .row { display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; height: ${ROW}px; padding: 0 4px; border-radius: 14px; transition: transform 0.15s; }
       .row.now { background: rgb(255 255 255 / 9%); }
       .row.held { position: relative; z-index: 2; background: rgb(255 255 255 / 18%); box-shadow: 0 8px 24px rgb(0 0 0 / 50%); transition: none; }
       /* The handle takes the finger for itself, so a drag moves the song and not the list. */
@@ -124,6 +126,7 @@ export class Queue extends LitElement {
       .t { display: grid; grid-template-columns: minmax(0, 1fr); align-self: stretch; align-content: center; min-width: 0; }
       .t b, .t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .t small { color: var(--muted); }
+      .art { border-radius: 8px; }
       .len { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
       .len svg { width: 18px; height: 18px; color: #fff; }
       .ib { color: var(--muted); }

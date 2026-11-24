@@ -138,16 +138,24 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
       speaker with no account, which the speaker picks. So the first reading, that
       Jukebox needed the account's number, was wrong. Not seen: any of it from the
       page itself, against a real speaker.
-    - A playlist's listing gives no lengths for its songs, so none are shown there.
+    - A playlist's listing gives no length for a song from the music library, so
+      none is shown for those; streamed songs have theirs.
     - The same way of naming a Spotify song serves the clean-up of the old playlists
       (below): a replacement can be written into a new playlist with no account.
-    - **Asked the same day, for discussion:** pictures for the songs of a queue and
-      a playlist; more about what a radio station is playing.
+    - **Asked the same day, for discussion:** more about what a radio station is
+      playing. (Pictures for the songs of a queue and a playlist: built in b21.)
+    - **A playlist editor on a wide screen** (owner, 2026-11-24, agreed as the build
+      after b21): opened from a playlist's songs or from the queue by the people who
+      look after the music; the list on one side and Search and Browse on the other;
+      a song or album dragged across and dropped where it is to go, lifted by resting
+      a finger on it as the players are (`Arranging` in `page.ts`), with + still
+      there to add to the end. A phone keeps the single column. To try first on a
+      made-up playlist: whether a speaker adds to a playlist at a given place
+      (`AddAtIndex`); if not, add to the end and move, both of which are proven.
     - After a put-back the music once started at the next song, not the one playing
       (b19, on a real speaker; the cause wasn't found). b20 loads the queue back whole
       and logs where it returns to ("back to song N"): read that line if it recurs.
   - **Playlists, asked 2026-11-24, not built:**
-    - **Save the queue over an existing playlist**, with the large-letters warning.
     - **Keep a copy of every playlist** (owner: "snaffle a copy"), so one deleted or
       changed in the Sonos app can be put back. A party's queue is already safe from a
       deleted playlist (the queue is its own copy); this is for the playlist itself.

@@ -16,7 +16,7 @@ from homeassistant.const import ATTR_ENTITY_ID, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from . import find, may
+from . import art, find, may
 from .const import DOMAIN, TITLE, URL
 from .feed import ACTIONS, ENQUEUE, Feed, do, favourites, queue
 
@@ -40,6 +40,7 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
     hass.data[VERSION] = version
     hass.data[FEED] = feed = Feed(hass)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, feed.parties.stop_all)
+    hass.http.register_view(art.View(feed))
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={version}")
     for command in (
         _ws_cards,

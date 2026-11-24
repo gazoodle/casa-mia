@@ -188,8 +188,8 @@ async def queue(
     session: aiohttp.ClientSession, host: str, what: str = QUEUE
 ) -> dict[str, object]:
     """The queue of the speaker at `host`, or the Sonos playlist `what` (`SQ:3`), in
-    order: each song's title, artist, album and length in seconds, and how many songs
-    there are in all."""
+    order: each song's title, artist, album, length in seconds and picture (as the
+    speaker addresses it: art.py), and how many songs there are in all."""
     items, total = await _listed(session, host, what, "queue")
     songs = [
         {
@@ -201,6 +201,7 @@ async def queue(
                 if (res := item.find(f"{DIDL}res")) is not None
                 else None
             ),
+            "picture": item.findtext(f"{UPNP}albumArtURI") or None,
         }
         for item in items
     ]
@@ -435,11 +436,23 @@ async def rest(session: aiohttp.ClientSession, host: str, player: str) -> None:
     await clear(session, host)
 
 
-async def save(session: aiohttp.ClientSession, host: str, name: str) -> str:
+async def save(
+    session: aiohttp.ClientSession, host: str, name: str, over: str = ""
+) -> str:
     """Save the queue as a new Sonos playlist called `name`, and give its id (`SQ:3`).
-    A playlist that already has the name is left as it is: Sonos allows two."""
+    A playlist that already has the name is left as it is: Sonos allows two.
+
+    With `over`, a playlist's id, the queue takes the place of that playlist's songs
+    and the id stays. `name` must then be that playlist's own name: with any other the
+    speaker refuses (error 402; a real speaker, 2026-11-24)."""
     saved = await call(
-        session, host, "AVTransport", "SaveQueue", InstanceID=0, Title=name, ObjectID=""
+        session,
+        host,
+        "AVTransport",
+        "SaveQueue",
+        InstanceID=0,
+        Title=name,
+        ObjectID=over,
     )
     return saved.get("AssignedObjectID", "")
 

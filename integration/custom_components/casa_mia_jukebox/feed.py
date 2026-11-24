@@ -13,6 +13,7 @@ FOUR); nothing is polled.
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
@@ -25,7 +26,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from . import find, house, may, speaker, upnp
+from . import art, find, house, may, speaker, upnp
 from .announce import address, room_name
 from .const import DOMAIN
 from .house import QUEUE
@@ -70,6 +71,14 @@ class Feed:
         self._asking: set[str] = set()
         # When each room's music was last changed from Jukebox (NEW_MUSIC).
         self._renewed: dict[str, str] = {}
+        # The Sonos playlist each group's queue was loaded from or last saved as, from
+        # Jukebox, by its coordinator: the one the page offers to save the queue back
+        # to. Not kept across a restart.
+        # ponytail: a queue replaced from another app isn't noticed, so the page may
+        # offer the wrong playlist first. It asks before replacing, with both counts.
+        self.sources: dict[str, str] = {}
+        # What a page shows a song's picture with (art.py): new at each start.
+        self.art_key = secrets.token_urlsafe(16)
         # The order the owner arranged the page's players in, kept across restarts.
         self._store: Store[dict[str, list[str]]] = Store(hass, 1, f"{DOMAIN}.order")
         self.order: list[str] = []
@@ -125,6 +134,7 @@ class Feed:
             stale = love and not love.get("now")
             if stale and str(love.get("at", "")) <= self._renewed.get(group["id"], ""):
                 love = None
+            group["source"] = self.sources.get(group["id"])
             group["love"] = love
         return model
 
@@ -256,6 +266,9 @@ class _Doing:
         self.volumes: dict[str, int] = {}
         self.joined: str | None = None
         self.left: str | None = None
+        # The playlist the queue now holds (Feed.sources): its id, "" when the queue
+        # was emptied or replaced by something else, and None when this didn't say.
+        self.source: str | None = None
 
     def _call(self, service: str, entity: str, **data: Any) -> Awaitable[Any]:
         return self.hass.services.async_call(
@@ -285,6 +298,7 @@ class _Doing:
         if not player:
             raise Refused("The speaker didn't say which it is")
         await upnp.rest(session, host, player)
+        self.source = ""
         for room in self.group["rooms"][1:]:
             await self._call("unjoin", room)
 
@@ -324,6 +338,7 @@ class _Doing:
             # doesn't know of a playlist saved since its list was last renewed.
             await upnp.clear(*self._speaker())
             await self._line_up(next=False)
+            self.source = self._value("media_content_id")
             await self._play_from(1)
             return
 
@@ -334,6 +349,7 @@ class _Doing:
             # doesn't show what is playing (owner, 2026-11-23).
             if enqueue == "replace":
                 await upnp.clear(*self._speaker())
+                self.source = ""
             enqueue = enqueue if enqueue in LINED_UP else "play"
 
         extra = {"enqueue": enqueue} if enqueue else {}
@@ -376,12 +392,23 @@ class _Doing:
 
     async def queue_clear(self) -> None:
         await upnp.clear(*self._speaker())
+        self.source = ""
 
     async def queue_save(self) -> None:
-        name = str(self._value("name")).strip()
-        if not name:
+        """Save the queue as a new playlist called `name`, or, given `playlist`, in
+        place of that playlist's songs."""
+        speaker = self._speaker()
+        if over := self.data.get("playlist"):
+            # The name is the speaker's own for it, which is the only one it accepts.
+            over = self._playlist()
+            titles = {p["id"]: p["title"] for p in await upnp.playlists(*speaker)}
+            if not (name := titles.get(over, "")):
+                raise Refused("That playlist is no longer in Sonos")
+            if name.startswith(upnp.COPY):
+                raise Refused("That is a party's copy of its queue, not a playlist")
+        elif not (name := str(self._value("name")).strip()):
             raise Refused("The playlist needs a name")
-        await upnp.save(*self._speaker(), name)
+        self.source = await upnp.save(*speaker, name, over or "") or None
 
     async def playlist_delete(self) -> None:
         # Only what a speaker keeps as a playlist of its own: never a favourite, whose
@@ -566,6 +593,9 @@ async def do(
     except HomeAssistantError as err:
         _LOGGER.warning("%s: %s in %s %s failed: %s", who, action, entity, said, err)
         raise
+    if doing.source is not None:
+        feed.sources[doing.group["id"]] = doing.source
+        feed._changed()
     if action in NEW_MUSIC:
         feed.renewed(doing.group["id"])
     _LOGGER.info("%s: %s in %s %s", who, action, entity, said)
@@ -577,7 +607,10 @@ async def queue(feed: Feed, entity: str, playlist: str = "") -> dict[str, Any]:
     doing = _Doing(feed.hass, feed.model(), entity, {}, feed.parties)
     if playlist and not playlist.startswith(upnp.SAVED_QUEUES):
         raise Refused("Only a Sonos playlist's songs can be listed")
-    return await upnp.queue(*doing._speaker(), playlist or upnp.QUEUE)
+    found = await upnp.queue(*doing._speaker(), playlist or upnp.QUEUE)
+    for song in found["songs"]:
+        song["picture"] = art.shown(feed.art_key, doing.group["id"], song["picture"])
+    return found
 
 
 async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:

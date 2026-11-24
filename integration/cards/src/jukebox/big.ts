@@ -7,7 +7,7 @@
 // a sheet over the player; a wall tablet gets them beside it.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
-import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, reason, shut } from "./common.ts";
+import { type Favourite, type Group, type House, ask, average, clock, colours, favourites, follow, groupOf, latest, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, art, icon, shared } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -104,7 +104,8 @@ export class Big extends LitElement {
       if (last && this._said !== undefined && last.at !== this._said) this._say(last.failed ? last.what : `Put back: ${last.what.replace(/^Someone/, "someone")}`);
       this._said = last?.at ?? "";
     }
-    if ((changed.has("tab") || changed.has("_favourites")) && this.tab === "favourites" && this._favourites === undefined) {
+    // Wanted for their own tab, and to list the playlists a queue can be saved over.
+    if ((changed.has("tab") || changed.has("_favourites") || changed.has("_naming")) && (this.tab === "favourites" || this._naming) && this._favourites === undefined) {
       favourites(this.hass, this.room).then(
         (found) => (this._favourites = found),
         (err) => (this._favourites = reason(err)),
@@ -303,11 +304,44 @@ export class Big extends LitElement {
     e.preventDefault();
     const name = String(new FormData(e.target as HTMLFormElement).get("name") ?? "").trim();
     if (!name) return;
+    // A name that a playlist already has: Sonos would keep two of them, so ask which.
+    const same = this._playlists().find((p) => p.title.toLowerCase() === name.toLowerCase());
+    if (same) return void this._over(same);
     this._naming = false;
     if (!(await this._do("queue_save", { name }))) return;
     this._say(`Saved as a playlist: ${name}`);
     this._favourites = undefined; // asked for again when they are next shown
   };
+
+  /** The Sonos playlists, once the favourites have been fetched. */
+  private _playlists() {
+    return Array.isArray(this._favourites) ? this._favourites.filter((f) => f.playlist) : [];
+  }
+
+  /** Save the queue in place of a playlist's songs, after asking with both counts: the
+   * playlist's songs can't be got back. */
+  private async _over(playlist: Favourite) {
+    this._naming = false;
+    const count = (n: number) => (n === 1 ? "1 song" : `${n} songs`);
+    const holds = await queue(this.hass, this.room, playlist.media_content_id).then(
+      (found) => found.total,
+      () => undefined, // asked about all the same, without the count
+    );
+    const run = async () => (await this._do("queue_save", { playlist: playlist.media_content_id })) && this._say(`Saved over the playlist: ${playlist.title}`);
+    const now = holds === undefined ? "" : ` holds ${count(holds)} now. It`;
+    const queued = this._queued ? count(this._queued) : "songs";
+    this._confirm = { warn: "This replaces the playlist", text: `"${playlist.title}"${now} will hold the queue's ${queued} instead, and what it held can't be got back.`, keep: "Keep the playlist", go: "Replace it", run };
+  }
+
+  /** The playlists the queue can be saved over, the one it came from first. */
+  private _overs(group: Group) {
+    if (this._favourites === undefined) return html`<p class="or">Fetching the playlists you have…</p>`;
+    const from = (p: Favourite) => p.media_content_id === group.source;
+    const lists = this._playlists().sort((a, b) => Number(from(b)) - Number(from(a)));
+    if (!lists.length) return nothing;
+    return html`<p class="or">Or save it over a playlist you have:</p>
+      <div class="acts over">${lists.map((p) => html`<button type="button" @click=${() => this._over(p)}>${from(p) ? html`Save back to <strong>${p.title}</strong>` : p.title}</button>`)}</div>`;
+  }
 
   private _delete(playlist: Favourite) {
     const run = async () => {
@@ -452,6 +486,7 @@ export class Big extends LitElement {
             <button class="main" type="submit">Save</button>
             <button type="button" @click=${() => (this._naming = false)}>Cancel</button>
           </div>
+          ${this._overs(group)}
         </form>
       </div>`;
     if (menu) {
@@ -606,6 +641,8 @@ export class Big extends LitElement {
       .acts .main { background: #fff; color: #111; }
       .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
       .acts .sep { margin-top: 10px; }
+      .sheet .or { margin: 16px 0 8px; }
+      .over { max-height: 32vh; overflow: auto; }
       .toast { position: absolute; left: 14px; right: 14px; bottom: 18px; z-index: 6; margin: 0 auto; width: fit-content; max-width: calc(100% - 28px); padding: 11px 16px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 10px 30px rgb(0 0 0 / 45%); opacity: 0; transform: translateY(12px); transition: 0.25s; pointer-events: none; }
       .toast.on { opacity: 1; transform: none; }
       /* Out of the way of a question's buttons. */

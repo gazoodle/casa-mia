@@ -67,13 +67,20 @@ Tap a player to open it over the whole screen. There you have:
 - **Stop**, the square beside the volume. It ends the music there, empties the queue and
   puts the rooms back with the quiet ones, after asking. Pause keeps the player and
   what it was playing; Stop clears it.
-- **Queue:** the songs lined up, with the one that is playing marked. Tap a song to
+- **Queue:** the songs lined up, each with its picture, artist and album, and the one
+  that is playing marked. Tap a song to
   play it, drag one by the handle on its left to move it, or press the cross to take
   it out. The first 500 songs are shown. **Add** opens Search with an empty box, and
   brings you back to the queue once you have added something. While a radio station
   is playing and the queue has songs in it, **Play the queue** starts the queue in
   the station's place. Above the songs, **Save as a playlist** keeps
-  the queue as a new Sonos playlist under a name you give it, and **Clear the queue**
+  the queue as a new Sonos playlist under a name you give it, or saves it over one of
+  the playlists you have, which are listed under the name box. If the queue was
+  started from a playlist in Jukebox, that playlist is first in the list, as **Save
+  back to …**. Before a playlist is replaced Jukebox asks, and says how many songs it
+  holds now and how many the queue has: what it held can't be got back. Jukebox
+  doesn't know which playlist a queue came from when it was started in another app,
+  or after Home Assistant restarts. **Clear the queue**
   empties it, after asking again. **Save as a playlist** is shown only to the people
   who may change playlists (see [Setting it up](#setting-it-up)).
 - **Rooms:** tap a room to add it to what is playing, and again to take it out. Each
@@ -218,7 +225,7 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 
 | Card | What it shows | Options |
 |---|---|---|
-| **Players** | A small player for each thing playing, in the order you dragged them into on Jukebox's page. | A room, to show only that room's music. |
+| **Players** | A small player for each thing playing, in the order you dragged them into. With no room chosen you can change the order on the card as well, the same way as on Jukebox's page. | A room, to show only that room's music. |
 | **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | Whether to show its heading, and whether to list the speakers that aren't answering. |
 | **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
 | **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |

@@ -3,7 +3,7 @@ out and added to, where the speaker keeps it. The speakers are the page tests'."
 
 import re
 
-from custom_components.casa_mia_jukebox.page import DO, QUEUE
+from custom_components.casa_mia_jukebox.page import DO, HOUSE, QUEUE
 from test_jukebox_page import (  # noqa: F401  (sent is a fixture)
     BROWSE,
     TRANSPORT,
@@ -51,6 +51,7 @@ async def test_a_playlists_songs_are_listed_and_changed_where_it_is_kept(
             "artist": "The Marigolds",
             "album": "Harbour Lights",
             "duration": 194,
+            "picture": None,
         }
     ]
     assert asked(aioclient_mock, "Browse")["ObjectID"] == "SQ:4"
@@ -99,3 +100,52 @@ async def test_a_playlists_songs_are_listed_and_changed_where_it_is_kept(
     refused = await do("playlist_add", playlist="SQ:4", media_content_id=artist)
     assert not refused["success"] and "Spotify" in refused["error"]["message"]
     assert not (await do("playlist_remove", playlist="FV:2/1", value=1))["success"]
+
+
+async def test_the_queue_is_saved_over_a_playlist_and_remembers_where_it_came_from(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    kept = LISTED.replace(
+        "<item ",
+        '<container id="SQ:4" parentID="SQ:"><dc:title>Friday Night</dc:title>'
+        "<res>file:///saved#4</res></container><item ",
+    )
+    aioclient_mock.post(
+        BROWSE, text=answered("ContentDirectory", "Browse", Result=kept)
+    )
+    saved = answered("AVTransport", "SaveQueue", AssignedObjectID="SQ:4")
+    aioclient_mock.post(TRANSPORT, text=saved)
+    hass.services.async_register("sonos", "play_queue", lambda call: None)
+    client = await hass_ws_client(hass)
+
+    async def do(action, **data):
+        return await ask(client, DO, action=action, entity_id=KITCHEN, **data)
+
+    async def source():
+        page = await hass_ws_client(hass)
+        await ask(page, HOUSE)
+        return (await page.receive_json())["event"]["groups"][0]["source"]
+
+    # Saved over a playlist under the speaker's own name for it, which is the only
+    # name a speaker accepts, whatever the page sent; and that is now where the queue
+    # is from.
+    assert await source() is None
+    assert (await do("queue_save", playlist="SQ:4", name="Something else"))["success"]
+    over = asked(aioclient_mock, "SaveQueue")
+    assert (over["ObjectID"], over["Title"]) == ("SQ:4", "Friday Night")
+    assert await source() == "SQ:4"
+
+    # Refused, with the reason: a playlist that has gone, and what isn't a playlist.
+    gone = await do("queue_save", playlist="SQ:99")
+    assert not gone["success"] and "no longer in Sonos" in gone["error"]["message"]
+    assert not (await do("queue_save", playlist="FV:2/1"))["success"]
+
+    # The queue emptied is from nowhere; a playlist played in its place is from that.
+    assert (await do("queue_clear"))["success"]
+    assert not await source()
+    what = {"media_content_id": "SQ:4", "media_content_type": "favorite_item_id"}
+    assert (await do("play_media", **what))["success"]
+    assert await source() == "SQ:4"

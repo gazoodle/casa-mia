@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.12-b21
+
+- Jukebox's **Save as a playlist** can save the queue over a playlist you already
+  have. Under the name box it lists your Sonos playlists; when the queue was started
+  from one of them in Jukebox, that one is first, as **Save back to …**. Jukebox asks
+  before replacing, and says how many songs the playlist holds now and how many the
+  queue has. What the playlist held can't be got back. Typing a name that a playlist
+  already has asks the same question, where until now Sonos kept two playlists of
+  the same name.
+- Jukebox's queue and a playlist's songs show each song's picture, and its album
+  beside the artist. The pictures are the speaker's own, fetched by Jukebox, so they
+  show on a page reached over https or away from home.
+- Fixed: the players on the **Players** dashboard card couldn't be put in order. Only
+  Jukebox's own page could do that. On a card with no room chosen, rest a finger on a
+  player until it lifts, then drag it, as on the page.
+
 ## 2026.11.12-b20
 
 - Fixed: Jukebox showed Stop where Next should be for a song in a queue that had no

@@ -528,8 +528,15 @@ async def test_the_queue_is_read_and_changed_through_the_coordinator(
                 "artist": "The Marigolds",
                 "album": "Slow Sunday",
                 "duration": 194,
+                "picture": None,
             },
-            {"title": "A song", "artist": "", "album": "", "duration": None},
+            {
+                "title": "A song",
+                "artist": "",
+                "album": "",
+                "duration": None,
+                "picture": None,
+            },
         ],
     }
 

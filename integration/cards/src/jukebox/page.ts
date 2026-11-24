@@ -4,7 +4,7 @@
 // the way back, as a wall tablet has no sidebar and no top bar to leave by.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, navigate, type Hass } from "../ha.ts";
-import { type House, arrange, follow, reason } from "./common.ts";
+import { type Group, type House, arrange, follow, reason } from "./common.ts";
 import { COLUMN, icon, shared } from "./parts.ts";
 
 export const PAGE = "casa-mia-jukebox-page";
@@ -66,7 +66,10 @@ function scroller(from: Node): Element {
   return document.scrollingElement ?? document.documentElement;
 }
 
-export class Page extends Following {
+/** The players in the owner's order, each moved by resting a finger on it until it lifts
+ * and dragging it. For the page and for the players' card: the card had no way to move
+ * them until 2026.11.12-b21, as this was the page's own. */
+export class Arranging extends Following {
   static properties = { ...Following.properties, _drag: { state: true }, _failed: { state: true } };
   /** The player being dragged: which, over which, where the finger began, how far the
    * player has moved, how far the page was scrolled when it was lifted, and how far it can
@@ -190,13 +193,45 @@ export class Page extends Following {
     },
   };
 
+  /** A player for each group, each in a place it can be lifted from. */
+  protected _minis(playing: Group[]) {
+    const [hass, house, drag] = [this._hass, this._house, this._drag];
+    return playing.map(
+      (g, i) => html`<div
+        class="slot ${drag?.from === i ? "held" : ""} ${drag && drag.to === i && drag.from !== i ? "here" : ""}"
+        style=${drag?.from === i ? `transform:translate(${drag.dx}px,${drag.dy}px) scale(1.03)` : ""}
+        @pointerdown=${(e: PointerEvent) => this._down(e, i)}
+        @pointermove=${this._moved}
+        @pointerup=${this._up}
+        @pointercancel=${this._drop}
+        @click=${this._tap}
+        @contextmenu=${(e: Event) => e.preventDefault()}
+        @dragstart=${(e: Event) => e.preventDefault()}
+      >
+        <casa-mia-jukebox-mini .hass=${hass} .house=${house} .group=${g}></casa-mia-jukebox-mini>
+      </div>`,
+    );
+  }
+}
+
+/** How a player's place looks, and while it is carried. A long press is for lifting a
+ * player: not for selecting its words, or the menu a phone offers for a picture. */
+export const slots = css`
+  .slot { position: relative; min-width: 0; border-radius: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .slot.held { z-index: 2; box-shadow: 0 16px 40px rgb(0 0 0 / 45%); cursor: grabbing; }
+  .slot.here { outline: 2px dashed var(--primary-color); outline-offset: 3px; }
+  .hint { margin: 10px 2px 0; font-size: 12px; color: var(--secondary-text-color); }
+`;
+/** Said under the players when there is more than one to move. */
+export const HINT = "To move a player, rest a finger on it until it lifts, then drag it.";
+
+export class Page extends Arranging {
   render() {
     const hass = this._hass;
     if (!hass) return nothing;
     const house = this._house;
     const playing = house?.groups.filter((g) => !g.quiet) ?? [];
     const trouble = this._trouble ?? this._failed;
-    const drag = this._drag;
     return html`<div class="page">
       <div class="nav">
         ${this.narrow ? html`<button class="ib" @click=${() => fire(this, "hass-toggle-menu")} aria-label="Home Assistant's menu">${icon("menu")}</button>` : nothing}
@@ -206,23 +241,9 @@ export class Page extends Following {
       </div>
       ${trouble ? html`<p class="trouble" role="status">${trouble}</p>` : nothing}
       <div class="minis">
-        ${playing.map(
-          (g, i) => html`<div
-            class="slot ${drag?.from === i ? "held" : ""} ${drag && drag.to === i && drag.from !== i ? "here" : ""}"
-            style=${drag?.from === i ? `transform:translate(${drag.dx}px,${drag.dy}px) scale(1.03)` : ""}
-            @pointerdown=${(e: PointerEvent) => this._down(e, i)}
-            @pointermove=${this._moved}
-            @pointerup=${this._up}
-            @pointercancel=${this._drop}
-            @click=${this._tap}
-            @contextmenu=${(e: Event) => e.preventDefault()}
-            @dragstart=${(e: Event) => e.preventDefault()}
-          >
-            <casa-mia-jukebox-mini .hass=${hass} .house=${house} .group=${g}></casa-mia-jukebox-mini>
-          </div>`,
-        )}
+        ${this._minis(playing)}
       </div>
-      ${playing.length > 1 ? html`<p class="hint">To move a player, rest a finger on it until it lifts, then drag it.</p>` : nothing}
+      ${playing.length > 1 ? html`<p class="hint">${HINT}</p>` : nothing}
       ${house && !playing.length ? html`<p class="none">Nothing is playing anywhere.</p>` : nothing}
       <casa-mia-jukebox-rooms class="rooms" .hass=${hass} .house=${house}></casa-mia-jukebox-rooms>
     </div>`;
@@ -230,6 +251,7 @@ export class Page extends Following {
 
   static styles = [
     shared,
+    slots,
     css`
       :host { display: block; min-height: 100vh; background: var(--primary-background-color); color: var(--primary-text-color); font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
       .page { max-width: 1240px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px 32px; }
@@ -237,12 +259,6 @@ export class Page extends Following {
       .nav h1 { flex: 1; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
       .nav .ib { background: var(--card-background-color); border: 1px solid var(--divider-color); }
       .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${COLUMN}px), 1fr)); gap: 12px; }
-      .hint { margin: 10px 2px 0; font-size: 12px; color: var(--secondary-text-color); }
-      /* A long press is for lifting a player: not for selecting its words, or the menu a
-         phone offers for a picture. */
-      .slot { position: relative; min-width: 0; border-radius: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-      .slot.held { z-index: 2; box-shadow: 0 16px 40px rgb(0 0 0 / 45%); cursor: grabbing; }
-      .slot.here { outline: 2px dashed var(--primary-color); outline-offset: 3px; }
       .rooms { margin-top: 22px; }
       .none { margin: 0; color: var(--secondary-text-color); overflow-wrap: anywhere; }
       .trouble { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--error-color, #db4437) 16%, transparent); overflow-wrap: anywhere; }

@@ -43,7 +43,7 @@ export const icon = (name: keyof typeof PATHS) => html`<svg viewBox="0 0 24 24" 
 export function art(hass: { hassUrl?: (path: string) => string; [key: string]: any } | undefined, picture: string | null | undefined, title: string) {
   const [a, b] = colours(title);
   const gone = (e: Event) => (e.target as HTMLElement).remove();
-  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${/^https?:/.test(picture) ? picture : (hass?.hassUrl?.(picture) ?? picture)} alt="" @error=${gone} />` : nothing}</span>`;
+  return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i>${picture ? html`<img src=${/^https?:/.test(picture) ? picture : (hass?.hassUrl?.(picture) ?? picture)} alt="" loading="lazy" @error=${gone} />` : nothing}</span>`;
 }
 
 /** Redraws its element once a second while it is on the page, for what moves by itself

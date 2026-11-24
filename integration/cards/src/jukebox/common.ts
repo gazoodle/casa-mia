@@ -32,6 +32,8 @@ export type Group = {
   party: Party | null;
   /** What Love it or Loathe it last did to this player, where it is installed. */
   love: Love | null;
+  /** The Sonos playlist (`SQ:3`) this queue was loaded from or last saved as, from Jukebox. */
+  source?: string | null;
 };
 /** Love it or Loathe it's account of a player (its Last match sensor's `players`): what it
  * did (empty while it is doing it), why, when, and whether that is still in force; `next`
@@ -79,7 +81,7 @@ export type Favourite = {
   media_content_type: string;
 };
 /** One song of a queue. */
-export type Song = { title: string; artist: string; album: string; duration: number | null };
+export type Song = { title: string; artist: string; album: string; duration: number | null; picture?: string | null };
 /** Home Assistant's `hass`, for its connection. */
 type Asking = { connection?: any; [key: string]: any };
 

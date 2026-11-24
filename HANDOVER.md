@@ -281,6 +281,20 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   named to the speaker as SoCo's share links name it (`upnp.spotify`), and the speaker
   picks the account. `_adding` in `big.ts` says Search was opened to add to the queue
   or to the playlist looked at (`_viewing`), and sends the player back afterwards.
+- **Saving the queue over a playlist** (b21, owner 2026-11-24): `queue_save` with
+  `playlist` has the speaker save in place of that playlist's songs (`upnp.save`'s
+  `over`; the id stays). The speaker accepts only the playlist's own name with it
+  (error 402 otherwise; tried on a real speaker the same day), so the feed looks the
+  name up. `Feed.sources` is the playlist each group's queue was loaded from or last
+  saved as, from Jukebox, sent to the page as the group's `source`; it is in memory
+  only, and a queue replaced from another app isn't noticed.
+- **Songs' pictures** (b21): a speaker lists every playlist song's picture as a path
+  on itself (`/getaa?…`), for library, Spotify and other streamed songs alike (read
+  from real speakers 2026-11-24, with title and album for all of them). `art.py`
+  fetches it and passes it on, at an address that carries a key made at each start
+  (`Feed.art_key`), since an `<img>` can't sign in; `feed.queue` writes the addresses.
+- **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
+  and the players' card both extend. Until then only the page had it.
 - **Back to the place in the song** (b20): `Party.at` is how far in the music was at the
   last quiet comparison and when; `_since` is when the first report of a burst came,
   taken as when another app cut in; `_where` adds the time between.
