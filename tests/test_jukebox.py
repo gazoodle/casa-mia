@@ -1,6 +1,8 @@
 """Jukebox's parts that need no Home Assistant (pure.py): what an announcement plays, and
 following a clip through a speaker's reports."""
 
+from pathlib import Path
+
 from conftest import load_component_file
 
 pure = load_component_file("casa_mia_jukebox", "pure")
@@ -134,3 +136,15 @@ def test_a_groups_one_slider_moves_every_room_by_the_same_amount():
         GARDEN: 15,
     }
     assert house.shifted({SHED: None}, 60) == {}
+
+
+def test_every_jukebox_card_can_be_edited_without_yaml():
+    """A card that doesn't describe its options gets no visual editor in Home Assistant,
+    only YAML (owner, 2026-11-24: the Quiet rooms card had none)."""
+    cards = Path(__file__).parent.parent / "integration/cards/src/jukebox"
+    registered = (cards / "index.ts").read_text().count("\nregister(")
+    forms = sum(
+        (cards / name).read_text().count("static getConfigForm()")
+        for name in ("card.ts", "pieces.ts")
+    )
+    assert registered == forms == 4

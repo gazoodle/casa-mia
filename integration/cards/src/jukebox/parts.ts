@@ -2,7 +2,7 @@
 // is playing, a slider that can be dragged while the house reports, and a clock for what
 // moves by itself. The icons are its own (Material's shapes), so the page looks the same
 // wherever it is shown and leans on nothing of Home Assistant's frontend.
-import { LitElement, type ReactiveController, type ReactiveControllerHost, css, html, nothing } from "lit";
+import { LitElement, type ReactiveController, type ReactiveControllerHost, css, html, nothing, unsafeCSS } from "lit";
 import { fire } from "../ha.ts";
 import { colours, initials } from "./common.ts";
 
@@ -203,6 +203,61 @@ export class Slider extends LitElement {
     input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--jb-fill, currentColor); box-shadow: 0 1px 4px rgb(0 0 0 / 40%); }
   `;
 }
+
+export const MARQUEE = "casa-mia-jukebox-marquee";
+
+/** One line of words that slides along when it is too long for its space, to its end and
+ * back, so nothing is cut off and nothing has to grow to fit it (owner, 2026-11-24: a
+ * small player's title, artist and rooms). A line that fits stays still. It is measured
+ * when its words change and when its space does, never on a timer; where a device asks
+ * for less movement, a long line is cut with "…" instead. */
+export class Marquee extends LitElement {
+  static properties = { text: {}, _over: { state: true } };
+  text = "";
+  /** How far the words run past their space, in px: none when they fit. */
+  _over = 0;
+  private _space = new ResizeObserver(() => this._measure());
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._space.observe(this);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._space.disconnect();
+  }
+
+  protected updated(changed: Map<string, unknown>) {
+    if (changed.has("text")) this._measure();
+  }
+
+  private _measure() {
+    const words = this.renderRoot.querySelector("span");
+    if (words) this._over = Math.max(0, Math.ceil(words.scrollWidth - this.clientWidth));
+  }
+
+  render() {
+    const over = this._over;
+    // The same pace whatever the length: about 40px a second, with a rest at each end.
+    return html`<span class=${over ? "run" : ""} style=${over ? `--over:-${over}px;--time:${(4 + over / 40).toFixed(1)}s` : ""}>${this.text}</span>`;
+  }
+
+  static styles = css`
+    :host { display: block; min-width: 0; overflow: hidden; white-space: nowrap; }
+    span { display: inline-block; vertical-align: top; }
+    .run { animation: slide var(--time) ease-in-out infinite alternate; }
+    @keyframes slide { 0%, 18% { transform: none; } 82%, 100% { transform: translateX(var(--over)); } }
+    @media (prefers-reduced-motion: reduce) {
+      span { display: block; overflow: hidden; text-overflow: ellipsis; }
+      .run { animation: none; }
+    }
+  `;
+}
+
+/** The narrowest a small player is drawn, in px: the page and the Players card fit as many
+ * across as there is room for. */
+export const COLUMN = unsafeCSS(320);
 
 /** What every part shares: plain buttons, the round icon button and the artwork. */
 export const shared = css`

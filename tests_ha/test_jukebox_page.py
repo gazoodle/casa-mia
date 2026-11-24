@@ -75,6 +75,23 @@ async def test_the_page_is_in_the_sidebar_for_everyone(hass, hass_ws_client, sen
     assert (await ask(client, CARDS_VERSION))["result"]["version"]
 
 
+async def test_the_page_can_be_kept_out_of_the_sidebar(hass, sent):
+    """For a house with a dashboard of its own made from the cards. The page stays where
+    it is, and is changed in place: it is never taken out from under someone using it."""
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    was = hass.data[frontend.DATA_PANELS][PANEL]
+
+    hass.config_entries.async_update_entry(entry, options={"sidebar": False})
+    await hass.async_block_till_done()
+    hidden = hass.data[frontend.DATA_PANELS][PANEL]
+    assert hidden.sidebar_title is None and hidden.sidebar_icon is None
+    assert hidden.config == was.config and not hidden.require_admin
+
+    hass.config_entries.async_update_entry(entry, options={"sidebar": True})
+    await hass.async_block_till_done()
+    assert hass.data[frontend.DATA_PANELS][PANEL].sidebar_title == "Jukebox"
+
+
 async def test_the_house_is_sent_at_once_and_again_when_a_speaker_changes(
     hass, hass_ws_client, sent
 ):

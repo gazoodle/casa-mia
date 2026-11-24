@@ -48,6 +48,7 @@ from .const import (
     CHIME,
     CONF_CHIME,
     CONF_PLAYERS,
+    CONF_SIDEBAR,
     CONF_TTS,
     DOMAIN,
     INSTALLED_EVENT,
@@ -175,7 +176,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.runtime_data = Jukebox(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await page.show(hass)
+    await page.show(hass, entry.options.get(CONF_SIDEBAR, True))
     entry.async_on_unload(entry.add_update_listener(_reload))
     _LOGGER.info("Jukebox %s started", LOADED_VERSION)
     return True

@@ -5,7 +5,7 @@ import { css, html, nothing } from "lit";
 import { inPicker } from "../ha.ts";
 import { groupOf } from "./common.ts";
 import { Following } from "./page.ts";
-import { shared } from "./parts.ts";
+import { COLUMN, shared } from "./parts.ts";
 
 export const CARD = "casa-mia-jukebox";
 type Config = { type?: string; /** The room whose music is shown. */ entity?: string };
@@ -18,7 +18,8 @@ export class JukeboxCard extends Following {
     return {};
   }
 
-  /** Home Assistant draws the options from this: one field, a Sonos room. */
+  /** Home Assistant draws the options from this: one field, a Sonos room. Every Jukebox
+   * card has such a form: without one a card can only be edited as YAML. */
   static getConfigForm() {
     return {
       schema: [{ name: "entity", selector: { entity: { filter: { integration: "sonos", domain: "media_player" } } } }],
@@ -55,8 +56,12 @@ export class JukeboxCard extends Following {
   static styles = [
     shared,
     css`
-      :host { display: grid; gap: 12px; }
-      .note { margin: 0; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--secondary-text-color); overflow-wrap: anywhere; }
+      /* As many players across as fit the width the dashboard gives the card, each at least
+         COLUMN wide: one on a phone, two or three on a tablet (owner, 2026-11-24: a card
+         the width of an iPad showed one long player to a row). A player alone keeps a
+         column's width; it isn't stretched across the card. */
+      :host { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${COLUMN}px), 1fr)); gap: 12px; }
+      .note { grid-column: 1 / -1; margin: 0; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--secondary-text-color); overflow-wrap: anywhere; }
     `,
   ];
 }

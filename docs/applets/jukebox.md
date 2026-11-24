@@ -150,17 +150,21 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 | Card | What it shows | Options |
 |---|---|---|
 | **Players** | A small player for each thing playing, in the order you dragged them into on Jukebox's page. | A room, to show only that room's music. |
-| **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | None. |
+| **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | Whether to show its heading, and whether to list the speakers that aren't answering. |
 | **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
 | **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |
+
+Every card is set up with a form in the dashboard editor, with the usual Layout and
+Visibility tabs beside it; none needs YAML.
 
 A tap on a small player or a quiet room opens the big player over the screen, as on
 Jukebox's page. The Now playing card needs room: give it at least half the width of a
 tablet and most of its height.
 
 Which cards a tablet or a person sees is Home Assistant's to decide: each card has a
-Visibility tab in the dashboard editor. If your own view replaces Jukebox's page, you
-can take "Jukebox" out of the sidebar by holding the sidebar's title and unticking it.
+Visibility tab in the dashboard editor. If your own view replaces Jukebox's page, turn
+off **Show Jukebox in the sidebar** in Jukebox's Configure dialog (Settings, Devices &
+services, Jukebox). The page is still there at `/jukebox`.
 
 ## Playing a favourite from a button or an automation
 

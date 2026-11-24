@@ -5,7 +5,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire, navigate, type Hass } from "../ha.ts";
 import { type House, arrange, follow, reason } from "./common.ts";
-import { icon, shared } from "./parts.ts";
+import { COLUMN, icon, shared } from "./parts.ts";
 
 export const PAGE = "casa-mia-jukebox-page";
 
@@ -236,7 +236,7 @@ export class Page extends Following {
       .nav { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
       .nav h1 { flex: 1; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
       .nav .ib { background: var(--card-background-color); border: 1px solid var(--divider-color); }
-      .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; }
+      .minis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, ${COLUMN}px), 1fr)); gap: 12px; }
       .hint { margin: 10px 2px 0; font-size: 12px; color: var(--secondary-text-color); }
       /* A long press is for lifting a player: not for selecting its words, or the menu a
          phone offers for a picture. */

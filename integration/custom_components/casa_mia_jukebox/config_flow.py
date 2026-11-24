@@ -21,6 +21,7 @@ from .const import (
     CONF_CHIME,
     CONF_PLAYERS,
     CONF_QUIET,
+    CONF_SIDEBAR,
     CONF_TTS,
     DOMAIN,
     TITLE,
@@ -42,6 +43,7 @@ OPTIONS = vol.Schema(
                 domain=["schedule", "input_boolean", "binary_sensor"]
             )
         ),
+        vol.Optional(CONF_SIDEBAR, default=True): selector.BooleanSelector(),
     }
 )
 

@@ -18,13 +18,15 @@
           "players": "Rooms",
           "tts": "Voice",
           "chime": "Chime",
-          "quiet": "Quiet hours"
+          "quiet": "Quiet hours",
+          "sidebar": "Show Jukebox in the sidebar"
         },
         "data_description": {
           "players": "The Sonos speakers an announcement goes to when the action names none. Each gets a number for its announcement volume.",
           "tts": "The text-to-speech voice that says a message.",
           "chime": "The sound played before each announcement: a web address or a media id. Jukebox's own is filled in; empty the box for none.",
-          "quiet": "While this is on, announcements are not played unless they have priority. A schedule helper suits it."
+          "quiet": "While this is on, announcements are not played unless they have priority. A schedule helper suits it.",
+          "sidebar": "Jukebox's own page, in Home Assistant's sidebar. Turn it off if you use a dashboard of your own made from Jukebox's cards. The page stays at /jukebox either way."
         }
       }
     }

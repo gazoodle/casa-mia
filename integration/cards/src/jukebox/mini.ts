@@ -1,7 +1,8 @@
 // The mini player: one thing that is playing, with its picture, its rooms, pause, skip and
-// one volume for all of its rooms. Where there is no next song to skip to (a station, or
-// music that is paused) the second button is Stop, which the big player asks about before
-// it clears the player. A tap on it opens the big player (big.ts). The page
+// one volume for all of its rooms. A title, artist or list of rooms too long for its line
+// slides along it. Where there is no next song to skip to (a station, or
+// music that is paused) the second button is Stop, which the player asks about in place
+// before it clears itself. A tap on it opens the big player (big.ts). The page
 // shows one for each thing playing, and the card is one by itself.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
@@ -12,7 +13,11 @@ import { Busy, Clock, art, icon, shared } from "./parts.ts";
 export const MINI = "casa-mia-jukebox-mini";
 
 export class Mini extends LitElement {
-  static properties = { hass: { attribute: false }, house: { attribute: false }, group: { attribute: false } };
+  static properties = { hass: { attribute: false }, house: { attribute: false }, group: { attribute: false }, _stopping: { state: true } };
+  /** Stop was pressed and the player is asking, in place, whether it was meant: Stop
+   * empties the queue. It stops asking by itself after a moment. */
+  _stopping = false;
+  private _unasked?: ReturnType<typeof setTimeout>;
   hass?: Hass;
   house?: House;
   group?: Group;
@@ -33,6 +38,18 @@ export class Mini extends LitElement {
 
   private _busy = new Busy(this);
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    clearTimeout(this._unasked);
+  }
+
+  /** Ask whether Stop was meant (or stop asking), here on the player that was pressed. */
+  private _sure(asking: boolean) {
+    clearTimeout(this._unasked);
+    this._stopping = asking;
+    if (asking) this._unasked = setTimeout(() => (this._stopping = false), 8000);
+  }
+
   private _ask(action: string, key = action) {
     this._busy.during(key, ask(this.hass!, action, this.group!.id)).catch((err) => this._failed(err));
   }
@@ -44,16 +61,27 @@ export class Mini extends LitElement {
     const at = position(group, Date.now());
     const on = group.state === "playing";
     const show = () => open(hass, group.id);
+    if (this._stopping)
+      return html`<div class="mini" style="--a:${colours(title)[0]}">
+        <span class="pic">${art(hass, group.picture, title)}</span>
+        <span class="meta"><b>Stop and clear?</b><span>Empties the queue</span><small>${names(house, group)}</small></span>
+        <span class="tp">
+          <button class="say" @click=${() => this._sure(false)}>Keep</button>
+          <button class="say stop" @click=${() => (this._sure(false), this._ask("stop"))}>Stop</button>
+        </span>
+      </div>`;
     return html`<div class="mini" style="--a:${colours(title)[0]}">
       <button class="pic" @click=${show} aria-label="Open the player">${art(hass, group.picture, title)}</button>
       <button class="meta" @click=${show}>
-        <b>${title}</b><span>${by}</span><small>${names(house, group)}${group.party ? " · Party" : ""}</small>
+        <b><casa-mia-jukebox-marquee .text=${title}></casa-mia-jukebox-marquee></b>
+        <span><casa-mia-jukebox-marquee .text=${by}></casa-mia-jukebox-marquee></span>
+        <small><casa-mia-jukebox-marquee .text=${`${names(house, group)}${group.party ? " · Party" : ""}`}></casa-mia-jukebox-marquee></small>
       </button>
       <span class="tp">
         <button class="ib ${this._busy.on("play")}" ?disabled=${group.kind === "nothing"} @click=${() => this._ask(on ? "pause" : "play", "play")} aria-label=${on ? "Pause" : "Play"}>${icon(on ? "pause" : "play")}</button>
         ${on && group.kind === "queue"
           ? html`<button class="ib ${this._busy.on("next")}" @click=${() => this._ask("next")} aria-label="Next song">${icon("next")}</button>`
-          : html`<button class="ib" @click=${() => open(hass, group.id, undefined, "stop")} aria-label="Stop the music here and clear the player">${icon("stop")}</button>`}
+          : html`<button class="ib ${this._busy.on("stop")}" @click=${() => this._sure(true)} aria-label="Stop the music here and clear the player">${icon("stop")}</button>`}
       </span>
       <div class="vol">
         ${icon("volume")}
@@ -71,11 +99,16 @@ export class Mini extends LitElement {
       .mini { position: relative; overflow: hidden; display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px; border-radius: 18px; border: 1px solid var(--divider-color, #8884);
         color: var(--primary-text-color); background: linear-gradient(100deg, color-mix(in srgb, var(--a) 26%, var(--card-background-color, #fff)), var(--card-background-color, #fff) 75%); }
       .meta { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
-      .meta b, .meta span, .meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* Each line slides along when it is too long (the marquee), so it is never cut. */
+      .meta b, .meta span, .meta small { min-width: 0; }
       .meta b { font-size: 15px; }
       .meta span { color: var(--secondary-text-color); }
       .meta small { margin-top: 3px; font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--a) 55%, var(--primary-text-color)); }
       .tp { display: flex; gap: 2px; --jb-glow: var(--primary-color, #c4552d); }
+      .tp:has(.say) { gap: 8px; }
+      .say { padding: 10px 14px; border-radius: 999px; background: color-mix(in srgb, currentColor 12%, transparent); font-size: 13px; font-weight: 700; }
+      .say.stop { background: var(--error-color, #db4437); color: #fff; }
+      .meta > b, .meta > span, .meta > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .vol { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--secondary-text-color); --jb-fill: #c4552d; }
       .vol svg { width: 18px; height: 18px; flex: none; }
       .prog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--a); }

@@ -13,6 +13,7 @@ CONF_PLAYERS = "players"
 CONF_TTS = "tts"
 CONF_CHIME = "chime"
 CONF_QUIET = "quiet"
+CONF_SIDEBAR = "sidebar"
 
 # Where www/ is served, and the chime that comes with Jukebox (tools/jukebox_chime.py).
 URL = f"/{DOMAIN}"

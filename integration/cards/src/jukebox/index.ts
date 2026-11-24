@@ -11,13 +11,14 @@ import { CARD, JukeboxCard } from "./card.ts";
 import { CARDS_VERSION, VERSION } from "./common.ts";
 import { MINI, Mini } from "./mini.ts";
 import { PAGE, Page } from "./page.ts";
-import { SLIDER, Slider } from "./parts.ts";
+import { MARQUEE, Marquee, SLIDER, Slider } from "./parts.ts";
 import { QUEUE, Queue } from "./queue.ts";
 import { FIND, Find } from "./find.ts";
 import { NOW, NowCard, QUIET, QuietCard, SHORTCUT, ShortcutCard } from "./pieces.ts";
 import { ROOMS, Rooms } from "./rooms.ts";
 
 define(SLIDER, Slider);
+define(MARQUEE, Marquee);
 define(MINI, Mini);
 define(QUEUE, Queue);
 define(FIND, Find);

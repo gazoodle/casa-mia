@@ -17,12 +17,36 @@ export const QUIET = "casa-mia-jukebox-quiet";
 
 /** The rooms that are playing nothing, each a tap from its favourites, and any speaker
  * that isn't answering. */
+type Quiet = { heading?: boolean; silent?: boolean };
+const QUIET_LABELS: Record<string, string> = {
+  heading: "Show the heading over the rooms",
+  silent: "List the speakers that aren't answering",
+};
+
 export class QuietCard extends Following {
+  static properties = { ...Following.properties, _config: { state: true } };
+  _config: Quiet = {};
+
+  /** Both on, so a new card's switches show what it does. */
   static getStubConfig() {
-    return {};
+    return { heading: true, silent: true };
   }
 
-  setConfig(_config: object) {}
+  /** Home Assistant draws the options from this. Without it there is no visual editor at
+   * all, only YAML (owner, 2026-11-24), so every Jukebox card has one. */
+  static getConfigForm() {
+    return {
+      schema: [
+        { name: "heading", selector: { boolean: {} } },
+        { name: "silent", selector: { boolean: {} } },
+      ],
+      computeLabel: (field: { name: string }) => QUIET_LABELS[field.name],
+    };
+  }
+
+  setConfig(config: Quiet) {
+    this._config = { ...config };
+  }
 
   getCardSize() {
     return 1;
@@ -36,9 +60,11 @@ export class QuietCard extends Following {
     const [hass, house] = [this._hass, this._house];
     if (!hass) return nothing;
     if (!house) return html`<p class="note">${inPicker(this) ? "The rooms that are playing nothing, a tap from their favourites" : this._trouble}</p>`;
-    const none = !house.groups.some((g) => g.quiet) && Object.values(house.rooms).every((r) => r.available);
+    // Left out of the card's YAML, each option is on.
+    const [heading, silent] = [this._config.heading !== false, this._config.silent !== false];
+    const none = !house.groups.some((g) => g.quiet) && (!silent || Object.values(house.rooms).every((r) => r.available));
     return html`${this._trouble ? html`<p class="note">${this._trouble}</p>` : nothing}
-      ${none ? html`<p class="note">Every room is playing something.</p>` : html`<casa-mia-jukebox-rooms .hass=${hass} .house=${house}></casa-mia-jukebox-rooms>`}`;
+      ${none ? html`<p class="note">Every room is playing something.</p>` : html`<casa-mia-jukebox-rooms .hass=${hass} .house=${house} .heading=${heading} .silent=${silent}></casa-mia-jukebox-rooms>`}`;
   }
 
   static styles = [shared, NOTE, css`:host { display: grid; gap: 12px; }`];

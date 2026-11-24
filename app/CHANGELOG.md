@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.12-b16
+
+- Jukebox's Players card shows as many players across as its width allows: one on a
+  phone, two or three on a tablet. It used to show one to a row however wide it was.
+  Jukebox's own page fits more across too.
+- Jukebox's small player slides a title, artist or list of rooms along its line when
+  it is too long to fit, so nothing is cut off and the player doesn't need to be wider.
+- New option in Jukebox's Configure dialog: **Show Jukebox in the sidebar**. Turn it
+  off if you use a dashboard of your own made from the cards. The page stays at
+  `/jukebox` either way.
+- Jukebox's small player asks about Stop in place, with Keep and Stop where its
+  buttons were. It used to open the big player to ask.
+- Jukebox's Quiet rooms card can be edited without YAML: it has two switches, for its
+  heading and for the list of speakers that aren't answering. Every Jukebox card now
+  has a form in the dashboard editor.
+
 ## 2026.11.12-b15
 
 - New: the pieces of Jukebox's page are cards, to build a page of your own from:

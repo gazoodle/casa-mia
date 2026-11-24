@@ -44,8 +44,17 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     the owner to have tried the cards: each piece adapting to the size it is given (a
     player growing a larger picture, the previous button and the song's time where it
     has the width), and Jukebox's own page showing Now playing across a wide screen
-    when one thing is playing (the owner's kitchen tablet has a lot of empty space).
+    when one thing is playing (a large wall tablet shows a lot of empty space).
     The play action takes a favourite's name only: nothing found by a search.
+  - **Follow Home Assistant's text multiplier** (owner, 2026-11-24: a new, large
+    wall tablet is high-resolution, so the mini players are hard to read, and the
+    rest of Home Assistant will be too; but the Camera Commander's resolution is liked,
+    so the layout mustn't be zoomed). Home Assistant's frontend derives every text size
+    from `--ha-font-size-scale` (read in its code, 1 by default), which a theme can set
+    and a theme is chosen per device. Jukebox's sizes are fixed pixels and ignore it:
+    make its text, buttons, pictures and rows multiples of that scale, then Casa Mia's
+    other cards where it matters. Not yet tried on a tablet; the owner is to try the
+    theme setting first.
   - The party lock and its entities were built in b14, from the mock-up. Left: it has
     not met real speakers (a guest's change from the Sonos app, another app's stream);
     a party isn't kept across a restart of Home Assistant; the leading room can't be

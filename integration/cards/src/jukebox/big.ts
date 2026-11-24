@@ -20,11 +20,10 @@ const TABS: [Tab, string][] = [
 ];
 const REPEAT = { off: "all", all: "one", one: "off" } as const;
 
-/** Show the big player for the group `room` is in, in place of any already open. With
- * `first`, it opens asking whether to stop the music there. */
-export function open(hass: Hass, room: string, tab?: Tab, first?: "stop"): void {
+/** Show the big player for the group `room` is in, in place of any already open. */
+export function open(hass: Hass, room: string, tab?: Tab): void {
   document.querySelector(BIG)?.remove();
-  document.body.append(Object.assign(document.createElement(BIG), { hass, room, tab, first }));
+  document.body.append(Object.assign(document.createElement(BIG), { hass, room, tab }));
 }
 
 export class Big extends LitElement {
@@ -45,8 +44,6 @@ export class Big extends LitElement {
   _naming = false;
   /** Drawn in place, in a card, and so with nothing to close. */
   inline = false;
-  /** What to ask about as soon as the house is known. */
-  first?: "stop";
   /** How many songs the speaker's queue holds, once the Queue tab has asked it. Home
    * Assistant's own count goes stale while a station plays. */
   _queued?: number;
@@ -82,11 +79,6 @@ export class Big extends LitElement {
   }
 
   protected willUpdate(changed: Map<string, unknown>) {
-    if (changed.has("_house") && this._house && this.first) {
-      const group = groupOf(this._house, this.room);
-      if (group) this._stop(this._house, group);
-      this.first = undefined;
-    }
     if (changed.has("_house") && this._house) {
       // Something put back by the party lock is said as it happens, not at first sight.
       const last = groupOf(this._house, this.room)?.party?.undone[0];

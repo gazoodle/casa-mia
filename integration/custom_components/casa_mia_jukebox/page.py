@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.components import frontend, panel_custom, websocket_api
+from homeassistant.components import frontend, websocket_api
 from homeassistant.const import ATTR_ENTITY_ID, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -54,20 +54,31 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
         websocket_api.async_register_command(hass, command)
 
 
-async def show(hass: HomeAssistant) -> None:
-    """The page in the sidebar. It stays through a reload of the entry: taking a panel
-    out under an open page broke Home Assistant's own (Sensor Watch, 2026.11.3-b1)."""
+async def show(hass: HomeAssistant, sidebar: bool) -> None:
+    """The page, at /jukebox, and in the sidebar unless the options say not (someone
+    with a dashboard of their own made from the cards may not want it there). It is
+    registered again in place when the option changes, never taken out and put back:
+    taking a panel out under an open page broke Home Assistant's own (Sensor Watch,
+    2026.11.3-b1)."""
     await hass.data[FEED].load()
-    if PANEL in hass.data.get(frontend.DATA_PANELS, {}):
-        return
-    await panel_custom.async_register_panel(
+    # As panel_custom registers one, but through the frontend's own call, which can
+    # change a panel that is already there. A panel with no title isn't in the sidebar.
+    frontend.async_register_built_in_panel(
         hass,
+        component_name="custom",
+        sidebar_title=TITLE if sidebar else None,
+        sidebar_icon="mdi:boombox" if sidebar else None,
         frontend_url_path=PANEL,
-        webcomponent_name=ELEMENT,
-        sidebar_title=TITLE,
-        sidebar_icon="mdi:boombox",
-        module_url=f"{URL}/cards.js?v={hass.data[VERSION]}",
+        config={
+            "_panel_custom": {
+                "name": ELEMENT,
+                "embed_iframe": False,
+                "trust_external": False,
+                "module_url": f"{URL}/cards.js?v={hass.data[VERSION]}",
+            }
+        },
         require_admin=False,
+        update=PANEL in hass.data.get(frontend.DATA_PANELS, {}),
     )
 
 
