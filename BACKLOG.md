@@ -95,16 +95,11 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
     room, with Spotify through its Web Playback SDK and the library and radio in an
     `<audio>` element. Decided by the owner on the way: no Music Assistant, no Sonos
     Port, and a Spotify song is not handed over to the Spotify app. Left:
-    - **Nothing of the build has met a real phone, Spotify or the owner's Home
-      Assistant.** What was measured, on the owner's iPhone (iOS 18.7, Safari and the
-      companion app) with a throwaway page, is that the approach works: a Spotify
-      song, an MP3 from Home Assistant and a station played one after another, each
-      starting by itself, screen on and locked. First things to look at: Spotify's
-      player loaded into Home Assistant's own page (the throwaway page was in a frame
-      of its own); the lock screen's buttons while Spotify's player has the sound; a
-      library song in its real format (a browser plays MP3, AAC and FLAC, not WMA); a
-      TuneIn station; the token renewed after its hour; a long listen with the phone
-      locked in the companion app (the longest measured was two minutes, in Safari).
+    - **It works on the owners' two iPads** (owner, 2026-11-24, b26). Not known to
+      have been tried: an iPhone or an Android phone with this build; the lock
+      screen's buttons while Spotify's player has the sound; a library song that isn't
+      MP3, AAC or FLAC (a browser plays no WMA); the token renewed after its hour; a
+      long listen with the device locked in the companion app.
     - Who may have Spotify on their own device is hosts only, and the room isn't
       offered on the house's own screens: both my choices, for the owner to rule on.
     - A station shows its name and not the song it is playing (the stream's own
@@ -118,9 +113,6 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
       showed it needn't be; the wake lock worked in both browsers if it is wanted).
     - The earlier plan, one continuous stream for each listener sent by the app, is
       kept in reserve for a phone that stops when it locks.
-    - The throwaway page is still on the box (`www/jukebox-earbuds-test.html` and its
-      `-song.mp3`, and an "Earbuds test" view on the owner's test dashboard): remove
-      all three, with the owner's agreement, once the build has played on a phone.
   - **Who may run a party, the thumbs and Love it or Loathe it's reasons** were built
     in b18 (owner, 2026-11-24). Decided then: thumbs up and down as Love it or Loathe
     it's card has, not the mock-up's heart (one picture for one action, and a heart

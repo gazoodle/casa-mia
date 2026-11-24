@@ -418,11 +418,11 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   - **A room hidden on the house's own screens** (`me === "screen"`): my choice.
   - **Seen:** the built bundle in headless Chromium against a pretend `hass`, playing
     sound files (offered as a room, a playlist played, the next song by itself, the
-    queue's end, kept across a reload, a station, a song that fails). **Not seen:**
-    anything on a real phone or in a real Home Assistant; Spotify's player at all (the
-    throwaway page of 2026-11-24 is the only proof it plays); a real library file's
-    link; a real TuneIn answer; the sign-in against Spotify (the flow is tested to
-    the token, with a stand-in for Spotify).
+    queue's end, kept across a reload, a station, a song that fails).
+  - **Works on the owners' two iPads** (owner, 2026-11-24, on b26, in the house's own
+    Home Assistant: "100% perfect"). The owner didn't say which of Spotify, the
+    library and radio were played, or whether locked. **Not seen:** an iPhone or an
+    Android phone with this build.
 - **Not seen in a real Home Assistant yet** (2026-11-23): the tests and a run of
   `speaker.py` against a real speaker (subscribing only) are all there is. Not checked:
   the config and options dialogs, the chime's address reaching a speaker, a whole
