@@ -441,7 +441,10 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **What it tells others of each player** (2026.11.12-b18, for Jukebox): the Last match
   sensor's `players` (`Base.doing`), from `Player.last` with `now` true while an undo or
   a return is pending or an action is being carried out. It is written before the
-  speaker is asked. A loathed song in a queue is skipped where its group would mute or
+  speaker is asked. Once over, it is forgotten at the next track (`Engine._outlived`,
+  owner 2026-11-25: an advert's volume was told under the song after it), but for a
+  skip or a return from another station, told through the one track it brought
+  (`Player.outlives`). A loathed song in a queue is skipped where its group would mute or
   switch (`Engine._skip_or`, owner 2026-11-24: nothing to set up); `SKIPS` in a row
   ends it, so a queue of loathed songs on repeat isn't skipped for ever.
 - **Config:** an entry is a name, its players (many) and a delay; several entries can

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.13-b11
+
+- Love it or Loathe it: what it did to a player is no longer told once it is over and the next song has started. Jukebox's big player was still saying "Volume 8% to 2% until the next track" under the song after an advert, as if that song were being turned down. A skip, and a return from another station, are still told through the song they brought, as they are why it is playing.
+
 ## 2026.11.13-b10
 
 - Jukebox: the micro player is drawn in a card, with the background and border of Home Assistant's own cards, so it can stand as a button. Turn on "The picture alone" in its editor for the picture with no card round it, which is how it looked until now. In a card with a border the picture is 16 px smaller than the size chosen, so the card still fills whole rows.

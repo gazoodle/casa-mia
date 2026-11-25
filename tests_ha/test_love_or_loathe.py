@@ -461,6 +461,18 @@ async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freeze
     # Said by the station's name, not its address.
     assert trail.lines(hass, entry)[-1]["text"] == "Switched back to Home"
 
+    # The first song back on Home plays because of the return, so what was done is
+    # still told through it, though over; at the song after, nothing is said.
+    def said():
+        return hass.states.get(SENSOR).attributes["players"].get(PLAYER)
+
+    play(hass, "Something Ordinary", "A Band", **HOME)
+    await settled(hass)
+    assert said()["now"] is False
+    play(hass, "Something Else", "A Band", **HOME)
+    await settled(hass)
+    assert said() is None
+
 
 async def test_back_at_the_end_of_a_song_when_the_entry_says_so(hass, freezer):
     entry, calls = await add(

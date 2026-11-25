@@ -367,8 +367,10 @@ Jukebox works with it. The two share no settings; there is nothing to set up.
 - **Why a player was changed.** When Love it or Loathe it mutes a song, changes its
   volume, switches station or skips it, the big player says what it did and why, under
   the title: "Muted until the next track, because “Last Christmas” by Wham! is in the
-  loathed group “Christmas”". It stays while that is in force and for ten minutes after, or until you
-  put other music on from Jukebox. A small player says what was done for as long as it
+  loathed group “Christmas”". It stays while that is in force. A mute or a change of volume
+  ends with its song, so the line goes when the next song starts. A skip, or a return
+  from another station, is still shown through the song it brought, for up to ten
+  minutes, or until you put other music on from Jukebox. A small player says what was done for as long as it
   is in force.
 - **At a party**, what Love it or Loathe it does is not taken for a guest's change. The
   volume and the station are left alone until it has put them back.
