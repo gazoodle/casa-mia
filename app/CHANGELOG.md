@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.14-b2
+
+- **Jukebox: an announcement's words are made before anything plays.** Until now the
+  speaker fetched them only after the chime, while the music was already dipped, and
+  waited for the speech engine there. They are now made once for all the rooms as soon
+  as the action is called, and the chime starts when they are ready. An engine that
+  can't say them is each room's result, with the reason, and nothing is played.
+
 ## 2026.11.14-b1
 
 - **Jukebox: announcements can have a voice of their own.** After the Configure dialog,

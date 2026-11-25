@@ -13,7 +13,7 @@ from custom_components.casa_mia_jukebox.const import CHIME, DOMAIN, EVENT
 from homeassistant.components import tts
 from homeassistant.components.tts.const import DATA_COMPONENT
 from homeassistant.core import callback
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
@@ -43,14 +43,30 @@ class Engine(tts.TextToSpeechEntity):
             return None
         return [tts.Voice("en_GB-cori", "Cori"), tts.Voice("en_GB-alba", "Alba")]
 
+    made: list = []  # each message made, with its options
+    broken = False
+
     async def async_get_tts_audio(self, message, language, options):
-        return "mp3", b""
+        if self.broken:
+            raise HomeAssistantError("the engine is down")
+        self.made.append((message, language, dict(options)))
+        return "mp3", b"ID3 words"
+
+
+@pytest.fixture(autouse=True)
+def no_speech_on_disk(monkeypatch):
+    """Home Assistant keeps speech on disk, in the test config every test shares: a
+    message made in one test would be found by the next, and the engine never asked."""
+    monkeypatch.setattr(tts, "DEFAULT_CACHE", False)
 
 
 async def an_engine(hass):
     """tts.voice, added straight to Home Assistant's text-to-speech."""
     assert await async_setup_component(hass, "tts", {})
-    await hass.data[DATA_COMPONENT].async_add_entities([Engine()])
+    engine = Engine()
+    engine.made = []
+    await hass.data[DATA_COMPONENT].async_add_entities([engine])
+    return engine
 
 
 class Speakers:
@@ -112,7 +128,7 @@ def a_player(hass, entity_id, platform="sonos", state="playing"):
 
 
 async def add(hass, **options):
-    await an_engine(hass)
+    hass.data["engine"] = await an_engine(hass)
     for player in (KITCHEN, GARDEN):
         a_player(hass, player)
     entry = MockConfigEntry(
@@ -382,3 +398,41 @@ async def test_no_voice_chosen_or_none_to_choose_leaves_the_engines_own(hass, sp
     shown, _ = await configure(hass, entry, {"players": [KITCHEN]})
     assert [form["step_id"] for form in shown] == ["init"]
     assert "language" not in entry.options
+
+
+async def test_the_words_are_made_once_before_anything_plays(hass, speakers):
+    await add(hass, language="en-GB", voice="en_GB-alba")
+    engine = hass.data["engine"]
+    made_when = []
+    play = speakers.play_media
+
+    async def noting(call):
+        made_when.append(len(engine.made))
+        await play(call)
+
+    hass.services.async_register("media_player", "play_media", noting)
+
+    await say(hass)
+
+    # Made once, for both rooms, before the first clip (the chime) was sent.
+    assert engine.made == [("Dinner", "en-GB", {"voice": "en_GB-alba"})]
+    assert made_when and made_when[0] == 1
+    # The speaker's own fetch of the words is then served from Home Assistant's memory.
+    await tts.async_get_media_source_audio(hass, speakers.sent[1][1])
+    assert len(engine.made) == 1
+
+
+async def test_an_engine_that_fails_is_each_rooms_reason_and_nothing_plays(
+    hass, speakers
+):
+    await add(hass)
+    hass.data["engine"].broken = True
+
+    answer = await say(hass)
+
+    assert speakers.sent == []
+    assert answer["result"] == "nothing"
+    assert answer["rooms"][KITCHEN] == {
+        "result": "failed",
+        "reason": "the speech engine couldn't say it: the engine is down",
+    }

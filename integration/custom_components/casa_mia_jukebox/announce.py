@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 import aiohttp
@@ -95,15 +95,18 @@ class Jukebox:
         players: list[str],
         clips: list[str],
         *,
+        ready: Awaitable[str | None],
         said: str,
         volume: int | None,
         priority: bool,
     ) -> dict:
         """Plays the clips in each room, the rooms side by side, and answers with each
-        room's result. `said` is the announcement in words, for the log and the event."""
+        room's result. `ready` gives None once the words are made, or why they can't be;
+        each room waits for it in its turn, before its first clip, so a failure plays
+        nothing. `said` is the announcement in words, for the log and the event."""
         players = list(dict.fromkeys(players))
         answers = await asyncio.gather(
-            *(self._room(player, clips, volume, priority) for player in players)
+            *(self._room(player, clips, ready, volume, priority) for player in players)
         )
 
         rooms = {
@@ -138,7 +141,12 @@ class Jukebox:
         return self.last
 
     async def _room(
-        self, player: str, clips: list[str], volume: int | None, priority: bool
+        self,
+        player: str,
+        clips: list[str],
+        ready: Awaitable[str | None],
+        volume: int | None,
+        priority: bool,
     ) -> tuple[str, str | None]:
         """One room's announcement: its result, and the reason when there is more to say."""
         state = self.hass.states.get(player)
@@ -156,6 +164,8 @@ class Jukebox:
         level = volume or self.volumes.get(player, DEFAULT_VOLUME)
         try:
             async with _turn(self._turns[player], TURN):
+                if reason := await ready:
+                    return pure.FAILED, reason
                 for clip in clips:
                     result, reason = await self._clip(player, host, clip, level)
                     if result != pure.PLAYED:

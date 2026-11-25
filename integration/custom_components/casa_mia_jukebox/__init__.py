@@ -23,6 +23,7 @@ and works with no app.
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -38,7 +39,7 @@ from homeassistant.core import (
     ServiceResponse,
     SupportsResponse,
 )
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
@@ -126,6 +127,28 @@ def _speech(hass: HomeAssistant, options: Mapping[str, Any], message: str) -> st
     )
 
 
+async def _made(hass: HomeAssistant, said: str) -> str | None:
+    """The words made ahead of the speakers: None once they are ready, or why they
+    can't be. Left to the speaker, they were made only when it fetched them, after the
+    chime had played and the music had dipped, so the room heard a gap (owner,
+    2026-11-25). Home Assistant keeps them in memory for minutes, and the speaker's
+    fetch is served from there."""
+    if not said:
+        return None
+    from homeassistant.components import tts  # noqa: PLC0415
+
+    began = time.monotonic()
+    try:
+        await tts.async_get_media_source_audio(hass, said)
+    except (HomeAssistantError, ValueError) as err:
+        return f"the speech engine couldn't say it: {err or type(err).__name__}"
+    _LOGGER.info(
+        "An announcement's words made in %.1f s, before playing",
+        time.monotonic() - began,
+    )
+    return None
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async def announce(call: ServiceCall) -> ServiceResponse:
         entries = hass.config_entries.async_loaded_entries(DOMAIN)
@@ -153,9 +176,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             )
 
         chime = options.get(CONF_CHIME, CHIME) if call.data["chime"] else ""
+        said = _speech(hass, options, message)
         return await jukebox.announce(
             players,
-            pure.clips(chime, media, _speech(hass, options, message)),
+            pure.clips(chime, media, said),
+            # Begun now, while the rooms wait their turns; each waits for it in its own.
+            ready=hass.async_create_task(
+                _made(hass, said), "jukebox announcement words"
+            ),
             said=message or media,
             volume=call.data.get("volume"),
             priority=call.data["priority"],
