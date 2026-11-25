@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.13-b4
+
+- Jukebox: the cover of a station's song is now chosen from all the records Spotify has the song on, where it was the first one Spotify listed, which could be a collection of the decade's hits. A record by the song's own artist is taken before a collection by various artists, the song as the station named it before a live or remastered one, the single before the album, and then the earliest.
+
 ## 2026.11.13-b3
 
 - Jukebox: Spotify's pictures now reach a screen that can't reach the internet, such as a wall tablet kept on the house's own network. Home Assistant fetches them and passes them on, as it does the speakers' own pictures: a station's song's cover, the songs of a queue or a playlist, and what a search or browsing finds. Such a tablet showed the song's coloured tile with its initials in place of the cover.

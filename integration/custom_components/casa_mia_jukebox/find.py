@@ -220,7 +220,14 @@ class Covers:
         try:
             _, answer = await _seek(self.hass, " ".join(pair), ["track"])
             songs = [
-                (song.name, _by(song), images[0].url)
+                cover.Song(
+                    song.name,
+                    _by(song),
+                    images[0].url,
+                    _by(song.album) if hasattr(song.album, "artists") else "",
+                    getattr(song.album, "album_type", ""),
+                    getattr(song.album, "release_date", ""),
+                )
                 for song in _each(answer, "tracks")
                 if (images := _images(song))
             ]

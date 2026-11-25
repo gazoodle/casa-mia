@@ -194,6 +194,32 @@ def test_a_stations_song_is_found_on_spotify_whichever_way_round_it_is_named():
     assert cover.names("Harbour FM", "  ") is None
 
 
+def test_of_the_records_a_song_is_on_the_artists_own_single_gives_the_cover():
+    def on(picture, by, kind, date, title="Paper Lanterns"):
+        return (title, "The Marigolds", picture, by, kind, date)
+
+    hits = on("/hits.jpg", "Various Artists", "compilation", "1979")
+    best = on("/best-of.jpg", "The Marigolds", "compilation", "1995")
+    album = on("/album.jpg", "The Marigolds", "album", "1982-07-02")
+    single = on("/single.jpg", "The Marigolds", "single", "1982-10-22")
+    live = on("/live.jpg", "The Marigolds", "single", "1981", "Paper Lanterns - Live")
+    again = on("/reissue.jpg", "The Marigolds", "single", "2015-03-01")
+    pair = ("The Marigolds", "Paper Lanterns")
+
+    def chosen(*songs):
+        return cover.cover(pair, songs)
+
+    # The artist's own record before a collection of anyone's, however early.
+    assert chosen(hits, best) == "/best-of.jpg"
+    # The earliest of the artist's own, and the single before the album.
+    assert chosen(hits, best, album) == "/album.jpg"
+    assert chosen(hits, best, album, again, single) == "/single.jpg"
+    # The song as the station named it before a live one.
+    assert chosen(live, album) == "/album.jpg"
+    # A song that is only on a collection still has a cover.
+    assert chosen(hits) == "/hits.jpg"
+
+
 tidy = load_component_file("casa_mia_jukebox", "tidy")
 
 

@@ -346,6 +346,9 @@ it as a small round badge. The badge is how you tell a station from a queue.
 
 - A cover is shown only when Spotify has a song whose title and artist both agree with
   the station's. Otherwise you see the station's picture alone, as before.
+- Spotify often has a song on several records. Jukebox takes the cover of one by the
+  song's own artist before a collection by various artists, and the single before the
+  album. Between two of the same kind it takes the earlier one.
 - Some stations send the artist and the title the wrong way round, and some send
   "Artist - Title" as the title. Jukebox tries both ways.
 - A show's name or an advert, with no artist, isn't looked up.
