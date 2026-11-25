@@ -526,7 +526,7 @@ These are the differences that mattered there:
   speaker.
 - **It does one job.** One box searches the music library and Spotify, and a tap adds
   what it found to the queue. Jukebox has no podcasts or audiobooks and keeps no
-  library of its own, and none are planned.
+  library of its own.
 - **There is no server to run.** It is one integration, and it uses the Sonos and
   Spotify integrations you already have.
 
