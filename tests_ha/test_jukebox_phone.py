@@ -250,6 +250,7 @@ async def test_reconfigure_signs_jukebox_in_to_spotify(
     sent,  # noqa: F811
     aioclient_mock,
     current_request_with_host,
+    caplog,
 ):
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     missing = await entry.start_reconfigure_flow(hass)
@@ -272,5 +273,8 @@ async def test_reconfigure_signs_jukebox_in_to_spotify(
     await hass.async_block_till_done()
 
     assert (done["type"], done["reason"]) == ("abort", "reconfigure_successful")
+    # Home Assistant refuses, from 2026.12, a reload asked for here by an entry with a
+    # listener of its own for changes.
+    assert "update listener" not in caplog.text
     assert entry.data["token"]["access_token"] == "abc"
     assert len(hass.config_entries.async_entries(DOMAIN)) == 1

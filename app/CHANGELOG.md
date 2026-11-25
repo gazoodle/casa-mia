@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.13-b1
+
+- Jukebox: signing in to Spotify no longer brings Home Assistant's warning that Jukebox "has an update listener and should use it for scheduling a reload", which Home Assistant 2026.12 would have turned into a failure. The sign-in is used from the next time it is needed, with no reload.
+- Jukebox: the log now says when a radio station's words for its song can't be looked up on Spotify for a cover, because they aren't an artist and a title. With the lookups that were made, this is listed at the Info level: switch on **Enable debug logging** for Jukebox to see them.
+
 ## 2026.11.12
 
 - **Breaking:** Auto Dashboards no longer makes a page for each commander. A camera dashboard deployed before this release keeps its commander pages until its next **Deploy live**, which removes them. Before you deploy, put each commander on a dashboard of your own with the Camera Commander card, and point any button or kiosk that opened a commander's page at that dashboard.

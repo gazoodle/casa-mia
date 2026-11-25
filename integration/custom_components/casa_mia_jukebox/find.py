@@ -181,6 +181,16 @@ class Covers:
         """The cover, if it is known; if it hasn't been asked for, it is now."""
         pair = cover.names(artist, title)
         if pair is None:
+            # Said once for each thing a station says, so the log shows why a song
+            # has no cover: nothing was asked.
+            if (artist or title) and (artist, title) not in self._known:
+                self._keep((artist, title), None)
+                _LOGGER.info(
+                    "A station's words, %r / %r, aren't an artist and a title: "
+                    "no cover is looked for",
+                    artist,
+                    title,
+                )
             return None
         if pair not in self._known and pair not in self._asking:
             self._asking.add(pair)
@@ -213,11 +223,14 @@ class Covers:
                 _LOGGER.warning("No covers for stations' songs: %s", err)
         finally:
             self._asking.discard(pair)
+        self._keep(pair, found)
+        if found:
+            self._changed()
+
+    def _keep(self, pair: tuple[str, str], found: str | None) -> None:
         self._known[pair] = found
         while len(self._known) > self.KEPT:
             del self._known[next(iter(self._known))]
-        if found:
-            self._changed()
 
 
 async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:

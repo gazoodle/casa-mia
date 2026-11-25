@@ -57,7 +57,9 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
     hass_ws_client,
     sent,  # noqa: F811
     monkeypatch,
+    caplog,
 ):
+    caplog.set_level("INFO")
     asked = []
 
     async def search(query, kinds, limit):
@@ -99,5 +101,8 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
 
     hass.states.async_set(KITCHEN, "playing", station | {"media_artist": ""})
     assert (await once(""))["cover"] is None
+    # The log says so, once, so that a missing cover can be explained.
+    assert caplog.text.count("aren't an artist and a title") == 1
+    assert "its cover found on Spotify" in caplog.text
     hass.states.async_set(KITCHEN, "playing", station)
     assert (await once("Paper Lanterns"))["cover"] and len(asked) == 1

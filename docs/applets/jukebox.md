@@ -504,3 +504,38 @@ triggers:
   it ends. Home Assistant must be able to reach the speakers on that port, which it
   already must for the Sonos integration's own announcements.
 - If the quiet-hours entity is missing or unavailable, announcements are played.
+
+## Why not Music Assistant?
+
+[Music Assistant](https://www.music-assistant.io/) does far more than Jukebox, and if
+it suits your house, use it. Jukebox was written for one person in the author's house,
+who wanted to find a song and add it to what is playing, and who found Music Assistant
+too much to learn for something she uses now and then. Music Assistant may be able to
+be set up to work the same way. If it can, the author didn't find out how.
+
+These are the differences that mattered there:
+
+- **The queue is the speaker's own.** Jukebox puts songs into the Sonos queue, so the
+  Sonos app, the buttons on a speaker and Jukebox all show and change the same list.
+  Music Assistant's documentation describes it handing the speaker its next song
+  shortly before the one playing ends.
+- **Home Assistant isn't in the path of the sound.** The speaker fetches each song
+  itself, from the music library or from Spotify. The music carries on while Home
+  Assistant restarts or is updated, and Jukebox's page shows the same queue when it
+  comes back. Music Assistant is a server of its own that sends the sound to the
+  speaker.
+- **It does one job.** One box searches the music library and Spotify, and a tap adds
+  what it found to the queue. Jukebox has no podcasts or audiobooks and keeps no
+  library of its own, and none are planned.
+- **There is no server to run.** It is one integration, and it uses the Sonos and
+  Spotify integrations you already have.
+
+[Listening on your own phone](#listening-on-your-own-phone) is the exception to the
+first two: there the queue is kept by the page, and Home Assistant sends the phone its
+library songs.
+
+Music Assistant is the one to use if:
+
+- you have speakers that aren't Sonos, or want different makes to play together;
+- you use a music service other than Spotify, or listen to podcasts or audiobooks;
+- you want the music from several services kept as one library.
