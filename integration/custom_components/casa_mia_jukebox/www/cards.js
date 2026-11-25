@@ -2480,7 +2480,8 @@ var ln = class extends j {
       /* The artwork is a square that fits the space left for it, whichever way that space is
          the narrower, and the picture is shown whole inside it, never cropped. */
       .cover { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; }
-      .cover .art { width: min(100cqw, 100cqh, 380px); border-radius: 18px; box-shadow: 0 20px 50px rgb(0 0 0 / 50%); }
+      /* No bigger than Spotify's covers are, so one of those is never stretched. */
+      .cover .art { width: min(100cqw, 100cqh, 640px); border-radius: 18px; box-shadow: 0 20px 50px rgb(0 0 0 / 50%); }
       .cover .art:has(img) { overflow: visible; background: none; box-shadow: none; }
       .cover .art:has(img) i { display: none; }
       .cover .art img { object-fit: contain; border-radius: 18px; filter: drop-shadow(0 16px 30px rgb(0 0 0 / 50%)); }
