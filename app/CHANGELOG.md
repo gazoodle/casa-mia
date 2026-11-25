@@ -1,377 +1,44 @@
 # Changelog
 
-## 2026.11.12-b26
+## 2026.11.12
 
-- Jukebox can play on the device you are holding. It is listed with the quiet rooms as
-  **This phone** (or tablet, or computer): tap it and choose something from Favourites
-  or Search. It plays through the phone's own speaker or earbuds, with a queue of its
-  own that is kept on the phone, and leaves the Sonos speakers alone. The lock screen
-  and the buttons on earbuds play, pause and skip through that queue.
-- It plays Sonos playlists and favourites, songs from the music library, songs from
-  Spotify and radio stations. A song from another music service is left out, and the
-  player says how many were.
-- For library songs, add the music share to Home Assistant under Settings, System,
-  Storage, with Media as its usage.
-- For Spotify, sign Jukebox in: Settings, Devices & services, Jukebox, then
-  **Reconfigure** in the entry's menu. It uses the Spotify developer app you made for
-  Home Assistant's Spotify integration, which needs Web Playback SDK ticked. Only
-  administrators and the logins under **Who may run a party** can listen to Spotify
-  on their own device. The guide has the steps.
-- A song that can't be played on the phone is said on the player, with the reason, and
-  the next one is tried.
-
-## 2026.11.12-b25
-
-- **Breaking:** the Dash-Bored page no longer reloads itself after an update unless you
-  ask it to. For wall tablets, switch on **Reload pages by themselves after an update**
-  in Dash-Bored's Configure dialog.
-- Dash-Bored's sighting photographs need a login again. A page is sent an address signed
-  for its own login, for the half hour a sighting is kept, so the photographs show as
-  before. Before, anyone with a sighting's id could fetch its photograph, and the id ends
-  up in browser history and logs.
-- Dash-Bored no longer replaces a UniFi Protect camera's sighting photograph with
-  Protect's own thumbnail. That came through Protect's internal client, which can change
-  with any Protect release. The still taken at the moment of the detection stays.
-- All three were asked for by Frenck, reviewing Dash-Bored's Marketplace submission.
-
-- Jukebox's editor shows a chosen song whole. Tap a song in the list and it appears
-  at the top with its cover and its title, artist and album in full, its length,
-  where it is from and its place in the list; tap the cover to see it large. Buttons
-  beside it move the song to the top or the end, take it out, or play from it.
-- With a song chosen, **+** beside something found asks whether to put it after that
-  song, before it, or at the end. Things added one after another stay in order.
-- A playlist can be sorted in the editor, by title, by artist then album, or by
-  album, with **Put it back** to return the order it had. A number in a title is
-  counted, and an album's songs go by their track numbers. **Duplicates…** takes out
-  the songs that are in a playlist more than once.
-- On a wide screen, drag the thin bar beside the big player's side panel, or between
-  the editor's two lists, to change their widths. The width is remembered in that
-  browser, and a button on the bar puts it back.
-- A queue or a playlist longer than 500 songs is now read in full, up to 2,000.
-
-## 2026.11.12-b24
-
-- Jukebox's buttons above the queue are now **Add**, **Edit…**, **Save…** and
-  **Clear…**, and the editor's button above a playlist's songs is **Edit…**. With the
-  longer names ("Edit side by side", "Save as a playlist", "Clear the queue") each row
-  of buttons was two lines tall. They do what they did.
-- Jukebox: a wall tablet can now save, change and delete Sonos playlists, so a playlist
-  can be put together sitting at one. It applies to the logins on the Configure
-  dialog's second list, now named **The house's own screens**, and only while no
-  party is on anywhere in the house: during a party the tablets can't touch a
-  playlist, even when they have been let to change the party's music. The people on
-  the first list, now named **Who may run a party**, still may at any time, and any
-  other login still never can.
-- Jukebox's Favourites: a Sonos playlist's tile is made of the covers of the first
-  four albums in it, two by two, so the playlists can be told apart at a glance. A
-  playlist with fewer than four albums near its start shows the first cover alone.
-- Jukebox's small and big players show the volume as a number beside the slider (the
-  average, for rooms playing together). It follows your finger as you drag. Each
-  room's own number was already on the Rooms tab.
-- Jukebox shows the cover of the song a radio station is playing, where Home
-  Assistant's Spotify integration is set up. The song is looked up on Spotify by the
-  title and artist the station sends, tried both ways round because some stations
-  send them swapped, and its cover becomes the player's picture with the station's
-  own picture on it as a small round badge. A cover is shown only when title and
-  artist both agree; otherwise the station's picture is shown alone, as before. Each
-  song's title and artist are sent to Spotify as a search from your account.
-- Jukebox's Search shows a cover for each song found on Spotify. A song carries its
-  album's pictures, which weren't being read.
-- Fixed: a song's picture in Jukebox's queue or a playlist could arrive cut short, so
-  only the top part of the cover was drawn. Jukebox passed on whatever part of the
-  picture the speaker had sent so far, not the whole of it (since b21).
-
-## 2026.11.12-b23
-
-- Tablet Layout: a gap line's `color` from a dashboard's YAML could close its attribute
-  and run script for everyone who opened that dashboard. The lines are now built
-  element by element, so any CSS colour still works but can't become markup, and the
-  members of an `[r, g, b]` colour are made numbers. An edge's `size` in the edit mode's
-  dimension labels is now always a number too. Found by Frenck reviewing Tablet
-  Layout's Marketplace submission.
-- Jukebox's cards in the card picker link to Jukebox's own repository, as its manifest
-  says since b22.
-
-## 2026.11.12-b22
-
-- Jukebox has an editor for a wide screen, opened with **Edit side by side** on the
-  Queue tab and on a playlist's songs. The queue or the playlist is on the left, and
-  Search and Browse on the right. Rest a finger on a song or an album on the right
-  until it lifts, as you do to move a player, then drag it across and let go where
-  it should go: a line shows the place, and an album's songs all go in there. **+**
-  adds to the end. On the left, songs are moved and taken out as before. The button
-  isn't shown on a phone, where the two lists wouldn't fit. Changing a playlist is
-  still for the people who look after the music.
-- Casa Mia's own page has a tile for Jukebox, where Jukebox is set up: how many rooms
-  there are, how many are playing and what, and a tap opens Jukebox's page. Sensor
-  Watch and Love it or Loathe it had tiles there and Jukebox didn't.
-- Jukebox is to be published by itself as well, for a house without Casa Mia, from a
-  repository of its own (`gazoodle/casa-mia-jukebox`) at the next release. Its guide
-  says how the two ways of installing it meet in one house, and has pictures. Because
-  a store may then have installed a newer Jukebox than the app bundles, the app no
-  longer puts an older one over it.
-
-## 2026.11.12-b21
-
-- Jukebox's **Save as a playlist** can save the queue over a playlist you already
-  have. Under the name box it lists your Sonos playlists; when the queue was started
-  from one of them in Jukebox, that one is first, as **Save back to …**. Jukebox asks
-  before replacing, and says how many songs the playlist holds now and how many the
-  queue has. What the playlist held can't be got back. Typing a name that a playlist
-  already has asks the same question, where until now Sonos kept two playlists of
-  the same name.
-- Jukebox's queue and a playlist's songs show each song's picture, and its album
-  beside the artist. The pictures are the speaker's own, fetched by Jukebox, so they
-  show on a page reached over https or away from home.
-- Fixed: the players on the **Players** dashboard card couldn't be put in order. Only
-  Jukebox's own page could do that. On a card with no room chosen, rest a finger on a
-  player until it lifts, then drag it, as on the page.
-
-## 2026.11.12-b20
-
-- Fixed: Jukebox showed Stop where Next should be for a song in a queue that had no
-  title or length, such as a streamed song the speaker hasn't fetched the details of.
-  It was taken for a radio station (since b18).
-- Jukebox's party lock has the speaker keep its own copy of the queue, as a Sonos
-  playlist named "Jukebox party copy" with the room's name. When a song has been taken
-  out or the queue replaced from another app, the speaker loads that copy back, so the
-  songs return with everything they had. Until now each song was put back one at a
-  time and came back with less: no length, and sometimes no title. The copy is made
-  again after each change from Jukebox, isn't listed with your playlists in Jukebox,
-  and is deleted when the party ends. You will see it in the Sonos app during a party.
-- When the party lock puts the music back, it returns to the place in the song where
-  another app cut in, not to the start of the song.
-- Jukebox's Queue tab has **Play the queue**, shown when something else is playing (a
-  radio station) and the queue has songs in it, and **Add**, which opens Search with
-  an empty box and returns to the queue once something has been added.
-- Jukebox can show what is in a Sonos playlist before it is played: choose a playlist
-  in Favourites, then **See what is in it**. The people who may change playlists can
-  move its songs, take one out, and add to its end: a song or an album from the music
-  library, or a song, an album or a playlist from Spotify.
-- Jukebox's Favourites tab: each heading (Playlists, Radio and so on) folds its
-  section away, remembered on that device.
-- Jukebox's line about what Love it or Loathe it did is one plain sentence: "Muted
-  until the next track, because “Last Christmas” by Wham! is in the loathed group
-  “Christmas”."
-- Love it or Loathe it's `players` attribute has `because`, the reason in words that
-  follow "because". A skipped song's result now reads "skipped to the next song".
-
-## 2026.11.12-b19
-
-- Fixed: at a party, a queue replaced from another app (the Sonos app's "play this
-  album now") was put back but the music stayed stopped at the first song. It now goes
-  back to the song it was on and plays, if it was playing.
-- Fixed: a streamed song that the party lock put back into a queue lost its title,
-  artist and album. A song is now described to the speaker in the speaker's own form.
-- The party lock waits a moment for another app's changes to stop arriving before it
-  compares, so it never changes a queue that the other app is still half-way through
-  changing.
-- Jukebox: saving the queue as a playlist and deleting a playlist are only for the
-  people on **Who may run a party**, now named **Who may run a party and change
-  playlists**. Administrators always may. Playing a playlist is still for everyone.
-- Jukebox no longer says what Love it or Loathe it did to the last music once other
-  music has been put on from Jukebox.
-
-## 2026.11.12-b18
-
-- Jukebox's party lock can only be turned on and off by the people you choose: a new
-  list, **Who may run a party**, in Jukebox's Configure dialog. Administrators always
-  may. Until now any login could end a party, a wall tablet's included.
-- During a party, the music can be changed from Jukebox only by those people. A second
-  list, **Screens that may be opened up at a party**, names the wall tablets' logins:
-  they can change the music once someone running the party turns on **Let the wall
-  tablets change the music** on the party's sheet, and never the party itself. The
-  switch is off at the start of each party. Any other login can only look. A change
-  that is refused says why, and is logged with the login that tried.
-- Jukebox's big player and Now playing card show Love it or Loathe it's thumbs under
-  the song's title, where it is installed and the login may rate.
-- Jukebox says why Love it or Loathe it changed a player: what it did and the song and
-  group that caused it, on the big player while it is in force and for ten minutes
-  after, and on a small player while it is in force.
-- Jukebox's party lock no longer puts back what Love it or Loathe it does to the volume
-  or the station.
-- Love it or Loathe it skips a loathed song that is one of a queue, where its group
-  would mute it or switch station. Nothing to set up. A song from a station is treated
-  as before, and after five skips one after another the next song gets its group's own
-  action.
-- Fixed: Jukebox listed a speaker with the quiet rooms while it was playing, when the
-  stream gave Home Assistant neither a title nor a station's name. A speaker that says
-  it is playing is now always shown as a player, with "Playing, but the speaker gives
-  no title".
-- Fixed: Jukebox took a speaker on a station for one playing a queue, with a Next
-  button, when Home Assistant had no name for the station (seen on one speaker, which
-  lost the name at the song after a station was started). A station is now also known
-  by how its stream is addressed.
-- Where Home Assistant has no name or picture for the station a speaker is on, Jukebox
-  asks the speaker itself, once for each station, and shows what it says. The picture
-  is then loaded from the address the speaker gives, which is the station's own.
-- Love it or Loathe it's Last match sensor has a new attribute, `players`: for each
-  player, what was last done, why, when, and whether it is still in force. The event's
-  `action` is `skip` for a song that was skipped.
-
-## 2026.11.12-b17
-
-- Jukebox's players can mute. The speaker picture beside a volume slider is now a
-  button: on a small player and on the big player it mutes or unmutes every room that
-  player is playing in, and on the Rooms tab each room has one of its own. A muted
-  room shows a crossed-out speaker and a dimmed slider, including when it was muted
-  from somewhere else, such as the Sonos app or a Home Assistant dashboard.
-
-## 2026.11.12-b16
-
-- Jukebox's Players card shows as many players across as its width allows: one on a
-  phone, two or three on a tablet. It used to show one to a row however wide it was.
-  Jukebox's own page fits more across too.
-- Jukebox's small player slides a title, artist or list of rooms along its line when
-  it is too long to fit, so nothing is cut off and the player doesn't need to be wider.
-- New option in Jukebox's Configure dialog: **Show Jukebox in the sidebar**. Turn it
-  off if you use a dashboard of your own made from the cards. The page stays at
-  `/jukebox` either way.
-- Jukebox's small player asks about Stop in place, with Keep and Stop where its
-  buttons were. It used to open the big player to ask.
-- Jukebox's Quiet rooms card can be edited without YAML: it has two switches, for its
-  heading and for the list of speakers that aren't answering. Every Jukebox card now
-  has a form in the dashboard editor.
-
-## 2026.11.12-b15
-
-- New: the pieces of Jukebox's page are cards, to build a page of your own from:
-  **Quiet rooms**, **Shortcut** (a button that plays one favourite in the rooms you
-  choose) and **Now playing** (the whole player for one room, in place), beside the
-  **Players** card there was already.
-- New action: `casa_mia_jukebox.play` plays a favourite or a Sonos playlist by name in
-  one or more rooms, for a button, an automation or a voice command. It goes through
-  Jukebox, so it is logged and a party doesn't put it back.
-- New: Stop, on both of Jukebox's players. It ends the music there, empties the queue
-  and lists the rooms with the quiet ones again, after asking. On the small player it
-  takes the place of the skip button when there is no next song to skip to (a station,
-  or music that is paused).
-- Fixed: in Jukebox's Queue tab, clearing the queue while a radio station was playing
-  left the songs on screen, and the question said one song would go from a queue that
-  was empty. The list and the count now come from the speaker each time.
-- Jukebox's sliders are easier to take hold of: the dot can be taken from a little to
-  either side of it and a little above or below, and is the size it was. A touch
-  elsewhere on the line no longer moves it, so a stray tap can't change the volume.
-
-## 2026.11.12-b14
-
-- Fixed: Jukebox's search found nothing on Spotify ("limit must be between 1 and
-  10"). Spotify accepts at most 10 results of a kind, and 20 were asked for.
-- Fixed: a song found by searching and played in a quiet room played, but wasn't in the
-  queue. It is now put in the queue and played from there, as is one played in place
-  of the queue.
-- New: the party lock in Jukebox's player. Press **Party** and the queue, the rooms and
-  their volumes can only be changed from Jukebox. A change made any other way, such as
-  from the Sonos app on a guest's phone, is put back within a few seconds and listed
-  on the player.
-- New entities for automations: a **Party** binary sensor, on while a party is on (to
-  switch on a disco ball and the lights), and **Changes put back**, a count with the
-  last change. Each change put back also fires the event `casa_mia_jukebox_put_back`.
-
-## 2026.11.12-b13
-
-- New: Search in Jukebox's player. One box searches the Sonos music library and
-  Spotify together, and anything found can be played, played next or added to the end
-  of the queue. With the box empty you can browse the library and Spotify. Spotify
-  needs Home Assistant's Spotify integration to be set up; if a source can't be
-  searched, the player says why and still shows the other's results.
-- Jukebox's page: to move a player, rest a finger on it until it lifts, then drag it.
-  The page scrolls when you carry it to the top or bottom of the screen. This replaces
-  the arrows button, which couldn't reach a player that was off the screen.
-- Fixed: a playlist saved from Jukebox's queue didn't appear in Favourites, and a
-  deleted one would have stayed. Home Assistant's list of Sonos playlists is renewed
-  only when a favourite changes, so Jukebox now reads them from the speaker.
-
-## 2026.11.12-b12
-
-- New in Jukebox's player: clear the queue, and save the queue as a Sonos playlist,
-  both at the top of the Queue tab. Clearing asks first, in large letters.
-- New: delete a Sonos playlist, from the menu you get by tapping it in Favourites. It
-  asks first.
-- New: the players on Jukebox's page can be put in the order you want. Press the
-  arrows button in the heading and drag them. The order is kept for every screen.
-- Jukebox: a speaker takes a moment to do what it is asked, so the button you pressed
-  now shows a light running round its edge until the speaker has answered.
-
-## 2026.11.12-b11
-
-- New: the queue in Jukebox's player. Tap a song to play it, drag it by its handle to
-  move it, or take it out.
-- Fixed: adding a Sonos playlist to the queue from Jukebox's player was refused by the
-  speaker ("error 701"). Jukebox looked for it among the favourites, and a speaker
-  keeps its playlists in a list of their own.
-
-## 2026.11.12-b10
-
-- Fixed: in Jukebox's player, "Play next" and "Add to the end of the queue" replaced
-  the whole queue for a Sonos favourite. Jukebox now asks the speaker itself to add it,
-  and the queue is kept.
-- Fixed: a long song title made Jukebox's player wider than the screen, which put the
-  buttons out of reach on a phone. A long title now wraps onto a second line.
-- Jukebox's player shows the whole of the artwork, in a square that fits the space; on a
-  phone its sides were cut off.
-
-## 2026.11.12-b9
-
-- New: Jukebox has a page of its own, "Jukebox" in the sidebar, for Sonos speakers. It
-  shows a player for each thing playing in the house and the rooms that are quiet. A
-  tap on a player opens it over the whole screen, with play, pause and skip, a volume
-  for each room, rooms added or taken out with one tap, and the favourites saved in
-  Sonos. It finds the speakers by itself and changes none of your dashboards.
-- New: Jukebox's card, the small player by itself, for a dashboard you already have.
-- Jukebox: playing a favourite in place of the queue asks first, in large letters.
-
-## 2026.11.12-b8
-
-- **Breaking:** Auto Dashboards no longer makes a page for each commander. A camera dashboard deployed before this build keeps its commander pages until its next **Deploy live**, which removes them. Before you deploy, put each commander on a dashboard of your own with the Camera Commander card, and point any button or kiosk that opened a commander's page at that dashboard.
-- **Auto Dashboards: a live page for each camera, and nothing else.** The commander pages were one picture with a transparent tap zone over each tile, and were being mistaken for the way to show a commander. The camera dashboard keeps its page for each camera, which the Camera Commander card's tap on the main camera can open. A commander's **Dashboard page** switch has gone with them, and so has the warning about a commander's Main camera select.
-- **New guide: A camera commander on your home page** (`docs/how-to/commander-on-your-home-page.md`), from installing Casa Mia to a commander on a Tablet Layout view, with what to check when the view type or the card isn't in Home Assistant's lists.
-- **Sensor Watch card:** the snooze buttons under an open row sit in the middle of their space, with the same gap above as below.
-
-## 2026.11.12-b7
-
-- **Sensor Watch: snooze for 4 hours.** The card and the page offer 4 hours as well as 1 day, 1 week and 30 days. On the card, the snooze buttons under an open row now have a small gap above them, so they no longer touch the row's shading.
-
-## 2026.11.12-b6
-
-- **New: Jukebox, with its first part, announcements.** A new integration, added under **Settings → Devices & services → Add integration → Jukebox**. Its action `casa_mia_jukebox.announce` plays a chime, then a sound or a message in the voice you choose, on your Sonos speakers, over whatever each is playing. Each room has a number for its announcement volume, which is separate from the volume of its music. While the quiet-hours entity you choose is on, only an announcement marked `priority` is played. Announcements to one speaker are played one after another, never over each other, and one kept waiting more than 30 seconds is dropped. The action answers with each room's result, and the same is in the `casa_mia_jukebox_announced` event and on the **Last announcement** sensor, so a speaker that was off or didn't answer is seen. For Sonos S2 speakers: an S1 speaker, or any other player, is refused with a result that says why. In development: see its guide, `docs/applets/jukebox.md`.
-
-## 2026.11.12-b5
-
-- **Love it or Loathe it: a station is chosen from the players' favourites, and keeps its name and picture.** **+ Add a station** on the page now lists the favourites of the entry's players (on a Sonos, your Sonos favourites) in place of **Take it from a player**, which copied the address of whatever the player happened to be on. A station chosen there is played as the favourite, so the speaker shows its name and logo after a switch. A player is also switched back to the station it was on as a favourite, when it is one. Before, both went by the stream's address, which carries no name or picture, so the logo was missing after every switch. A station that is no favourite can still be given by its address, and **Make it a station** saves a favourite by its name when the player is on one. Stations you already have are kept as they are: to get the logo, remove one and add it again from the list.
-- **Fixed: Love it or Loathe it: a player that reports no address for what it is playing was taken to be on the first station in the list.**
-
-## 2026.11.12-b4
-
-- Love it or Loathe it: its engine's code is in smaller files. Nothing it does has changed.
-
-## 2026.11.12-b3
-
-- **Fixed: in Safari, a menu in a dialog opened again as soon as something was chosen from it.** The choice was taken, but the menu stayed on the screen, on a Mac and on an iPhone. It happened to every menu that sits under a field's label, on every page of the app and on Sensor Watch's page: Safari passed the click on the choice to the field's menu button as well, which opened it again.
-
-- **Love it or Loathe it: a station's dialog shows the player it was taken from.** After a player was chosen under **Take it from a player**, the menu went back to "Choose a player…", which looked as if nothing had been chosen although the boxes below had been filled in. It now shows the player, until the boxes are typed in by hand.
-
-- **Sensor Watch card: Hide snoozed items.** A new option, off by default. With it on, the card has no line for what is snoozed and hides when nothing else is listed. The Sensor Watch page and the Status sensor's `snoozed_list` still show it, and it is back on the card when its snooze ends.
-- **Fixed: Love it or Loathe it: one loathed song or advert straight after another turned the volume down further each time, and it was never put back.** At each new track the volume was put back and then changed again for the new one. A speaker reports its new volume a moment after it is given one, so the second change started from the lowered volume the speaker still reported. With an action of -50, three adverts in a row took 40% to 5%, and only the last step was undone afterwards. The change now starts from the volume that was just put back. The same happened when a group was saved or a song rated while a song was turned down, and that is fixed too. A volume is also put back when the next track comes before the speaker has reported the change.
-
-## 2026.11.12-b2
-
-- **Sensor Watch: Snooze.** A fault you know about and can't fix yet, such as a cloud that is down, can be snoozed for 1 day, 1 week, 30 days or until a date. It then leaves Status, Problem, the counts, the card's list and the sidebar's notifications, so a fault that comes after it shows. It stays in sight: the card keeps a line for it, the page lists it dimmed under Snoozed, and Status has `snoozed` and `snoozed_list`, each with who snoozed it and until when. Snooze is on each row that needs attention on the page, and on the card when **Snooze from this card** is on in its options.
-- **Sensor Watch: a snooze ends by itself.** At its time the fault is said again, with how long it has lasted ("still failing, down 16 days"), and a phone hears of it. It also ends when the fault gets worse, when it becomes another kind of fault (retrying turns into "sign in again"), and once the fault has been gone for 15 minutes. Critical can't be snoozed. The time is kept across restarts.
-- **Sensor Watch: new actions `casa_mia_sensor_watch.snooze` and `unsnooze`**, for automations and for a button on a notification. The List action answers those snoozed apart, in `snoozed`; `sensors` holds what counts.
-- **Sensor Watch: automations go quiet for a snoozed fault without being changed.** No event is sent for it; what was said is withdrawn (`casa_mia_sensor_watch_withdrawn`, reason `snoozed`), never said to be back to nominal.
-
-## 2026.11.12-b1
-
-- **Breaking:** Sensor Watch no longer sends an event for each sensor that is unavailable because its integration failed to set up, and no longer counts each one in Status and the counts. The integration has one event and counts once. An automation that waits for one of those sensors by its entity should follow the integration's event or the sensor's group, or have that sensor critical when unavailable, which is never rolled up.
-- **Sensor Watch: a failed integration is one problem.** Its unavailable watched sensors are rolled up into one row, "not connecting, 4 watched sensors unavailable", on the card, the page, Status and the notifications, so one cloud that is down no longer hides every other fault. Tap the card's row to list them. A sensor at critical stays on its own row, as does one that is there with a bad reading, and one still unavailable five minutes after the integration recovers gets its own row again. A group's card, automation and device triggers still hear of a failure that took its sensors.
-- **Sensor Watch: a retry is no longer a recovery.** An integration that kept retrying was said to be back at each try and to fail again five minutes later. It now stays failed until it has loaded.
-- **Sensor Watch: a failed integration reaches your phone.** Every new failure was marked as found at Home Assistant's start, which the Notify on Sensor Watch blueprint and the device triggers leave out. A new one is now said as a change.
-- **Sensor Watch: old faults don't tell your phone again.** A sensor already known to be unavailable sent another notification after each restart and each Refresh state. It now raises only the sidebar's again. How long it and a failed integration have been down also survives a restart, timed from this update on.
-- **Sensor Watch: Ignore is no longer good news.** It said "Back to nominal". Now the notification in the sidebar goes and nothing is said to be back. The same goes for an integration you disable or delete.
+- **Breaking:** Auto Dashboards no longer makes a page for each commander. A camera dashboard deployed before this release keeps its commander pages until its next **Deploy live**, which removes them. Before you deploy, put each commander on a dashboard of your own with the Camera Commander card, and point any button or kiosk that opened a commander's page at that dashboard.
+- **Breaking:** Sensor Watch no longer sends an event for each sensor that is unavailable because its integration failed to set up, and no longer counts each one in Status and the counts. The integration has one event and is counted once. An automation that waits for one of those sensors by its entity should follow the integration's event or the sensor's group, or have that sensor critical when unavailable, which is never rolled up.
+- **Breaking:** the Dash-Bored page no longer reloads itself after an update unless you ask it to. For wall tablets, switch on **Reload pages by themselves after an update** in Dash-Bored's Configure dialog.
+- **New: Jukebox, for Sonos speakers.** A new integration, added under **Settings → Devices & services → Add integration → Jukebox**, with a page of its own in the sidebar. It shows a player for each thing playing in the house and lists the rooms that are quiet. Tap a player to open it over the whole screen, with play, pause, skip and stop, a volume and a mute button for each room, rooms added or taken out with one tap, and the favourites saved in Sonos. It finds the speakers by itself and changes none of your dashboards. Jukebox is Alpha; its guide is `docs/applets/jukebox.md`.
+  - **The queue.** Tap a song to play it, drag it to move it, or take it out. The queue can be cleared, or saved as a Sonos playlist, either as a new one or over one you already have.
+  - **Search.** One box searches the Sonos music library and Spotify together, and anything found can be played, played next or added to the queue. With the box empty you can browse both. Spotify needs Home Assistant's Spotify integration.
+  - **Playlists.** A Sonos playlist can be opened to see its songs before it is played. The people allowed to change playlists can move songs, take them out, add to them, sort them (with a way back) and remove duplicates. On a wide screen, **Edit side by side** shows the queue or the playlist beside Search, and songs are dragged across to their place.
+  - **Radio.** For a station, Jukebox shows the cover of the song playing, found on Spotify from the title and artist the station sends, with the station's picture as a small badge. Each song's title and artist are sent to Spotify as a search from your account.
+  - **On the device in your hand.** **This phone** (or tablet, or computer) is listed with the quiet rooms. It plays Sonos playlists and favourites, the music library, Spotify and radio through the device's own speaker or earbuds, with a queue of its own, and the lock screen's and earbuds' buttons work. Library songs need the music share added to Home Assistant under Settings, System, Storage, with Media as its usage. Spotify needs Jukebox signed in under **Reconfigure**, using the Spotify developer app you made for Home Assistant's Spotify integration with Web Playback SDK ticked.
+  - **The party lock.** Press **Party** and the queue, the rooms and their volumes can only be changed from Jukebox. A change made any other way, such as from the Sonos app on a guest's phone, is put back within a few seconds and listed on the player. Only the people under **Who may run a party** in Jukebox's Configure dialog (and administrators) can start or end a party. The logins under **The house's own screens** can change the music during a party once someone running it allows that, and can change playlists only while no party is on. During a party the speaker holds a copy of the queue as a playlist named "Jukebox party copy", which you will see in the Sonos app; it is deleted when the party ends.
+  - **Announcements.** The action `casa_mia_jukebox.announce` plays a chime, then a sound or a message in the voice you choose, over whatever each speaker is playing, at an announcement volume set for each room. While a quiet-hours entity you choose is on, only an announcement marked `priority` is played. Each room's result is in the action's answer, the `casa_mia_jukebox_announced` event and the **Last announcement** sensor. Sonos S2 speakers only.
+  - **For automations.** The action `casa_mia_jukebox.play` plays a favourite or a Sonos playlist by name in one or more rooms. A **Party** binary sensor is on during a party, and **Changes put back** counts what the party lock undid, also told by the event `casa_mia_jukebox_put_back`.
+  - **Cards.** **Players**, **Now playing**, **Quiet rooms** and **Shortcut** (one favourite in the rooms you choose), each with a form in the dashboard editor, for a page of your own. **Show Jukebox in the sidebar** in the Configure dialog can be switched off if you use one.
+  - **With Love it or Loathe it.** Its thumbs are on the big player and the Now playing card, and the player says what it changed and why.
+  - Casa Mia's own page has a Jukebox tile. Jukebox is also published by itself, for a house without Casa Mia, from `gazoodle/casa-mia-jukebox`; the app doesn't put an older Jukebox over a newer one installed from there.
+- **Sensor Watch: Snooze.** A fault you know about and can't fix yet, such as a cloud that is down, can be snoozed for 4 hours, 1 day, 1 week, 30 days or until a date. It then leaves Status, Problem, the counts, the card's list and the sidebar's notifications, so a fault that comes after it shows. It stays in sight: the card keeps a line for it (unless **Hide snoozed items** is on), the page lists it dimmed under Snoozed, and Status has `snoozed` and `snoozed_list`, each with who snoozed it and until when. Snooze is on each row that needs attention on the page, and on the card when **Snooze from this card** is on in its options.
+- **Sensor Watch: a snooze ends by itself.** At its time the fault is said again, with how long it has lasted, and a phone hears of it. It also ends when the fault gets worse, when it becomes another kind of fault, and once the fault has been gone for 15 minutes. Critical can't be snoozed. The time is kept across restarts.
+- **Sensor Watch: new actions `casa_mia_sensor_watch.snooze` and `unsnooze`**, for automations and for a button on a notification. The List action answers those snoozed apart, in `snoozed`. Automations go quiet for a snoozed fault without being changed: what was said is withdrawn (`casa_mia_sensor_watch_withdrawn`, reason `snoozed`), never said to be back to nominal.
+- **Sensor Watch: a failed integration is one problem.** Its unavailable watched sensors are rolled up into one row, "not connecting, 4 watched sensors unavailable", on the card, the page, Status and the notifications, so one cloud that is down no longer hides every other fault. Tap the card's row to list them. A sensor at critical stays on its own row, as does one with a bad reading, and one still unavailable five minutes after the integration recovers gets its own row again.
+- **Sensor Watch: a failed integration is named by the integration**, with its entry's title after it. Its message's wording changed with it, for an automation that matches the text.
+- **Sensor Watch: a retry is no longer a recovery.** An integration that kept retrying was said to be back at each try. It now stays failed until it has loaded.
+- **Sensor Watch: a failed integration reaches your phone.** A new failure was marked as found at Home Assistant's start, which the Notify on Sensor Watch blueprint and the device triggers leave out.
+- **Sensor Watch: old faults don't tell your phone again** after each restart and each Refresh state; only the sidebar's notification is raised again. How long a fault has lasted now survives a restart.
+- **Sensor Watch: Ignore is no longer good news.** It said "Back to nominal". Now the sidebar's notification goes and nothing is said to be back. The same goes for an integration you disable or delete.
 - **Sensor Watch: a sensor back with a fault says so.** When it went from unavailable to a bad reading at the same level, it went on saying "unavailable".
-- **Sensor Watch: a failed integration is named by the integration**, with its entry's title after, as a cloud's entry is often just "Home Assistant Cloud". Its message's wording changed with it, for an automation that matches the text.
+- **Auto Dashboards: a live page for each camera, and nothing else.** The commander pages were being mistaken for the way to show a commander. A commander's **Dashboard page** switch has gone with them.
+- **New guide: A camera commander on your home page** (`docs/how-to/commander-on-your-home-page.md`), from installing Casa Mia to a commander on a Tablet Layout view.
+- **Love it or Loathe it: a station is chosen from the players' favourites, and keeps its name and picture.** **+ Add a station** lists the favourites of the entry's players, and a station chosen there is played as the favourite, so the speaker shows its name and logo after a switch. A station that is no favourite can still be given by its address. Stations you already have are kept as they are: to get the logo, remove one and add it again from the list.
+- **Love it or Loathe it skips a loathed song in a queue**, where its group would mute it or switch station. After five skips in a row the next song gets its group's own action.
+- **Love it or Loathe it's Last match sensor has a `players` attribute**: for each player, what was last done, why, when, and whether it is still in force. The event's `action` is `skip` for a song that was skipped.
+- **Fixed: Love it or Loathe it turned the volume down further for each loathed song or advert straight after another**, and never put it back. The change now starts from the volume that was just put back.
+- **Fixed: Love it or Loathe it took a player that reports no address for what it plays to be on the first station in the list.**
+- **Dash-Bored: sighting photographs need a login.** Before, anyone with a sighting's id could fetch its photograph. A page is sent an address signed for its own login, so the photographs show as before.
+- **Dash-Bored: a UniFi Protect camera's sighting keeps the still taken at the moment of the detection**, no longer replaced by Protect's own thumbnail, which came through Protect's internal client.
 - **Dash-Bored: an alert Sensor Watch withdraws leaves the pages** without a "back to normal" story.
+- **Fixed: Tablet Layout: a gap line's `color` in a dashboard's YAML could run script** for everyone who opened that dashboard. Any CSS colour still works, but can't become markup. An edge's `size` in the edit mode's labels is always a number too.
+- **Fixed: in Safari, a menu in a dialog opened again as soon as something was chosen from it**, on every page of the app and on Sensor Watch's page.
 
 ## 2026.11.11
 

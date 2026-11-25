@@ -3933,6 +3933,6 @@ var $n = class extends X {
 l("casa-mia-over-layer", qn), l("casa-mia-over-layer-editor", $n), u("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched.");
 //#endregion
 //#region src/alone.ts
-var er = "cm-plugin-version@2026.11.12-b23", tr = er.slice(er.indexOf("@") + 1);
+var er = "cm-plugin-version@2026.11.12", tr = er.slice(er.indexOf("@") + 1);
 console.info(`%cCASA-MIA TABLET LAYOUT%c ${tr}`, "color: green; font-weight: bold;", ""), t(`casa-mia-tablet-layout.js ${tr}`);
 //#endregion
