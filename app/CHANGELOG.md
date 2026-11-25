@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.13-b2
+
+- Jukebox: a radio station's song now gets its cover from Spotify. No cover was ever found, because the search Jukebox used gave each song without its album, and the album is what has the picture. Songs found on Spotify in the search box now have their pictures too, for the same reason.
+
 ## 2026.11.13-b1
 
 - Jukebox: signing in to Spotify no longer brings Home Assistant's warning that Jukebox "has an update listener and should use it for scheduling a reload", which Home Assistant 2026.12 would have turned into a failure. The sign-in is used from the next time it is needed, with no reload.

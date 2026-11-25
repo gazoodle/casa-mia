@@ -15,8 +15,10 @@ reason there are none.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 
 from homeassistant.const import ATTR_ENTITY_ID
@@ -136,13 +138,20 @@ async def _seek(hass: HomeAssistant, query: str, kinds: list[str]) -> tuple[Any,
     # The Spotify integration's own signed-in client. It is another integration's
     # inside, so its shape is checked and its absence said, not assumed.
     coordinator = getattr(getattr(entry, "runtime_data", None), "coordinator", None)
-    seek = getattr(getattr(coordinator, "client", None), "search", None)
-    if seek is None:
+    # Its request, not its `search`: that one drops each song's album, and the album
+    # is what has the cover (owner's box, 2026-11-25: every song came without one).
+    get = getattr(getattr(coordinator, "client", None), "_get", None)
+    if get is None:
         raise HomeAssistantError(
             "This version of Home Assistant's Spotify integration can't be searched"
         )
+    asked = {"q": query, "limit": SPOTIFY_EACH, "type": ",".join(kinds)}
     try:
-        return entry, await seek(query, kinds, limit=SPOTIFY_EACH)
+        # Spotify's own answer, read by name: `found.tracks.items[0].album.images`.
+        return entry, json.loads(
+            await get("v1/search", params=asked),
+            object_hook=lambda fields: SimpleNamespace(**fields),
+        )
     except Exception as err:
         # Whatever Spotify's library raises (no network, a refused token, a change in
         # what Spotify sends) is this source's reason, never the whole search's end.
@@ -155,6 +164,13 @@ def _images(thing: Any) -> list[Any]:
     """A thing's pictures, biggest first. A song has none of its own: its album's."""
     album = getattr(thing, "album", None)
     return getattr(thing, "images", None) or getattr(album, "images", None) or []
+
+
+def _each(found: Any, kind: str) -> list[Any]:
+    """What Spotify found of one kind. It leaves a gap in a list for something it has
+    withdrawn, and leaves out a kind it wasn't asked for."""
+    things = getattr(getattr(found, kind, None), "items", None) or []
+    return [thing for thing in things if thing is not None]
 
 
 def _by(thing: Any) -> str:
@@ -205,8 +221,8 @@ class Covers:
             _, answer = await _seek(self.hass, " ".join(pair), ["track"])
             songs = [
                 (song.name, _by(song), images[0].url)
-                for song in answer.tracks or []
-                if song is not None and (images := _images(song))
+                for song in _each(answer, "tracks")
+                if (images := _images(song))
             ]
             found = cover.cover(pair, songs)
             _LOGGER.info(
@@ -253,16 +269,15 @@ async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
             "media_content_type": f"{SPOTIFY}://{kind}",
         }
 
-    # Spotify leaves a gap in a list for something it has withdrawn.
-    def each(things: Any) -> list[Any]:
-        return [thing for thing in things or [] if thing is not None]
-
     return [
-        *(one("Songs", "track", t, _by(t)) for t in each(found.tracks)),
-        *(one("Albums", "album", a, _by(a), expand=True) for a in each(found.albums)),
+        *(one("Songs", "track", t, _by(t)) for t in _each(found, "tracks")),
+        *(
+            one("Albums", "album", a, _by(a), expand=True)
+            for a in _each(found, "albums")
+        ),
         *(
             one("Playlists", "playlist", p, p.owner.display_name or "", expand=True)
-            for p in each(found.playlists)
+            for p in _each(found, "playlists")
         ),
-        *(one("Artists", "artist", a, expand=True) for a in each(found.artists)),
+        *(one("Artists", "artist", a, expand=True) for a in _each(found, "artists")),
     ]
