@@ -3,21 +3,48 @@
 // button for the player), so what it marks on the picture are signs and never the glyphs of
 // a transport: bars that move while music plays and stand still while it is paused, a
 // crossed speaker when it is muted, a warning when something is wrong. A tap anywhere on
-// it opens the big player (big.ts). With a room chosen it is always that room's; with none
-// it is one picture for each thing playing in the house.
+// it opens the big player (big.ts), unless the card is given a tap action of its own. With
+// a room chosen it is always that room's; with none it is one picture for each thing
+// playing in the house.
+//
+// The picture has one of three sizes whatever the width of its card, and sits in one of
+// nine places in it (owner, 2026-11-25), so that a card the width of a sidebar can hold a
+// small picture in its middle. Its editor is micro-editor.ts.
 import { type TemplateResult, css, html, nothing } from "lit";
-import { navigate } from "../ha.ts";
+import { type Anchor, placement } from "../anchors.ts";
+import { type Hass, fire, navigate } from "../ha.ts";
 import { open } from "./big.ts";
 import { type Group, type House, type Standing, groupOf, names, playing, position, standing } from "./common.ts";
 import { Following } from "./page.ts";
 import { Clock, art, icon, shared, sleeve } from "./parts.ts";
-import { SONOS } from "./pieces.ts";
 
 export const MICRO = "casa-mia-jukebox-micro";
-type Config = { type?: string; /** The room whose music is shown. */ entity?: string };
+export const MICRO_EDITOR = `${MICRO}-editor`;
+export type Size = "small" | "medium" | "large";
+export type Config = {
+  type?: string;
+  /** The room whose music is shown. */
+  entity?: string;
+  size?: Size;
+  /** Where the picture sits in its card. */
+  anchor?: Anchor;
+  /** What a tap does, as Home Assistant's own cards say it; none: the big player. */
+  tap_action?: { action: string; [key: string]: unknown };
+};
+/** Each option's default: shown in the editor, and never saved. */
+export const DEFAULTS = { size: "small" as Size, anchor: "center" as Anchor };
+/** How wide a picture of each size is, in px, and how many rows of a section that is: a
+ * row is 56 px and the gap between two is 8, so each size is a whole number of rows and
+ * lines up with the cards beside it. `columns` is what a new card takes of a section's 12. */
+export const SIZES: Record<Size, { px: number; rows: number; columns: number }> = {
+  small: { px: 120, rows: 2, columns: 3 },
+  medium: { px: 184, rows: 3, columns: 6 },
+  large: { px: 248, rows: 4, columns: 6 },
+};
 /** One picture: `asking` is before Home Assistant's first answer, which is no fault yet.
- * `part` is how far through its song it is, from 0 to 1. */
-type Tile = { picture: TemplateResult; state: Standing | "asking"; says: string; tap: () => void; part?: number };
+ * `part` is how far through its song it is, from 0 to 1. `room` is what a tap action of
+ * the card's own is about. */
+type Tile = { picture: TemplateResult; state: Standing | "asking"; says: string; tap: () => void; part?: number; room?: string };
 
 const BARS = html`<span class="mark eq"><i></i><i></i><i></i></span>`;
 const MARK: Partial<Record<Tile["state"], TemplateResult>> = {
@@ -38,29 +65,49 @@ export class MicroCard extends Following {
     new Clock(this); // the song's place moves on by itself
   }
 
-  static getStubConfig() {
-    return {};
+  /** A new card is for one room, so that it is one small picture from the start (owner,
+   * 2026-11-25: with every room it didn't look micro): a Sonos room that is playing, or
+   * the first there is. */
+  static getStubConfig(hass: Hass) {
+    const rooms = Object.keys(hass.states).filter((id) => id.startsWith("media_player.") && hass.entities?.[id]?.platform === "sonos");
+    const entity = rooms.find((id) => hass.states[id].state === "playing") ?? rooms[0];
+    return entity ? { entity } : {};
   }
 
-  /** Home Assistant draws the options from this: one field, a Sonos room. */
-  static getConfigForm() {
-    return { schema: [{ name: "entity", selector: SONOS }], computeLabel: () => "Room (leave empty for everything that is playing)" };
+  /** Its own editor, as a form drawn by Home Assistant has no grid of nine places. */
+  static getConfigElement() {
+    return document.createElement(MICRO_EDITOR);
   }
 
   setConfig(config: Config) {
     this._config = { ...config };
-    // One room's picture takes the card's width; several are laid out across it.
-    this.toggleAttribute("all", !config.entity);
+    const at = placement(config.anchor ?? DEFAULTS.anchor);
+    this.style.setProperty("--jb-size", `${this._size.px}px`);
+    this.style.setProperty("--jb-justify", at.justify);
+    this.style.setProperty("--jb-align", at.align);
+  }
+
+  /** The size chosen; a size that isn't one (a typo in YAML) is small. */
+  private get _size() {
+    return SIZES[this._config?.size ?? DEFAULTS.size] ?? SIZES.small;
   }
 
   getCardSize() {
-    return 2;
+    return Math.ceil(this._size.px / 50);
   }
 
-  /** A quarter of a section by default, and as narrow as one column. Its height is its
-   * width's: the picture is square. */
+  /** One room's card is as tall as its picture, and no shorter. A card for everything
+   * playing is as tall as its pictures need, however many rows of them there are. */
   getGridOptions() {
-    return { columns: 3, min_columns: 1 };
+    const { rows, columns } = this._size;
+    return this._config?.entity ? { columns, rows, min_columns: 2, min_rows: rows } : { columns: 12, min_columns: 2 };
+  }
+
+  /** What a tap does: the card's own tap action where it has one, which Home Assistant
+   * carries out; otherwise `usual`. */
+  private _tap(room: string | undefined, usual: () => void) {
+    const action = this._config?.tap_action;
+    return action ? () => fire(this, "hass-action", { config: { entity: room, tap_action: action }, action: "tap" }) : usual;
   }
 
   /** Jukebox's page, for a picture that stands for no one room. */
@@ -71,7 +118,7 @@ export class MicroCard extends Following {
     const hass = this._hass!;
     const name = room ? (hass.states[room]?.attributes.friendly_name ?? room) : "Jukebox";
     const asking = this._connected && !this._why;
-    return { picture: art(hass, null, name), state: asking ? "asking" : "trouble", says: `${name}: ${this._trouble}`, tap: room ? () => open(hass, room) : this._page };
+    return { picture: art(hass, null, name), state: asking ? "asking" : "trouble", says: `${name}: ${this._trouble}`, tap: room ? () => open(hass, room) : this._page, room };
   }
 
   private _group(house: House, group: Group, room: string | undefined): Tile {
@@ -94,6 +141,7 @@ export class MicroCard extends Following {
       // The room, where one was chosen: the big player follows it if its group changes.
       tap: () => open(hass, room ?? group.id, state === "quiet" ? "favourites" : undefined),
       part: at !== null && group.duration ? at / group.duration : undefined,
+      room: room ?? group.id,
     };
   }
 
@@ -103,7 +151,7 @@ export class MicroCard extends Following {
       const group = groupOf(house, room);
       if (group) return [this._group(house, group, room)];
       const name = house.rooms[room]?.name ?? room;
-      return [{ picture: art(hass, null, name), state: "trouble", says: `${name} isn't answering`, tap: () => open(hass, room) }];
+      return [{ picture: art(hass, null, name), state: "trouble", says: `${name} isn't answering`, tap: () => open(hass, room), room }];
     }
 
     const groups = house.groups.filter((g) => !g.quiet);
@@ -118,9 +166,9 @@ export class MicroCard extends Following {
     if (!hass || !config) return nothing;
     const tiles = house ? this._tiles(house, config.entity) : [this._unknown(config.entity)];
 
-    return tiles.map(({ picture, state, says, tap, part }) => {
+    return tiles.map(({ picture, state, says, tap, part, room }) => {
       const still = state !== "playing" && state !== "muted";
-      return html`<button class="tile ${state} ${still ? "still" : ""}" title=${says} aria-label=${says} @click=${tap}>
+      return html`<button class="tile ${state} ${still ? "still" : ""}" title=${says} aria-label=${says} @click=${this._tap(room, tap)}>
         ${picture} ${MARK[state] ?? nothing}
         ${part === undefined ? nothing : html`<i class="prog" style="width:${100 * part}%"></i>`}
       </button>`;
@@ -130,11 +178,13 @@ export class MicroCard extends Following {
   static styles = [
     shared,
     css`
-      :host { display: grid; gap: 8px; }
-      :host([all]) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 64px), 1fr)); }
+      /* The pictures in a row that wraps, placed in the card as the nine places say: across
+         by justify, and down (in a card taller than they are) by align. */
+      :host { display: flex; flex-wrap: wrap; gap: 8px; height: 100%; justify-content: var(--jb-justify, center); align-content: var(--jb-align, center); }
       /* No border, no raised edge and no hover: it is a picture that can be tapped, not a
-         button of the player. The marks are measured from its width. */
-      .tile { position: relative; display: block; width: 100%; overflow: hidden; border-radius: 12px; container-type: inline-size; }
+         button of the player. Its size is the one chosen, less in a card too narrow for
+         it. The marks are measured from its width. */
+      .tile { position: relative; display: block; flex: none; width: min(var(--jb-size, 120px), 100%); overflow: hidden; border-radius: 12px; container-type: inline-size; }
       .tile:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
       .art { transition: filter 0.3s; }
       /* Not playing, or not known to be: the picture loses its colour. Muted music is

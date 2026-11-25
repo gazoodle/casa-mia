@@ -7,6 +7,11 @@ always: seen 2026-11-15, and again by the owner 2026-11-24). So both orders are 
 against what Spotify found, and a cover is only taken when the title and the artist
 both agree: a wrong cover is worse than the station's logo alone.
 
+A station joins the artists of a song into one name, "The Marigolds and Velvet Arcade"
+or "The Marigolds feat. Velvet Arcade" (hip-hop above all), where Spotify lists each by
+itself. So the artists agree when one side names nobody the other doesn't, the joining
+words aside (owner, 2026-11-25: a song by two artists joined by "and" had no cover).
+
 Spotify has a song on many records, and lists a collection of the decade's hits as
 readily as the song's own. Of those that agree, the cover taken is the artist's own
 record before anyone else's, the song as the station named it before a live or
@@ -23,6 +28,8 @@ from typing import NamedTuple
 # follows " - " or "feat." ("- 2009 Remaster", "feat. Someone").
 _ASIDE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\s-\s.*$|\b(?:feat|ft|featuring)\b\.?.*$")
 _WORDS = re.compile(r"[^\w]+")
+# The words that only join two artists' names.
+_JOINS = frozenset({"and", "x", "with", "vs", "feat", "ft", "featuring"})
 
 
 class Song(NamedTuple):
@@ -59,20 +66,34 @@ def _within(one: str, other: str) -> bool:
     return bool(one and other) and (one in other or other in one)
 
 
+def _people(text: str) -> frozenset[str]:
+    """The words of the artists named, without those that only join two names; all
+    of them where nothing else is left (a band called X)."""
+    words = frozenset(_words(text).split())
+    return words - _JOINS or words
+
+
+def _is_by(named: str, artists: str) -> bool:
+    """Whether the artists a station named are the ones Spotify lists. A station
+    often names only the first of a song's artists, and Spotify sometimes leaves out
+    one a station names, so either may name fewer; neither may name somebody else."""
+    ours, theirs = _people(named), _people(artists)
+    same = bool(ours and theirs) and (ours <= theirs or theirs <= ours)
+    return same or _within(plain(named), plain(artists))
+
+
 def cover(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> str | None:
     """The picture of the best of Spotify's `songs` (each a Song, or its fields) that
     is the station's song, its two names taken either way round. Among equals,
     Spotify's own order decides."""
-    one, other = plain(pair[0]), plain(pair[1])
     said = {_words(pair[0]), _words(pair[1])}
     ranked = []
     for song in (Song(*fields) for fields in songs):
-        title, artists = plain(song.title), plain(song.artists)
-        for by, called in ((one, other), (other, one)):
-            # Spotify lists every artist of a song; a station names the first.
-            if called == title and _within(by, artists):
+        title = plain(song.title)
+        for by, called in (pair, pair[::-1]):
+            if plain(called) == title and _is_by(by, song.artists):
                 rank = (
-                    not _within(by, plain(song.record_by)),
+                    not _is_by(by, song.record_by),
                     _words(song.title) not in said,
                     song.kind != "single",
                     song.date or "9999",

@@ -233,7 +233,9 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
 - **The page's pieces are cards** (owner, 2026-11-24, in place of customising Jukebox's
   own page): `card.ts` (players), `micro.ts` (a room's picture alone, for a sidebar: it shows state
   and has no controls, so no transport glyphs go on it; `common.standing` decides its
-  mark), `pieces.ts` (quiet rooms, shortcut, now playing) and `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
+  mark; three sizes that are whole rows of a section, one of nine places in its card by
+  the shared `../anchor-grid.ts`, and HA's `tap_action`; its editor is `micro-editor.ts`,
+  as a form HA draws can't hold the grid), `pieces.ts` (quiet rooms, shortcut, now playing) and `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
   a container query, so it follows its own width and not the screen's. The Shortcut
   card and automations use the `casa_mia_jukebox.play` action (`feed.play`), which goes
   through `do`. Making each piece adapt to the size it is given is still to do.

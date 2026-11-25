@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.13-b9
+
+- Jukebox: the micro player's picture has three sizes, small (120 px), medium (184 px) and large (248 px), and keeps its size whatever the width of its card. Each is a whole number of rows of a section. Until now the picture was as wide as its card.
+- Jukebox: the micro player's picture sits in one of nine places in its card, chosen from a grid in the card's editor as the Over layer's is. A card as wide as a sidebar can hold a small picture in its middle.
+- Jukebox: the micro player has a tap action, Home Assistant's usual one. Left at its default a tap opens the big player; choose Navigate and `/jukebox` for Jukebox's page.
+- Jukebox: a new micro player card starts with a room, one that is playing if there is one, so its preview is one small picture and not every room.
+- Jukebox: the cover of a station's song is found when the station joins two artists into one name, as in "The Marigolds and Velvet Arcade", or with "feat.", "ft", "featuring", "x" or "with". Spotify lists each artist by itself, so such a song had no cover. A band with "and" in its own name is found too, where Spotify writes it with a plus.
+
 ## 2026.11.13-b8
 
 - Over layer: nothing you can see has changed. The grid of nine places in its editor is now a part other cards can use, ready for Jukebox's micro player.

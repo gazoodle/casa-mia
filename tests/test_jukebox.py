@@ -143,9 +143,11 @@ def test_every_jukebox_card_can_be_edited_without_yaml():
     only YAML (owner, 2026-11-24: the Quiet rooms card had none)."""
     cards = Path(__file__).parent.parent / "integration/cards/src/jukebox"
     registered = (cards / "index.ts").read_text().count("\nregister(")
+    # Either a form Home Assistant draws, or an editor of the card's own.
     forms = sum(
-        (cards / name).read_text().count("static getConfigForm()")
+        (cards / name).read_text().count(f"static {how}()")
         for name in ("card.ts", "micro.ts", "pieces.ts")
+        for how in ("getConfigForm", "getConfigElement")
     )
     assert registered == forms == 5
 
@@ -192,6 +194,40 @@ def test_a_stations_song_is_found_on_spotify_whichever_way_round_it_is_named():
     # One name only (a show's, an advert's) is never looked for.
     assert cover.names("", "The Breakfast Show") is None
     assert cover.names("Harbour FM", "  ") is None
+
+
+def test_a_song_by_two_artists_is_found_however_the_station_joins_their_names():
+    both = [("Paper Lanterns", "The Marigolds, VELVET ARCADE", "/both.jpg")]
+    for artists in (
+        "The Marigolds and Velvet Arcade",
+        "The Marigolds & Velvet Arcade",
+        "The Marigolds feat. Velvet Arcade",
+        "The Marigolds ft Velvet Arcade",
+        "The Marigolds featuring Velvet Arcade",
+        "The Marigolds x Velvet Arcade",
+        "The Marigolds with Velvet Arcade",
+        "Velvet Arcade and The Marigolds",  # the other way round
+        "The Marigolds",  # the first only
+    ):
+        assert cover.cover((artists, "Paper Lanterns"), both) == "/both.jpg", artists
+    # The station names a guest that Spotify doesn't list.
+    alone = [("Paper Lanterns", "The Marigolds", "/alone.jpg")]
+    pair = ("The Marigolds feat. Velvet Arcade", "Paper Lanterns")
+    assert cover.cover(pair, alone) == "/alone.jpg"
+    # A band whose own name has "and" in it, which Spotify writes with a plus.
+    tides = [("Low Tide Motel", "Juniper + The Tides", "/tides.jpg")]
+    assert (
+        cover.cover(("Juniper and the Tides", "Low Tide Motel"), tides) == "/tides.jpg"
+    )
+    # A band named by a joining word alone is still a name.
+    assert (
+        cover.cover(("X", "Low Tide Motel"), [("Low Tide Motel", "X", "/x.jpg")])
+        == "/x.jpg"
+    )
+    # Somebody else joined to the right artist is not the same people.
+    assert (
+        cover.cover(("The Marigolds and Somebody Else", "Paper Lanterns"), both) is None
+    )
 
 
 def test_of_the_records_a_song_is_on_the_artists_own_single_gives_the_cover():
