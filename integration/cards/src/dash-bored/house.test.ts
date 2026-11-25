@@ -117,13 +117,13 @@ test("a sighting from the feed is named for its camera and put in the camera's r
 
   const seen = (id: string, entity: string, more = {}) => ({ id, entity, camera: entity.replace("image", "camera"), kind: "person", at: 1000, changed: 1000, photo: true, ...more });
   const told = sighted(survey(h, {}), [
-    seen("one", "image.shed", { changed: 1007 }), // its photograph was replaced seven seconds on
+    seen("one", "image.shed", { changed: 1007, photo_url: "/api/casa_mia_dash_bored/photo/one?v=1007&authSig=x" }), // signed by the feed
     seen("two", "image.attic"),
     seen("three", "image.den", { photo: false, at: 1060 }), // the camera did not answer
     seen("four", "image.gone"), // a camera no longer in the house
   ]);
   assert.deepEqual(told, [
-    { id: "one", name: "Shed camera", room: "Shed", camera: "camera.shed", kind: "person", at: 1_000_000, photo: "/api/casa_mia_dash_bored/photo/one?v=1007" },
+    { id: "one", name: "Shed camera", room: "Shed", camera: "camera.shed", kind: "person", at: 1_000_000, photo: "/api/casa_mia_dash_bored/photo/one?v=1007&authSig=x" },
     { id: "three", name: "Den", room: undefined, camera: "camera.den", kind: "person", at: 1_060_000, photo: undefined },
   ]);
 });

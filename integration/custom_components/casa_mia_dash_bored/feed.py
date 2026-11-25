@@ -20,14 +20,18 @@ def follow(
     msg: dict[str, Any],
     feeds: list[Send],
     held: Iterable[dict[str, Any]],
+    shape: Callable[[dict[str, Any]], dict[str, Any]] = lambda item: item,
 ) -> None:
-    """Subscribe the connection: `held` now, then whatever is given to each of `feeds`."""
+    """Subscribe the connection: `held` now, then whatever is given to each of `feeds`,
+    each item as `shape` makes it for this connection."""
 
     @callback
     def send(item: dict[str, Any]) -> None:
-        connection.send_message(websocket_api.event_message(msg["id"], [item]))
+        connection.send_message(websocket_api.event_message(msg["id"], [shape(item)]))
 
     feeds.append(send)
     connection.subscriptions[msg["id"]] = lambda: feeds.remove(send)
     connection.send_result(msg["id"])
-    connection.send_message(websocket_api.event_message(msg["id"], list(held)))
+    connection.send_message(
+        websocket_api.event_message(msg["id"], [shape(item) for item in held])
+    )

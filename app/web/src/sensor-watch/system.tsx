@@ -3,7 +3,8 @@
  * each failing integration. */
 
 import { AreaHead, Empty } from "../page";
-import { Switch } from "../ui";
+import { Switch, type Toast } from "../ui";
+import { SnoozeControl, snoozedUntil } from "./snooze";
 import { LEVEL_NAMES, swApi, type LevelsView, type SystemSettings, type WatchView } from "./common";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
@@ -15,10 +16,13 @@ export function SystemSection({
   system,
   live,
   change,
+  say,
 }: {
   system: SystemSettings;
   live?: LevelsView;
   change: (action: () => Promise<WatchView>, done: string) => Promise<boolean>;
+  /** Say what a snooze did, or why it was refused. */
+  say: (text: string, tone?: Toast["tone"]) => void;
 }) {
   // Ignored or switched off here: gone at once, before the integration has caught up.
   const shown = (key: string) =>
@@ -27,6 +31,10 @@ export function SystemSection({
     .filter((l) => OWN.test(l.entity_id) && shown(l.entity_id))
     .sort((a, b) => a.entity_id.localeCompare(b.entity_id));
   const ignored = Object.entries(system.ignore);
+  const under = (key: string) =>
+    Object.values(live?.levels ?? {})
+      .filter((l) => l.under === key)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   const set = (key: "core" | "integrations", on: boolean, what: string) =>
     change(() => swApi.put<WatchView>("system", { [key]: on }), `${what} ${on ? "watched" : "no longer watched"}`);
 
@@ -48,26 +56,43 @@ export function SystemSection({
           <Switch on={system.integrations} label="Watch integrations that fail to set up" onChange={(on) => set("integrations", on, "Failing integrations")} />
           <span>
             <strong>Integrations that fail to set up</strong>
-            <span className={css.note}>An error after five minutes failing (an error, retrying, not loaded). Ignored discoveries and disabled ones never count.</span>
+            <span className={css.note}>An error after five minutes failing (an error, retrying, not loaded), until it loads. Its unavailable watched sensors count as part of it, except any at critical. Ignored discoveries and disabled ones never count.</span>
           </span>
         </label>
       </div>
       {rows.length === 0 ? (
-        <Empty>Nothing to show yet: the integration checks once Home Assistant has started, then each minute.</Empty>
+        <Empty>Nothing to show yet: Sensor Watch checks once Home Assistant has started, then at each change.</Empty>
       ) : (
         <div className={css.table}>
           {rows.map((r) => {
             const entryId = r.entity_id.startsWith("integration.") ? r.entity_id.slice("integration.".length) : null;
+            const sensors = under(r.entity_id);
             return (
-              <div key={r.entity_id} className={css.row}>
+              <div key={r.entity_id} className={`${css.row} ${r.snoozed ? css.snoozed : ""}`}>
                 <span className={`${css.level} ${css[`lv_${r.level}`]}`}>{LEVEL_NAMES[r.level]}</span>
                 <span className={css.what}>
                   <strong>{r.name}</strong>
                   <span className={css.note}>
+                    {r.snoozed && `${snoozedUntil(r)}, so not counted · `}
                     {r.message ?? r.value} · since {new Date(r.since).toLocaleString()}
                   </span>
+                  {sensors.length > 0 && (
+                    <details className={css.note}>
+                      <summary>
+                        {sensors.length === 1 ? "The sensor" : `The ${sensors.length} sensors`} rolled up into it. If you ignore it, each is counted by itself again.
+                      </summary>
+                      <ul>
+                        {sensors.map((s) => (
+                          <li key={s.entity_id}>
+                            {s.name}: {LEVEL_NAMES[s.level]}, {s.message ?? s.value}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </span>
                 <span className={css.rowActions}>
+                  <SnoozeControl row={r} say={say} />
                   {entryId && (
                     <button
                       className={`${ui.button} ${ui.small}`}

@@ -2,8 +2,8 @@
 levels on its page (panel.py, in the sidebar), their records kept in Home Assistant's
 storage (records/, admin.py), watched here (watch.py) and told to Home Assistant: a
 status, a count per level and a problem sensor on its device, an event on each change,
-the `casa_mia_sensor_watch.list` service, device triggers and its dashboard card
-(www/cards.js).
+the `casa_mia_sensor_watch.list` service, snooze and unsnooze (snooze.py), device
+triggers and its dashboard card (www/cards.js).
 
 It needs nothing of Casa Mia's and imports nothing from it. To 2026.11.3-b1 it was part
 of the Casa Mia integration: migrate.py takes its device and entities over from there,
@@ -38,10 +38,21 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_send,
 )
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 
 from . import admin, blueprint, panel
-from .const import DOMAIN, INSTALLED_EVENT, LIST, REFRESH, SWAP, SWAP_ASK
-from .levels import LEVELS, listing, summary
+from .const import (
+    DOMAIN,
+    INSTALLED_EVENT,
+    LIST,
+    REFRESH,
+    SNOOZE,
+    SWAP,
+    SWAP_ASK,
+    UNSNOOZE,
+)
+from .kept import Kept, forget_all
+from .levels import LEVELS, in_group, listing, summary
 from .migrate import take_over
 from .restart_notice import async_check_restart, manifest_version
 from .swap import same, shown
@@ -63,6 +74,19 @@ DAYS_EVERY = timedelta(minutes=10)
 LIST_SCHEMA = vol.Schema(
     {vol.Optional("levels"): [vol.In(LEVELS)], vol.Optional("group"): str}
 )
+# `entity_id`: a row's, as the event and the list give it. Text, not an entity id: a
+# failed integration's is "integration." and its entry id, which has capitals.
+SNOOZE_SCHEMA = vol.All(
+    vol.Schema(
+        {
+            vol.Required("entity_id"): str,
+            vol.Exclusive("until", "when"): cv.datetime,
+            vol.Exclusive("duration", "when"): cv.positive_time_period,
+        }
+    ),
+    cv.has_at_least_one_key("until", "duration"),
+)
+UNSNOOZE_SCHEMA = vol.Schema({vol.Required("entity_id"): str})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -81,12 +105,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Before the platforms: its entities can change hands only while not loaded.
     take_over(hass, entry)
-    watcher = Watcher(hass)
+    kept = await Kept(hass).load()
+    entry.async_on_unload(kept.save)
+    watcher = Watcher(hass, kept)
     entry.runtime_data = watcher
     entry.async_on_unload(watcher.unload)
+    # Before the records: a failed integration is known before its sensors are judged.
+    entry.async_on_unload(start_checks(hass, watcher))
     entry.async_on_unload(await admin.start(hass, watcher))
     await panel.show(hass, LOADED_VERSION)
-    entry.async_on_unload(start_checks(hass, watcher))
     await follow_blueprint(hass, entry, watcher)
     entry.async_on_unload(async_track_time_interval(hass, watcher.tick, DAYS_EVERY))
 
@@ -104,12 +131,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         group = call.data.get("group")
         now = watcher.now
         if group:
-            now = {
-                e: n
-                for e, n in now.items()
-                if (watcher.records.get(e) or {}).get("group") == group
-            }
-        rows = [shown(watcher.swap, r) for r in listing(now, call.data.get("levels"))]
+            now = in_group(watcher.records, now, group)
+        # Those snoozed are answered apart: `sensors` is what counts.
+        rows: list[dict[str, Any]] = []
+        snoozed: list[dict[str, Any]] = []
+        for row in listing(now, call.data.get("levels")):
+            if sensors := row.get("sensors"):
+                row["sensors"] = [shown(watcher.swap, s) for s in sensors]
+            (snoozed if row.get("snoozed") else rows).append(shown(watcher.swap, row))
         _LOGGER.debug(
             "list (%s%s): %d sensors",
             ",".join(call.data.get("levels") or []) or "not nominal",
@@ -121,7 +150,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         groups = sorted(
             {r["group"] for r in watcher.records.values() if r.get("group")}
         )
-        return {"worst": worst, "sensors": rows, "groups": groups}
+        return {
+            "worst": worst,
+            "sensors": rows,
+            "snoozed": snoozed,
+            "groups": groups,
+        }
 
     hass.services.async_register(
         DOMAIN,
@@ -137,6 +171,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.services.async_register(DOMAIN, REFRESH, refresh)
     entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, REFRESH))
+
+    async def snooze(call: ServiceCall) -> None:
+        until = call.data.get("until") or dt_util.utcnow() + call.data["duration"]
+        # Who asked, for the row to say: a person, or nobody (an automation).
+        asked = call.context.user_id
+        user = await hass.auth.async_get_user(asked) if asked else None
+        watcher.snooze.snooze(
+            call.data["entity_id"], dt_util.as_utc(until), user.name if user else None
+        )
+
+    async def unsnooze(call: ServiceCall) -> None:
+        watcher.snooze.unsnooze(call.data["entity_id"])
+
+    hass.services.async_register(DOMAIN, SNOOZE, snooze, schema=SNOOZE_SCHEMA)
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SNOOZE))
+    hass.services.async_register(DOMAIN, UNSNOOZE, unsnooze, schema=UNSNOOZE_SCHEMA)
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, UNSNOOZE))
 
     # The card, into every Home Assistant page (www/ is served by the panel). ?v=
     # changes with each update, so browsers fetch the new copy.
@@ -167,8 +218,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Deleted: its page leaves the sidebar. The records stay in Home Assistant's
-    storage, for the day it is added again."""
+    storage, for the day it is added again; how long faults have lasted does not."""
     panel.hide(hass)
+    await forget_all(hass)
     _LOGGER.info("Sensor Watch removed; its records are kept")
 
 

@@ -125,6 +125,8 @@
   display: grid;
   gap: 2px;
   min-width: 0;
+  /* An integration's error can be one long address: it wraps, never off a phone's edge. */
+  overflow-wrap: anywhere;
 }
 
 .what code,
@@ -277,6 +279,17 @@
 
 .enable {
   --tone: var(--accent);
+}
+
+/* Snoozed: out of the counts and dimmed, but for its way back. */
+.snoozed > :not(.rowActions) {
+  opacity: 0.55;
+}
+
+/* The date and time a snooze is to end, beside its buttons. */
+.snoozeWhen {
+  padding: 4px 8px;
+  font-size: 13px;
 }
 
 .compact {
@@ -687,7 +700,7 @@
 /* Not the page's full-width input (styles.css): a tick of its own size. */
 @media (max-width: 640px) {
   .row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .rowActions {

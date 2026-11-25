@@ -51,7 +51,7 @@ export const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: 
 };
 
 /** The commanders: a list to pick one from, then its preview (held in view) and its
- * settings under it. Each can be moved up and down (the dashboard's pages follow),
+ * settings under it. Each can be moved up and down,
  * deleted while another is left; a new one is a copy of the one picked, or blank. */
 export function Commanders({
   store,
@@ -111,7 +111,6 @@ export function Commanders({
               <strong>{c.name.trim() || "(no name)"}</strong>
               <span className={css.muted}>
                 {plural(camerasOf(c).length, "camera")}
-                {c.page === false && " · no dashboard page"}
               </span>
             </button>
             <span className={css.actions}>
@@ -243,20 +242,8 @@ export function CommanderEditor({
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Picture</h4>
           <div className={css.wide}>
-            <Field label="Name" help="Its page's title on the dashboard; the page's address is made from it.">
+            <Field label="Name" help="Its name in the card's options and on its device in Home Assistant; its picture's address is made from it.">
               <input value={value.name} onChange={(e) => set((c) => (c.name = e.target.value))} />
-            </Field>
-          </div>
-          <div className={css.wide}>
-            <Field
-              label="Dashboard page"
-              help="Off: no page of its own on the dashboard. It is still drawn and keeps its device in Home Assistant, for showing elsewhere (a card to come); its cameras keep their live pages."
-            >
-              <Switch
-                on={value.page !== false}
-                label="Dashboard page"
-                onChange={(on) => set((c) => (c.page = on))}
-              />
             </Field>
           </div>
           <div className={css.wide}>

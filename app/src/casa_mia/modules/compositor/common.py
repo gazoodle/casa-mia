@@ -93,13 +93,10 @@ LAYOUT = json.loads((Path(__file__).parents[2] / "layout.json").read_text())
 # How the cameras' names are drawn: the options (`labels`) and the fonts' files (`fonts`).
 LABELS = json.loads((Path(__file__).parents[2] / "labels.json").read_text())
 EMPTY_COMMANDER = {
-    "name": "Cameras",  # its page's title; as a slug, its page's path and picture's
+    "name": "Cameras",  # as a slug, its picture's address
     # Never changes: its device in the integration (Main camera, Track motion). "": the
     # first commander there was, on the integration's Camera Commander device itself.
     "id": "",
-    # A page of its own on the dashboard; off: only drawn (and its device kept), for a
-    # place other than the dashboard, such as a card to come.
-    "page": True,
     "width": 1920,
     "height": 1080,
     "main": "",  # the main camera at start; blank: the first of the panels

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jukebox: the player card, a mock-up</title>
+<!-- A design mock-up to agree the look and the flow of Jukebox's player card before it is built
+     (BACKLOG, "Jukebox", the owner's brief of 2026-11-23). Nothing here talks to a speaker or to
+     Home Assistant: the music, the rooms and the guests are all invented, and the script only
+     pretends. It is not the card's code and none of it is meant to be reused. -->
+<link rel="stylesheet" href="jukebox-mockup/mock.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Jukebox: the player card</h1>
+    <p>A mock-up with invented music and rooms. Everything can be tapped; nothing is real.</p>
+  </div>
+  <div class="switch" id="devices">
+    <button data-do="device" data-v="phone">Phone</button>
+    <button data-do="device" data-v="tablet">Wall tablet</button>
+  </div>
+</header>
+<main class="stage">
+  <div class="device phone" id="device">
+    <div id="screen"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+  <aside id="outside"></aside>
+</main>
+<script src="jukebox-mockup/mock.js"></script>
+</body>
+</html>

@@ -8,7 +8,7 @@ import { counts, cardPath, fills, onlyGarnish, setGarnish } from "./garnish.ts";
 import { writeFileSync } from "node:fs";
 import test from "node:test";
 import saved from "../../../tests/tablet_cases.json" with { type: "json" };
-import { SQUEEZE, cardColumns, cardsWidth, depthOf, draftsOf, fillers, type Gap, gapLines, layerOf, panelName, type Placement, placeOf, placePanels, PLACES, restack, type Section, seenOut, sides, stackOf, withLayer } from "./tablet.ts";
+import { SQUEEZE, cardColumns, cardsWidth, depthOf, draftsOf, edgeSize, fillers, type Gap, gapLines, lineAttrs, layerOf, panelName, type Placement, placeOf, placePanels, PLACES, restack, type Section, seenOut, sides, stackOf, withLayer } from "./tablet.ts";
 
 type Case = { name: string; config: Record<string, any>; area: [number, number]; editing: boolean; fit?: boolean; sections: (Section | null)[] };
 
@@ -253,6 +253,24 @@ test("a line in a gap: along its middle, knocked across, run past or short of it
     { id: "after.3", x1: 207, y1: -5, x2: 207, y2: 290, color: "rgb(255, 0, 0)", width: 3, style: "dashed" },
   ]);
   assert.deepEqual(gapLines([across], () => undefined), []); // no line: none drawn
+});
+
+test("a line's colour and an edge's size from the config never become markup", () => {
+  const across: Gap = { id: "1.top", edge: { layer: 1, place: "top" }, size: 8, across: true, column: [1, 2], row: [2, 3], rect: [0, 100, 400, 8] };
+  const evil = `red"/><image href="x" onerror="steal()`;
+  // A CSS colour as typed, kept whole as one attribute's value (set with setAttribute).
+  const [line] = lineAttrs(gapLines([across], () => ({ color: evil })));
+  assert.equal(line.stroke, evil);
+  assert.deepEqual(Object.keys(line), ["x1", "y1", "x2", "y2", "stroke", "stroke-width"]);
+  // An [r, g, b]'s members are numbers, whatever was typed.
+  assert.equal(gapLines([across], () => ({ color: [1, evil as unknown as number, 3] }))[0].color, "rgb(1, NaN, 3)");
+  // Double: two thin lines, a third of its width each.
+  assert.deepEqual(lineAttrs(gapLines([across], () => ({ width: 6, style: "double" }))).map((a) => [a.y1, a["stroke-width"]]), [["102", "2"], ["106", "2"]]);
+  // The edge's label: auto, a number per cent, or nothing in px.
+  assert.equal(edgeSize({ size: "auto" }, "top"), "auto");
+  assert.equal(edgeSize({ size: 30 }, "left"), "30%");
+  assert.equal(edgeSize({ size: evil }, "left"), "0%");
+  assert.equal(edgeSize({ size: 200, unit: "px" }, "left"), "");
 });
 
 test("a gap is there only while what makes it shows", () => {

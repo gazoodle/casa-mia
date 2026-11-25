@@ -7,7 +7,7 @@ import { Dialog, Field, Segmented, Switch } from "../ui";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import css from "./love-or-loathe.module.css";
-import { ACTIONS, FEELINGS, USUAL, nameOf, type Act, type Action, type Entry, type Feeling, type Group, type Repeats, type Station, type View } from "./common";
+import { ACTIONS, FEELINGS, SOURCE, USUAL, type Act, type Action, type Entry, type Feeling, type Group, type Repeats, type Station, type View } from "./common";
 
 function Buttons({ onClose, onSave, ready }: { onClose: () => void; onSave: () => void; ready: boolean }) {
   return (
@@ -136,11 +136,13 @@ export function GroupDialog({
 
 export type StationBody = Omit<Station, "id">;
 
+/** The select's choice that is no favourite: the station is given by its address. */
+const ADDRESS = "\0address";
+
 export function StationDialog({
   station,
   from,
   entry,
-  view,
   onClose,
   onSave,
 }: {
@@ -148,19 +150,20 @@ export function StationDialog({
   /** A new one, started from what a player is playing. */
   from?: StationBody;
   entry: Entry;
-  view: View;
   onClose: () => void;
   onSave: (body: StationBody) => void;
 }) {
   const [name, setName] = useState(station?.name ?? from?.name ?? "");
   const [id, setId] = useState(station?.media_content_id ?? from?.media_content_id ?? "");
   const [type, setType] = useState(station?.media_content_type ?? from?.media_content_type ?? "music");
-  // The players that say what they are playing: tune one to the station, then take it.
-  const telling = entry.players.filter((p) => entry.playing[p]?.media_content_id);
-  const take = (player: string) => {
-    const playing = entry.playing[player];
-    setId(playing.media_content_id ?? "");
-    setType(playing.media_content_type || "music");
+  // By name, as one of the players' own sources (a speaker's favourites), which the
+  // speaker then plays with the station's name and picture; or by an address, typed.
+  const [byAddress, setByAddress] = useState((station ?? from) ? type !== SOURCE : !entry.sources.length);
+  const choose = (value: string) => {
+    setByAddress(value === ADDRESS);
+    setId(value === ADDRESS ? "" : value);
+    setType(value === ADDRESS ? "music" : SOURCE);
+    if (value !== ADDRESS && !name.trim()) setName(value);
   };
 
   return (
@@ -169,31 +172,35 @@ export function StationDialog({
       onClose={onClose}
       footer={<Buttons onClose={onClose} ready={!!name.trim() && !!id.trim() && !!type.trim()} onSave={() => onSave({ name: name.trim(), media_content_id: id.trim(), media_content_type: type.trim() })} />}
     >
+      {(entry.sources.length > 0 || !byAddress) && (
+        <Field label="Station" help="The favourites of this entry's players. A station chosen here is played as the favourite, so the speaker shows its name and picture.">
+          <Select value={byAddress ? ADDRESS : id} onChange={choose} placeholder="Choose a favourite…">
+            {entry.sources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+            {!byAddress && id && !entry.sources.includes(id) && <option value={id}>{`${id} (no player has it now)`}</option>}
+            <option value={ADDRESS}>Another station, by its address…</option>
+          </Select>
+        </Field>
+      )}
       <Field label="Name">
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
-      <Field
-        label="Take it from a player"
-        help={
-          telling.length
-            ? "Tune a player to the station, then choose the player here. To browse for a station instead, add it from the integration's page in Home Assistant."
-            : "None of these players says what it is playing just now. Start the station on one of them, or add it from the integration's page in Home Assistant, which can browse for it."
-        }
-      >
-        <Select value="" onChange={take} disabled={!telling.length} placeholder={telling.length ? "Choose a player…" : "Nothing is playing"}>
-          {telling.map((p) => (
-            <option key={p} value={p}>
-              {`${nameOf(view.players, p)}: ${entry.playing[p].title || entry.playing[p].media_content_id}`}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="What to play" help="The media content id the player is given, as it reports it when the station is on.">
-        <input value={id} spellCheck={false} onChange={(e) => setId(e.target.value)} />
-      </Field>
-      <Field label="Its type" help="The media content type that goes with it. For a radio station this is nearly always music.">
-        <input value={type} spellCheck={false} onChange={(e) => setType(e.target.value)} />
-      </Field>
+      {byAddress && (
+        <>
+          <Field
+            label="What to play"
+            help="The media content id the player is given, as it reports it when the station is on. A player that is on the station has Make it a station beside it under Playing now, which fills this in."
+          >
+            <input value={id} spellCheck={false} onChange={(e) => setId(e.target.value)} />
+          </Field>
+          <Field label="Its type" help="The media content type that goes with it. For a radio station this is nearly always music.">
+            <input value={type} spellCheck={false} onChange={(e) => setType(e.target.value)} />
+          </Field>
+        </>
+      )}
     </Dialog>
   );
 }

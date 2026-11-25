@@ -11,7 +11,7 @@ export const HEAD = {
   icon: <DashboardIcon />,
   title: "Auto Dashboards",
   module: "auto_dashboards",
-  blurb: "Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed.",
+  blurb: "Dashboards made for you: today the camera dashboard, a live page for each camera, previewed and deployed.",
 };
 
 export type Store = {

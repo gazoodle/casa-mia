@@ -22,7 +22,7 @@ import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
 import type { Device, House, Kind, Person, Room, Survey } from "./house.ts";
 import { CHOOSE } from "./shell.ts";
-import { NOMINAL, clock, flip, type Alert } from "./stories.ts";
+import { NOMINAL, clock, flip, heard, type Alert } from "./stories.ts";
 
 export const CARD = "dash-bored-digs";
 // The feed of what Casa Mia's People says of each person (household.py in the integration).
@@ -183,9 +183,7 @@ export class Digs extends Family {
     // The hearts are the whole house's health: a room's card has none.
     if (!this._alone)
       this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-        for (const a of alerts) held.set(a.entity_id, a);
-        this._alerts = [...held.values()];
+        this._alerts = heard(this._alerts, alerts);
       });
     // The household's ages, for each figure's size: the whole household in each item.
     if (!this._alone)

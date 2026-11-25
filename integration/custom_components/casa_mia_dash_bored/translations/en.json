@@ -18,12 +18,14 @@
         "data": {
           "floor_order": "Floors, in the order to show them",
           "room_order": "Rooms to put first on their floor",
-          "column": "Write the agent's column"
+          "column": "Write the agent's column",
+          "reload_when_idle": "Reload pages by themselves after an update"
         },
         "data_description": {
           "floor_order": "Any floor not listed follows, from the lowest up. To move one, take it out and add it again.",
           "room_order": "In this order. Any room not listed follows, by name.",
-          "column": "Where the house runs ZenOS-AI, the Gazette has a column written from its summaries, by the model ZenOS uses. That is a call to the model each time ZenOS writes a new summary of the house, about 100 a day. Switched off, the Gazette has no column."
+          "column": "Where the house runs ZenOS-AI, the Gazette has a column written from its summaries, by the model ZenOS uses. That is a call to the model each time ZenOS writes a new summary of the house, about 100 a day. Switched off, the Gazette has no column.",
+          "reload_when_idle": "For wall tablets, where nobody is there to press Reload. A Dash-Bored page that has been updated reloads itself once nobody has touched it for a minute. Switched off, it offers a Reload button and waits."
         }
       }
     }

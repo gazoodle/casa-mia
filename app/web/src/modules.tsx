@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
 import { HEAD as TOPOLOGY } from "./topology";
-import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, DoorbellIcon, FirmwareIcon, GuestIcon, HeartIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon, TalkbackIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, DoorbellIcon, FirmwareIcon, GuestIcon, HeartIcon, JukeboxIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon, TalkbackIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -113,9 +113,22 @@ export const MODULES: Record<string, ModuleInfo> = {
               ? order.filter((l) => counts[l]).map((l) => `${counts[l]} ${counts[l] === 1 ? l : (plural[l] ?? l)}`).join(" · ") || "all nominal"
               : undefined,
         ],
+        // Out of the counts above, never out of sight.
+        ["Snoozed", h.snoozed ? `${h.snoozed}, not counted` : undefined],
         ["Worst", (h.worst as string | null) ?? undefined],
       ];
     },
+  },
+  jukebox: {
+    title: "Jukebox",
+    option: "",
+    blurb: "The music on the Sonos speakers: what is playing in each room, the queue, favourites, playlists and search, with a party lock.",
+    icon: <JukeboxIcon />,
+    facts: (h) => [
+      ["Rooms", h.rooms === undefined ? undefined : String(h.rooms)],
+      ["Playing", (h.problem as string | undefined) ?? (h.playing ? `in ${h.playing === 1 ? "1 room" : `${h.playing} rooms`}` : "nothing")],
+      ["Now", h.now as string | undefined],
+    ],
   },
   love_or_loathe: {
     title: "Love it or Loathe it",
@@ -208,7 +221,7 @@ export const MODULES: Record<string, ModuleInfo> = {
   auto_dashboards: {
     title: "Auto Dashboards",
     option: "Auto Dashboards",
-    blurb: "Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed.",
+    blurb: "Dashboards made for you: today the camera dashboard, a live page for each camera, previewed and deployed.",
     icon: <DashboardIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],

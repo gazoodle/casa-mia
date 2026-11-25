@@ -181,9 +181,9 @@ export function AutoDashboardsPage({ state }: { state?: string }) {
       )}
 
       <p className={css.hint}>
-        The dashboard shows the cameras of the <a href="#/cameras">Cameras</a> page and the commanders of the{" "}
-        <a href="#/commander">Camera Commander</a> page: their changes come here at once, and reach the live dashboard
-        at its next Deploy live.
+        The dashboard has a live page for each camera in a commander, from the <a href="#/cameras">Cameras</a> and{" "}
+        <a href="#/commander">Camera Commander</a> pages: their changes come here at once, and reach the live dashboard
+        at its next Deploy live. A commander itself goes on a dashboard of yours as the Camera Commander card.
       </p>
 
       <section className={guest.area}>

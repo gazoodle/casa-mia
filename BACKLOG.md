@@ -2,7 +2,42 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done.
 
-## Jukebox (an idea, not started)
+## Stock (an idea, not started)
+
+The owner's idea, 2026-11-23: a spare wall tablet in a store room scans wine, beer, other
+drinks and food in and out, as a stock control system. The name is Stock (owner,
+2026-11-24). Only the name and the two rulings below are decided; the rest is the agent's
+proposal from that discussion, to be agreed before anything is built.
+
+- **Not Grocy** (owner, 2026-11-24). Why: the owner looked at its interface and rejected
+  it outright, as a spreadsheet-style screen with far too many features. Don't propose it
+  again, nor a front end to it.
+- **Where it lives is open.** The owner said it might be Home Assistant, part of Casa Mia,
+  or something else. The proposal is a Casa Mia module, because the tablet page, the
+  storage, the sensors and the events already exist here. Whether the screen is a Lovelace
+  card or a page of its own has not been looked at.
+- **Scanner or camera is open.** The proposal is a 2D presentation scanner on a stand,
+  acting as a keyboard, with the page listening for its keystrokes. A mounted tablet's
+  front camera is usually fixed-focus and reads a curved, shiny bottle badly; a page also
+  needs HTTPS to use it. Test the tablet's camera on a bottle before ruling it out as a
+  fallback. Still to find out: whether the tablet can power a USB scanner while it
+  charges, or needs a Bluetooth one.
+- **Proposed first version:**
+  - A known barcode takes one off the count and shows the name and the new count in
+    large type, with undo.
+  - An unknown barcode is looked up on Open Food Facts (only the barcode leaves the
+    house); if that finds nothing, the page asks for a name and category once.
+  - "Out" is the default. An "In" button switches mode and lapses by itself after a
+    minute (RULE FIVE), with a keypad for the quantity of a case.
+  - On-screen buttons for chosen things that have no barcode.
+  - One SQLite file: the products, and an append-only log of movements.
+  - A sensor for each category, and an event when a product falls to its minimum.
+- **Left out until missed:** best-before dates, storage locations, units, prices,
+  shopping lists and recipes.
+- **Known to be awkward:** a wine's barcode does not give its vintage, small producers
+  often have none, and Open Food Facts is patchy for wine.
+
+## Jukebox (in development)
 
 The owner's idea, 2026-11-20: one place for both of the owners to manage the house's music
 across Sonos, Spotify and the local library, in place of Music Assistant. The name is final
@@ -20,22 +55,282 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   tile, never a new "group player".
 - **Show who is in control:** each room shows what it is playing from (the Sonos queue,
   Spotify Connect from someone's phone, the TV, line-in), which Sonos reports.
+- **A standalone integration that Casa Mia delivers** (owner, 2026-11-23), as Love it or
+  Loathe it is: wholly in Home Assistant, nothing imported from `casa_mia`, bundled with
+  the app and installed by it at each start. Its domain is `casa_mia_jukebox` and its
+  action `casa_mia_jukebox.announce` (owner, 2026-11-23). Its brand is drawn: a 1980s
+  boom box in front of the house (`tools/brand_children.py`).
+- **S1 systems are to be supported, with less, but later** (owner, 2026-11-22). Why:
+  Jukebox is to be useful to everyone, not only this house. The first builds are for S2.
+  Until S1 is built, an announcement to an S1 speaker is refused with a message that says
+  why, never dropped silently. An S1 speaker has no audioClip, so its announcement will be
+  snapshot, play and restore. The owner has no S1 speaker (checked 2026-11-22: every
+  speaker reports `swGen` 2 and `AUDIO_CLIP`), so that path can only be tested against a
+  stand-in until someone with S1 tries it.
+- **The page, its players, rooms and favourites, and the small card were built in
+  2026.11.12-b9, and the queue (jump to a song, move one, take one out) in b11.** Left
+  of the brief below: lyrics. Also left:
+  - Built in b12, asked for by the owner on 2026-11-23: the players' order, clear the
+    queue, save the queue as a playlist, delete a playlist, and the light round a
+    button while a speaker is asked.
+  - **The pieces as cards** (owner, 2026-11-24: "maybe we have cards for the pieces
+    that the jukebox main page shows, then they can be assembled into a custom page")
+    were built in b15 with the `play` action. Left, agreed in outline and waiting for
+    the owner to have tried the cards: each piece adapting to the size it is given (a
+    player growing a larger picture, the previous button and the song's time where it
+    has the width), and Jukebox's own page showing Now playing across a wide screen
+    when one thing is playing (a large wall tablet shows a lot of empty space).
+    The play action takes a favourite's name only: nothing found by a search.
+  - **Follow Home Assistant's text multiplier** (owner, 2026-11-24: a new, large
+    wall tablet is high-resolution, so the mini players are hard to read, and the
+    rest of Home Assistant will be too; but the Camera Commander's resolution is liked,
+    so the layout mustn't be zoomed). Home Assistant's frontend derives every text size
+    from `--ha-font-size-scale` (read in its code, 1 by default), which a theme can set
+    and a theme is chosen per device. Jukebox's sizes are fixed pixels and ignore it:
+    make its text, buttons, pictures and rows multiples of that scale, then Casa Mia's
+    other cards where it matters. Not yet tried on a tablet; the owner is to try the
+    theme setting first.
+  - **Listening on a phone's or tablet's own earbuds** was built in b26 (owner,
+    2026-11-24; HANDOVER, "Listening on your own device"): "this phone" as one more
+    room, with Spotify through its Web Playback SDK and the library and radio in an
+    `<audio>` element. Decided by the owner on the way: no Music Assistant, no Sonos
+    Port, and a Spotify song is not handed over to the Spotify app. Left:
+    - **It works on the owners' two iPads** (owner, 2026-11-24, b26). Not known to
+      have been tried: an iPhone or an Android phone with this build; the lock
+      screen's buttons while Spotify's player has the sound; a library song that isn't
+      MP3, AAC or FLAC (a browser plays no WMA); the token renewed after its hour; a
+      long listen with the device locked in the companion app.
+    - Who may have Spotify on their own device is hosts only, and the room isn't
+      offered on the house's own screens: both my choices, for the owner to rule on.
+    - A station shows its name and not the song it is playing (the stream's own
+      titles aren't read).
+    - Shuffle picks any other song, so one can come round again before all have
+      played. An artist found on Spotify can't be played whole: open it and choose.
+    - A library song found by Search has only its title until it plays; one from a
+      playlist or an album has everything.
+    - No volume slider (a page can't set an iPhone's volume), no thumbs, no saving the
+      phone's queue as a Sonos playlist, and the screen isn't kept on (the measurement
+      showed it needn't be; the wake lock worked in both browsers if it is wanted).
+    - The earlier plan, one continuous stream for each listener sent by the app, is
+      kept in reserve for a phone that stops when it locks.
+  - **Who may run a party, the thumbs and Love it or Loathe it's reasons** were built
+    in b18 (owner, 2026-11-24). Decided then: thumbs up and down as Love it or Loathe
+    it's card has, not the mock-up's heart (one picture for one action, and a heart
+    reads as "save to favourites"); only chosen logins may start or end a party, and
+    during one only they change the music from Jukebox, with a switch of theirs to let
+    the wall tablets change it too, off at the start of each party (why: a guest could
+    end the party at a wall tablet, then use their own phone); a loathed song in a
+    queue is skipped with nothing to set up; a party lets Love it or Loathe it's
+    changes through. Left:
+    - None of it has met real speakers or the owner's Home Assistant: the two lists in
+      the Configure dialog, a wall tablet's login being refused, the real thumbs on the
+      dark player (checked here against a stand-in element), a skip on a real queue.
+    - On a screen that may not change the music, the controls are still drawn and a
+      press is refused with the reason; they aren't greyed. A line at the top says so.
+    - A login's part reaches its page with the next push of the house, so a change to
+      the two lists shows there only when a speaker next changes. Jukebox itself
+      decides afresh each time something is asked.
+    - A wall tablet's login belongs to no person, so the thumbs don't show there. "Who
+      is rating?" on such a screen was put off (owner, 2026-11-24).
+    - Put off the same day: a code typed on a tablet to unlock it for a few minutes,
+      and guests adding a song to the end of the queue from a tablet.
+    - The reason shows what was last done. The last few lines for one player (Love it
+      or Loathe it keeps them per entry, for Casa Mia's page) aren't shown.
+    - A song played too often is never skipped: each skip counts as a play.
+  - **The party lock against the Sonos app, first real use** (owner, 2026-11-24, b19).
+    "Play this album now" from the Sonos app replaced the queue. The lock put the
+    songs back, but the music stayed stopped at the first song, and the streamed songs
+    among them came back with no title, artist or album (read from the speaker afterwards;
+    they still played, and the saved playlist still had the details). Fixed in b19:
+    the music is started again where it was, and a song is described to the speaker in
+    the speaker's own XML names. **Disproved the same day:** the names were not the cause of the lost titles. A
+    streamed song has no title straight after its playlist is queued (the speaker
+    fetches the details from the service, slowly and not for all), and library songs
+    put back one at a time lose their lengths. b20 has the speaker keep and load its
+    own copy of the queue instead (HANDOVER); that has not met a real speaker either.
+    Left of it: one song taken out reloads the whole queue, so the song playing starts
+    again; a party ended by a restart leaves its copy among the Sonos playlists.
+    The earlier guess, for the record: that the names were the cause of the
+    lost titles. It is the likeliest reading (library songs, which the speaker looks
+    up itself, were unharmed), but no streamed song has been put back by b19 on a real
+    speaker. If titles are still lost, log what `upnp.songs` read and what `insert`
+    sent before guessing again; the saved playlist's own `r:resMD` for a song is the
+    known-good description.
+  - **From the owners' first evening with it** (2026-11-24, built in b20): play the
+    queue while the radio is on; add from the queue's own view; see a playlist's songs
+    before playing it, and move, take out and add there; folds on Favourites; the
+    Love it or Loathe it line as one plain sentence; the music back at the place in
+    the song after a put-back. Left:
+    - The playlist changes were tried on a real speaker the same day, on a playlist
+      made for the purpose and deleted after: a library song and album added, a
+      Spotify song and album added, a song moved up and down, one taken out. Learned:
+      each change must carry the playlist's change number as it stands, or it is
+      refused (error 1028); a speaker won't describe one library song when asked, but
+      fills in its title and artist itself; and a Spotify song is named to the
+      speaker with no account, which the speaker picks. So the first reading, that
+      Jukebox needed the account's number, was wrong. Not seen: any of it from the
+      page itself, against a real speaker.
+    - A playlist's listing gives no length for a song from the music library, so
+      none is shown for those; streamed songs have theirs.
+    - The same way of naming a Spotify song serves the clean-up of the old playlists
+      (below): a replacement can be written into a new playlist with no account.
+    - **More about what a radio station is playing:** its song's cover is built
+      (b24). Left: a + beside the title to add "this song on the radio" to the queue
+      or a playlist (the match is a Spotify song), once the covers prove reliable on
+      the owner's stations; and showing the names the right way round for a station
+      that sends them swapped.
+    - **The editor on a wide screen** (b22, redesigned in b25: a chosen song shown
+      whole, insert before or after it, sort with put back, duplicates, widths set by
+      dragging; owner 2026-11-24). Not seen against a real speaker or on a real
+      tablet. Left: sorting by the date a song came out (the speaker doesn't list
+      it); sorting and tidying the queue, which are a playlist's only; and adding to
+      the queue at a place moves each added song up one at a time
+      (`feed.queue_add`), where the speaker's move takes a count of songs that
+      hasn't been tried.
+    - After a put-back the music once started at the next song, not the one playing
+      (b19, on a real speaker; the cause wasn't found). b20 loads the queue back whole
+      and logs where it returns to ("back to song N"): read that line if it recurs.
+  - **Playlists, asked 2026-11-24, not built:**
+    - **Keep a copy of every playlist** (owner: "snaffle a copy"), so one deleted or
+      changed in the Sonos app can be put back. A party's queue is already safe from a
+      deleted playlist (the queue is its own copy); this is for the playlist itself.
+      It rests on putting songs back with their details, so prove the b19 fix first.
+  - **Mute** (b17): the party lock guards a room's volume but not its mute, so a
+    guest's mute isn't put back.
+  - `tests_ha/test_jukebox_page.py` is at 777 lines of the 800 allowed: split it before
+    adding to it.
+  - The party lock and its entities were built in b14, from the mock-up. Left: it has
+    not met real speakers (a guest's change from the Sonos app, another app's stream);
+    a party isn't kept across a restart of Home Assistant; the leading room can't be
+    taken out during one; skips and pauses aren't guarded; the volume is put back even
+    for the buttons on a speaker (as the mock-up, though the first notes spoke of a
+    volume limit: ask the owner after a real party).
+  - Search and browse over the Sonos music library and Spotify (owner, 2026-11-23)
+    were built in b13. A library result shows no artist (Home Assistant's search gives
+    a title only), a Spotify song no picture, and only the first Spotify account is
+    searched.
+  - The queue shows a change made in another app only when the song or the number of
+    songs changes: a speaker doesn't tell Home Assistant of a move. The party lock's
+    watch on the speaker (`queueVersion`, below) will tell the page too.
+  - The queue shows the first 500 songs, has no pictures (the speaker serves them over
+    plain http on the house's network, which a phone away from home can't load), and a
+    song can't be dragged past the edge of what is on screen.
+  - The phone's lock screen (owner, 2026-11-23, "unless it's easy": it isn't. A browser
+    shows lock-screen controls only for a page that is itself playing sound, so it
+    would need a silent sound kept playing, and the phone's volume keys would still
+    turn the phone's own volume, not the speakers').
+  - A phone's back button should close the big player; the page's heading can't be
+    turned off yet; the group's one volume sets each room in turn (the speakers have a
+    group volume of their own).
+- **Announcements were built in 2026.11.12-b6** (HANDOVER, "Jukebox"). Left to do:
+  - See it on the box: the dialogs, the chime reaching a speaker, a whole announcement.
+  - Its tile and picture in the README.
+  - S1 (above), and players that aren't Sonos, which are refused today.
+  - Rooms next to each other play slightly out of step: each speaker gets its own clip.
+- **The player card: the owner's brief** (2026-11-23). A new media player card of Casa
+  Mia's own, for Sonos only, driven through Jukebox. Steps 2 to 5 below are parts of it.
+  - A mini player on a page that opens to a big player with the artwork, and lyrics or
+    the like over it.
+  - The queue edited live at a party: search, browse and add to the queue. A choice that
+    would replace the whole queue warns in big letters first.
+  - Borrow from the apps people know (Sonos, Spotify, Music Assistant, other well-liked
+    jukeboxes). It must look good and be easy to use.
+  - It stops other people's changes from the Sonos app sticking.
+  - It works with Love it or Loathe it.
+  - It offers sensors, so an automation can turn on a disco ball and lights.
+  - The mock-up (`docs/design/jukebox-mockup.html`) was agreed as the look and the flow
+    (owner, 2026-11-23).
+  - **A page of Jukebox's own, plus one small card** (owner, 2026-11-23), as Sensor Watch
+    has a page. The page is drawn by Jukebox from top to bottom, finds the Sonos rooms and
+    what is playing by itself, and changes none of the owner's dashboards. Its heading has
+    a back and a home button, which can be left off: a phone has Home Assistant's top bar,
+    but a wall tablet has no top bar and no sidebar. The card is the mini player alone
+    (artwork, title, rooms, pause, next, volume) for a dashboard that already exists, and
+    opens the big player. Why not cards to lay out: on a dashboard the player took on the
+    dashboard's look, and the owner didn't want it built in Lovelace.
+  - Turned down the same day: the community Sonos card (too complex for the people who
+    will use this), and a lock that leaves the queue to be filled and changed in other
+    apps (the owner wants it done in Jukebox's card).
+- **Measured for the player, 2026-11-23** (one S2 speaker, paused throughout, nothing
+  played):
+  - **Search:** Home Assistant's `media_player/search_media` works on a Sonos entity and
+    returns songs from the Sonos music library. Browsing gives the Sonos favourites
+    (playlists, radio, tracks) and the library. Spotify is linked to the Sonos system as a
+    service, and the owner added Home Assistant's Spotify integration for the search
+    (2026-11-23). Searching Spotify, and adding a song found that way to a Sonos queue,
+    are not measured yet.
+  - **The queue can be edited without playing:** adding through `play_media` with
+    `enqueue: add`; moving and removing through the speaker's UPnP AVTransport
+    (`ReorderTracksInQueue`, `RemoveTrackFromQueue`, `RemoveAllTracksFromQueue`, port
+    1400), which Home Assistant has no action for. `sonos.get_queue` reads it back.
+  - **A change to the queue is pushed within 0.1 s while the queue is what the speaker
+    plays from.** The entity's `queue_size` changes, and the speaker's websocket
+    (`playback` namespace) reports a new `queueVersion` for every change, one deep in the
+    queue included. `queue_size` alone misses a move or a swap, so the lock watches
+    `queueVersion` and then reads the queue.
+  - **While a radio station is the source, queue changes are reported by neither.** The
+    lock must read the queue again when the source returns to it.
+  - Volume changes arrive from both within 0.1 s (`playerVolume`, `groupVolume`: the
+    speaker has a group volume of its own).
+  - `sonos.snapshot` and `sonos.restore` put the source back after the test.
 - **In this order:**
-  1. **Announcements:** an `announce` service over `media_player.play_media` with
+  1. **Announcements** (built; this is the design they were built to): an `announce`
+     service over `media_player.play_media` with
      `announce: true`. On S2 speakers Sonos's audioClip ducks the music and restores it by
      itself. Jukebox adds per-room volume, quiet hours, a queue so two announcements never
      overlap, snapshot and restore for speakers without audioClip, and a logged, visible
      failure when a speaker is offline.
-  2. **Groups and now playing:** a card with each group, its rooms (dragged together or
-     apart through `join`/`unjoin`), volume and saved presets ("Downstairs", "Everywhere").
-  3. **Search and play:** one search across Spotify, the local library and Sonos
+     Measured on a real S2 speaker, 2026-11-23 (two clips a second apart, over a radio
+     station):
+     - **The queue is needed.** The second clip cut the first off (the speaker reported
+       it `INTERRUPTED`); Sonos doesn't line clips up.
+     - **Home Assistant can't say when a clip ends.** `play_media` answers within 0.1 s,
+       before the clip plays. The speaker's own websocket (port 1443, `audioClip`
+       namespace) pushes `ACTIVE`, `DONE` and `INTERRUPTED` for each clip.
+     - **A clip doesn't touch the entity.** No state change reached Home Assistant and the
+       volume was the same afterwards, so Love it or Loathe it never sees one.
+     - **The queue waits on the speaker** (owner, 2026-11-23: a chime before the speech
+       is wanted, so the queue is there from the start). Sending the second clip when
+       the first reported `DONE` played both whole, on an old Play:1 as well.
+     - **On subscribing, the speaker first reports its last clip**, already `DONE`, from
+       whenever that was. Jukebox must wait for a clip it has not seen before; Home
+       Assistant doesn't hand back the id of the one it sent.
+     - **`extra.volume` sets the clip's loudness** (the owner heard a clip at 7 play
+       quieter than one at 15, 2026-11-23), and a clip plays with the speaker at volume 0.
+  2. **A small card for everyday use** (owner, 2026-11-23). The need isn't control of the
+     media or a new page: Home Assistant's own page and dialogs do that. It is that joining
+     rooms and changing station take a dialog for each speaker. The community Sonos card
+     was looked at and turned down as too complex for the people who will use this. The
+     card uses only Home Assistant's own actions (`join`, `unjoin`, `select_source`,
+     `volume_set`):
+     - Agreed: a room is added to what is already playing, and taken out again, with one
+       tap. "Also in the garden", not "follow me".
+     - Wanted if it is easy (owner, 2026-11-23): each room's own volume in a group, set
+       from the one card. Each room is its own entity with its own volume, so it is.
+     - Proposed, not yet agreed: a line for each thing playing with its rooms; Sonos
+       favourites as pictures, played in the chosen rooms; one volume for the group.
+  3. **The party lock** (proposed 2026-11-23, not yet agreed or designed). The owners'
+     hard case: guests on the house network all have the Sonos app and change the playlist
+     or the rooms, and the network's password is to stay as it is. Sonos has no permissions
+     on the network, so Jukebox can only make a change not stick. A party names its rooms,
+     a playlist and volume limits; while it runs, Jukebox's copy of the queue is the truth
+     and anything it didn't do itself is put back, with a record of what it undid. This is
+     a deliberate exception to "the speakers hold the truth", for the length of a party.
+     To measure first: how quickly and how completely queue changes reach Home Assistant.
+     A party's music comes from all of these (owner, 2026-11-23): playlists saved in
+     Sonos, some of which are broken, playlists in Spotify, and songs added on the night.
+     So the lock should guard the Sonos queue whatever filled it, and the owners change
+     it from Jukebox's card (the brief above). A broken track that Sonos skips must not count as someone's change.  4. **Search and play:** one search across Spotify, the local library and Sonos
      favourites. Spotify plays through Sonos's own Spotify service (SoCo's share links),
      not Spotify Connect, which often can't see a sleeping Sonos.
-  4. **Playlists:** editing Spotify playlists and saved tracks through the Web API, reusing
+  5. **Playlists:** editing Spotify playlists and saved tracks through the Web API, reusing
      the token of HA's Spotify integration rather than a second login.
-  5. **Sonos versions in Sensor Watch:** each speaker's software version, flagging
+  6. **Sonos versions in Sensor Watch:** each speaker's software version, flagging
      speakers on different versions and speakers that are offline. Updates themselves stay
      with Sonos's overnight auto-update; no supported local way to start one is known.
+- **Later, housekeeping** (owner, 2026-11-23): the music library was to be cleaned (broken
+  files fixed or downloaded again, the library tidied) and the job was put on hold. The
+  broken Sonos playlists come from it. Not part of Jukebox's builds.
 - **The local library** stays Sonos's own SMB-indexed library, so the Sonos app can
   browse it too. A library index of Jukebox's own only if Sonos's falls short (its track
   limit, slow rescans, weak artwork).
@@ -77,6 +372,11 @@ is only proposed, and the questions still open. Its contract was agreed on 2026-
 Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
 mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
 the Gazette's own work is parked below it.
+
+- **An open page keeps an alert that ended while it was disconnected** (found in the code
+  2026-11-22, not seen). Each page adds what the feed holds on reconnecting to what it
+  had, so one withdrawn or long mended meanwhile stays until a reload. A copy of the other
+  side's state (RULE FIVE): the feed should say which message is the whole of it.
 
 - **The Console's meter panel, what's left** (asked 2026-11-18; the plan, with each step's
   detail, is `docs/design/console-meter-panel.md`; steps 1 and 2 were built in
@@ -546,39 +846,19 @@ the Gazette's own work is parked below it.
 
 Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
 
-- **Acknowledge, snooze and mute an incident** (asked 2026-11-21). Sensor Watch keeps
-  alerting on a failure everyone already knows about. For example, a Miele integration that
-  has been in `setup_retry` for days on HTTP 503s from Miele's cloud is reported again and
-  again, and nothing can quieten it.
-  - **One incident per continuous failure,** keyed by a stable monitor id, never by the
-    error text. Each incident records when it was first and last seen, how long it has lasted,
-    its state, the error and how many notifications it has sent. Recovery closes it, and a
-    failure after recovery opens a new one. Repeated `setup_retry` events, a Home Assistant
-    start, a reconnect and identical state changes add nothing to an open incident's
-    alerts.
-  - **Acknowledge** quietens the current incident until it recovers.
-  - **Snooze** quietens it for 1 hour, 8 hours, 24 hours, 7 days or a chosen time. When the
-    snooze ends, it notifies again if the problem is still there.
-  - **Mute** quietens an integration or monitor until someone turns it back on.
-  - **Unsnooze and unmute** restore notifications at once.
-  - Recovery notifications stay a choice of their own, even for an acknowledged or snoozed
-    incident.
-  - **Watching and notifying stay separate.** A quietened incident is still shown on Sensor
-    Watch's page and in its history, saying how it was quietened and until when. The
-    controls are on that page.
-  - Incidents, acknowledgements, snoozes and mutes survive a restart. Deadlines are stored as
-    timezone-aware timestamps.
-  - Existing notify targets and Notify on Sensor Watch automations keep working without
-    being set up again.
-  - Read the event path, notifications, storage and page first, and extend them rather
-    than adding a separate alert manager. Write down any migration.
-  - Tests cover restarts, recovery, a failure that recurs, a snooze running out and each
-    change of state.
-  - **Done when** someone can acknowledge or snooze the failing Miele integration and still
-    see its state, repeated `setup_retry` events send no more alerts, a failure after a
-    confirmed recovery is a new incident, and every quietening survives a restart.
-  - Leave the Miele integration alone: why it fails is a separate investigation.
-
+- **Snooze, what's left** (built in 2026.11.12-b2; its rules are in HANDOVER).
+  - A snooze whose time came while Home Assistant was down ends, but the fault is then
+    found at the start like any other: the sidebar's notification, not the phone.
+  - The eye in an entity's dialog and the gauge card don't say a watch is snoozed.
+  - **Heads Up** (github.com/Seyphaton/ha-heads-up; the owner offered Sensor Watch as its
+    source of events on its forum topic, 2026-11-19): a second blueprint could send each
+    event to `heads_up.notify` with the entity as its `id`, clear it on nominal and on
+    withdrawn, turn its own snooze off, and give it a button that calls
+    `casa_mia_sensor_watch.snooze`. Why its own snooze off: it hides the message while
+    Status here stays at the fault's level.
+- **Rolled up only when Home Assistant says the integration failed** (2026-11-22). One
+  that stays loaded with all its entities unavailable still has a row each. Left until it
+  is seen to happen. See Availability rules and Dependencies below.
 - **Stale, what's left** (built in 2026.11.5-b1: no report or no change for a time, per watch or profile; not yet seen working on a box). The library's profiles carry none: add sensible ones where a device reports on a schedule (battery sensors), and perhaps a scan default by device class. Escalation's "nominal for too long" (asked 2026-10-11) is not built. **The limit:** a Core restart re-stamps every restored entity, so a sensor that died before one is caught a full wait later; remembering each entity's last report across restarts would close it.
 
 - **The gauge card, what's left** (built in 2026.11.5-b1 as `custom:casa-mia-sensor-watch-gauge`, drawing its own arc). Seen only injected into a page on the test VM: look at it on a real dashboard, in the card picker and its editor, in a dark theme and on a wall tablet. The eye and `tools/dev_cards` with Sensor Watch's bundle were changed in the same build and not looked at either.
@@ -609,7 +889,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 - **No watching itself: the indirect loop** (asked 2026-10-11; the direct case is refused since b19). A template helper reading Sensor Watch's entities, then watched; or an automation on its event changing a watched entity. Each change of level can feed the next, and an inverted mapping oscillates for ever. Ideas: warn in the watch dialog when a template helper mentions `casa_mia_sensor_watch`; a circuit breaker in the integration (more than N level changes in M minutes holds the worst level, logged, message "flapping"); a line in the guide's "What it won't do".
 - **Escalation, what's left** (built in 2026.10.11-b15; not yet seen on the box).
   - **Review the algorithm** (owner, 2026-10-27: "OK for now"): after living with it, check whether time at each level is right, or whether escalating by count or by how far out earns a place.
-  - **Acknowledging** (owner: "nice, not sure"): "I know" stops it climbing until the level changes or for a while. Decide first whether it should exist: it can hide what escalation is for.
+  - **Acknowledging:** decided against (2026-11-22). Snooze, above, has an end.
   - **The Escalation handler blueprint and the remedy tools** (`docs/never-silently-stuck.md`), on the events it sends.
 - **Watch a template** (asked 2026-10-11): some faults show only between sensors (a downstream meter's voltage differing from the upstream one). A **+ From a template** choice in the Watch dialog creates an HA template helper (through "Entities Casa Mia makes") and opens the bands editor on it. A real entity, so it has history.
 - **Dependencies** (asked 2026-10-11): a record names an upstream sensor and counts only while that one is nominal, so a supply drop raises one alert, not one per meter. Think through chains, what the summary shows for a suppressed sensor, and loops. The owner's ESPHome generator knows each meter's upstream link and could produce the difference sensors and dependencies; Sensor Watch takes them as they come.
@@ -796,7 +1076,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 - **ProxyStick module** (asked 2026-10-16). Host ProxyStick's headless server (the `proxystick` package, a separate public repo) as a module, so an ESP32-S3 ProxyStick can present a folder under `/media` to a photo frame as a USB drive. A thin adapter (start, stop, health, its own port). Open: how the package reaches the box (a pip dependency from its GitHub URL for releases; for development, the Docker build reaching ProxyStick's fake git host).
 - **Entities Casa Mia makes: a registry** (asked 2026-10-11; name to agree; not "auto-entities", which is Thomas Lovén's card). One place that creates entities in HA for the other modules and records each: first the template helpers "Watch a template" needs. Created HA's own way (config flows over the websocket), labelled Casa Mia (and per module), listed on a page (what made it, whether anything uses it), removable in one go through HA's registries, never `.storage`, logged. Feeds "take it all out".
-- **Love it or Loathe it: what's left** (asked 2026-10-10; the integration was built in 2026.11.7, its page in Casa Mia in 2026.11.7-b6). **On the page** (agreed 2026-11-13, to follow the first build): a group's songs as rows with a search, delete a line, and which lines matched lately, in place of the one text box; and "who would take this?", a title and artist typed in to see which group wins and why. Also not on the page: adding or deleting an entry, and browsing for a station. **Collapsible sections** (asked 2026-11-14): each entry, and each section under it (Playing now, Groups of songs, Stations to switch to, What happened), folds away, remembered per section, using the compositor's `FoldArea` (`app/web/src/compositor/fold.tsx`, the shared `fold` styles in `ui.module.css`); move it out of the compositor if it is to be shared, never copy it. **Docs: rating with ordinary dashboard buttons, step by step** (asked 2026-11-13): the guide has the buttons' YAML under "The action behind it", but not the walk-through given to the owner in chat: edit the dashboard, Add card, Manual, paste, put in your own player; the wall-tablet version with `person` and a pair of buttons per person; what a tap then does (the song added and taken out of the other list, the first tap making the group, the song acted on at once, a refusal shown with its reason); and when to use buttons in place of the thumbs card (a button already on a dashboard, an automation, a card that takes actions). A fade over to the other station instead of an immediate switch (a volume ramp either side of `play_media`). **Adverts** (owner, 2026-11-13: only for a station that says so in its metadata): done as a group for a station that names them (the guide's "Adverts", 2026.11.8-b39, from Planet Rock's "Ad 7" and "STOP ADBREAK 2"); a shipped Adverts list once other stations' names for them are known. More shipped lists beside the Christmas songs, as they are asked for. **Not this integration's:** the house's own radio station is a Casa Mia item (owner, 2026-11-13: never part of this integration); when it exists it is one more station to switch to, and the guide's opening already says so.
+- **Love it or Loathe it: what's left** (asked 2026-10-10; the integration was built in 2026.11.7, its page in Casa Mia in 2026.11.7-b6). **On the page** (agreed 2026-11-13, to follow the first build): a group's songs as rows with a search, delete a line, and which lines matched lately, in place of the one text box; and "who would take this?", a title and artist typed in to see which group wins and why. Also not on the page: adding or deleting an entry, and browsing for a station. **Collapsible sections** (asked 2026-11-14): each entry, and each section under it (Playing now, Groups of songs, Stations to switch to, What happened), folds away, remembered per section, using the compositor's `FoldArea` (`app/web/src/compositor/fold.tsx`, the shared `fold` styles in `ui.module.css`); move it out of the compositor if it is to be shared, never copy it. **Docs: rating with ordinary dashboard buttons, step by step** (asked 2026-11-13): the guide has the buttons' YAML under "The action behind it", but not the walk-through given to the owner in chat: edit the dashboard, Add card, Manual, paste, put in your own player; the wall-tablet version with `person` and a pair of buttons per person; what a tap then does (the song added and taken out of the other list, the first tap making the group, the song acted on at once, a refusal shown with its reason); and when to use buttons in place of the thumbs card (a button already on a dashboard, an automation, a card that takes actions). A fade over to the other station instead of an immediate switch (a volume ramp either side of `play_media`). **Adverts** (owner, 2026-11-13: only for a station that says so in its metadata): done as a group for a station that names them (the guide's "Adverts", 2026.11.8-b39, from Planet Rock's "Ad 7" and "STOP ADBREAK 2"); a shipped Adverts list once other stations' names for them are known. More shipped lists beside the Christmas songs, as they are asked for. **Play a song from Spotify in place of switching station** (asked 2026-11-25): an option beside the stations to switch to. The song is chosen at random from the songs played in the last 12 hours, and where possible one of the same length as the song being switched away from, so that it ends as that song does. A song played this way doesn't count towards songs played too often. Open: where the Spotify name of a song heard on the radio comes from (Jukebox already finds a radio song on Spotify for its cover), how close in length is close enough, and what plays when no song of the last 12 hours fits. **Not this integration's:** the house's own radio station is a Casa Mia item (owner, 2026-11-13: never part of this integration); when it exists it is one more station to switch to, and the guide's opening already says so.
 - **Entity clean-up: orphaned and disabled entities** (asked 2026-10-10). A page listing them by kind (orphaned, disabled, unavailable for N days), integration and device, with last seen; remove one or a selection after a confirmation. A service for automations, with a dry run. Through HA's entity registry (`config/entity_registry/remove`), never `.storage`, logged. Look at the AI-generated clean-up app the owner has used; fold in what's useful, respecting its licence.
 - **"What's eating your recorder space?"** (asked 2026-10-10). The recorder's database by entity: rows and bytes, the noisiest entities, growth, and what an `exclude` or `recorder.purge_entities` would save. Pairs with the clean-up.
 - **A doorbell that answers itself** (asked 2026-11-03). When nobody answers the doorbell, Casa Mia does: speech to text on the caller, a local AI (inference on the house's own hardware, no cloud) deciding what to say and do, and text to speech back through the doorbell. It helps callers in place of the family: tells a delivery driver where to leave a parcel and opens the gates for them, takes a message, says nobody's in. Open: which doorbells give two-way audio to HA (UniFi Protect's talkback, others), the speech engines and the model and where they run, what the AI may do (open the gates? only for a delivery it can check against an expected order?), how it hands over to the family (a notification with the live conversation, take over by voice), and how every call is logged with its transcript. Shares the audio plumbing with "FONA voice calls into the voice assistant" and the gate action with `casa_mia.check_plate`.
@@ -902,7 +1182,7 @@ Decided (2026-10-02): **ship everything.** Every module is off until enabled; no
 ## Auto Dashboards and generated config
 
 - **Auto Dashboards: Back, Home and Help made general** (2026-10-09). The camera dashboard's own Back, Home and Help buttons become part of the dashboard-building system, for any dashboard it writes (perhaps the Tablet Layout too). Then (2026-10-10) a navigation skeleton from HA's structure (floors → areas → rooms, each area's picture), with HA's labels saying what goes where.
-- **Retire the generated camera dashboard** once tablet views built from the cards cover it; its picture-elements tap zones, `commander_zones` and `cm-streams.js` pulse go too.
+- **Retire the rest of the generated camera dashboard.** Its commander pages went in 2026.11.12-b8, with their tap zones. Left: the page for each camera, until the card's full screen covers zoom and PTZ presets; and the highlight's pulse in `cm-streams.js`, kept for dashboards deployed before b8 and to go once they have been deployed again. The README's Auto Dashboards picture (`dashboard-security-look.webp`) still shows a commander page and needs one of a camera's page. The new how-to (`docs/how-to/commander-on-your-home-page.md`) has no pictures of its own steps, and its step 8 (the default dashboard) wasn't checked against a current Home Assistant.
 - **Dashboard generator** (`dashboard-gen`, working name, confirm before coding): replaces the hardcoded process that builds `groups.json` / `entities.json` and the dashboard YAML (`gen_dashboard.py`, `discover_entities.py`, `test_dashboard.py` in `tablet-provision/composite-test`). Needs a mechanism: see "Camera config as one source". Loose end: `test_dashboard.py` asserts no view has `badges` or `header`, but the generator emits both. Add a `--check` that needs no token file (the app holds a Supervisor token).
 - **Camera config as one source** (the first deterministic HA config change). One configurable source in the repo drives the compositor config, the dashboard YAML and its delivery into HA's config (the app maps `/homeassistant` read-write), with no copy and paste. Decide the source's shape, whether the repo overwrites the live copy (`seed_config` never does today), and the delivery: the dashboard is UI-managed (`.storage`), so YAML means registering it under `lovelace: dashboards:` (a one-off Core restart). Touches live HA config: agree each step.
 

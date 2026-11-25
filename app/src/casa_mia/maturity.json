@@ -40,6 +40,7 @@
     "protect_talkback": { "level": "alpha", "docs": "applets/protect-talkback.md" },
     "love_or_loathe": { "level": "alpha", "docs": "applets/love-or-loathe.md", "option": "" },
     "dash_bored": { "level": "development", "docs": "applets/dash-bored.md", "option": "" },
+    "jukebox": { "level": "alpha", "docs": "applets/jukebox.md", "option": "" },
     "garnish": { "level": "beta", "option": "" },
     "over_layer": { "level": "alpha", "docs": "over-layer.md", "option": "" }
   }

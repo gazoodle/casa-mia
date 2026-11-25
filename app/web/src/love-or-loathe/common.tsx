@@ -37,6 +37,9 @@ export type Group = {
 /** The entry's strike: any song played `times` times in the last `hours` hours (0: none),
  * and what is then done, whatever a group says of the song. */
 export type Repeats = Act & { times: number; hours: number };
+/** A station's media content type when it is one of the players' own sources, by name
+ * (the integration's const.SOURCE): the id is then the source's name. */
+export const SOURCE = "source";
 export type Station = { id: string; name: string; media_content_id: string; media_content_type: string };
 export type Playing = {
   /** Home Assistant's state for the player; null when it has none. */
@@ -49,6 +52,8 @@ export type Playing = {
   repeats?: number;
   media_content_id?: string | null;
   media_content_type?: string | null;
+  /** The one of its own sources (a speaker's favourites) it is on, if any. */
+  source?: string | null;
 };
 export type Last = { entity_id: string; title: string; artist: string; group: string; feeling: Feeling; action: string; result: string; at: string };
 export type Entry = {
@@ -72,6 +77,8 @@ export type Entry = {
   repeats_on: boolean;
   groups: Group[];
   stations: Station[];
+  /** The players' own sources (a speaker's favourites), to make a station of by name. */
+  sources: string[];
   playing: Record<string, Playing>;
   /** Each player on another station, and when it goes back. */
   away: Record<string, string>;

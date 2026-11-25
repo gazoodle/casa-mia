@@ -1,6 +1,6 @@
 """The Last match sensor: the song last acted on, with what was done about it (`result`,
 which says so when it failed), the players away on another station and when each goes
-back, and the players that are playing but report no title, which can't be matched.
+back, what was last done to each player and whether it is still in force, and the players that are playing but report no title, which can't be matched.
 Updated by the engine, not polled."""
 
 from __future__ import annotations
@@ -58,5 +58,6 @@ class LastMatch(SensorEntity):
         return {
             **(self.engine.last or {}),
             "away": self.engine.away,
+            "players": self.engine.doing,
             "no_titles": sorted(self.engine.silent),
         }

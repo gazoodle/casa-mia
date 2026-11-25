@@ -6,6 +6,7 @@ import { lights as houseLights, type Control, type Device, type House, type Kind
 
 /** One of Sensor Watch's alerts, as Dash-Bored's integration feeds it (alerts.py). */
 export type Alert = {
+  withdrawn?: boolean;
   entity_id: string;
   name: string;
   level: string;
@@ -132,6 +133,16 @@ export function personal(people: Person[], rated: Rated[], now: number): Notice[
 }
 
 export const NOMINAL = "nominal";
+/** The alerts a page holds, with what its feed has just sent: one for each sensor, and
+ * none for one withdrawn (no longer said, though not back to normal, so no story). */
+export function heard(held: Alert[], sent: Alert[]): Alert[] {
+  const now = new Map(held.map((a) => [a.entity_id, a]));
+  for (const a of sent) {
+    if (a.withdrawn) now.delete(a.entity_id);
+    else now.set(a.entity_id, a);
+  }
+  return [...now.values()];
+}
 /** How long a sensor that is right again stays in the paper. */
 export const RECOVERED = 600_000;
 // Sensor Watch's levels above nominal, by how far up the page each belongs.

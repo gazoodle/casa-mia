@@ -52,7 +52,7 @@ export type Appliance = { id: string; name: string; room: string; kw: number };
 export type Sighting = { id: string; camera: string; name: string; room?: string; kind: string; at: number; photo?: string };
 /** A sighting as the integration's feed tells it (sightings.py), its times in seconds:
  * `entity` is the camera's Last sighting entity, `changed` when its photograph last was. */
-export type Seen = { id: string; entity: string; camera: string; kind: string; at: number; changed: number; photo: boolean };
+export type Seen = { id: string; entity: string; camera: string; kind: string; at: number; changed: number; photo: boolean; photo_url?: string };
 /** One of the household: where Home Assistant has them ("home", "not_home", or the name
  * of a zone), and since when. */
 export type Person = { id: string; name: string; place: string; since: number };
@@ -82,7 +82,7 @@ export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold";
  * Mia's cameras, from its feed. `sample` is no option of a card's: an element
  * sets it for itself while Home Assistant's card picker shows it (family.ts), and the
  * house is then cut down to a specimen (`specimen` below). */
-export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string; cameras?: Lens[]; sample?: boolean };
+export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; reload_when_idle?: boolean; entity?: string; cameras?: Lens[]; sample?: boolean };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string; lens?: Lens; controls?: { id: string; name: string; found?: Found }[] };
 type FoundScene = { id: string; name: string; full: string; floor?: string };
@@ -490,8 +490,9 @@ export function sighted(found: Survey, feed: Seen[]): Sighting[] {
   const cameras = new Map(found.sightings.map((s) => [s.id, s]));
   return feed.flatMap((s): Sighting[] => {
     const camera = cameras.get(s.entity);
-    // A photograph that is replaced keeps its address: `changed` makes the browser fetch the new one.
-    const photo = s.photo ? `/api/${OURS}/photo/${s.id}?v=${s.changed}` : undefined;
+    // Its address as the feed signed it for this login (the photographs need one); a
+    // photograph replaced comes with a new one, so the browser fetches it.
+    const photo = s.photo ? s.photo_url : undefined;
     return camera ? [{ id: s.id, camera: s.camera, name: camera.name, room: camera.room, kind: s.kind, at: s.at * 1000, photo }] : [];
   });
 }

@@ -94,7 +94,7 @@ documentation.
 <td width="25%" valign="top">
 <h4><a href="docs/applets/auto-dashboards.md">Auto Dashboards</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--auto_dashboards--></h4>
 <a href="docs/applets/auto-dashboards.md"><img src="docs/screenshots/dashboard-security-look.webp" alt="The camera dashboard made by Auto Dashboards, in the commander's Security look" width="100%"></a>
-<p>Makes the camera dashboard for you from your cameras and commanders, and puts it into Home Assistant.</p>
+<p>Makes a dashboard with a live page for each of your cameras, and puts it into Home Assistant.</p>
 </td>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/kiosk-satellites.md">Kiosk Satellites</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosks--></h4>
@@ -177,6 +177,21 @@ documentation.
 <a href="docs/applets/love-or-loathe.md#the-thumbs-in-a-media-players-own-dialog"><img src="docs/screenshots/love-or-loathe-thumbs-dialog.webp" alt="A media player's dialog in Home Assistant with a lit thumb up and a thumb down in its header" width="100%"></a>
 <p>The same thumbs are in every watched media player's own dialog, so no dashboard needs editing.</p>
 </td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/jukebox.md">Jukebox</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--jukebox--></h4>
+<a href="docs/applets/jukebox.md"><img src="docs/screenshots/jukebox.webp" alt="Jukebox's page: a small player for each thing playing on the Sonos speakers, in the den and snug together, the kitchen and the garden, each with pause, skip and volume, and the quiet rooms beneath" width="100%"></a>
+<p>The music on your Sonos speakers: a player for each thing playing, rooms, volumes, the queue, favourites, playlists and search, with a lock for parties.</p>
+</td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/jukebox.md#the-page">Jukebox's player</a></h4>
+<a href="docs/applets/jukebox.md#the-page"><img src="docs/screenshots/jukebox-player.webp" alt="Jukebox's big player: the cover and controls of the song playing in the den and snug, and beside it the queue with each song's picture, artist and album" width="100%"></a>
+<p>Tap a player for the whole thing: the cover, the queue, the rooms with a volume each, favourites and a search of your library and Spotify.</p>
+</td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/jukebox.md#the-page">Playlists side by side</a></h4>
+<a href="docs/applets/jukebox.md#the-page"><img src="docs/screenshots/jukebox-editor.webp" alt="Jukebox's editor: the queue on the left, a search on the right, and a song being dragged across to land between two others" width="100%"></a>
+<p>On a wide screen, drag songs and albums from a search into a playlist or the queue, to the place you want them.</p>
+</td>
 </tr>
 </table>
 
@@ -226,6 +241,9 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
 
 7. **Make yourself at home.** Open **Casa Mia** from the sidebar and visit each module's page
    to set it up. Its devices and entities appear in Home Assistant as you go.
+
+For a first thing to build, [A camera commander on your home page](docs/how-to/commander-on-your-home-page.md)
+goes from here to your cameras on a dashboard that fits the screen.
 
 Updates arrive like any other app's: Home Assistant offers them under **Settings → Updates**,
 and the integrations are updated along with the app.

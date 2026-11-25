@@ -107,8 +107,12 @@ screen is better Responsive.
 ## Switching it on
 
 Turn on **Camera Commander** in the app's Configuration tab (Settings → Apps → Casa Mia →
-Configuration); **Auto Dashboards** adds the camera dashboard. Add the cameras on the
-[Cameras](cameras.md) page first.
+Configuration). Add the cameras on the [Cameras](cameras.md) page first. **Auto
+Dashboards** is not needed to show a commander: it adds a dashboard with a live page for
+each camera.
+
+New to it? [A camera commander on your home page](../how-to/commander-on-your-home-page.md)
+goes from installing Casa Mia to a commander on a dashboard, step by step.
 
 The first time it starts, it takes the commanders from what the Camera Dashboard (now Auto Dashboards) last
 deployed live (not its draft, so nothing unfinished reaches the walls), and logs
@@ -149,12 +153,11 @@ different space on each dashboard and device.
 A Fixed commander's panels are set for one shape of space, so try the spaces you use
 before you rely on them.
 
-Move the commanders up and down (the camera dashboard's
-pages follow), delete one, or add a copy of the one picked or a blank one. Each has:
+Move the commanders up and down, delete one, or add a copy of the one picked or a blank
+one. Each has:
 
-- **Picture:** its name (its page's title on the dashboard), whether it has a dashboard
-  page, the gap and margin, and **Stale after**: a camera picture older than this is
-  marked Stale.
+- **Picture:** its name, the gap and margin, and **Stale after**: a camera picture older
+  than this is marked Stale.
 - **Main camera:** how it fits its space (Fit, Fill, Crop, Own shape, Fixed shape), its
   width and shape for the last two, and the camera it starts on.
 - **Highlight** on the main camera's tile: colour, width, blur, and a pulse (Breathe or

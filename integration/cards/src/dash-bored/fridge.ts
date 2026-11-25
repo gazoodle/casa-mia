@@ -15,7 +15,7 @@ import { SKINS, type Skin } from "./fridge/skins.ts";
 import { today } from "./fridge/today.ts";
 import { STYLES } from "./fridge/styles.ts";
 import { DEGREES, sighted, type Device, type Options, type Room, type Scene, type Seen, type Sighting } from "./house.ts";
-import { NOMINAL, RANK, clock, flip, type Alert } from "./stories.ts";
+import { NOMINAL, RANK, clock, flip, heard, type Alert } from "./stories.ts";
 
 export const CARD = "dash-bored-fridge";
 const REMEMBERED = "dash-bored-fridge"; // this browser's choice of household
@@ -104,9 +104,7 @@ export class Fridge extends Family {
     // The sticky notes are the whole house's: a room's card has none.
     if (!this._alone)
       this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-        for (const a of alerts) held.set(a.entity_id, a);
-        this._alerts = [...held.values()];
+        this._alerts = heard(this._alerts, alerts);
       });
     this._follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => {
       const held = new Map(this._seen.map((s) => [s.id, s]));

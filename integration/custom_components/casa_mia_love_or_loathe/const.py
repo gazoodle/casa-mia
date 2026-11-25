@@ -33,6 +33,10 @@ CONF_ORDER = "order"
 # Subentry types: a group of songs, and a station to switch to.
 GROUP = "group"
 STATION = "station"
+# A station's media content type when it is one of the player's own sources, by name
+# (a speaker's favourites): put on with select_source, not play_media. Ours, not Home
+# Assistant's.
+SOURCE = "source"
 
 # A group's fields. Its feeling is what its select shows (select.py), kept here so that
 # the form, the select and the rate action all change the one thing.
@@ -51,6 +55,9 @@ VOLUME = "volume"  # change it by a percentage until the next track
 MUTE = "mute"  # until the next track
 SWITCH = "switch"  # to another station, for some minutes
 ONLY_EVENT = "event"  # nothing but the event
+# Not one to choose: what a mute or a switch becomes for a loathed song that is one of a
+# queue (Engine._skip_or).
+SKIP = "skip"
 ACTIONS = (VOLUME, MUTE, SWITCH, ONLY_EVENT)
 # What a new group is offered for each.
 DEFAULT_ACTS = {

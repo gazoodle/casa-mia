@@ -658,6 +658,7 @@ async def test_the_page_is_pushed_what_each_player_is_playing(hass, hass_ws_clie
             "artist": "A Band",
             "group": group["id"],
             "repeats": 0,
+            "source": None,
         }
         | HOME
     )

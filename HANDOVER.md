@@ -26,6 +26,7 @@ keys in brackets; some keep older names):
   `camera_dashboard_enabled`): see "The camera modules" below.
 - **Sensor Watch:** see "Sensor Watch" below. Beta.
 - **Love it or Loathe it:** see "Love it or Loathe it" below. Alpha.
+- **Jukebox:** see "Jukebox" below. In development.
 - **Guest login** (`guest_login_enabled`): see "Guest login" below. Security is by limiting
   what a code is worth (closed, signed out), not by locking HA down; the guide says why
   (xkcd).
@@ -73,6 +74,10 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   go2rtc streams.
 - **Auto Dashboards** (`modules/auto_dashboards/`: Base → Backups → Deploys →
   AutoDashboards): a draft built from the other pages, deployed as the camera dashboard.
+  It makes a live page for each camera and no page for a commander (owner, 2026-11-23,
+  b8). Why: a new user took the generated commander page (one picture with a base64 tap
+  zone over each tile) for the way to show a commander. A commander goes on a dashboard
+  as its card; `docs/how-to/commander-on-your-home-page.md` is the worked example.
 - **Integration:** each commander is a device with a Main camera select and a Track motion
   switch (`motion.py`). The device keeps its old identifier (`DEVICE_KEYS` in
   `sensor.py`); the old `/camera-dashboard/` paths still route to `/commander/`.
@@ -104,10 +109,53 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
   escalation); `stale.py` holds one deadline per entity with a stale rule, set from its
   last report and looked at when due (a restart re-stamps every entity, so the message
   then says only "since Home Assistant started"); `watch.py` tracks states, hold-offs and timers, fires
-  `casa_mia_sensor_watch`; status, counts and problem entities; the `list` and `refresh`
-  services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
+  `casa_mia_sensor_watch`; status, counts and problem entities; the `list`, `refresh`,
+  `snooze` and `unsnooze` services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
   Watch** (still at `blueprints/automation/casa_mia/`, so automations made from it carry
   on).
+- **A failed integration is one problem** (owner, 2026-11-22; 2026.11.12-b1). Why: one
+  cloud's outage took every row of every card and of Status's list, and the newer, real
+  fault sorted below all of them. `rollup.py` owns HA's own rows and puts unavailable
+  sensors `under` their failed integration. All that counts, lists or tells leaves those
+  with `under` out, so anything new that reads `watcher.now` must do the same.
+  - **Never rolled up:** critical, a bad reading, or one already said until the
+    integration's row stands in for it.
+  - **Only `loaded` ends a failure** (`levels.track_failures`): a retry passes through
+    setup in progress.
+  - **`initial` means known before,** by what `kept.py` saved (storage key
+    `casa_mia_sensor_watch_kept`), not "has no row yet". Why: new failures never reached
+    a phone, and old ones did at every restart.
+  - **Never fire nominal for anything that isn't proved well.** What no longer stands is
+    `casa_mia_sensor_watch_withdrawn`, and whatever keeps a copy of the alerts drops it on
+    that (Dash-Bored's `alerts.py`).
+  - **Groups:** the integration's event is fired again per group (`for_group`), so a
+    group's automations still hear.
+- **Snooze** (owner, 2026-11-23; 2026.11.12-b2; `snooze.py`). Why: the roll-up made one
+  cloud one row, but that row still held Status at error, so a fault after it changed
+  nothing anyone could see. A snoozed row is marked `snoozed` ({until, by}) and, like
+  `under`, is left out by all that counts, lists or tells.
+  - **One control, until a time.** No Acknowledge and no Mute. Why: either can hide a
+    fault for ever, and Ignore already says "never". Heads Up's Acknowledge (looked at
+    2026-11-23) leaves the banner at its severity, which is the masking this removes.
+  - **Any row below critical,** a sensor's as well as an integration's; never one rolled
+    up (snooze its integration).
+  - **A card may leave it off** (`hide_snoozed`, owner, 2026-11-23: the line was "in my
+    face" on a dashboard). Off by default; the page and Status always show it.
+  - **Never out of sight:** the card's line (the card doesn't hide while there is one),
+    the page's Snoozed section, the Home tile, Status's `snoozed` and `snoozed_list`.
+  - **It ends by itself** (`Snooze.judge`): at its time, said as "still failing, down 16
+    days" and as a change; on a worse real level (not escalation, which is time alone, or
+    every snooze would wake itself); on another kind of fault (`levels.fault`; "not
+    loaded" is no kind, as every reload passes through it); and once the fault has been
+    gone 15 minutes, so a flapping cloud doesn't cancel it and next month's isn't hidden.
+  - **Automations go quiet unedited:** `watch._fire` withholds every event for a snoozed
+    key, its recovery included, and what was said is withdrawn, never said to be back.
+  - **Safe by construction:** every row set passes `watch._Rows`, which has `judge` mark
+    it, so no path sets a row unjudged; and a row set after its time ends the snooze even
+    if the timer was lost. Kept across restarts in `kept.py`.
+  - **An action** (`snooze`, `unsnooze`), called as the signed-in user, so the row says
+    who. The card offers it only with its `snooze` option, off by default: a dashboard is
+    often a wall tablet anyone can reach.
 - **Page:** a custom panel in HA's sidebar (`panel.py`, `/sensor-watch`, in an iframe),
   built by `tools/build_web` from `app/web/src/sensor-watch/` (entry `panel.tsx`, config
   `vite.panel.config.ts`) into its `www/`. It stays through a reload and leaves when the
@@ -139,12 +187,260 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
 - **Tests:** `tests/test_sensor_watch_*.py` (no HA), and `tests_ha/` inside a real Home
   Assistant: added by hand, the handover, the old names.
 
+## Jukebox
+
+Its own integration, `casa_mia_jukebox`, since 2026.11.12-b6 (plan agreed with the owner,
+2026-11-22 and 23; the rest of it is in `BACKLOG.md`). Standalone as Love it or Loathe it
+is: wholly in Home Assistant, nothing imported from `casa_mia`, no app option, one entry.
+Guide: `docs/applets/jukebox.md`. Built: announcements (b6), and the page with its players,
+rooms and favourites, and the small card (b9). The owner's brief for the rest (queue,
+search, the party lock, sensors) and what was measured for it are in `BACKLOG.md`.
+
+- **It adds no media players** (owner, 2026-11-20): every room stays the Sonos
+  integration's own entity.
+- **`announce`** (`__init__.py`): chime, then `media`, then `message` as speech, to the
+  rooms named or the entry's. It answers with each room's result (`pure.py` has the
+  words), fires `casa_mia_jukebox_announced`, and the Last announcement sensor shows it.
+- **`announce.py`:** `Jukebox` holds a lock per speaker (`_turn`, 30 s to wait, then
+  `too_late`). A clip is `media_player.play_media` with `announce: true` and the room's
+  volume in `extra.volume`; a room's volume is its number entity (`number.py`).
+- **`speaker.py` listens to the speaker itself**, on port 1443, for the length of a
+  clip. Why: Home Assistant's `play_media` answers before a clip has played, and a clip
+  sent during another cuts it off (measured 2026-11-23; `pure.py`'s docstring has the
+  measurements). The speaker's first report is an old clip, which `pure.Watch` passes over.
+- **A clip changes nothing on the entity** (measured), so nothing is saved or restored,
+  and Love it or Loathe it never sees an announcement. That stops being true for S1,
+  which will need snapshot and restore (BACKLOG).
+- **The page** (`page.py`): a panel, `/jukebox`, for every signed-in user, not in a frame,
+  and the same bundle (`www/cards.js`, from `integration/cards/src/jukebox`) loaded into
+  every HA page for the card. The owner agreed the look from a mock-up
+  (`docs/design/jukebox-mockup.html`); it is a page of Jukebox's own and not cards to lay
+  out (owner, 2026-11-23).
+- **`house.py`** (no HA imports) turns the Sonos entities' states into the page's model:
+  groups by coordinator, every room in exactly one, a lone idle room `quiet`.
+  **`feed.py`** pushes it (`Feed`: one listener on HA's state events while anyone is
+  listening, one model for a burst) and carries out what the page asks (`do`, a dict of
+  actions). The rooms are every Sonos media player in the entity registry; nothing is
+  listed in the options.
+- **`upnp.py`** asks a speaker itself (UPnP, port 1400). HA's Sonos player clears the
+  queue for any favourite whatever `enqueue` says, so "next" and "add" of a favourite
+  go through `queue_favourite`; only "play now" and "replace" use HA's `play_media`.
+  HA lists the Sonos playlists among the favourites with ids `SQ:n`; a speaker keeps
+  those under `SQ:`, apart from the favourites (`FV:2`), and with no `resMD`.
+  The queue is read, and a song moved or removed, here too (`queue.ts` on the page);
+  jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
+  the feed's `queue_size` or `queue_position` changes, and after each change of its own.
+- **The page's pieces are cards** (owner, 2026-11-24, in place of customising Jukebox's
+  own page): `card.ts` (players), `pieces.ts` (quiet rooms, shortcut, now playing) and
+  `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
+  a container query, so it follows its own width and not the screen's. The Shortcut
+  card and automations use the `casa_mia_jukebox.play` action (`feed.play`), which goes
+  through `do`. Making each piece adapt to the size it is given is still to do.
+- **Stop** (`_Doing.stop`, `upnp.rest`) is how a player returns to "quiet": the leader
+  is set to play from its own, emptied queue and the followers are unjoined. HA then
+  reports no title, which is what `house.kind` calls nothing.
+- **The Queue tab's count and list are the speaker's** (`jb-queued`, `stamp`): HA's
+  `queue_size` goes stale while a station plays (owner saw "1 song" for an empty queue).
+- **The party lock** (`party.py`): nothing can be prevented on a Sonos network, so a
+  party keeps a copy of its rooms, volumes, source and queue and puts back what differs
+  when the speakers report a change (HA state events, and the leader's own websocket
+  report of `queueVersion` for moves: `speaker.watch_queue`). Jukebox's own changes go
+  through `feed.do`, which holds the party's lock and renews the copy (`Party.own`);
+  the comparison waits `SETTLE` seconds for the speakers' reports of them. Built from
+  the agreed mock-up and the 2026-11-23 measurements; not yet run against real
+  speakers. Not kept across a restart. Entities: `binary_sensor` party, `sensor`
+  put_back; event `casa_mia_jukebox_put_back`.
+- **What a speaker is playing from** (`house.kind`, 2026-11-24, from the owner's
+  speakers): a speaker that says it is playing is never `nothing`, and a station is
+  known by its name or by how its stream is addressed (`_STREAMS`). Why: for one
+  speaker (a portable model, alone in its group) Home Assistant had `media_channel` when
+  a station started and lost it, with the picture, at the next song, every time; between
+  songs there was no title either. It was listed as quiet, then as a queue. Not caused
+  by grouping or by a restart (its history, 2026-11-24); why that speaker differs from
+  the others on the same station isn't known.
+  The speaker still has the name and the logo's address (`upnp.station`, from
+  GetMediaInfo), so `Feed._station` asks it once for each stream.
+- **The party lock, after its first real use** (2026-11-24, b19): it waits `BURST`
+  seconds for reports to stop before comparing (another app replaces a queue in
+  several steps); after a queue is put back it returns to `Party.song` and plays, when
+  `Party.playing` and the music didn't carry on; `upnp._described` writes a song's
+  description with the speaker's own XML names (`dc:`, `upnp:`, `r:`), because a
+  description with the standard library's made-up names lost a streamed song its title.
+- **The party's copy is the speaker's** (b20, owner 2026-11-24): `Party._keep` saves the
+  queue as a Sonos playlist (`upnp.COPY` and the room's name) at the start and after
+  each of Jukebox's own changes to the music; when songs are missing, `_reload` empties
+  the queue and has the speaker load that playlist, then goes back to the song. Why: a
+  song put back by `upnp.insert` from the queue's listing lost its length, and a
+  streamed one its title. Songs only added or moved are still undone one at a time.
+  `Party.queue` is kept for comparing, and for putting back when there is no copy.
+- **A playlist's songs** (b20): the big player's queue element (`queue.ts`) lists a
+  Sonos playlist when given `playlist`, and its move and take-out become
+  `playlist_move` and `playlist_remove`; `feed.queue` and the `/queue` request take
+  the playlist's id. Changing a playlist (`upnp.playlist_*`, tried on a real speaker
+  2026-11-24) needs its change number read first (`_changes`); a Spotify thing is
+  named to the speaker as SoCo's share links name it (`upnp.spotify`), and the speaker
+  picks the account. `_adding` in `big.ts` says Search was opened to add to the queue
+  or to the playlist looked at (`_viewing`), and sends the player back afterwards.
+- **Saving the queue over a playlist** (b21, owner 2026-11-24): `queue_save` with
+  `playlist` has the speaker save in place of that playlist's songs (`upnp.save`'s
+  `over`; the id stays). The speaker accepts only the playlist's own name with it
+  (error 402 otherwise; tried on a real speaker the same day), so the feed looks the
+  name up. `Feed.sources` is the playlist each group's queue was loaded from or last
+  saved as, from Jukebox, sent to the page as the group's `source`; it is in memory
+  only, and a queue replaced from another app isn't noticed.
+- **Songs' pictures** (b21): a speaker lists every playlist song's picture as a path
+  on itself (`/getaa?…`), for library, Spotify and other streamed songs alike (read
+  from real speakers 2026-11-24, with title and album for all of them). `art.py`
+  fetches it and passes it on, at an address that carries a key made at each start
+  (`Feed.art_key`), since an `<img>` can't sign in; `feed.queue` writes the addresses.
+- **A station's song's cover** (b24, owner 2026-11-24: the cover is the main picture,
+  the station's logo a badge on it; both orders of artist and title are tried, since
+  one of the owner's stations always sends them swapped): `find.Covers` asks Spotify
+  once for each song, through Home Assistant's Spotify integration, and `cover.py`
+  (no Home Assistant in it) decides which song it is. The group's `cover` goes to the
+  page beside `picture`; `sleeve` in `parts.ts` draws the two. Not seen with a real
+  Spotify answer: that a song's pictures are its album's is from memory of the
+  library, which isn't installed in the test environment.
+- **A playlist's tile** (b24) is four covers: `art.tiled` asks the speaker for each
+  playlist's first songs when the favourites are fetched (`upnp.covers`, one for each
+  album) and the page draws them two by two (`mosaic` in `parts.ts`).
+- **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
+  and the players' card both extend. Until then only the page had it.
+- **Who changes playlists** (b24, owner 2026-11-24): hosts at any time, and the
+  house's own screens while no party is on anywhere (`may.curates`, sent to each page
+  as `curates`). Before b24 it was hosts only. Why: the owners put playlists together
+  at a tablet, and a party is when guests are at the tablets. A guest with the Sonos
+  app can still change a playlist at any time; the owner will deal with that
+  separately.
+- **Jukebox is published by itself too** (b22, owner 2026-11-24): in
+  `components.PUBLISHED`, mirror `gazoodle/casa-mia-jukebox`, its manifest's links
+  naming that repository (`docs/design/marketplace-mirrors.md`, the fourth item). Its
+  tile on Casa Mia's page is `app/web/src/jukebox.ts`, following Jukebox's own feed.
+- **Tidying a playlist** (b25): `tidy.py` (no Home Assistant in it) works out a sort,
+  its inverse and the repeats; `curate.py` carries them out and remembers how to put
+  a sort back, by the playlist's change number. A speaker moves many songs in one
+  request when they are named in the order wanted with rising places, and takes
+  several out in one (both on a real speaker, 2026-11-24, twenty songs; `tidy.EACH`
+  at a time, which hasn't been tried at that size). An action may now say what it
+  did (`_Doing.result`), which goes back to the page as the request's answer.
+- **The editor's chosen song** (b25): `queue.ts` with `picks` says `jb-pick` and
+  doesn't play; `editor.ts` keeps the chosen song chosen through moves, removals and
+  additions (`_moved`, `_listed`). `Split` in `parts.ts` is the draggable width, kept
+  in the browser, used by the editor and the big player.
+- **The editor** (b22, `editor.ts`): a full-screen element of its own, opened by the
+  big player, with the big player's own list (`queue.ts`) beside its search
+  (`find.ts` with `carry`). A row found is lifted by `Hold` (`parts.ts`, shared with
+  the players' ordering), and says `jb-lift`, `jb-carry`, `jb-drop`; the editor asks
+  the list where that is (`Queue.at`) and shows it (`mark`). A playlist takes a song
+  at a place itself (`AddAtIndex`, counted from 0; an album goes in whole: a real
+  speaker, 2026-11-24). The queue can't through Home Assistant, which only adds at
+  the end, so `queue_add` adds there and moves each song up.
+- **Back to the place in the song** (b20): `Party.at` is how far in the music was at the
+  last quiet comparison and when; `_since` is when the first report of a burst came,
+  taken as when another app cut in; `_where` adds the time between.
+- **Who may change what at a party** (`may.py`, owner 2026-11-24): decided in `feed.do`,
+  never on the page, because Home Assistant doesn't limit what a login may ask for. A
+  host (administrator, a login on the options' `hosts`, or no login at all) runs the
+  party; a screen (a login on `screens`) may change the music only while a host has set
+  `Party.open`, which starts off at every party; any other login only looks. A host
+  is also the only one who may save or delete a playlist, at any time. The page
+  is told its part as `me` with each push of the house. Why: a guest could end the
+  party at a wall tablet and carry on from the Sonos app.
+- **With Love it or Loathe it** (`love.py`): no code is shared. Jukebox reads the
+  `players` attribute of its Last match sensors (found in the entity registry by
+  platform): what was last done to each player, why, and whether it is in force
+  (`now`). The players show it, and a party leaves the volume and the source alone
+  while it is in force (`Party._excused`), comparing again when the sensor changes.
+  Love it or Loathe it writes `now` before it asks the speaker, so the party never
+  sees the change first. The thumbs on the big player are its own element
+  (`casa-mia-thumbs`), drawn only where its bundle has defined it.
+- **Search and browse** (`find.py`, `find.ts`): the library through HA's
+  `media_player.search_media` on a Sonos entity, Spotify through the Spotify
+  integration's own signed-in client (`entry.runtime_data.coordinator.client.search`:
+  another integration's inside, so its shape is checked and its absence said). Each
+  source answers by itself, with its results or its reason. A Spotify result is given
+  the address Spotify's browsing gives (`spotify://<entry>/<uri>`), so Sonos browses and
+  plays it, and HA's `play_media` honours `enqueue` for these (not for favourites).
+  Not yet seen against the owner's library or Spotify account.
+- **The playlists in Favourites are read from the speaker** (`upnp.playlists`), and one
+  is played in place of the queue by the speaker too. HA renews its list of Sonos
+  playlists only when a favourite changes, so it misses one saved or deleted since
+  (owner saw this, 2026-11-23). HA's list is used only for the pictures.
+- **The players' order** is the owner's, dragged on the page (rest a finger, then drag;
+  an "arrange" mode couldn't reach a player off the screen, owner 2026-11-23): `Feed.order`, a list of
+  rooms kept in HA's storage (`casa_mia_jukebox.order`) and applied in `house.house`.
+  It is set by its own websocket command (`/order`), not `do`: no speaker is asked.
+- **A button waits visibly** (`Busy` in `parts.ts`, the `.busy` class): an arc runs
+  round it from the press until Jukebox answers. Owner, 2026-11-23: Sonos lags, and a
+  press must be seen to have been taken. It ends with the request, not the feed.
+- **Everything the page does goes through `do`,** never straight to a media player: the
+  party lock will tell a guest's change from the owners' by that. Keep it so.
+- **The big player** (`big.ts`) is appended to the document, not drawn inside the card,
+  so a dashboard's layout can't trap it, and it follows the feed by itself.
+- **The page was looked at in a browser against a pretend `hass`** (screenshots, phone
+  and tablet widths), not in a real Home Assistant.
+- **The chime** is `www/chime.wav`, made by `tools/jukebox_chime.py`, served at
+  `/casa_mia_jukebox/chime.wav`.
+- **Tests:** `tests/test_jukebox.py` (pure), `tests_ha/test_jukebox.py` (the action, with
+  stand-ins for the speakers), `tests_ha/test_jukebox_page.py` (the panel, feed and `do`),
+  `integration/cards/src/jukebox/common.test.ts`. A test that holds a clip must use plain asyncio tasks and
+  its `settle()`: `async_block_till_done` waits for the held clip and hangs.
+- **Listening on your own device** (b26, owner 2026-11-24: "this phone" as one more
+  room, the page keeping the queue). Home Assistant knows nothing of that room.
+  - **On the page:** `phone.ts` is the room, `lineup.ts` its queue's rules (no page in
+    it, tested in node) and `sound.ts` the two players: an `<audio>` element for a
+    library file or a station, Spotify's Web Playback SDK for a Spotify song.
+    `common.ts` puts the room into the house (`follow`) and sends its requests to
+    `phone.do` and `phone.queue`, so the players, queue, favourites, search and editor
+    needed no change of their own. Its id is `PHONE` (`this_device`). Favourites,
+    search and a playlist's songs are asked through any Sonos room that answers.
+  - **In the integration:** `phone.py` answers `phone/songs` (a thing's songs, as a
+    phone can play them), `phone/address` (where one is fetched from, asked as each
+    song starts) and `phone/token` (Spotify). `playable.py` has the rules, with no Home
+    Assistant in it.
+  - **A library song** is a signed link to the file among Home Assistant's media.
+    `playable.placed` finds where a share is mounted by looking for the song's own path,
+    once for each share. **A station** is its own web address, or TuneIn's answer for
+    its number; a plain-http one is passed on by `phone.Stream` to an https page,
+    which would refuse it. Only sound is passed on.
+  - **Spotify needs a sign-in of Jukebox's own** (`config_flow.py`: Reconfigure, with
+    Home Assistant's OAuth helper and application credentials). Home Assistant's
+    Spotify sign-in has no `streaming` scope. The token is kept in the entry's data and
+    renewed there hourly, so **the entry starts again only when its options change**
+    (`__init__.py`). It is given to hosts only (`may.HOST`): it is a key to the house's
+    one account. My choice; the owner hasn't ruled on it.
+  - **The measured oddities are in `sound.ts`'s header**: sound starts only from a tap
+    (`unlock`, called in `phone.do` before anything is awaited: keep it first), a
+    Spotify song's end is "paused at 0:00", and Spotify forgets a sleeping page's
+    player (404, then connect again).
+  - **No wake lock:** the measurement showed a locked phone carries on. No volume
+    slider: a page can't set an iPhone's volume.
+  - **A room hidden on the house's own screens** (`me === "screen"`): my choice.
+  - **Seen:** the built bundle in headless Chromium against a pretend `hass`, playing
+    sound files (offered as a room, a playlist played, the next song by itself, the
+    queue's end, kept across a reload, a station, a song that fails).
+  - **Works on the owners' two iPads** (owner, 2026-11-24, on b26, in the house's own
+    Home Assistant: "100% perfect"). The owner didn't say which of Spotify, the
+    library and radio were played, or whether locked. **Not seen:** an iPhone or an
+    Android phone with this build.
+- **Not seen in a real Home Assistant yet** (2026-11-23): the tests and a run of
+  `speaker.py` against a real speaker (subscribing only) are all there is. Not checked:
+  the config and options dialogs, the chime's address reaching a speaker, a whole
+  announcement end to end, and the page: joining rooms, a favourite's address played
+  back through `play_media`, and artwork through HA's proxy.
+
 ## Love it or Loathe it
 
 Its own integration, `casa_mia_love_or_loathe`, since 2026.11.7-b2 (design agreed with the
 owner, 2026-11-13). Standalone like Sensor Watch: wholly in Home Assistant, nothing
 imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`.
 
+- **What it tells others of each player** (2026.11.12-b18, for Jukebox): the Last match
+  sensor's `players` (`Base.doing`), from `Player.last` with `now` true while an undo or
+  a return is pending or an action is being carried out. It is written before the
+  speaker is asked. A loathed song in a queue is skipped where its group would mute or
+  switch (`Engine._skip_or`, owner 2026-11-24: nothing to set up); `SKIPS` in a row
+  ends it, so a queue of loathed songs on repeat isn't skipped for ever.
 - **Config:** an entry is a name, its players (many) and a delay; several entries can
   be added, a player in only one (owner, 2026-11-13: one entry manages many players,
   separate entries allow variation). A subentry per group of songs and per station
@@ -169,11 +465,23 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   first.
 - **`__init__._convert`** turns groups from b2 to b4 (never released) into today's shape
   and removes their switches; it can go once the boxes that ran those have moved on.
-- **`engine.py`:** follows `state_changed` on the players (pushed). At a new track it
+- **`engine/`** (a package since 2026.11.12-b4, layered as the compositor is: `base.py`
+  what it is made from, its trail and storage; `volume.py` the change and its undoing;
+  `stations.py` the switch and the return; `engine.py` the following of tracks; each
+  extends the one below, and `common.py` holds what they share): follows `state_changed` on the players (pushed). At a new track it
   undoes the last action, then acts: volume by a percentage or mute until the next
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
+  A station whose media type is `source` (`const.SOURCE`, ours) is one of the player's
+  own sources by name, put on with `select_source` (`Stations._play`): a Sonos plays
+  that as the favourite, with its name and picture, where an address arrives bare
+  (2026.11.12-b5). `common.favourite` says which source a player is on, from its
+  channel (a Sonos adds " • " and the show). The page's dialog lists `sources`.
+  A volume is read with `_level`, never straight from the state: a speaker reports a
+  volume late, so for `REPORT_LAG` after a change made here a report still showing the
+  old volume is taken as late (2026.11.12-b3; consecutive ducked tracks halved it each
+  time).
   `_back` forgets a return only once `play_media` has worked: a player not playing, not
   yet there after a restart, or refusing the call keeps `away` with `due`, and the
   return is made when it next plays (b24; before, the return was cleared first and lost).
@@ -893,8 +1201,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   Assistant lets only admins subscribe to a custom bus event, and a wall tablet's login
   is not one. `alerts.py` listens for `casa_mia_sensor_watch`, keeps the latest per
   sensor for this run (Sensor Watch says them all again at each start), and feeds any
-  signed-in page (`casa_mia_dash_bored/alerts`). The two integrations name each other's
-  event and nothing else.
+  signed-in page (`casa_mia_dash_bored/alerts`). It drops an alert on
+  `casa_mia_sensor_watch_withdrawn` (not a recovery, so no story). The two integrations
+  name each other's events and nothing else.
 - **Seen on the test VM** (2026-11-13, Home Assistant 2026.11.1): set up through its
   flow, the page in the sidebar at tablet and phone widths, and Sensor Watch's real alerts
   from the invented house as breaking news, ranked. **Not seen:** rooms and devices from
@@ -1457,6 +1766,14 @@ CLAUDE.md has them all. What trips agents here:
   included. DuraSpeed is off on every Tab M9 (2026-10-31), but the last two haven't been
   rebooted since, which clears Android's mark against KS. Kiosk Mode was switched off on the fleet leader for the setup walk: check it is back on.
   What's left, the after-reboot routine and the helper app idea are in BACKLOG.
+- **Sensor Watch's roll-up (2026.11.12-b1) has run on the box since 2026-11-22:** a
+  failed cloud's sensors as one row and one notification.
+- **Sensor Watch's Snooze (2026.11.12-b2) is built, not yet run on the box.** Seen in a
+  local Home Assistant with an invented house: the card, the page at desk and phone
+  widths, both actions. After it is installed and Home Assistant restarted, snooze the
+  failed integration from the page: Status should drop to the next worst, the card keep
+  its "1 snoozed" line, and the sidebar's notification go. Not yet seen: the Home tile's
+  Snoozed line, Dash-Bored's alert leaving, a wall tablet.
 - **Sensor Watch** is Beta and released, in daily use on the box. A camera group watches
   every camera channel (Available, a task) with a 0 hold-off the owner set for testing; the
   level is to be revisited. Confirm b31's `…` fix after an HA restart.
@@ -1471,8 +1788,17 @@ CLAUDE.md has them all. What trips agents here:
   parts on their own (the backlog's appetite gate), and promises a Heating Flow guide next
   release: edit the topic to link it once it's out.
 - **Casa Mia is non-commercial, always** (the owner's commitment); the MIT licence stays.
-- **Seen occasionally:** "Invalid configuration" on a card that clears after a refresh.
-  Possibly HA frontend issue #53890. Unconfirmed; watch for it.
+- **Seen often after an update (owner, 2026-11-24):** Jukebox's and Sensor Watch's pages
+  and cards stay on "Invalid configuration" until a forced reload. `offerReload` can't help:
+  it runs inside the bundle, and here no bundle code is running. Two suspects, unproven:
+  (1) the page loaded while HA was starting, before the component added its `cards.js` and
+  static path; the app's kiosk reload (`__main__.py`, `on_cards`) fires on Casa Mia's cards
+  only and may land a tablet in that window; (2) a new `cards.js` loaded into a page holding
+  the old one, where `define` skips existing tags. **Next time:** the owner has agreed
+  (2026-11-24) that a stuck tablet's console is read through Kiosk Satellite (`getConsole`)
+  before it is reloaded, against HA's log (each component's set-up time, the kiosk reload).
+  If (1), the app holds the kiosk reload until every bundled component serves its version.
+  Earlier guess: HA frontend issue #53890.
 - **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
   `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
   viewers' addresses only; the Tablet Layout guide's examples.

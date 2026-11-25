@@ -60,12 +60,10 @@ export type Panel = {
 export const PANELS = ["left", "top", "right", "bottom"] as const;
 
 export type Commander = {
-  /** Its page's title on the dashboard; as a slug, the page's address. */
+  /** As a slug, its picture's address. */
   name: string;
   /** Never changes: its device in the integration. "": the first there was. */
   id?: string;
-  /** A page of its own on the dashboard; off: only drawn, for elsewhere (a card to come). */
-  page?: boolean;
   width: number;
   height: number;
   gap: number;

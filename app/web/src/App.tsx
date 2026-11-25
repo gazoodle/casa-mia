@@ -7,6 +7,7 @@ import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
 import { KioskModePage } from "./KioskModePage";
+import { useMusic } from "./jukebox";
 import { LoveOrLoathePage, useView as useLoveOrLoathe, type Fed } from "./love-or-loathe";
 import { PeoplePage } from "./PeoplePage";
 import { useSummary } from "./sensor-watch/summary";
@@ -58,7 +59,7 @@ const PAGES: Record<string, string> = {
   topology: "/topology",
 };
 /** Module pages in Home Assistant's own sidebar (the integration's panels). */
-const HA_PAGES: Record<string, string> = { sensor_watch: "/sensor-watch" };
+const HA_PAGES: Record<string, string> = { sensor_watch: "/sensor-watch", jukebox: "/jukebox" };
 
 /** Open one of Home Assistant's pages from inside the app's panel as its own links do,
  * by telling its router, so it isn't loaded afresh. Anywhere else, the link is followed. */
@@ -85,6 +86,9 @@ export function App() {
   useEffect(() => {
     photoApi.get<HeaderView>("").then(setPhoto, () => undefined);
   }, []);
+  // Jukebox is another, with a page of its own in Home Assistant, which its tile opens.
+  const music = useMusic();
+  if (Object.keys(music).length) watch.jukebox = { state: "running", ...music };
   // Love it or Loathe it is another: its tile is shown where it is set up there.
   const loveOrLoathe = useLoveOrLoathe();
   const songs = loveOrLoathe.view;
