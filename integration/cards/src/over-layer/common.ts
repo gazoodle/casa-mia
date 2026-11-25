@@ -1,17 +1,14 @@
 // The Over layer's options and their defaults, shared by the card and its editor.
+import { ANCHORS, type Anchor, cell } from "../anchors.ts";
 import type { CardConfig } from "../ha.ts";
+
+// The nine places and how one is laid out are shared (anchors.ts); they are still got from here.
+export { ANCHORS, type Anchor, placement } from "../anchors.ts";
 
 export const TYPE = "custom:casa-mia-over-layer";
 
 export type Mode = "float" | "full" | "scroll";
 export type Cover = "view" | "window";
-/** Where the card sits in what the layer covers (float; scroll: the top row only). */
-export type Anchor = "top-left" | "top" | "top-right" | "left" | "center" | "right" | "bottom-left" | "bottom" | "bottom-right";
-export const ANCHORS: Anchor[][] = [
-  ["top-left", "top", "top-right"],
-  ["left", "center", "right"],
-  ["bottom-left", "bottom", "bottom-right"],
-];
 export type Config = CardConfig & {
   card?: CardConfig; // the one card it holds
   panel?: boolean; // instead: a copy of its whole panel (every card in it but Over layers)
@@ -22,7 +19,7 @@ export type Config = CardConfig & {
   backdrop_opacity?: number; // %
   backdrop_blur?: number; // px
   width?: number; // px, the card's width when it floats or scrolls
-  anchor?: Anchor; // float: any of the nine; scroll: the top row
+  anchor?: Anchor; // where the card sits in what the layer covers. float: any of the nine; scroll: the top row
   offset_x?: number; // px in from the left or right edge it is anchored to
   offset_y?: number; // px in from the top or bottom edge it is anchored to
 };
@@ -48,23 +45,10 @@ export const withDefaults = (c: Config) => ({ ...DEFAULTS, ...c });
  * shows in its place (out of edit mode); its cards are on the layer. */
 export const holdsPanelLayer = (cards?: CardConfig[]): boolean => !!cards?.some((c) => c?.type === TYPE && c.panel === true);
 
-/** An anchor's row and column in ANCHORS; an unknown one (a typo in YAML) is the centre. */
-function cell(anchor: Anchor): [number, number] {
-  const row = ANCHORS.findIndex((r) => r.includes(anchor));
-  return row < 0 ? [1, 1] : [row, ANCHORS[row].indexOf(anchor)];
-}
-
 /** Scroll with the view has the top row only: an anchor lower down moves to the top. */
 export function anchorFor(mode: Mode, anchor: Anchor): Anchor {
   const [row, column] = cell(anchor);
   return ANCHORS[mode === "scroll" ? 0 : row][column];
-}
-
-/** The card's place in the layer (a flex box): `justify` across, `align` down. */
-export function placement(anchor: Anchor): { justify: string; align: string } {
-  const [row, column] = cell(anchor);
-  const at = ["flex-start", "center", "flex-end"];
-  return { justify: at[column], align: at[row] };
 }
 
 /** What the badge says in edit mode: "Over layer · float · the view". */

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.13-b8
+
+- Over layer: nothing you can see has changed. The grid of nine places in its editor is now a part other cards can use, ready for Jukebox's micro player.
+
 ## 2026.11.13-b7
 
 - Jukebox: the micro player's bars are drawn. In b6 the mark for playing and paused was an empty square. The mark also has a light edge, so it shows on a cover that is black.

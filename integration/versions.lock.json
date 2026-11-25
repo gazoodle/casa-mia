@@ -1,11 +1,11 @@
 {
   "casa-mia-tablet-layout": {
-    "digest": "297bf6159562a53387ae9e4b0c6856b93ad97d07d5b31c449e0bc1739b120bc7",
-    "version": "2026.11.12"
+    "digest": "fcbd8435745aef317472dd732af36abba2f4ed5fc257431e4e5f6deb14c1cf1f",
+    "version": "2026.11.13-b8"
   },
   "casa_mia": {
-    "digest": "e4c30982be5cf365f47838b1467da776ecc6177f80d1f76c874f136d6f6c5ba6",
-    "version": "2026.11.12"
+    "digest": "1351778577b0a67daa86931668a66266e5a892a9c2902641253d718180c4aaa1",
+    "version": "2026.11.13-b8"
   },
   "casa_mia_commander": {
     "digest": "e14854bd0121fdf8e16785e09459dd782bf7d2f83c84784a495ae8ea4805adc7",
