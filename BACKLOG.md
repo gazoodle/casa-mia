@@ -1146,9 +1146,10 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 - **The HACS catalog submissions (2026-11-20).** Open: Sensor Watch hacs/default#13883,
   Love it or Loathe it #14085, Dash-Bored #14577 and Tablet Layout #14586 (and ha-dial
-  #14569, not Casa Mia's). Frenck put #13883 and #14085 in draft asking for their own
-  repository in `documentation` and `issue_tracker`; 2026.11.9 published that, checked
-  at each tag and in each release's ZIP, and the owner marks them ready for review.
+  #14569, not Casa Mia's). Every review Frenck left is answered in the mirrors'
+  2026.11.12 and 2026.11.13 releases, and the owner marked the four ready and
+  re-requested review on 2026-11-25. Dash-Bored's page can still reload itself, but
+  only when switched on in Configure; he asked for it to be dropped, so it may come back.
   Don't request a review otherwise: HACS's template says that gets a pull request closed.
 - **Jukebox's catalog submission: two likely objections, left until raised** (owner,
   2026-11-25). **Waiting for a slot:** hacs/default allows an account five open pull
