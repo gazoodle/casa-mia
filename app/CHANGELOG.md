@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.14-b3
+
+- Jukebox: nothing you can see. The code that asks a speaker directly was one file close
+  to its size limit, and is now four smaller ones.
+
 ## 2026.11.14-b2
 
 - **Jukebox: an announcement's words are made before anything plays.** Until now the
