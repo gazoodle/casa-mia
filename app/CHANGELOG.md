@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.11.14-b7
+
+- **Jukebox: a new playlist can be started from a song.** Where you choose a playlist
+  for a song from the radio, or for one moved or copied from another playlist, there is
+  now a box to name a new one. It is made empty and the song is put in it. A name that a
+  playlist already has is refused.
+- **Jukebox: a song isn't put in a playlist twice without asking.** If the playlist you
+  choose has the song already, Jukebox says so and asks before adding, moving or copying
+  it there.
+- **Jukebox: a song from the radio that Spotify didn't answer for can still be added.**
+  That failure was kept until the app restarted. Pressing **Add to a playlist** now
+  looks for the song again, and the button works once it is found.
+
 ## 2026.11.14-b6
 
 - Jukebox: nothing you can see. The big player's styles moved to a file of their own,

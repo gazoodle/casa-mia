@@ -9,7 +9,7 @@ import { LitElement, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { STYLES } from "./big/styles.ts";
 import { EDITOR, edit } from "./editor.ts";
-import { type Pick, chooser, sent } from "./pick.ts";
+import { PICK, type Pick, type Told, chooser, create, put, sent } from "./pick.ts";
 import { type Favourite, type Group, type House, type Song, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
@@ -153,13 +153,19 @@ export class Big extends LitElement {
   /** Ask Jukebox for something, and say so on the player if it can't be done. The button
    * that stands for `key` shows that it is waiting until the answer comes. */
   private _do(action: string, data: object = {}, key = action): Promise<boolean> {
+    return this._told(action, data, key).then((told) => !!told);
+  }
+
+  /** As `_do`, for what Jukebox answered: `{}` when it had nothing to say, and none when
+   * it couldn't be done. */
+  private _told(action: string, data: object = {}, key = action): Promise<Told> {
     return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
-      () => {
+      (told) => {
         if (/^(queue_|play_media|stop)/.test(action)) this._stamp++;
         if (/^playlist_/.test(action)) this._dirty = true;
-        return true;
+        return (told ?? {}) as Told;
       },
-      (err) => (this._say(reason(err)), false),
+      (err) => (this._say(reason(err)), undefined),
     );
   }
 
@@ -390,13 +396,20 @@ export class Big extends LitElement {
 
   /** The station's song into a playlist: the song as it was found when the button was
    * pressed, so that one ending meanwhile isn't taken for the next. */
-  private _keep(group: Group) {
+  private async _keep(group: Group) {
     const found = group.found;
-    if (!found) return this._say(`This song can't be added to a playlist. ${group.unfound ?? "It hasn't been found on Spotify"}.`);
-    const pick = async (playlist: Favourite) => {
+    if (!found) {
+      // Why not, and another look for it: a time Spotify didn't answer is otherwise kept.
+      const why = `This song can't be added to a playlist. ${group.unfound ?? "It hasn't been found on Spotify"}.`;
+      const told = await this._told("song_find", {}, "keep");
+      if (told) this._say(told.asking ? `${why} Looking for it again.` : why);
+      return;
+    }
+    const pick = (playlist: Favourite) => {
       this._putting = undefined;
       const data = { playlist: playlist.media_content_id, media_content_id: found.uri, name: found.title.slice(0, 60) };
-      if (await this._do("playlist_add", data, "keep")) this._say(`Added to ${playlist.title}: ${found.title}`);
+      const already = { text: `“${found.title}” is in ${playlist.title} already.`, go: "Add it again" };
+      put((d) => this._told("playlist_add", d, "keep"), data, already, (sure) => (this._confirm = sure), () => this._say(`Added to ${playlist.title}: ${found.title}`));
     };
     this._putting = { title: "Add to a playlist", text: `“${found.title}” by ${found.by}, from Spotify, goes at the end of the playlist you choose.`, pick };
   }
@@ -406,14 +419,29 @@ export class Big extends LitElement {
   private _send(from: Favourite, at: number, song: Song, copy: boolean) {
     this._tapped = undefined;
     const asked = sent(from, at, song, copy);
-    const pick = async (playlist: Favourite) => {
+    const pick = (playlist: Favourite) => {
       this._putting = undefined;
-      if (!(await this._do(asked.action, asked.data(playlist), `row:${at}`))) return;
-      this._say(asked.said(playlist));
-      this._stamp++; // the songs of this one are asked for again
+      const done = () => {
+        this._say(asked.said(playlist));
+        this._stamp++; // the songs of this one are asked for again
+      };
+      put((d) => this._told(asked.action, d, `row:${at}`), asked.data(playlist), asked.already(playlist), (sure) => (this._confirm = sure), done);
     };
     this._putting = { ...asked.pick, pick };
   }
+
+  /** A new playlist, named in the chooser: made, and then chosen as one listed would be. */
+  private _new = async (name: string) => {
+    const asked = this._putting;
+    if (!asked) return;
+    try {
+      const made = await this._busy.during("new", create(this.hass, this.room, name));
+      this._dirty = true; // it is among the favourites from now on
+      asked.pick(made);
+    } catch (err) {
+      this._say(reason(err));
+    }
+  };
 
   private _delete(playlist: Favourite) {
     const run = async () => {
@@ -529,7 +557,7 @@ export class Big extends LitElement {
       </div>`;
     if (this._putting) {
       const shut = () => (this._putting = undefined);
-      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${chooser(this._favourites, this._putting, shut)}</div>`;
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${chooser(this._favourites, this._putting, shut, this._new)}</div>`;
     }
     const [tapped, viewing] = [this._tapped, this._viewing];
     if (tapped && viewing) {
@@ -628,5 +656,5 @@ export class Big extends LitElement {
     </div>`;
   }
 
-  static styles = [shared, grips, STYLES];
+  static styles = [shared, grips, STYLES, PICK];
 }

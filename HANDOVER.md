@@ -317,10 +317,17 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   was. Between playlists: `playlist_send` and `playlist_copy` (`upnp.playlist_send`)
   read the song from the speaker by its number, refuse if its title isn't the one the
   page showed, add it to the other playlist and then, for a move, take it out. The
-  chooser is `pick.ts`, shared by the big player and the editor. Not tried on a real
+  chooser is `pick.ts`, shared by the big player and the editor. Since b7: the
+  chooser names a new playlist (`playlist_new`, the speaker's `CreateSavedQueue` with
+  nothing to save, as SoCo makes one), which is made empty and then chosen; an add,
+  move or copy sent with `again: false` is answered `{already: true}` and left undone
+  when the playlist holds the song (`upnp.holds`, by Spotify's id or the address), and
+  `put` in `pick.ts` asks before sending it with `again: true`; and `song_find`
+  (`Covers.again`) looks a station's song up once more when the button is pressed,
+  since a failure is otherwise kept. Not tried on a real
   speaker: a library song goes as `playlist_add` sends one, which was; a streamed
   song goes with the speaker's own description (`_described`), which was only tried
-  for putting a song back into the queue.
+  for putting a song back into the queue. `CreateSavedQueue` hasn't been tried either.
 - **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
   and the players' card both extend. Until then only the page had it.
 - **Who changes playlists** (b24, owner 2026-11-24): hosts at any time, and the

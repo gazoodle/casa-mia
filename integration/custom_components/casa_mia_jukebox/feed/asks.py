@@ -26,7 +26,9 @@ async def do(
     """Carry out one thing the page asked for, and write down who asked. Raises
     HomeAssistantError, with the reason, when it can't be done, or when this asker may
     not do it while a party is on (may.py)."""
-    doing = _Doing(feed.hass, feed.model(), entity, data, feed.parties, feed.curator)
+    doing = _Doing(
+        feed.hass, feed.model(), entity, data, feed.parties, feed.curator, feed.covers
+    )
     party = feed.parties.led_by(doing.group["id"])
     # The addresses of what is played stay out of the log: a link can carry a key.
     said = {k: v for k, v in data.items() if k != "media_content_id"}

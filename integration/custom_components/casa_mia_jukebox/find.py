@@ -220,6 +220,19 @@ class Covers:
             )
         return self._known.get(pair, self.ASKING)
 
+    def again(self, artist: str, title: str) -> bool:
+        """Forget that a song wasn't found, or that Spotify didn't answer for it, and
+        ask once more: for someone who wants to add it. A failure is otherwise kept,
+        since asking at every change would be a poll. True when it is asked."""
+        pair = cover.names(artist, title)
+        known = self._known.get(pair) if pair else None
+        if pair is None or pair in self._asking or isinstance(known, cover.Song):
+            return False
+        self._known.pop(pair, None)
+        self.of(artist, title)
+        self._changed()
+        return True
+
     async def _ask(self, pair: tuple[str, str]) -> None:
         found: cover.Song | str = self.NOT_FOUND
         try:

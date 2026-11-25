@@ -10,7 +10,7 @@ from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .. import house, speaker, upnp
+from .. import find, house, speaker, upnp
 from ..announce import address
 from ..curate import Curator
 from ..house import QUEUE
@@ -29,6 +29,7 @@ class _Doing:
         data: dict,
         parties: Parties,
         curator: Curator | None = None,
+        covers: find.Covers | None = None,
     ) -> None:
         group = house.group_of(model, entity)
         if group is None:
@@ -37,6 +38,7 @@ class _Doing:
         self.group: dict[str, Any] = group
         self.parties = parties
         self.curator = curator
+        self.covers = covers
         # What an action has to say of what it did, for the page: none for most.
         self.result: dict[str, Any] | None = None
         # What this changed that a party must know of, to tell it from a guest's change
@@ -235,9 +237,12 @@ class _Doing:
             raise Refused("The song is in that playlist already")
         # The song's title as the page showed it, to tell that it is still the one.
         called = str(self._value("name"))
-        await upnp.playlist_send(
-            *self._speaker(), playlist, self._song(), called, into, keep
+        again = self.data.get("again") is not False
+        moved = await upnp.playlist_send(
+            *self._speaker(), playlist, self._song(), called, into, keep, again
         )
+        if not moved:
+            self.result = {"already": True}
 
     async def playlist_copy(self) -> None:
         await self.playlist_send(keep=True)
@@ -260,7 +265,35 @@ class _Doing:
         # The name is what a Spotify song is listed by until the speaker has its own.
         name = str(self.data.get("name", ""))
         to = self._song("to") if "to" in self.data else None
-        await upnp.playlist_add(*self._speaker(), self._playlist(), thing, name, to)
+        speaker, playlist = self._speaker(), self._playlist()
+        # Asked with `again` said to be off: a song the playlist holds isn't added,
+        # and the page is told, to ask whether it should be.
+        if self.data.get("again") is False and await upnp.holds(
+            *speaker, playlist, thing
+        ):
+            self.result = {"already": True}
+            return
+        await upnp.playlist_add(*speaker, playlist, thing, name, to)
+
+    async def playlist_new(self) -> None:
+        """An empty playlist called `name`: its id goes back to the page, which then
+        puts a song in it."""
+        if not (name := str(self._value("name")).strip()):
+            raise Refused("The playlist needs a name")
+        speaker = self._speaker()
+        # Sonos would keep two of a name, and they couldn't be told apart.
+        taken = {p["title"].strip().casefold() for p in await upnp.playlists(*speaker)}
+        if name.casefold() in taken:
+            raise Refused(f"There is a playlist called '{name}' already")
+        self.result = {"playlist": await upnp.playlist_new(*speaker, name)}
+
+    async def song_find(self) -> None:
+        """Look on Spotify again for the song a station is playing: asked when
+        someone wants to add a song that wasn't found. What is found is pushed."""
+        asking = bool(self.covers) and self.covers.again(
+            self.group["artist"], self.group["title"]
+        )
+        self.result = {"asking": asking}
 
     def _song(self, name: str = "value") -> int:
         if (song := int(self._value(name))) < 1:
@@ -384,6 +417,8 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "playlist_add": _Doing.playlist_add,
     "playlist_send": _Doing.playlist_send,
     "playlist_copy": _Doing.playlist_copy,
+    "playlist_new": _Doing.playlist_new,
+    "song_find": _Doing.song_find,
     "playlist_sort": lambda doing: doing.curator.sort(doing),
     "playlist_unsort": lambda doing: doing.curator.unsort(doing),
     "playlist_dedupe": lambda doing: doing.curator.dedupe(doing),

@@ -390,3 +390,86 @@ async def test_a_playlist_is_sorted_put_back_and_rid_of_songs_that_are_in_it_twi
     assert (await do("playlist_dedupe"))["result"] == {"removed": 1}
     assert reordered() == ("3", "")
     assert not (await do("playlist_sort", by="mood"))["success"]
+
+
+async def test_a_new_playlist_is_made_and_a_song_it_holds_is_asked_about_first(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    # The speaker has one playlist, and lists the same song in whatever it is asked of.
+    kept = LISTED.replace(
+        "<item ",
+        '<container id="SQ:4" parentID="SQ:"><dc:title>Friday Night</dc:title>'
+        "<res>file:///saved#4</res></container><item ",
+    )
+    listed = [kept]
+
+    async def browsed(method, url, data):
+        said = answered("ContentDirectory", "Browse", Result=listed[0])
+        return AiohttpClientMockResponse(method, url, text=said)
+
+    async def changed(method, url, data):
+        made = "CreateSavedQueue" in data.decode()
+        said = answered(
+            "AVTransport",
+            "CreateSavedQueue" if made else "Any",
+            **({"AssignedObjectID": "SQ:9"} if made else {}),
+        )
+        return AiohttpClientMockResponse(method, url, text=said)
+
+    aioclient_mock.post(BROWSE, side_effect=browsed)
+    aioclient_mock.post(TRANSPORT, side_effect=changed)
+    client = await hass_ws_client(hass)
+
+    async def do(action, **data):
+        aioclient_mock.mock_calls.clear()
+        return await ask(client, DO, action=action, entity_id=KITCHEN, **data)
+
+    def added():
+        bodies = [call[2].decode() for call in aioclient_mock.mock_calls]
+        return any("<u:AddURIToSavedQueue " in body for body in bodies)
+
+    # A new playlist, empty: its id goes back, for the page to put the song in.
+    new = await do("playlist_new", name=" Sunday Morning ")
+    assert new["success"] and new["result"] == {"playlist": "SQ:9"}
+    made = asked(aioclient_mock, "CreateSavedQueue")
+    assert (made["Title"], made["EnqueuedURI"]) == ("Sunday Morning", "")
+    # Not a second one of a name, however it is written: they couldn't be told apart.
+    twice = await do("playlist_new", name="friday night")
+    assert not twice["success"] and "already" in twice["error"]["message"]
+    assert not (await do("playlist_new", name="  "))["success"]
+
+    # A song the playlist holds isn't added when the page says it hasn't asked: the
+    # page is told, and asks. Once it has asked, the song is added again.
+    song = {"playlist": "SQ:4", "media_content_id": "x-file-cifs://nas/music/a.mp3"}
+    held = await do("playlist_add", **song, again=False)
+    assert held["success"] and held["result"] == {"already": True} and not added()
+    assert (await do("playlist_add", **song, again=True))["success"] and added()
+    # One that it doesn't hold is added without a question.
+    other = song | {"media_content_id": "x-file-cifs://nas/music/b.mp3"}
+    fresh = await do("playlist_add", **other, again=False)
+    assert fresh["success"] and not fresh["result"] and added()
+
+    # A song from Spotify is the same song however its address is written: as the
+    # speaker lists it in the playlist, and as Spotify names it for the radio's song.
+    listed[0] = STREAMED
+    radio = {"playlist": "SQ:4", "media_content_id": "spotify:track:lanterns"}
+    held = await do("playlist_add", **radio, again=False)
+    assert held["result"] == {"already": True} and not added()
+    radio["media_content_id"] = "spotify:track:tides"
+    assert not (await do("playlist_add", **radio, again=False))["result"] and added()
+
+    # Copied or moved to a playlist that holds it: the same question, nothing done.
+    move = {"playlist": "SQ:4", "value": 1, "name": "Paper Lanterns", "into": "SQ:7"}
+    for action in ("playlist_copy", "playlist_send"):
+        held = await do(action, **move, again=False)
+        assert held["result"] == {"already": True} and not added()
+        assert not asked_any(aioclient_mock, "ReorderTracksInSavedQueue")
+    assert (await do("playlist_copy", **move, again=True))["success"] and added()
+
+
+def asked_any(aioclient_mock, action):
+    """Whether the speaker was sent an action at all."""
+    return any(f"<u:{action} " in c[2].decode() for c in aioclient_mock.mock_calls)

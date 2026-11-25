@@ -13,7 +13,16 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .. import tidy
 from ..playable import FILE
-from .common import ABOUT, DC, DIDL, _described, _glance, _listed, call
+from .common import (
+    ABOUT,
+    DC,
+    DIDL,
+    _described,
+    _everything,
+    _glance,
+    _listed,
+    call,
+)
 
 # ---- Changing a Sonos playlist where it is kept. A playlist's songs are numbered from 0
 # by the speaker; here, as everywhere in Jukebox, from 1.
@@ -193,10 +202,12 @@ async def playlist_send(
     called: str,
     into: str,
     keep: bool = False,
-) -> None:
+    again: bool = True,
+) -> bool:
     """Move song number `song` of a Sonos playlist to the end of the playlist `into`,
     or copy it there with `keep`. It is added there before it is taken out here: a
-    failure between the two leaves it in both, never in neither.
+    failure between the two leaves it in both, never in neither. Without `again`, a
+    song that `into` holds already is left where it is, and the answer is False.
 
     `called` is the start of the song's title as the asker saw it. The song is asked
     for by its number, and the playlist may have been changed since the asker's list
@@ -213,10 +224,12 @@ async def playlist_send(
 
     # A streamed song keeps everything the speaker said of it: given less, a song put
     # back into the queue lost its names (`_described`).
+    if not again and await holds(session, host, into, address):
+        return False
     about = _filed(address, title) if address.startswith(FILE) else _described(item)
     await _add_to(session, host, into, address, about, None)
     if keep:
-        return
+        return True
     try:
         await playlist_remove(session, host, playlist, song)
     except HomeAssistantError as err:
@@ -225,6 +238,47 @@ async def playlist_send(
             f"The song was added to the other playlist, but couldn't be taken out "
             f"of this one, so it is in both ({err})"
         ) from err
+    return True
+
+
+# Spotify's id for a song, as a speaker writes it in a playlist's address
+# (`x-sonos-spotify:spotify%3atrack%3a…`) and as Spotify does (`spotify:track:…`).
+_SPOTIFY_SONG = re.compile(r"spotify(?::|%3a)track(?::|%3a)(\w+)", re.IGNORECASE)
+
+
+def _same(address: str) -> str:
+    """What tells one song from another however its address is written: Spotify's id
+    for it, or the address itself."""
+    found = _SPOTIFY_SONG.search(address)
+    return f"spotify:track:{found[1]}" if found else address
+
+
+async def holds(
+    session: aiohttp.ClientSession, host: str, playlist: str, address: str
+) -> bool:
+    """Whether a Sonos playlist has this song in it already."""
+    items, _ = await _everything(session, host, playlist, "playlist")
+    song = _same(address)
+    return any(_same(item.findtext(f"{DIDL}res") or "") == song for item in items)
+
+
+async def playlist_new(session: aiohttp.ClientSession, host: str, name: str) -> str:
+    """Make an empty Sonos playlist called `name`, and give its id (`SQ:7`): the
+    speaker's request for making one from something, with nothing named, as SoCo's
+    `create_sonos_playlist` makes one. Not tried on a real speaker (2026-11-25)."""
+    made = await call(
+        session,
+        host,
+        "AVTransport",
+        "CreateSavedQueue",
+        InstanceID=0,
+        Title=name,
+        EnqueuedURI="",
+        EnqueuedURIMetaData="",
+    )
+    if not (playlist := made.get("AssignedObjectID", "")):
+        raise HomeAssistantError("The speaker made no playlist, and didn't say why")
+    return playlist
 
 
 async def _add_to(

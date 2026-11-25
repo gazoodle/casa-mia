@@ -9,7 +9,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { type Hass } from "../ha.ts";
 import { type Favourite, type House, type Song, ask, curates, favourites, follow, groupOf, mmss, names, reason } from "./common.ts";
-import { type Pick, chooser, sent } from "./pick.ts";
+import { PICK, type Pick, chooser, create, put, sent } from "./pick.ts";
 import { type Queue } from "./queue.ts";
 import { Busy, EDGE, Split, art, grips, icon, shared } from "./parts.ts";
 
@@ -113,7 +113,8 @@ export class Editor extends LitElement {
   private _run(action: string, data: Record<string, unknown> = {}, key = action): Promise<Record<string, unknown> | undefined> {
     return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
       (told) => {
-        this._moved(action, data);
+        // Nothing was done to a song that the other playlist holds already.
+        if (!(told as { already?: boolean } | null)?.already) this._moved(action, data);
         this._stamp++;
         return (told ?? {}) as Record<string, unknown>;
       },
@@ -180,9 +181,9 @@ export class Editor extends LitElement {
   private _send(sel: number, song: Song, copy: boolean) {
     const from = this.playlist!;
     const asked = sent(from, sel, song, copy);
-    const pick = async (playlist: Favourite) => {
+    const pick = (playlist: Favourite) => {
       this._putting = undefined;
-      if (await this._run(asked.action, asked.data(playlist))) this._say(asked.said(playlist));
+      put((d) => this._run(asked.action, d as Record<string, unknown>), asked.data(playlist), asked.already(playlist), (sure) => (this._confirm = sure), () => this._say(asked.said(playlist)));
     };
     this._lists = undefined;
     favourites(this.hass, this.room).then(
@@ -191,6 +192,17 @@ export class Editor extends LitElement {
     );
     this._putting = { ...asked.pick, pick };
   }
+
+  /** A new playlist, named in the chooser: made, and then chosen as one listed would be. */
+  private _new = async (name: string) => {
+    const asked = this._putting;
+    if (!asked) return;
+    try {
+      asked.pick(await this._busy.during("new", create(this.hass, this.room, name)));
+    } catch (err) {
+      this._say(reason(err));
+    }
+  };
 
   private _which() {
     return this.playlist ? { playlist: this.playlist.media_content_id } : {};
@@ -329,7 +341,7 @@ export class Editor extends LitElement {
     }
     if (this._putting) {
       const shut = () => (this._putting = undefined);
-      return veil(chooser(this._lists, this._putting, shut), shut);
+      return veil(chooser(this._lists, this._putting, shut, this._new), shut);
     }
     if (this._sorting)
       return veil(
@@ -439,11 +451,10 @@ export class Editor extends LitElement {
       .sheet .acts .main { background: #fff; color: #111; }
       .sheet .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
       .sheet .acts .sep { margin-top: 10px; }
-      .sheet .picks { max-height: 32vh; overflow: auto; }
-      .sheet .lost { color: #ff9a8f; }
       .large { width: min(84vw, 84vh); }
       .large .art { border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
       .toast { position: fixed; left: 50%; bottom: 26px; z-index: 8; transform: translateX(-50%); max-width: min(90vw, 520px); padding: 12px 18px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; }
     `,
+    PICK,
   ];
 }

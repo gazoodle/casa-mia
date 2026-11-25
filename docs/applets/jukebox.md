@@ -139,8 +139,9 @@ Tap a player to open it over the whole screen. There you have:
   something on the end: a song or an album from the music library, or a song, an
   album or a playlist from Spotify. Tapping a song there offers **Move to another
   playlist…** and **Copy to another playlist…**, and then lists your other playlists,
-  with the one last chosen on that screen first. The song goes at the end of the
-  playlist you choose. A moved song is added there before it is taken out here, so if
+  with the one last chosen on that screen first, and a box to name a new playlist
+  instead. The song goes at the end of the playlist you choose; if that playlist has
+  the song already, you are asked first. A moved song is added there before it is taken out here, so if
   something goes wrong in between it is in both playlists, and Jukebox says so. If
   someone else has changed the playlist since you opened it and another song is in
   that place, nothing is changed and you are told. Each heading in Favourites folds
@@ -385,8 +386,12 @@ song to the end of the one you choose.
 - When there is no song to add, the button is dimmed, and pressing it says why: the
   station sent no artist and title, Spotify has no song that matches, the song is still
   being looked for, or the Spotify integration isn't set up.
-- Adding the same song twice puts it in the playlist twice. **Duplicates…** in the
-  editor takes the second one out.
+- When there is no song to add, pressing the button also looks for it on Spotify once
+  more. If Spotify didn't answer the first time, the song can be added once it has.
+- To start a new playlist with the song, type a name under the list and press **New
+  playlist**. A name that a playlist already has is refused.
+- If the playlist you choose has the song in it already, Jukebox says so and asks
+  before adding it a second time.
 
 ## With Love it or Loathe it
 

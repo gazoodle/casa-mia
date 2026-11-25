@@ -43,22 +43,13 @@ The owner's idea, 2026-11-20: one place for both of the owners to manage the hou
 across Sonos, Spotify and the local library, in place of Music Assistant. The name is final
 (owner, 2026-11-20).
 
-- **A song into a playlist: what is left** (agreed with the owner, 2026-11-25, after
-  2026.11.14-b4). `feed.py` (772 lines) and `big.ts` (779) are close to the 800 limit
-  and each of these adds to them, so split those two first, as commits of their own.
-  - **New playlist…** in the chooser (`pick.ts`). A playlist can only be made by
-    saving a queue, so a new list can't be started from a song on the radio. The
-    speaker's `CreateSavedQueue` is thought to make one from a single song: try it on a
-    real speaker before building on it.
-  - **A song that is in the playlist already.** Adding the same radio song twice puts
-    it in twice. Say so, and ask, before adding it again.
-  - **A failed Spotify lookup is kept.** `find.Covers` remembers that Spotify didn't
-    answer for a song until the app restarts, so that song can't be added even when
-    Spotify is back. Pressing **Add to a playlist** should ask again.
-  - Lesser: the Favourites tab shows "Fetching…" while the tiles are fetched again
-    after a playlist change, where it could keep the old tiles until the new ones
-    come; the editor's chooser fetches every tile's covers to list the names; and a
-    song the house has as a file is still added from Spotify.
+- **A song into a playlist: what is left** (after 2026.11.14-b7). The Favourites tab
+  shows "Fetching…" while the tiles are fetched again after a playlist change, where it
+  could keep the old tiles until the new ones come. The editor's chooser fetches every
+  tile's covers to list the names. A song the house has as a file is still added from
+  Spotify. A new playlist is made before its song is put in, so if that fails an
+  empty playlist is left (the reason is said). None of b4 to b7's playlist work has
+  been tried on a real speaker: do that first.
 - **Jukebox adds no media players** (owner, 2026-11-20). Each room stays the single
   entity that Home Assistant's Sonos integration makes. Jukebox's card, its services and
   the Sonos app all drive that one entity. Why: Music Assistant wraps each speaker in a
@@ -1160,8 +1151,12 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   at each tag and in each release's ZIP, and the owner marks them ready for review.
   Don't request a review otherwise: HACS's template says that gets a pull request closed.
 - **Jukebox's catalog submission: two likely objections, left until raised** (owner,
-  2026-11-25). The submission is prepared: branch `add-casa-mia-jukebox` in the local
-  clone of `gazoodle/default`, one line in `integration`. Frenck rejected both patterns
+  2026-11-25). **Waiting for a slot:** hacs/default allows an account five open pull
+  requests and the owner has five (2026-11-25), so it can be opened only when one of
+  them is merged or closed. Ready to open: branch `add-casa-mia-jukebox` pushed to
+  `gazoodle/default`, title "Adds new integration [gazoodle/casa-mia-jukebox]", the
+  usual checklist, linking the mirror's latest release and its HACS and hassfest jobs
+  (refresh them first). Frenck rejected both patterns
   in Dash-Bored (#14577), so they are fixed when he raises them, not before:
   - `art.View` and `phone.Stream` are `requires_auth = False`, guarded by one key per
     start shared by every page, which ends up in history and logs; the art view also

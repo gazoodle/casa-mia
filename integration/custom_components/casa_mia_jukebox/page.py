@@ -141,6 +141,8 @@ def _ws_house(
         vol.Optional("playlist"): str,
         # The playlist a song of `playlist` is moved to.
         vol.Optional("into"): str,
+        # Off: a song the playlist holds already isn't added, and the page is told.
+        vol.Optional("again"): bool,
     }
 )
 @websocket_api.async_response

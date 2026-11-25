@@ -125,7 +125,7 @@ export const STYLES = css`
   .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
   .acts .sep { margin-top: 10px; }
   .sheet .or { margin: 16px 0 8px; }
-  .over, .picks { max-height: 32vh; overflow: auto; }
+  .over { max-height: 32vh; overflow: auto; }
   .toast { position: absolute; left: 14px; right: 14px; bottom: 18px; z-index: 6; margin: 0 auto; width: fit-content; max-width: calc(100% - 28px); padding: 11px 16px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 10px 30px rgb(0 0 0 / 45%); opacity: 0; transform: translateY(12px); transition: 0.25s; pointer-events: none; }
   .toast.on { opacity: 1; transform: none; }
   /* Out of the way of a question's buttons. */

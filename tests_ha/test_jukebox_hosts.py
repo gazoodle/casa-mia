@@ -111,6 +111,7 @@ async def test_a_login_named_as_a_host_runs_the_party_and_others_cant_start_one(
         "playlist_add",
         "playlist_send",
         "playlist_copy",
+        "playlist_new",
     )
     for action in changes:
         kept = await ask(someone, DO, action=action, entity_id=KITCHEN, name="A list")

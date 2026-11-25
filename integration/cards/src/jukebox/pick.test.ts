@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Favourite, Song } from "./common.ts";
-import { offered, sent } from "./pick.ts";
+import { type Sure, offered, put, sent } from "./pick.ts";
 
 const list = (id: string, title: string, playlist = true): Favourite => ({ folder: "Playlists", title, live: false, playlist, picture: null, media_content_id: id, media_content_type: "favorite_item_id" });
 const [friday, sunday, quiet] = [list("SQ:4", "Friday Night"), list("SQ:7", "Sunday Morning"), list("SQ:9", "Quiet")];
@@ -31,4 +31,29 @@ test("a song moved or copied: what is asked for, with its title, and what is sai
   assert.match(copy.pick.text, /stays in Friday Night/);
   // A title longer than Jukebox takes is cut, as the speaker's is compared from its start.
   assert.equal(sent(friday, 0, { ...song, title: "x".repeat(80) }, true).data(sunday).name.length, 60);
+});
+
+test("a song the playlist holds already is asked about before it goes in again", async () => {
+  const asked: object[] = [];
+  const questions: Sure[] = [];
+  let done = 0;
+  const run = (holds: boolean) => async (data: object) => (asked.push(data), holds && !(data as { again: boolean }).again ? { already: true } : {});
+  const already = { text: "It is in Sunday Morning already.", go: "Add it again" };
+  const sure = (q: Sure) => void questions.push(q);
+
+  // Not in it: put in at once, having said that nobody was asked.
+  await put(run(false), { playlist: "SQ:7" }, already, sure, () => done++);
+  assert.deepEqual([asked, questions.length, done], [[{ playlist: "SQ:7", again: false }], 0, 1]);
+
+  // In it: nothing is done until the person says so, and then it is asked for again.
+  await put(run(true), { playlist: "SQ:7" }, already, sure, () => done++);
+  assert.deepEqual([questions.length, done], [1, 1]);
+  assert.deepEqual([questions[0].text, questions[0].go], ["It is in Sunday Morning already.", "Add it again"]);
+  await questions[0].run();
+  assert.deepEqual([asked.at(-1), done], [{ playlist: "SQ:7", again: true }, 2]);
+
+  // Refused (Jukebox has said why): nothing more happens.
+  await put(async () => undefined, {}, already, sure, () => done++);
+  assert.deepEqual([questions.length, done], [1, 2]);
+  assert.deepEqual(sent(friday, 1, song, false).already(sunday), { text: "“Paper Lanterns” is in Sunday Morning already.", go: "Move it anyway" });
 });

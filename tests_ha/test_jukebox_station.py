@@ -1,7 +1,7 @@
 """A station that Home Assistant has no name or picture for: Jukebox asks the speaker,
 once for each stream. The speakers are the page tests' stand-ins."""
 
-from custom_components.casa_mia_jukebox.page import HOUSE
+from custom_components.casa_mia_jukebox.page import DO, HOUSE
 from test_jukebox_page import (  # noqa: F401  (sent is a fixture)
     TRANSPORT,
     a_spotify,
@@ -119,3 +119,76 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
     assert "its cover found on Spotify" in caplog.text
     hass.states.async_set(KITCHEN, "playing", station)
     assert (await once("Paper Lanterns"))["cover"] and len(asked) == 1
+
+
+async def test_a_song_spotify_didnt_answer_for_is_looked_for_again_when_asked(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    monkeypatch,
+):
+    asked = []
+
+    async def search(query, kinds, limit):
+        asked.append(query)
+        if len(asked) == 1:
+            raise TimeoutError("no answer")
+        album = {"images": [{"url": "https://covers.example/lanterns.jpg"}]}
+        song = {
+            "name": "Paper Lanterns",
+            "artists": [{"name": "The Marigolds"}],
+            "uri": "spotify:track:lanterns",
+        }
+        return {"tracks": {"items": [song | {"album": album}]}}
+
+    a_spotify(hass, monkeypatch, search)
+    station = {
+        "group_members": [KITCHEN, GARDEN],
+        "media_channel": "Harbour FM",
+        "entity_picture": "/logo.png",
+        "media_title": "Paper Lanterns",
+        "media_artist": "The Marigolds",
+    }
+    hass.states.async_set(KITCHEN, "playing", station)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": HOUSE})
+
+    async def told(wanted):
+        """The next thing the page is sent that `wanted` picks out."""
+        while True:
+            if (found := wanted(await client.receive_json())) is not None:
+                return found
+
+    def group(message):
+        return message.get("event", {}).get("groups", [None])[0]
+
+    # Spotify didn't answer: the page has the reason, and it isn't asked at each change.
+    failed = await told(
+        lambda m: (g := group(m)) and "didn't answer" in g["unfound"] and g
+    )
+    assert failed["found"] is None
+    hass.states.async_set(KITCHEN, "playing", station | {"volume_level": 0.2})
+    hass.states.async_set(KITCHEN, "playing", station)
+    await hass.async_block_till_done()
+    assert len(asked) == 1
+
+    # Someone presses Add to a playlist: it is asked once more, and what is found is
+    # pushed to the page.
+    await client.send_json_auto_id(
+        {"type": DO, "action": "song_find", "entity_id": KITCHEN}
+    )
+    answer = await told(
+        lambda m: m.get("result") if m.get("type") == "result" else None
+    )
+    assert answer == {"asking": True}
+    found = await told(lambda m: (g := group(m)) and g["found"])
+    assert found["uri"] == "spotify:track:lanterns" and len(asked) == 2
+
+    # A song that is found isn't looked for again.
+    await client.send_json_auto_id(
+        {"type": DO, "action": "song_find", "entity_id": KITCHEN}
+    )
+    answer = await told(
+        lambda m: m.get("result") if m.get("type") == "result" else None
+    )
+    assert answer == {"asking": False} and len(asked) == 2
