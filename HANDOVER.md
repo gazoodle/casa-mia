@@ -231,8 +231,11 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
   the feed's `queue_size` or `queue_position` changes, and after each change of its own.
 - **The page's pieces are cards** (owner, 2026-11-24, in place of customising Jukebox's
-  own page): `card.ts` (players), `pieces.ts` (quiet rooms, shortcut, now playing) and
-  `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
+  own page): `card.ts` (players), `micro.ts` (a room's picture alone, for a sidebar: it shows state
+  and has no controls, so no transport glyphs go on it; `common.standing` decides its
+  mark; three sizes that are whole rows of a section, one of nine places in its card by
+  the shared `../anchor-grid.ts`, HA's `tap_action`, and `picture_only` (the Markdown card's `text_only`: off by default, so it has `ha-card`'s chrome). A room playing nothing is a speaker (`parts.plate`), or the card's `quiet_icon` or `quiet_image`, never initials; its editor is `micro-editor.ts`,
+  as a form HA draws can't hold the grid), `pieces.ts` (quiet rooms, shortcut, now playing) and `rooms.ts`. **A new look is not a new option** (owner, 2026-11-25): `opens.ts` lets any card open the big player by a `fire-dom-event` action (`casa_mia_jukebox: {room, tab}`), so a tile or a button is made from HA's own cards. Why: the micro player was gathering words and second pictures. The Now playing card is the big player with `inline`; its wide layout is
   a container query, so it follows its own width and not the screen's. The Shortcut
   card and automations use the `casa_mia_jukebox.play` action (`feed.play`), which goes
   through `do`. Making each piece adapt to the size it is given is still to do.
@@ -438,7 +441,10 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **What it tells others of each player** (2026.11.12-b18, for Jukebox): the Last match
   sensor's `players` (`Base.doing`), from `Player.last` with `now` true while an undo or
   a return is pending or an action is being carried out. It is written before the
-  speaker is asked. A loathed song in a queue is skipped where its group would mute or
+  speaker is asked. Once over, it is forgotten at the next track (`Engine._outlived`,
+  owner 2026-11-25: an advert's volume was told under the song after it), but for a
+  skip or a return from another station, told through the one track it brought
+  (`Player.outlives`). A loathed song in a queue is skipped where its group would mute or
   switch (`Engine._skip_or`, owner 2026-11-24: nothing to set up); `SKIPS` in a row
   ends it, so a queue of loathed songs on repeat isn't skipped for ever.
 - **Config:** an entry is a name, its players (many) and a delay; several entries can
@@ -545,6 +551,9 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **An entry's Watching switch** (b7, `switch.py`, option `enabled`): off, the engine
   starts but follows nothing; armed returns still fire. `_convert` removes the old
   per-group switches but must leave this one (it checks the unique id).
+  No per-group Active switch (owner, 2026-11-25): Ignore keeps `before`, so an
+  automation setting a person's group to `ignore` and back (on presence, a Mac's lock)
+  loses nothing. Revisit only if presence and a calendar must both drive one group.
 - **Who may rate** (b7; owner, 2026-11-13: "default none"): entry options `raters`
   (person entities) and `screens` (HA user ids that may name a person; a wall tablet's).
   `rating.refused` is the one check, used by the `rate` action and by the thumbs' feed

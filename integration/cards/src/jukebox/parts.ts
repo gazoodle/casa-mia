@@ -28,6 +28,7 @@ const PATHS = {
   close: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
   volume: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z",
   muted: "M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z",
+  warn: "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
   check: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
   plus: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
   menu: "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z",
@@ -57,6 +58,14 @@ export function sleeve(hass: Urls, group: { picture: string | null; cover?: stri
   if (!group.cover) return art(hass, group.picture, title);
   const [a, b] = colours(title);
   return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i><img src=${from(hass, group.cover)} alt="" @error=${gone} />${group.picture ? html`<img class="badge" src=${from(hass, group.picture)} alt="" @error=${gone} />` : nothing}</span>`;
+}
+
+/** A picture for a room that has none: `sign` (an icon) on the two colours of its name,
+ * or `picture` in the sign's place. A picture that won't load leaves the sign, so a
+ * mistyped address is seen as the usual sign and not as an empty square. */
+export function plate(hass: Urls, name: string, sign: unknown, picture?: string) {
+  const [a, b] = colours(name);
+  return html`<span class="art plate" style="--a:${a};--b:${b}">${picture ? html`<img src=${from(hass, picture)} alt="" @error=${gone} />` : nothing}<span class="sign">${sign}</span></span>`;
 }
 
 /** A playlist's tile: the covers of four of its albums, two by two, so that one playlist
@@ -412,6 +421,12 @@ export const shared = css`
   .art i { font-style: normal; font-size: 30cqw; letter-spacing: -0.02em; text-shadow: 0 2px 12px rgb(0 0 0 / 30%); }
   .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .art img.badge { inset: auto 5% 5% auto; width: 32%; height: 32%; border-radius: 50%; border: 2px solid rgb(255 255 255 / 85%); background: #111; box-shadow: 0 2px 10px rgb(0 0 0 / 55%); box-sizing: border-box; }
+  /* A plate's sign is half the picture's width, whatever the picture's size; its own
+     picture is shown whole (a logo isn't to be cut), and hides the sign while it is there. */
+  .plate .sign { display: grid; }
+  .plate img ~ .sign { display: none; }
+  .plate img { object-fit: contain; }
+  .plate svg, .plate ha-icon { width: 50cqw; height: 50cqw; --mdc-icon-size: 50cqw; }
   .art.four img { inset: auto; width: 50%; height: 50%; }
   .art.four img:nth-of-type(1) { top: 0; left: 0; }
   .art.four img:nth-of-type(2) { top: 0; left: 50%; }

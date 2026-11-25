@@ -211,6 +211,14 @@ async def _ws_order(
     connection.send_result(msg["id"])
 
 
+def _relay(hass: HomeAssistant, items: list[dict[str, Any]]) -> None:
+    """Spotify's pictures come through Jukebox (art.py), for a page that can't reach
+    the internet."""
+    key = hass.data[FEED].art_key
+    for item in items:
+        item["picture"] = art.relayed(key, item["picture"])
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): SEARCH,
@@ -226,6 +234,7 @@ async def _ws_search(
     back with its reason beside the other's results (find.search)."""
     who = may.who(hass, connection.user)
     found = await find.search(hass, who, msg[ATTR_ENTITY_ID], msg["query"])
+    _relay(hass, [item for source in found["sources"] for item in source["items"]])
     connection.send_result(msg["id"], found)
 
 
@@ -252,4 +261,5 @@ async def _ws_browse(
     except HomeAssistantError as err:
         connection.send_error(msg["id"], "failed", str(err))
         return
+    _relay(hass, found["items"])
     connection.send_result(msg["id"], found)

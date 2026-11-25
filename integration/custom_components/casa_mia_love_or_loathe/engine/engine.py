@@ -72,6 +72,7 @@ class Engine(Stations):
                 continue
             player.undo, player.away = was.get("undo"), was.get("away")
             player.last = was.get("last")
+            player.outlives = bool(player.away)
             if player.away:
                 self._arm(entity, player)
         self._tell()  # the sensor was made before this: it shows who is away
@@ -188,6 +189,7 @@ class Engine(Stations):
         title, artist = track
         async with player.lock:
             await self._undo(entity, player)
+            self._outlived(player)
 
             # The song that was on when the time was up has ended: back now. This track,
             # on the other station, is gone at once, so it isn't heard or judged. The
@@ -275,6 +277,10 @@ class Engine(Stations):
                 player.acting = False
             if player.last and act:
                 player.last["did"] = _said(result)
+            # Away on another station, or a song skipped with nothing to put back: the
+            # track after this one plays because of it.
+            skipped = action == SKIP and not result.startswith(("failed", "could not"))
+            player.outlives = bool(player.away) or (skipped and not player.undo)
             player.skips = player.skips + 1 if action == SKIP else 0
             await self._save()
 
@@ -292,6 +298,20 @@ class Engine(Stations):
             "at": dt_util.utcnow().isoformat(),
         }
         self.hass.bus.async_fire(EVENT, self.last)
+        self._tell()
+
+    def _outlived(self, player: Player) -> None:
+        """A new track has begun: forget what was last done, once it is over. A volume
+        or a mute was put back as this track began, and says nothing of it: it was
+        still told under the song after an advert, as if that song were being turned
+        down (owner, 2026-11-25). What is why this track plays (`outlives`) is told
+        through this one track, and forgotten at the next."""
+        if player.last is None or player.undo or player.away:
+            return  # nothing to forget, or still in force
+        if player.outlives:
+            player.outlives = False
+            return
+        player.last = None
         self._tell()
 
     # --- a loathed song in a queue -----------------------------------------------

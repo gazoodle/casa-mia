@@ -8,7 +8,7 @@ import { reason } from "./common.ts";
 import { Following } from "./page.ts";
 import { Busy, shared } from "./parts.ts";
 
-const SONOS = { entity: { filter: { integration: "sonos", domain: "media_player" } } };
+export const SONOS = { entity: { filter: { integration: "sonos", domain: "media_player" } } };
 const NOTE = css`
   .note { margin: 0; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--secondary-text-color); overflow-wrap: anywhere; }
 `;

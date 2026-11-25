@@ -117,7 +117,10 @@ class JukeboxFlow(config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOM
         again = self.source == SOURCE_REAUTH
         entry = self._get_reauth_entry() if again else self._get_reconfigure_entry()
         _LOGGER.info("Jukebox is signed in to Spotify")
-        return self.async_update_reload_and_abort(entry, data_updates=data)
+        # No reload: the sign-in is read where it is used (phone.py), and Home Assistant
+        # refuses a reload from here, from 2026.12, while the entry has a listener of
+        # its own for changes (__init__.py).
+        return self.async_update_and_abort(entry, data_updates=data)
 
 
 class JukeboxOptions(OptionsFlow):

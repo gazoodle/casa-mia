@@ -46,11 +46,11 @@ async def test_each_player_says_what_was_done_why_and_whether_it_still_holds(has
     )
     assert said["now"] is True and said["at"]
 
-    # The next track: unmuted, and no longer in force, though still what was last done.
+    # The next track: unmuted, and nothing is said of the mute under a song it wasn't
+    # for (owner, 2026-11-25).
     play(hass, "Something Ordinary", "A Band", is_volume_muted=True)
     await settled(hass)
-    assert doing(hass)["now"] is False
-    assert doing(hass)["did"] == "Muted until the next track"
+    assert doing(hass) is None
 
 
 async def test_a_loathed_song_in_a_queue_is_skipped_and_a_stations_is_not(hass):
@@ -66,9 +66,16 @@ async def test_a_loathed_song_in_a_queue_is_skipped_and_a_stations_is_not(hass):
     assert doing(hass)["did"] == "Skipped to the next song"
     assert doing(hass)["now"] is False  # nothing to put back
 
-    # The same song from a station can't be skipped: muted, as the group says.
+    # The song it skipped to plays because of the skip, so the skip is still told
+    # through it, and no longer at the song after.
     play(hass, "Something Ordinary", "A Band")
     await settled(hass)
+    assert doing(hass)["did"] == "Skipped to the next song"
+    play(hass, "Something Else", "A Band")
+    await settled(hass)
+    assert doing(hass) is None
+
+    # The same song from a station can't be skipped: muted, as the group says.
     play(hass, "Last Christmas", "Wham!", **QUEUED, media_channel="Harbour FM")
     await settled(hass)
     assert len(skips) == 1 and len(calls["volume_mute"]) == 1

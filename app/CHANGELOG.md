@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.13
+
+- **New: Jukebox's micro player**, a card for a sidebar or any small space. It is the picture of what a room is playing, with no controls. Small bars on it move while music plays and stand still while it is paused, when the picture also loses its colour. A crossed speaker shows a muted room, and a warning sign a room that isn't answering or a Home Assistant that can't be reached. A quiet room is shown as a speaker, or an icon or picture of your choice.
+  - Choose a room, or leave it empty for one picture for each thing playing. A new card starts with a room that is playing.
+  - The picture comes in three sizes, small (120 px), medium (184 px) and large (248 px), each a whole number of rows of a section, and sits in one of nine places in its card. The card has the look of Home Assistant's own cards; **The picture alone** leaves the card out.
+  - A tap opens the big player, or does any of Home Assistant's usual tap actions, such as Navigate to `/jukebox`.
+- **Jukebox: any card's button can open the big player**, with a tap action of `fire-dom-event` and `casa_mia_jukebox: {room: media_player.kitchen}`, and optionally `tab`. The guide has the YAML.
+- **Fixed: Jukebox: a radio station's song now gets its cover from Spotify.** None was ever found, because the search Jukebox used gave each song without its album. Songs found on Spotify in the search box now have their pictures too.
+- **Jukebox: a station's song gets the right cover more often.** It is chosen from all the records Spotify has the song on: the song's own artist before a collection, the song as the station named it before a live or remastered one, the single before the album, then the earliest. A song by two artists joined into one name ("and", "feat.", "x", "with") is found too.
+- **Jukebox: Spotify's pictures reach a screen that can't reach the internet**, such as a wall tablet kept on the house's own network. Home Assistant fetches them and passes them on, as it does the speakers' own pictures.
+- **Jukebox: the big player's cover grows to fill a large screen**, up to 640 pixels across, where it stopped at 380.
+- **Jukebox: signing in to Spotify no longer brings Home Assistant's warning** about an update listener, which Home Assistant 2026.12 would have turned into a failure.
+- **Jukebox: the log says when a station's words for its song can't be looked up on Spotify**, at Info. Switch on **Enable debug logging** for Jukebox to see each lookup.
+- **Love it or Loathe it: what it did to a player is no longer told once the next song has started.** Jukebox's big player went on saying "Volume 8% to 2% until the next track" under the song after an advert. A skip, and a return from another station, are still told, as they are why the song is playing.
+- Jukebox's guide has a picture of the micro player, and its pictures show real songs with their covers.
+
 ## 2026.11.12
 
 - **Breaking:** Auto Dashboards no longer makes a page for each commander. A camera dashboard deployed before this release keeps its commander pages until its next **Deploy live**, which removes them. Before you deploy, put each commander on a dashboard of your own with the Camera Commander card, and point any button or kiosk that opened a commander's page at that dashboard.

@@ -1,8 +1,6 @@
 """A station that Home Assistant has no name or picture for: Jukebox asks the speaker,
 once for each stream. The speakers are the page tests' stand-ins."""
 
-from types import SimpleNamespace as Of
-
 from custom_components.casa_mia_jukebox.page import HOUSE
 from test_jukebox_page import (  # noqa: F401  (sent is a fixture)
     TRANSPORT,
@@ -57,14 +55,16 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
     hass_ws_client,
     sent,  # noqa: F811
     monkeypatch,
+    caplog,
 ):
+    caplog.set_level("INFO")
     asked = []
 
     async def search(query, kinds, limit):
         asked.append((query, kinds))
-        album = Of(images=[Of(url="https://covers.example/lanterns.jpg")])
-        artist = Of(name="The Marigolds")
-        return Of(tracks=[Of(name="Paper Lanterns", artists=[artist], album=album)])
+        album = {"images": [{"url": "https://covers.example/lanterns.jpg"}]}
+        song = {"name": "Paper Lanterns", "artists": [{"name": "The Marigolds"}]}
+        return {"tracks": {"items": [song | {"album": album}]}}
 
     a_spotify(hass, monkeypatch, search)
     # This station sends the song's two names the wrong way round.
@@ -99,5 +99,8 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
 
     hass.states.async_set(KITCHEN, "playing", station | {"media_artist": ""})
     assert (await once(""))["cover"] is None
+    # The log says so, once, so that a missing cover can be explained.
+    assert caplog.text.count("aren't an artist and a title") == 1
+    assert "its cover found on Spotify" in caplog.text
     hass.states.async_set(KITCHEN, "playing", station)
     assert (await once("Paper Lanterns"))["cover"] and len(asked) == 1

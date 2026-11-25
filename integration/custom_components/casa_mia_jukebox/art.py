@@ -9,6 +9,10 @@ A page's `<img>` can't sign in, so the address carries a key instead, as Home
 Assistant's own player pictures do: made new at each start, and given only to pages
 that asked for a queue over their signed-in connection. Only a Sonos room's speaker is
 ever asked, and only for a picture.
+
+Spotify's pictures are passed on the same way. A wall tablet kept off the internet
+can reach Home Assistant and nothing else, and showed a song's coloured tile in place
+of its cover (owner's tablet, 2026-11-25). Only Spotify's picture servers are asked.
 """
 
 from __future__ import annotations
@@ -39,18 +43,31 @@ URL = f"/api/{DOMAIN}/art"
 _OWN = "/getaa?"
 # How many pictures a playlist's tile is made of.
 TILE = 4
+# In a picture's address where a room goes, for one that is on the internet.
+WEB = "web"
+# Whose pictures on the internet are passed on: Spotify's servers for them.
+_SPOTIFY = (".scdn.co", ".spotifycdn.com")
 # A cover is tens of kilobytes; nothing bigger than this is passed on.
 _MOST = 4 * 1024 * 1024
 
 
+def relayed(key: str, picture: str | None) -> str | None:
+    """A picture's address as a page is given it: one of Spotify's through Jukebox,
+    any other as it is."""
+    if picture and picture.startswith("https://"):
+        if (Address(picture).host or "").endswith(_SPOTIFY):
+            return f"{URL}/{key}/{WEB}?u={quote(picture, safe='')}"
+    return picture
+
+
 def shown(key: str, room: str, picture: str | None) -> str | None:
-    """The address a page shows a song's picture from: the speaker's own through
-    Jukebox, one on the internet as it is, and nothing else."""
+    """The address a page shows a song's picture from: the speaker's own and
+    Spotify's through Jukebox, another on the internet as it is, and nothing else."""
     if not picture:
         return None
     if picture.startswith(_OWN):
         return f"{URL}/{key}/{room}?u={quote(picture, safe='')}"
-    return picture if picture.startswith("https://") else None
+    return relayed(key, picture) if picture.startswith("https://") else None
 
 
 async def tiled(feed: Feed, room: str, favourites: list[dict[str, Any]]) -> None:
@@ -77,7 +94,7 @@ async def tiled(feed: Feed, room: str, favourites: list[dict[str, Any]]) -> None
 
 
 class View(HomeAssistantView):
-    """One picture, fetched from the speaker of a Sonos room."""
+    """One picture, fetched from the speaker of a Sonos room or from Spotify."""
 
     url = URL + "/{key}/{room}"
     name = f"api:{DOMAIN}:art"
@@ -88,18 +105,27 @@ class View(HomeAssistantView):
 
     async def get(self, request: web.Request, key: str, room: str) -> web.Response:
         path = request.query.get("u", "")
-        known = hmac.compare_digest(key, self.feed.art_key)
-        if not known or room not in self.feed.rooms or not path.startswith(_OWN):
+        if not hmac.compare_digest(key, self.feed.art_key):
             return web.Response(status=404)
-        host = address(self.feed.hass, room)
-        if host is None:
-            return web.Response(status=404)
-
-        try:
+        if room == WEB:
+            # Only what `relayed` would have sent here: never any address at all.
+            if relayed(key, path) == path:
+                return web.Response(status=404)
+            where = Address(path)
+        else:
+            host = address(self.feed.hass, room)
+            if room not in self.feed.rooms or not path.startswith(_OWN) or not host:
+                return web.Response(status=404)
             # The path exactly as the speaker wrote it: it is already encoded.
             where = Address(f"http://{host}:{upnp.PORT}{path}", encoded=True)
+
+        try:
             session = async_get_clientsession(self.feed.hass)
-            async with session.get(where, timeout=aiohttp.ClientTimeout(10)) as got:
+            # One of Spotify's servers is never followed to somewhere else.
+            ask = session.get(
+                where, timeout=aiohttp.ClientTimeout(10), allow_redirects=room != WEB
+            )
+            async with ask as got:
                 kind = got.content_type
                 if got.status != 200 or not kind.startswith("image/"):
                     # Usual for a song with no cover: the page draws its own tile.
@@ -113,7 +139,7 @@ class View(HomeAssistantView):
                 picture = await got.read()
         except (aiohttp.ClientError, OSError, TimeoutError) as err:
             _LOGGER.warning(
-                "%s: a song's picture couldn't be fetched from the speaker: %s",
+                "%s: a song's picture couldn't be fetched: %s",
                 room,
                 err or type(err).__name__,
             )

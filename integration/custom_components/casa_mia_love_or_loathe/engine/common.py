@@ -69,6 +69,9 @@ class Player:
     # What was last done to it, {"did", "why", "at"}, for whoever shows the player
     # (Base.doing). Kept in storage with `undo` and `away`, which it explains.
     last: dict[str, Any] | None = None
+    # `last` is why the track after it plays (a song skipped, another station come back
+    # from), so it is still told through that track (Engine._outlived).
+    outlives: bool = False
     acting: bool = False  # an action is being carried out now
     skips: int = 0  # songs skipped one after another (SKIPS)
     # One track's work at a time: the undo of the last before the action of the next.
