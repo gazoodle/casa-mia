@@ -11,7 +11,7 @@ rooms and a volume for each; the queue; favourites and Sonos playlists, which yo
 look into and change; a search of the music library and Spotify; cards for your own
 dashboards; a lock that stops guests changing the music at a party; and announcements.
 
-<img src="../screenshots/jukebox.webp" alt="Jukebox's page, headed Music: three small players, for Borrowed Sunglasses playing in the den and snug, the station Harbour FM in the kitchen, and Slow Sunday in the garden, each with pause, skip or stop, and a volume slider. Under them, the porch is listed as a quiet room and the shed as not answering" width="800">
+<img src="../screenshots/jukebox.webp" alt="Jukebox's page, headed Music: three small players, for Starman playing in the den and snug, Blue Monday on a station in the kitchen, its cover carrying the station's badge, and Feeling Good in the garden, each with pause, skip or stop, and a volume slider. Under them, the porch and this computer are listed as quiet rooms and the shed as not answering" width="800">
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -132,7 +132,7 @@ Tap a player to open it over the whole screen. There you have:
   drag a song to move it, take one out with the cross, and press **Add** to put
   something on the end: a song or an album from the music library, or a song, an
   album or a playlist from Spotify. Each heading in Favourites folds its section away. A playlist's tile shows the covers of the first four albums in it.
-<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Borrowed Sunglasses by Velvet Arcade, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit, Save and Clear, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
+<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Starman by David Bowie, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit, Save and Clear, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
 
 - **Edit…** (on a wide screen only, on the Queue tab and on a playlist's
   songs) opens an editor over the whole screen: the queue or the playlist on the left,
@@ -163,7 +163,7 @@ Tap a player to open it over the whole screen. There you have:
   side more room. The width is remembered in that browser. Once you have moved it, a
   small round button on the bar puts it back; so does a double tap on the bar.
 
-<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for paper, with songs, albums and playlists found in the music library and on Spotify. The third song of the queue is chosen, and is shown above the list with its cover, title, artist and album, and buttons to play from it, move it to the top or the end, or take it out" width="800">
+<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for moon, with songs, albums and playlists found in the music library and on Spotify. The third song of the queue is chosen, and is shown above the list with its cover, title, artist and album, and buttons to play from it, move it to the top or the end, or take it out" width="800">
 
 - **Search:** one box searches the Sonos music library and Spotify together, and shows
   what each found under its own heading. Press **+** beside a result to play it, play
@@ -386,6 +386,8 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 | **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | Whether to show its heading, and whether to list the speakers that aren't answering. |
 | **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
 | **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |
+
+<img src="../screenshots/jukebox-micro.webp" alt="Five micro players side by side: a song playing, with small bars on its cover; a station that is muted, with a crossed speaker; a paused song, with the bars low and still; a quiet room, shown by its initial; and a room that is not answering, with a red warning sign" width="600">
 
 Every card is set up with a form in the dashboard editor, with the usual Layout and
 Visibility tabs beside it; none needs YAML.

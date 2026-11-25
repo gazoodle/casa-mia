@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.13-b7
+
+- Jukebox: the micro player's bars are drawn. In b6 the mark for playing and paused was an empty square. The mark also has a light edge, so it shows on a cover that is black.
+- Jukebox: the guide's pictures show real songs with their covers, and there is one of the micro player.
+
 ## 2026.11.13-b6
 
 - Jukebox: a new card, the micro player, for a sidebar or any small space. It is only the picture of what a room is playing, with no controls, and a tap opens the big player. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. Choose a room, or leave it empty for one picture for each thing playing.

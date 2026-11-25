@@ -3168,14 +3168,18 @@ var pn = class extends Q {
 
       /* A sign on the picture: square-cornered and too small for a finger, so it isn't
          taken for something to press. A tap on it is a tap on the picture. */
-      .mark { position: absolute; top: 5%; left: 5%; display: grid; place-items: center; width: clamp(16px, 28cqw, 30px); height: clamp(16px, 28cqw, 30px); border-radius: 22%; background: rgb(0 0 0 / 60%); color: #fff; pointer-events: none; }
+      .mark { position: absolute; top: 5%; left: 5%; display: grid; place-items: center; width: clamp(16px, 28cqw, 30px); height: clamp(16px, 28cqw, 30px); border-radius: 22%; background: rgb(0 0 0 / 60%); color: #fff; pointer-events: none;
+        /* A light edge, so the mark is still a mark on a cover that is black itself. */
+        box-shadow: 0 0 0 1px rgb(255 255 255 / 22%); }
       .mark svg { width: 70%; height: 70%; }
       .mark.warn { background: var(--error-color, #db4437); }
 
       /* The bars move only while the house says music is playing: only their height is
          changed, by a transform, which costs a wall tablet nothing to draw. */
-      .mark.eq { display: flex; align-items: flex-end; gap: 10%; padding: 22% 20%; }
-      .eq i { flex: 1; height: 100%; border-radius: 1px; background: currentColor; transform-origin: bottom; transform: scaleY(0.3); }
+      .mark.eq { display: flex; align-items: center; justify-content: center; gap: 9%; }
+      /* Sized as parts of the mark itself: a padding in % would be of the whole picture's
+         width, and left the bars no room at all. */
+      .eq i { width: 14%; height: 56%; border-radius: 1px; background: currentColor; transform-origin: bottom; transform: scaleY(0.3); }
       .playing .eq i { animation: bar 0.9s ease-in-out infinite alternate; }
       .playing .eq i:nth-child(2) { animation-delay: -0.3s; }
       .playing .eq i:nth-child(3) { animation-delay: -0.6s; }
