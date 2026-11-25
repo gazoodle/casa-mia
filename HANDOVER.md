@@ -551,6 +551,9 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **An entry's Watching switch** (b7, `switch.py`, option `enabled`): off, the engine
   starts but follows nothing; armed returns still fire. `_convert` removes the old
   per-group switches but must leave this one (it checks the unique id).
+  No per-group Active switch (owner, 2026-11-25): Ignore keeps `before`, so an
+  automation setting a person's group to `ignore` and back (on presence, a Mac's lock)
+  loses nothing. Revisit only if presence and a calendar must both drive one group.
 - **Who may rate** (b7; owner, 2026-11-13: "default none"): entry options `raters`
   (person entities) and `screens` (HA user ids that may name a person; a wall tablet's).
   `rating.refused` is the one check, used by the `rate` action and by the thumbs' feed
