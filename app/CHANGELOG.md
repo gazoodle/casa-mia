@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.14-b5
+
+- Jukebox: nothing you can see. The code behind the page's requests was one file close
+  to its size limit, and is now four smaller ones. In the log its lines are now named
+  `casa_mia_jukebox.feed.asks` and `casa_mia_jukebox.feed.model`.
+
 ## 2026.11.14-b4
 
 - **Jukebox: a song on the radio can be added to a playlist.** **Add to a playlist**

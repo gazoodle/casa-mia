@@ -178,7 +178,9 @@ async def test_a_refusal_goes_back_to_the_page_with_its_reason(
     broken = {"media_content_id": "broken", "media_content_type": "playlist"}
     answer = await ask(client, DO, action="play_media", entity_id=KITCHEN, **broken)
     assert answer["error"]["message"] == "the speaker refused it"
-    ours = [r.getMessage() for r in caplog.records if r.name.endswith("jukebox.feed")]
+    ours = [
+        r.getMessage() for r in caplog.records if r.name.endswith("jukebox.feed.asks")
+    ]
     assert len(ours) == 1 and "play_media in media_player.kitchen" in ours[0]
     assert "broken" not in ours[0] and not sent
 

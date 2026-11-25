@@ -218,7 +218,7 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   out (owner, 2026-11-23).
 - **`house.py`** (no HA imports) turns the Sonos entities' states into the page's model:
   groups by coordinator, every room in exactly one, a lone idle room `quiet`.
-  **`feed.py`** pushes it (`Feed`: one listener on HA's state events while anyone is
+  **`feed/`** (a package since 2026.11.14-b5: `model`, `doing`, `asks`, `common`) pushes it (`Feed`: one listener on HA's state events while anyone is
   listening, one model for a burst) and carries out what the page asks (`do`, a dict of
   actions). The rooms are every Sonos media player in the entity registry; nothing is
   listed in the options.
