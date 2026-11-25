@@ -75,6 +75,18 @@ async def test_a_songs_picture_is_the_speakers_passed_on_by_jukebox(
         assert (await page.get(wrong)).status == 404
     assert len(aioclient_mock.mock_calls) == asked
 
+    # One of Spotify's comes through Jukebox too, for a tablet kept off the internet;
+    # nothing else on the internet is ever fetched for a page.
+    theirs = "https://i.scdn.co/image/ab67"
+    relayed = art.shown(key, GARDEN, theirs)
+    assert relayed == f"{art.URL}/{key}/web?u={quote(theirs, safe='')}"
+    aioclient_mock.get(
+        theirs, content=b"a sleeve", headers={"Content-Type": "image/jpeg"}
+    )
+    assert await (await page.get(relayed)).read() == b"a sleeve"
+    elsewhere = quote("https://covers.example/b.jpg", safe="")
+    assert (await page.get(f"{art.URL}/{key}/web?u={elsewhere}")).status == 404
+
     # A speaker with no picture for the song: the page draws its own tile.
     aioclient_mock.clear_requests()
     aioclient_mock.get(f"{SPEAKER}{COVER}", status=404)

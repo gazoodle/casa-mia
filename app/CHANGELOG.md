@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.13-b3
+
+- Jukebox: Spotify's pictures now reach a screen that can't reach the internet, such as a wall tablet kept on the house's own network. Home Assistant fetches them and passes them on, as it does the speakers' own pictures: a station's song's cover, the songs of a queue or a playlist, and what a search or browsing finds. Such a tablet showed the song's coloured tile with its initials in place of the cover.
+
 ## 2026.11.13-b2
 
 - Jukebox: a radio station's song now gets its cover from Spotify. No cover was ever found, because the search Jukebox used gave each song without its album, and the album is what has the picture. Songs found on Spotify in the search box now have their pictures too, for the same reason.

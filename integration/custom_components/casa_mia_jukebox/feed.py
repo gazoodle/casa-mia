@@ -131,7 +131,9 @@ class Feed:
                 self._station(group, str(stream or ""))
             # A station's song has its own cover as well as the station's picture.
             group["cover"] = (
-                self.covers.of(group["artist"], group["title"])
+                art.relayed(
+                    self.art_key, self.covers.of(group["artist"], group["title"])
+                )
                 if group["kind"] == house.RADIO
                 else None
             )
