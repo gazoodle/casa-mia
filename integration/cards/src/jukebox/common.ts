@@ -190,6 +190,17 @@ export const loud = (house: House, group: Group): boolean => group.rooms.some((r
 /** Whether a group is muted: every one of its rooms is. */
 export const muted = (house: House, group: Group): boolean => group.rooms.length > 0 && group.rooms.every((r) => house.rooms[r]?.muted);
 
+/** What a micro player marks on a group's picture. `current` is whether the house shown is
+ * known to be as it is now: without that nothing is claimed of the music, as moving bars
+ * over a house that is no longer heard from would say it plays when nobody knows. */
+export type Standing = "trouble" | "quiet" | "paused" | "muted" | "playing";
+export function standing(house: House, group: Group, current: boolean): Standing {
+  if (!current || group.trouble) return "trouble";
+  if (group.quiet || group.kind === "nothing") return "quiet";
+  if (group.state !== "playing") return "paused";
+  return muted(house, group) ? "muted" : "playing";
+}
+
 /** The two lines a player shows for what a group is playing. */
 export function playing(group: Group): { title: string; by: string } {
   const named = { tv: "Television", line_in: "Line-in", nothing: "Nothing playing" } as Record<string, string>;

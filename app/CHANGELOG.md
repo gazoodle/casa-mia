@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.13-b6
+
+- Jukebox: a new card, the micro player, for a sidebar or any small space. It is only the picture of what a room is playing, with no controls, and a tap opens the big player. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. Choose a room, or leave it empty for one picture for each thing playing.
+
 ## 2026.11.13-b5
 
 - Jukebox: the cover on the big player grows to fill the room a large screen gives it, up to 640 pixels across, where it stopped at 380.

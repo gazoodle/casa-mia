@@ -231,8 +231,9 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   jumping to a song is HA's `sonos.play_queue`. The page asks for the queue again when
   the feed's `queue_size` or `queue_position` changes, and after each change of its own.
 - **The page's pieces are cards** (owner, 2026-11-24, in place of customising Jukebox's
-  own page): `card.ts` (players), `pieces.ts` (quiet rooms, shortcut, now playing) and
-  `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
+  own page): `card.ts` (players), `micro.ts` (a room's picture alone, for a sidebar: it shows state
+  and has no controls, so no transport glyphs go on it; `common.standing` decides its
+  mark), `pieces.ts` (quiet rooms, shortcut, now playing) and `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
   a container query, so it follows its own width and not the screen's. The Shortcut
   card and automations use the `casa_mia_jukebox.play` action (`feed.play`), which goes
   through `do`. Making each piece adapt to the size it is given is still to do.

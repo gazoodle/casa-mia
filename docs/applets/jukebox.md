@@ -382,6 +382,7 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 | Card | What it shows | Options |
 |---|---|---|
 | **Players** | A small player for each thing playing, in the order you dragged them into. With no room chosen you can change the order on the card as well, the same way as on Jukebox's page. | A room, to show only that room's music. |
+| **Micro player** | Only the picture of what a room is playing, small enough for a sidebar. It has no controls. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. A quiet room is shown by its initials. | A room. With none chosen it shows one picture for each thing playing. |
 | **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | Whether to show its heading, and whether to list the speakers that aren't answering. |
 | **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
 | **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |
@@ -389,8 +390,9 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 Every card is set up with a form in the dashboard editor, with the usual Layout and
 Visibility tabs beside it; none needs YAML.
 
-A tap on a small player or a quiet room opens the big player over the screen, as on
-Jukebox's page. The Now playing card needs room: give it at least half the width of a
+A tap on a small player, a micro player or a quiet room opens the big player over the
+screen, as on Jukebox's page. A micro player with no room chosen opens Jukebox's page
+when nothing is playing. The Now playing card needs room: give it at least half the width of a
 tablet and most of its height.
 
 Which cards a tablet or a person sees is Home Assistant's to decide: each card has a

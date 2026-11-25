@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type Group, type House, average, colours, groupOf, initials, latest, mmss, names, playing, position } from "./common.ts";
+import { type Group, type House, average, colours, groupOf, initials, latest, mmss, names, playing, position, standing } from "./common.ts";
 
 const group = (over: Partial<Group>): Group => ({
   id: "media_player.den", rooms: ["media_player.den"], state: "playing", kind: "queue", quiet: false, title: "Paper Lanterns", artist: "The Marigolds",
@@ -34,6 +34,19 @@ test("what a player says is playing", () => {
   assert.deepEqual(playing(group({ kind: "radio", title: "", artist: "", channel: "Harbour FM" })), { title: "Harbour FM", by: "" });
   assert.deepEqual(playing(group({ kind: "tv", title: "", artist: "" })), { title: "Television", by: "" });
   assert.deepEqual(playing(group({ kind: "nothing", title: "", artist: "" })), { title: "Nothing playing", by: "" });
+});
+
+test("what a micro player marks on a picture", () => {
+  const hushed: House = { ...house, rooms: { ...house.rooms, "media_player.den": { ...room("Den", 30), muted: true }, "media_player.snug": { ...room("Snug", 21), muted: true } } };
+  assert.equal(standing(house, den, true), "playing");
+  assert.equal(standing(hushed, den, true), "muted");
+  // A paused player that is muted is paused: there is no sound to be missing.
+  assert.equal(standing(hushed, group({ rooms: den.rooms, state: "paused" }), true), "paused");
+  assert.equal(standing(house, group({ quiet: true, kind: "nothing" }), true), "quiet");
+  assert.equal(standing(house, group({ kind: "nothing", state: "paused" }), true), "quiet");
+  // A house that isn't heard from is never said to be playing, and nor is a player in trouble.
+  assert.equal(standing(house, den, false), "trouble");
+  assert.equal(standing(house, group({ trouble: "The stream stopped" }), true), "trouble");
 });
 
 test("a title's colours and initials are the same every time", () => {

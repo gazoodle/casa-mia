@@ -145,9 +145,9 @@ def test_every_jukebox_card_can_be_edited_without_yaml():
     registered = (cards / "index.ts").read_text().count("\nregister(")
     forms = sum(
         (cards / name).read_text().count("static getConfigForm()")
-        for name in ("card.ts", "pieces.ts")
+        for name in ("card.ts", "micro.ts", "pieces.ts")
     )
-    assert registered == forms == 4
+    assert registered == forms == 5
 
 
 def test_a_speaker_playing_with_no_title_is_not_a_quiet_room():
