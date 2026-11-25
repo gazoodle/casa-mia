@@ -1,56 +1,20 @@
 # Changelog
 
-## 2026.11.13-b11
+## 2026.11.13
 
-- Love it or Loathe it: what it did to a player is no longer told once it is over and the next song has started. Jukebox's big player was still saying "Volume 8% to 2% until the next track" under the song after an advert, as if that song were being turned down. A skip, and a return from another station, are still told through the song they brought, as they are why it is playing.
-
-## 2026.11.13-b10
-
-- Jukebox: the micro player is drawn in a card, with the background and border of Home Assistant's own cards, so it can stand as a button. Turn on "The picture alone" in its editor for the picture with no card round it, which is how it looked until now. In a card with a border the picture is 16 px smaller than the size chosen, so the card still fills whole rows.
-- Jukebox: on the micro player a room playing nothing is shown as a speaker, where it had the initials of its name. Its editor takes an icon, or the address of a picture, to show instead. Either is drawn at the size chosen.
-- Jukebox: any card's button can open the big player, with a tap action of `fire-dom-event` and `casa_mia_jukebox: {room: media_player.kitchen}`, and optionally `tab`. So a tile or a button of another look is made from Home Assistant's own cards. The guide has the YAML.
-
-## 2026.11.13-b9
-
-- Jukebox: the micro player's picture has three sizes, small (120 px), medium (184 px) and large (248 px), and keeps its size whatever the width of its card. Each is a whole number of rows of a section. Until now the picture was as wide as its card.
-- Jukebox: the micro player's picture sits in one of nine places in its card, chosen from a grid in the card's editor as the Over layer's is. A card as wide as a sidebar can hold a small picture in its middle.
-- Jukebox: the micro player has a tap action, Home Assistant's usual one. Left at its default a tap opens the big player; choose Navigate and `/jukebox` for Jukebox's page.
-- Jukebox: a new micro player card starts with a room, one that is playing if there is one, so its preview is one small picture and not every room.
-- Jukebox: the cover of a station's song is found when the station joins two artists into one name, as in "The Marigolds and Velvet Arcade", or with "feat.", "ft", "featuring", "x" or "with". Spotify lists each artist by itself, so such a song had no cover. A band with "and" in its own name is found too, where Spotify writes it with a plus.
-
-## 2026.11.13-b8
-
-- Over layer: nothing you can see has changed. The grid of nine places in its editor is now a part other cards can use, ready for Jukebox's micro player.
-
-## 2026.11.13-b7
-
-- Jukebox: the micro player's bars are drawn. In b6 the mark for playing and paused was an empty square. The mark also has a light edge, so it shows on a cover that is black.
-- Jukebox: the guide's pictures show real songs with their covers, and there is one of the micro player.
-
-## 2026.11.13-b6
-
-- Jukebox: a new card, the micro player, for a sidebar or any small space. It is only the picture of what a room is playing, with no controls, and a tap opens the big player. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. Choose a room, or leave it empty for one picture for each thing playing.
-
-## 2026.11.13-b5
-
-- Jukebox: the cover on the big player grows to fill the room a large screen gives it, up to 640 pixels across, where it stopped at 380.
-
-## 2026.11.13-b4
-
-- Jukebox: the cover of a station's song is now chosen from all the records Spotify has the song on, where it was the first one Spotify listed, which could be a collection of the decade's hits. A record by the song's own artist is taken before a collection by various artists, the song as the station named it before a live or remastered one, the single before the album, and then the earliest.
-
-## 2026.11.13-b3
-
-- Jukebox: Spotify's pictures now reach a screen that can't reach the internet, such as a wall tablet kept on the house's own network. Home Assistant fetches them and passes them on, as it does the speakers' own pictures: a station's song's cover, the songs of a queue or a playlist, and what a search or browsing finds. Such a tablet showed the song's coloured tile with its initials in place of the cover.
-
-## 2026.11.13-b2
-
-- Jukebox: a radio station's song now gets its cover from Spotify. No cover was ever found, because the search Jukebox used gave each song without its album, and the album is what has the picture. Songs found on Spotify in the search box now have their pictures too, for the same reason.
-
-## 2026.11.13-b1
-
-- Jukebox: signing in to Spotify no longer brings Home Assistant's warning that Jukebox "has an update listener and should use it for scheduling a reload", which Home Assistant 2026.12 would have turned into a failure. The sign-in is used from the next time it is needed, with no reload.
-- Jukebox: the log now says when a radio station's words for its song can't be looked up on Spotify for a cover, because they aren't an artist and a title. With the lookups that were made, this is listed at the Info level: switch on **Enable debug logging** for Jukebox to see them.
+- **New: Jukebox's micro player**, a card for a sidebar or any small space. It is the picture of what a room is playing, with no controls. Small bars on it move while music plays and stand still while it is paused, when the picture also loses its colour. A crossed speaker shows a muted room, and a warning sign a room that isn't answering or a Home Assistant that can't be reached. A quiet room is shown as a speaker, or an icon or picture of your choice.
+  - Choose a room, or leave it empty for one picture for each thing playing. A new card starts with a room that is playing.
+  - The picture comes in three sizes, small (120 px), medium (184 px) and large (248 px), each a whole number of rows of a section, and sits in one of nine places in its card. The card has the look of Home Assistant's own cards; **The picture alone** leaves the card out.
+  - A tap opens the big player, or does any of Home Assistant's usual tap actions, such as Navigate to `/jukebox`.
+- **Jukebox: any card's button can open the big player**, with a tap action of `fire-dom-event` and `casa_mia_jukebox: {room: media_player.kitchen}`, and optionally `tab`. The guide has the YAML.
+- **Fixed: Jukebox: a radio station's song now gets its cover from Spotify.** None was ever found, because the search Jukebox used gave each song without its album. Songs found on Spotify in the search box now have their pictures too.
+- **Jukebox: a station's song gets the right cover more often.** It is chosen from all the records Spotify has the song on: the song's own artist before a collection, the song as the station named it before a live or remastered one, the single before the album, then the earliest. A song by two artists joined into one name ("and", "feat.", "x", "with") is found too.
+- **Jukebox: Spotify's pictures reach a screen that can't reach the internet**, such as a wall tablet kept on the house's own network. Home Assistant fetches them and passes them on, as it does the speakers' own pictures.
+- **Jukebox: the big player's cover grows to fill a large screen**, up to 640 pixels across, where it stopped at 380.
+- **Jukebox: signing in to Spotify no longer brings Home Assistant's warning** about an update listener, which Home Assistant 2026.12 would have turned into a failure.
+- **Jukebox: the log says when a station's words for its song can't be looked up on Spotify**, at Info. Switch on **Enable debug logging** for Jukebox to see each lookup.
+- **Love it or Loathe it: what it did to a player is no longer told once the next song has started.** Jukebox's big player went on saying "Volume 8% to 2% until the next track" under the song after an advert. A skip, and a return from another station, are still told, as they are why the song is playing.
+- Jukebox's guide has a picture of the micro player, and its pictures show real songs with their covers.
 
 ## 2026.11.12
 
