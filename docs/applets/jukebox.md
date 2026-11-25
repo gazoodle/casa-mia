@@ -11,7 +11,7 @@ rooms and a volume for each; the queue; favourites and Sonos playlists, which yo
 look into and change; a search of the music library and Spotify; cards for your own
 dashboards; a lock that stops guests changing the music at a party; and announcements.
 
-<img src="../screenshots/jukebox.webp" alt="Jukebox's page, headed Music: three small players, for Borrowed Sunglasses playing in the den and snug, the station Harbour FM in the kitchen, and Slow Sunday in the garden, each with pause, skip or stop, and a volume slider. Under them, the porch is listed as a quiet room and the shed as not answering" width="800">
+<img src="../screenshots/jukebox.webp" alt="Jukebox's page, headed Music: three small players, for Starman playing in the den and snug, Blue Monday on a station in the kitchen, its cover carrying the station's badge, and Feeling Good in the garden, each with pause, skip or stop, and a volume slider. Under them, the porch and this computer are listed as quiet rooms and the shed as not answering" width="800">
 
 It adds no media players. Each room stays the one entity that Home Assistant's Sonos
 integration makes, and Jukebox, the Sonos app and your dashboards all use that entity.
@@ -132,7 +132,7 @@ Tap a player to open it over the whole screen. There you have:
   drag a song to move it, take one out with the cross, and press **Add** to put
   something on the end: a song or an album from the music library, or a song, an
   album or a playlist from Spotify. Each heading in Favourites folds its section away. A playlist's tile shows the covers of the first four albums in it.
-<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Borrowed Sunglasses by Velvet Arcade, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit, Save and Clear, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
+<img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Starman by David Bowie, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit, Save and Clear, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
 
 - **Edit…** (on a wide screen only, on the Queue tab and on a playlist's
   songs) opens an editor over the whole screen: the queue or the playlist on the left,
@@ -163,7 +163,7 @@ Tap a player to open it over the whole screen. There you have:
   side more room. The width is remembered in that browser. Once you have moved it, a
   small round button on the bar puts it back; so does a double tap on the bar.
 
-<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for paper, with songs, albums and playlists found in the music library and on Spotify. The third song of the queue is chosen, and is shown above the list with its cover, title, artist and album, and buttons to play from it, move it to the top or the end, or take it out" width="800">
+<img src="../screenshots/jukebox-editor.webp" alt="Jukebox's editor for the queue in the den and snug. On the left the queue's eight songs. On the right a search for moon, with songs, albums and playlists found in the music library and on Spotify. The third song of the queue is chosen, and is shown above the list with its cover, title, artist and album, and buttons to play from it, move it to the top or the end, or take it out" width="800">
 
 - **Search:** one box searches the Sonos music library and Spotify together, and shows
   what each found under its own heading. Press **+** beside a result to play it, play
@@ -346,6 +346,9 @@ it as a small round badge. The badge is how you tell a station from a queue.
 
 - A cover is shown only when Spotify has a song whose title and artist both agree with
   the station's. Otherwise you see the station's picture alone, as before.
+- Spotify often has a song on several records. Jukebox takes the cover of one by the
+  song's own artist before a collection by various artists, and the single before the
+  album. Between two of the same kind it takes the earlier one.
 - Some stations send the artist and the title the wrong way round, and some send
   "Artist - Title" as the title. Jukebox tries both ways.
 - A show's name or an advert, with no artist, isn't looked up.
@@ -364,8 +367,10 @@ Jukebox works with it. The two share no settings; there is nothing to set up.
 - **Why a player was changed.** When Love it or Loathe it mutes a song, changes its
   volume, switches station or skips it, the big player says what it did and why, under
   the title: "Muted until the next track, because “Last Christmas” by Wham! is in the
-  loathed group “Christmas”". It stays while that is in force and for ten minutes after, or until you
-  put other music on from Jukebox. A small player says what was done for as long as it
+  loathed group “Christmas”". It stays while that is in force. A mute or a change of volume
+  ends with its song, so the line goes when the next song starts. A skip, or a return
+  from another station, is still shown through the song it brought, for up to ten
+  minutes, or until you put other music on from Jukebox. A small player says what was done for as long as it
   is in force.
 - **At a party**, what Love it or Loathe it does is not taken for a guest's change. The
   volume and the station are left alone until it has put them back.
@@ -379,16 +384,57 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 | Card | What it shows | Options |
 |---|---|---|
 | **Players** | A small player for each thing playing, in the order you dragged them into. With no room chosen you can change the order on the card as well, the same way as on Jukebox's page. | A room, to show only that room's music. |
+| **Micro player** | Only the picture of what a room is playing, small enough for a sidebar. It has no controls. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. A room playing nothing is shown as a speaker. | A room; with none chosen it shows one picture for each thing playing. The size: small (120 px), medium (184 px) or large (248 px). Where the picture sits in its card, chosen from a grid of nine places. Whether it is the picture alone, with no card round it. What a tap does. An icon or a picture of your own for a room playing nothing. |
 | **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | Whether to show its heading, and whether to list the speakers that aren't answering. |
 | **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
 | **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |
 
+<img src="../screenshots/jukebox-micro.webp" alt="Five micro players side by side: a song playing, with small bars on its cover; a station that is muted, with a crossed speaker; a paused song, with the bars low and still; a quiet room, shown as a speaker; and a room that is not answering, with a red warning sign" width="600">
+
 Every card is set up with a form in the dashboard editor, with the usual Layout and
 Visibility tabs beside it; none needs YAML.
 
-A tap on a small player or a quiet room opens the big player over the screen, as on
-Jukebox's page. The Now playing card needs room: give it at least half the width of a
+A tap on a small player, a micro player or a quiet room opens the big player over the
+screen, as on Jukebox's page. A micro player with no room chosen opens Jukebox's page
+when nothing is playing.
+
+The micro player is drawn in a card with the background and border of Home Assistant's
+own cards. Turn on **The picture alone** to take the card away and leave only the
+picture, as the Markdown card's text only does for words. In a card with a border the
+picture is 16 px smaller than the size chosen, so the card still fills whole rows.
+
+The micro player's picture keeps its size whatever the width of its card, so a card as
+wide as a sidebar can hold a small picture in its middle. Each size is a whole number of
+rows of a section (two, three or four), so the picture lines up with the cards beside it.
+A room that is playing nothing is shown as a speaker. Under **A room that is playing
+nothing** in the card's editor you can choose an icon for it, or give the address of a
+picture, such as `/local/quiet.png` for a file in Home Assistant's `www` folder. Either
+is drawn at the size you chose, in the same place and the same card. A picture is shown
+whole and in its own colours; the speaker and an icon are dimmed, as a paused cover is.
+
+Its tap action is Home Assistant's usual one. Left at its default it opens the big
+player. To open Jukebox's page instead, choose Navigate and enter `/jukebox`. The setting
+belongs to the card, so if some tablets should do one thing and some another, add the
+card twice and show each to the right tablets with its Visibility tab. The Now playing card needs room: give it at least half the width of a
 tablet and most of its height.
+
+### Opening the big player from a card of your own
+
+If you want a look that Jukebox's cards don't have, use any other card (Home Assistant's
+Tile, Button or Picture card, or one from the Marketplace) and give it this tap action:
+
+```yaml
+tap_action:
+  action: fire-dom-event
+  casa_mia_jukebox:
+    room: media_player.kitchen
+    tab: favourites        # optional: queue, rooms, favourites or search
+```
+
+A tap then opens the big player for that room, as a tap on Jukebox's own cards does. If
+the action names no room, or a tab that isn't one of the four, Home Assistant shows a
+message saying so. Such a card shows what Home Assistant knows of the speaker, so on a
+station it has the station's picture and not the song's cover.
 
 Which cards a tablet or a person sees is Home Assistant's to decide: each card has a
 Visibility tab in the dashboard editor. If your own view replaces Jukebox's page, turn
@@ -504,3 +550,38 @@ triggers:
   it ends. Home Assistant must be able to reach the speakers on that port, which it
   already must for the Sonos integration's own announcements.
 - If the quiet-hours entity is missing or unavailable, announcements are played.
+
+## Why not Music Assistant?
+
+[Music Assistant](https://www.music-assistant.io/) does far more than Jukebox, and if
+it suits your house, use it. Jukebox was written for one person in the author's house,
+who wanted to find a song and add it to what is playing, and who found Music Assistant
+too much to learn for something she uses now and then. Music Assistant may be able to
+be set up to work the same way. If it can, the author didn't find out how.
+
+These are the differences that mattered there:
+
+- **The queue is the speaker's own.** Jukebox puts songs into the Sonos queue, so the
+  Sonos app, the buttons on a speaker and Jukebox all show and change the same list.
+  Music Assistant's documentation describes it handing the speaker its next song
+  shortly before the one playing ends.
+- **Home Assistant isn't in the path of the sound.** The speaker fetches each song
+  itself, from the music library or from Spotify. The music carries on while Home
+  Assistant restarts or is updated, and Jukebox's page shows the same queue when it
+  comes back. Music Assistant is a server of its own that sends the sound to the
+  speaker.
+- **It does one job.** One box searches the music library and Spotify, and a tap adds
+  what it found to the queue. Jukebox has no podcasts or audiobooks and keeps no
+  library of its own.
+- **There is no server to run.** It is one integration, and it uses the Sonos and
+  Spotify integrations you already have.
+
+[Listening on your own phone](#listening-on-your-own-phone) is the exception to the
+first two: there the queue is kept by the page, and Home Assistant sends the phone its
+library songs.
+
+Music Assistant is the one to use if:
+
+- you have speakers that aren't Sonos, or want different makes to play together;
+- you use a music service other than Spotify, or listen to podcasts or audiobooks;
+- you want the music from several services kept as one library.

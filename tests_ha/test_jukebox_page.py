@@ -2,6 +2,7 @@
 and what the page asks to be done. The speakers are stand-ins: entities registered as
 Sonos's, and media player services that record what they were sent."""
 
+import json
 import logging
 from types import SimpleNamespace as Of
 from xml.sax.saxutils import escape
@@ -663,12 +664,19 @@ def library(hass, sent):
 
 
 def a_spotify(hass, monkeypatch, search):
-    """Home Assistant's Spotify integration, signed in, whose client searches with
-    `search`. Only its place among the loaded entries is stood in for: a real entry
-    would have Home Assistant load the integration itself."""
+    """Home Assistant's Spotify integration, signed in, whose client asks Spotify
+    with `search`, which answers as Spotify's own search does (a dict of its JSON).
+    Only its place among the loaded entries is stood in for: a real entry would have
+    Home Assistant load the integration itself."""
+
+    async def get(uri, params):
+        assert uri == "v1/search"
+        found = await search(params["q"], params["type"].split(","), params["limit"])
+        return json.dumps(found)
+
     entry = Of(
         entry_id="0123abc",
-        runtime_data=Of(coordinator=Of(client=Of(search=search))),
+        runtime_data=Of(coordinator=Of(client=Of(_get=get))),
     )
     loaded = hass.config_entries.async_loaded_entries
     monkeypatch.setattr(
@@ -686,30 +694,28 @@ async def test_the_library_and_spotify_are_searched_together(
 
     async def search(query, kinds, limit):
         asked.append((query, kinds, limit))
-        artist = Of(name="The Marigolds", uri="spotify:artist:1", artists=[])
-        picture = [Of(url="https://images.example/cover.jpg")]
-        return Of(
-            tracks=[Of(name="Paper Lanterns", uri="spotify:track:2", artists=[artist])],
-            albums=[
-                Of(
-                    name="Slow Sunday",
-                    uri="spotify:album:3",
-                    artists=[artist],
-                    images=picture,
-                )
-            ],
+        artists = [{"name": "The Marigolds", "uri": "spotify:artist:1"}]
+        album = {
+            "name": "Slow Sunday",
+            "uri": "spotify:album:3",
+            "artists": artists,
+            "images": [{"url": "https://images.example/cover.jpg"}],
+        }
+        song = {"name": "Paper Lanterns", "uri": "spotify:track:2"}
+        garden = {
+            "name": "Garden Party",
+            "uri": "spotify:playlist:4",
+            "owner": {"display_name": "Ann"},
+            "images": None,
+        }
+        return {
+            # A song's cover is its album's.
+            "tracks": {"items": [song | {"artists": artists, "album": album}]},
+            "albums": {"items": [album]},
             # Spotify leaves a gap for a playlist it has withdrawn.
-            playlists=[
-                None,
-                Of(
-                    name="Garden Party",
-                    uri="spotify:playlist:4",
-                    owner=Of(display_name="Ann"),
-                    images=[],
-                ),
-            ],
-            artists=None,
-        )
+            "playlists": {"items": [None, garden]},
+            "artists": {"items": []},
+        }
 
     entry = a_spotify(hass, monkeypatch, search)
     client = await hass_ws_client(hass)
@@ -738,9 +744,8 @@ async def test_the_library_and_spotify_are_searched_together(
         "spotify://track",
         False,
     )
-    assert (
-        album["picture"] == "https://images.example/cover.jpg" and album["can_expand"]
-    )
+    assert album["can_expand"]
+    assert song["picture"] == album["picture"] == "https://images.example/cover.jpg"
     assert "searched for 'paper': 2 in Music library, 3 in Spotify" in caplog.text
 
 

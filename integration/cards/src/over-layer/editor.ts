@@ -2,7 +2,7 @@
 // Home Assistant's own card picker and card editor, as its conditional card's editor does.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, haForm, withoutDefaults } from "../ha.ts";
-import { ANCHORS, type Anchor, type Config, DEFAULTS, anchorFor } from "./common.ts";
+import { type Config, DEFAULTS, anchorFor } from "./common.ts";
 import { PILLS } from "../pills.ts";
 
 const SCHEMA = [
@@ -165,23 +165,15 @@ export class OverLayerEditor extends LitElement {
     const now = anchorFor(o.mode, o.anchor);
     return html`<h3>Where it sits</h3>
       <div class="where">
-        <div class="anchors" role="radiogroup" aria-label="Where it sits">
-          ${ANCHORS.map((row, r) =>
-            row.map(
-              (a: Anchor) =>
-                html`<button
-                  type="button"
-                  role="radio"
-                  aria-checked=${a === now}
-                  aria-label=${a}
-                  title=${a}
-                  class=${a === now ? "on" : ""}
-                  ?disabled=${o.mode === "scroll" && r > 0}
-                  @click=${() => this._save({ ...this._config!, anchor: a })}
-                ></button>`,
-            ),
-          )}
-        </div>
+        <casa-mia-over-layer-anchors
+          label="Where it sits"
+          .value=${now}
+          .rows=${o.mode === "scroll" ? 1 : 3}
+          @anchor-changed=${(ev: CustomEvent) => {
+            ev.stopPropagation();
+            this._save({ ...this._config!, anchor: ev.detail.value });
+          }}
+        ></casa-mia-over-layer-anchors>
         <ha-form
           .hass=${this.hass}
           .data=${o}
@@ -205,30 +197,6 @@ export class OverLayerEditor extends LitElement {
     }
     .where ha-form {
       flex: 1;
-    }
-    .anchors {
-      display: grid;
-      grid-template-columns: repeat(3, 22px);
-      gap: 4px;
-      padding: 6px;
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-    }
-    .anchors button {
-      width: 22px;
-      height: 22px;
-      padding: 0;
-      border: 1px solid var(--primary-color);
-      border-radius: 4px;
-      background: none;
-      cursor: pointer;
-    }
-    .anchors button.on {
-      background: var(--primary-color);
-    }
-    .anchors button:disabled {
-      opacity: 0.25;
-      cursor: default;
     }
     .note {
       color: var(--secondary-text-color);

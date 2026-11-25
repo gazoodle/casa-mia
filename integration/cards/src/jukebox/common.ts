@@ -169,6 +169,18 @@ export function arrange(hass: Asking, rooms: string[]): Promise<unknown> {
   return hass.connection.sendMessagePromise({ type: `${DOMAIN}/order`, rooms: rooms.filter((room) => room !== PHONE) });
 }
 
+/** What a button of the dashboard's own asks of Jukebox, by Home Assistant's
+ * fire-dom-event action (opens.ts): the room whose big player to open, and which of its
+ * `tabs` to show. None when the action isn't for Jukebox; the complaint, in words to show,
+ * when it is and can't be followed. */
+export function wanted(detail: any, tabs: readonly string[]): { room: string; tab?: string } | string | undefined {
+  const order = detail?.casa_mia_jukebox;
+  if (order === undefined) return undefined;
+  if (typeof order?.room !== "string" || !order.room) return "this button's action names no room: give casa_mia_jukebox a room, such as media_player.kitchen";
+  if (order.tab !== undefined && !tabs.includes(order.tab)) return `this button's action asks for "${order.tab}", which isn't one of ${tabs.join(", ")}`;
+  return { room: order.room, tab: order.tab };
+}
+
 /** Why a failure happened, in words to show. */
 export const reason = (err: any): string => err?.message ?? String(err);
 
@@ -189,6 +201,17 @@ export const loud = (house: House, group: Group): boolean => group.rooms.some((r
 
 /** Whether a group is muted: every one of its rooms is. */
 export const muted = (house: House, group: Group): boolean => group.rooms.length > 0 && group.rooms.every((r) => house.rooms[r]?.muted);
+
+/** What a micro player marks on a group's picture. `current` is whether the house shown is
+ * known to be as it is now: without that nothing is claimed of the music, as moving bars
+ * over a house that is no longer heard from would say it plays when nobody knows. */
+export type Standing = "trouble" | "quiet" | "paused" | "muted" | "playing";
+export function standing(house: House, group: Group, current: boolean): Standing {
+  if (!current || group.trouble) return "trouble";
+  if (group.quiet || group.kind === "nothing") return "quiet";
+  if (group.state !== "playing") return "paused";
+  return muted(house, group) ? "muted" : "playing";
+}
 
 /** The two lines a player shows for what a group is playing. */
 export function playing(group: Group): { title: string; by: string } {
