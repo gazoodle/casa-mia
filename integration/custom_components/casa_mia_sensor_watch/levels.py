@@ -24,6 +24,14 @@ SYSTEM = {"recorder": "Recorder", "history": "History"}
 # Config entry states that mean an integration isn't working (not disabled ones).
 FAILED = ("setup_error", "setup_retry", "migration_error", "not_loaded")
 SETTLE = 300  # seconds an integration may take to set up before its failure counts
+INTEGRATION = "integration."  # an integration's row's key: this, then its entry id
+# A failing integration's state, as its row's message says it.
+FAILING = {
+    "setup_error": "failed to set up",
+    "setup_retry": "not connecting",
+    "migration_error": "failed to migrate",
+    "not_loaded": "not loaded",
+}
 
 
 def rank(level: str | None) -> int:
@@ -57,6 +65,14 @@ def reading(
     if record.get("days_until") and value is not None and value not in UNAVAILABLE:
         return days_until(value, now or datetime.now(UTC))
     return value
+
+
+def is_gone(record: dict[str, Any], state: str | None) -> bool:
+    """Is the entity itself unavailable (or not in Home Assistant at all)? Not an
+    attribute it lacks. An availability watch counts unknown as there."""
+    if record.get("kind") == "available":
+        return state is None or state == "unavailable"
+    return state is None or state in UNAVAILABLE
 
 
 def days_until(text: str, now: datetime) -> str:
@@ -196,14 +212,40 @@ def stale_message(stale: dict[str, Any], restamped: bool = False) -> str:
     return f"no {what} for {span(stale['after'])}"
 
 
+def by_name(row: dict[str, Any]) -> list[tuple[bool, int, str]]:
+    """By name as people count: Appliance 2 before Appliance 10."""
+    words = (row.get("name") or "").lower().split()
+    return [(not w.isdecimal(), int(w) if w.isdecimal() else 0, w) for w in words]
+
+
 def listing(
     now: dict[str, dict[str, Any]], levels: list[str] | None = None
 ) -> list[dict[str, Any]]:
     """Every watched entity at one of `levels` (all but nominal when None), worst first,
     then longest standing: the `list` service's answer."""
     wanted = set(levels or LEVELS[1:])
-    rows = [{"entity_id": e, **n} for e, n in now.items() if n.get("level") in wanted]
+    rows, under = [], {}
+    for eid, row in now.items():
+        if parent := row.get("under"):
+            under.setdefault(parent, []).append({"entity_id": eid, **row})
+        elif row.get("level") in wanted:
+            rows.append({"entity_id": eid, **row})
+    for row in rows:  # a failed integration's: the sensors rolled up into it
+        if sensors := under.get(row["entity_id"]):
+            row["sensors"] = sorted(sensors, key=by_name)
     return sorted(rows, key=lambda r: (-rank(r["level"]), r.get("since") or ""))
+
+
+def in_group(
+    records: dict[str, Any], now: dict[str, dict[str, Any]], group: str
+) -> dict[str, dict[str, Any]]:
+    """The rows a group is asked about: its members', and the integrations that any of
+    them are rolled up into, or the group would look well while its sensors are gone."""
+    mine = {
+        e: n for e, n in now.items() if (records.get(e) or {}).get("group") == group
+    }
+    parents = {n["under"] for n in mine.values() if n.get("under")}
+    return mine | {p: now[p] for p in parents if p in now}
 
 
 def displayed(value: Any, precision: int | None) -> Any:
@@ -249,13 +291,59 @@ def watching(
     return watch
 
 
+def fault(key: str, row: dict[str, Any]) -> str | None:
+    """The kind of fault a row has, so a snooze can tell another kind from the one it was
+    given: an integration's state (retrying, or an error that needs someone), a sensor's
+    being unavailable, having stopped reporting, or what it reads. None for an
+    integration that isn't loaded: it passes through that at each reload, which says
+    nothing of what is wrong with it."""
+    if key.startswith(INTEGRATION):
+        return None if row["value"] == "not_loaded" else str(row["value"])
+    return "gone" if row.get("gone") else "stale" if row.get("stale") else "reading"
+
+
+def still(key: str, row: dict[str, Any], now: datetime) -> str:
+    """What a fault says as its snooze runs out: "still failing, down 16 days: ..."."""
+    lasted = span((now - datetime.fromisoformat(row["since"])).total_seconds())
+    said = (
+        f"still failing, down {lasted}"
+        if key.startswith(INTEGRATION)
+        else f"still so after {lasted}"
+    )
+    return f"{said}: {row['message']}" if row.get("message") else said
+
+
 def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """The worst level, a count per level, and the culprits per level (worst first,
     then longest standing), from each entity's current {level, message, value, since,
-    name}. Entities with no level (ignored while unavailable) don't count."""
-    counted = {e: n for e, n in now.items() if n.get("level") in LEVELS}
+    name}. Entities with no level (ignored while unavailable) don't count, nor do those
+    rolled up into a failed integration (`rolled_up`: how many): its row is their one.
+    Nor do those snoozed (`snoozed`, and `snoozed_list`, the first to end first): a
+    known fault held the worst level, and what came after it changed nothing."""
+    counted = {
+        e: n
+        for e, n in now.items()
+        if n.get("level") in LEVELS and not n.get("under") and not n.get("snoozed")
+    }
     worst = max((n["level"] for n in counted.values()), key=rank, default="nominal")
-    out: dict[str, Any] = {"worst": worst, "watching": len(now)}
+    snoozed = sorted(
+        (e for e, n in now.items() if n.get("snoozed") and not n.get("under")),
+        key=lambda e: now[e]["snoozed"]["until"],
+    )
+    out: dict[str, Any] = {
+        "worst": worst,
+        "watching": len(now),
+        "rolled_up": sum(1 for n in now.values() if n.get("under")),
+        "snoozed": len(snoozed),
+        "snoozed_list": [
+            {
+                "entity_id": e,
+                **{k: now[e].get(k) for k in ("name", "level", "message", "since")},
+                **now[e]["snoozed"],
+            }
+            for e in snoozed[:MAX_LISTED]
+        ],
+    }
     for level in LEVELS[1:]:
         these = sorted(
             (e for e, n in counted.items() if n["level"] == level),
@@ -272,19 +360,67 @@ def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def track_failures(
+    entries: list[dict[str, Any]], failing: dict[str, dict[str, Any]], now: float
+) -> None:
+    """Which integrations are failing, since when (`now`, a timestamp) and why, in
+    `failing` (by entry id; updated here, kept by the caller across restarts). Only proof
+    ends a failure: loaded, disabled or deleted. Home Assistant passes through "setup in
+    progress" at each retry, and counting that as a recovery said "back" every ten
+    minutes of an outage and lost how long it had lasted (to 2026.11.11)."""
+    seen = set()
+    for e in entries:
+        entry_id = e["entry_id"]
+        # A discovery the user chose to ignore is kept as an entry that never loads.
+        if e["disabled"] or e.get("source") == "ignore" or e["state"] == "loaded":
+            continue
+        known = failing.get(entry_id)
+        if e["state"] in FAILED:
+            failing[entry_id] = {
+                "since": known["since"] if known else now,
+                "state": e["state"],
+                "reason": e.get("reason"),
+            }
+        elif not known:
+            continue  # setting up for the first time: no failure
+        seen.add(entry_id)
+    for over in set(failing) - seen:
+        del failing[over]
+
+
+def failure_message(failure: dict[str, Any], rolled_up: int = 0) -> str:
+    """What a failed integration's row says: "not connecting, 4 watched sensors
+    unavailable: 503 Service Unavailable"."""
+    state = str(failure["state"])
+    said = FAILING.get(state, state.replace("_", " "))
+    if rolled_up:
+        sensors = "sensor" if rolled_up == 1 else "sensors"
+        said += f", {rolled_up} watched {sensors} unavailable"
+    return f"{said}: {failure['reason']}" if failure.get("reason") else said
+
+
+def titled(entry: dict[str, Any]) -> str:
+    """An integration's row's name: the integration's, then its entry's title, which
+    alone can name the wrong thing (a cloud's is often "Home Assistant Cloud")."""
+    title, name = entry["title"], entry.get("integration")
+    if not name:
+        return f"{title} ({entry['domain']})"
+    return title if title.casefold() == name.casefold() else f"{name} ({title})"
+
+
 def system_rows(
     components: set[str],
     entries: list[dict[str, Any]],
-    first_bad: dict[str, float],
+    failing: dict[str, dict[str, Any]],
     now: float,
     settings: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Home Assistant's own health as rows like a watched sensor's: the Recorder and
     History (critical when not running, nominal when they are) and each integration that
-    has failed to set up for SETTLE seconds (error). `entries`: each config entry's
-    entry_id, domain, title, state, reason, source and disabled; `first_bad`: when each
-    was first seen failing, kept by the caller between checks (updated here); `settings`
-    (the page's): `core` and `integrations` on or off, and `ignore` (entry ids)."""
+    has been failing for SETTLE seconds (error). `entries`: each config entry's
+    entry_id, domain, integration (its name), title, state, reason, source and disabled;
+    `failing`: track_failures'; `settings` (the page's): `core` and `integrations` on or
+    off, and `ignore` (entry ids)."""
     settings = settings or {}
     rows: dict[str, dict[str, Any]] = {}
     if settings.get("core", True):
@@ -296,30 +432,27 @@ def system_rows(
                 "value": "running" if up else "not running",
                 "message": None if up else "not running: no history or statistics",
             }
+    if not settings.get("integrations", True):
+        return rows
     ignored = set(settings.get("ignore") or [])
-    failing = {
-        e["entry_id"]: e
-        for e in entries
-        if settings.get("integrations", True)
-        and e["state"] in FAILED
-        and not e["disabled"]
-        # A discovery the user chose to ignore is kept as an entry that never loads.
-        and e.get("source") != "ignore"
-        and e["entry_id"] not in ignored
-    }
-    for gone in set(first_bad) - set(failing):
-        del first_bad[gone]
-    for entry_id, e in failing.items():
-        if now - first_bad.setdefault(entry_id, now) < SETTLE:
+    for e in entries:
+        failure = failing.get(e["entry_id"])
+        if not failure or e["entry_id"] in ignored or settling(failure, now):
             continue
-        state = e["state"].replace("_", " ")
-        rows[f"integration.{entry_id}"] = {
-            "name": f"{e['title']} ({e['domain']})",
+        rows[f"{INTEGRATION}{e['entry_id']}"] = {
+            "name": titled(e),
             "level": "error",
-            "value": e["state"],
-            "message": f"{state}: {e['reason']}" if e.get("reason") else state,
+            "value": failure["state"],
+            "message": failure_message(failure),
+            "since": datetime.fromtimestamp(failure["since"], UTC).isoformat(),
         }
     return rows
+
+
+def settling(failure: dict[str, Any], now: float) -> bool:
+    """Still within the time an integration has to set up. A clock put back counts as
+    time up: better early than never."""
+    return 0 <= now - failure["since"] < SETTLE
 
 
 TRIGGERS = ("reached", "escalated", "back")  # the device triggers (device_trigger.py)
@@ -332,8 +465,9 @@ def trigger_matches(
     the event's): `reached` a level or worse (one match per level, so a jump straight to
     critical counts), `escalated` (a step of a ladder), `back` to nominal. Never a level
     found at Home Assistant's start or an edited watch (`initial`): it wasn't reached then.
-    `group`: only that group's sensors."""
-    only = {"initial": False} | ({"group": group} if group else {})
+    `group`: only that group's sensors (and the failed integrations they are rolled up
+    into, which are said again for each group); none: each change once."""
+    only = {"initial": False} | ({"group": group} if group else {"for_group": False})
     if kind == "reached":
         least = rank(level or "warning")
         return [only | {"level": lv} for lv in LEVELS[max(1, least) :]]

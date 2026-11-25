@@ -156,6 +156,15 @@ export const SwapIcon = () => (
   </svg>
 );
 
+/** Jukebox: two notes joined by a beam. */
+export const JukeboxIcon = () => (
+  <svg {...base}>
+    <path d="M9 18V6l11-2v12" />
+    <circle cx="6.5" cy="18" r="2.5" />
+    <circle cx="17.5" cy="16" r="2.5" />
+  </svg>
+);
+
 /** Love it or Loathe it: a heart, one half filled in. */
 export const HeartIcon = () => (
   <svg {...base}>

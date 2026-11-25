@@ -93,6 +93,9 @@ variables:
   message: "{{ trigger.event.data.message or '' }}"
   area: "{{ trigger.event.data.area or '' }}"
   group: "{{ trigger.event.data.group or '' }}"
+  # A failed integration's again, for a group with sensors rolled up into it: only that
+  # group's automation wants it, the one for everything has had it.
+  for_group: "{{ trigger.event.data.for_group or false }}"
   # Escalated: shown a level up for how long its real level has stood.
   escalated: "{{ trigger.event.data.escalated or false }}"
   real: "{{ trigger.event.data.real or level }}"
@@ -138,7 +141,7 @@ variables:
 
 conditions:
   - condition: template
-    value_template: "{{ only_group == '' or group == only_group }}"
+    value_template: "{{ group == only_group if only_group else not for_group }}"
   - condition: template
     value_template: "{{ rank >= least or (recovered and back) }}"
 

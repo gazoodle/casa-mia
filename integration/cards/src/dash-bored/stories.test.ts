@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { days, read, survey } from "./house.ts";
-import { RECOVERED, billing, flip, personal, pressing, setting, stories, turning, zooming, type Alert, type Rated } from "./stories.ts";
+import { RECOVERED, billing, flip, personal, pressing, setting, stories, turning, zooming, type Alert, type Rated, heard } from "./stories.ts";
 import { VOICES, announce, billed, clause, poll, sky, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
@@ -392,4 +392,10 @@ test("a camera's zoom, presets and controls are each the call their own entity t
   assert.deepEqual(turning({ name: "Road", action: "unifiprotect.ptz_goto_preset", data: { device_id: "d1", preset: "Road" } }), { domain: "unifiprotect", service: "ptz_goto_preset", ids: [], data: { device_id: "d1", preset: "Road" } });
   const control = (id: string) => pressing({ id, name: "", away: false });
   assert.deepEqual([control("button.gate"), control("script.open"), control("input_boolean.away")].map((p) => `${p.domain}.${p.service}`), ["button.press", "script.turn_on", "homeassistant.toggle"]);
+});
+
+test("a withdrawn alert leaves the page, with no story of being back to normal", () => {
+  const said = (entity_id: string, more = {}) => ({ entity_id, level: "error", ...more }) as Parameters<typeof heard>[0][number];
+  const held = heard([], [said("sensor.oven"), said("sensor.loft")]);
+  assert.deepEqual(heard(held, [said("sensor.oven", { withdrawn: true })]).map((a) => a.entity_id), ["sensor.loft"]);
 });

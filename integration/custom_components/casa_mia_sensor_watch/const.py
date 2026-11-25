@@ -3,8 +3,14 @@
 DOMAIN = "casa_mia_sensor_watch"
 # Bus event on each change of level (after its hold-off), for automations.
 EVENT = DOMAIN
+# What was said of an entity no longer stands, and it is not back to nominal: rolled up
+# into its failed integration, ignored, or no longer watched. An event of its own, so no
+# automation on EVENT takes it for a recovery; whatever keeps a copy of EVENT drops it.
+WITHDRAWN = f"{DOMAIN}_withdrawn"
 LIST = "list"  # casa_mia_sensor_watch.list
 REFRESH = "refresh"  # casa_mia_sensor_watch.refresh (and its button)
+SNOOZE = "snooze"  # casa_mia_sensor_watch.snooze: a row, until a time (snooze.py)
+UNSNOOZE = "unsnooze"
 # One entity's watch, now and at each change: the eye in its dialog (the cards' eye.ts).
 ENTITY = f"{DOMAIN}/entity"
 # Fired by the Casa Mia app when it has written newer files for its components: the

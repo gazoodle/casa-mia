@@ -1,20 +1,26 @@
 # Auto Dashboards
 
-Dashboards made for you: today the camera dashboard, from the cameras and the commanders,
+Dashboards made for you: today the camera dashboard, with a live page for each camera,
 previewed, and deployed into Home Assistant.
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
-<img src="../screenshots/dashboard-commander.webp" alt="The camera dashboard: a commander's page, every camera around the main one" width="800">
-
 ## What it's for
 
-A camera dashboard by hand is an afternoon of YAML, and another each time a camera is
-added. Auto Dashboards writes it from what you have already set up: a page for each
-commander (its picture, with a tap zone over each tile), then a live page for each camera
-(its stream, zoom, PTZ presets and page controls). One dashboard adapts to whoever is
-looking: wall tablets and phones get each camera's medium channel, everyone else the high
-one.
+A page for every camera by hand is an afternoon of YAML, and another each time a camera
+is added. Auto Dashboards writes them from what you have already set up: a live page for
+each camera in a commander (its stream, zoom, PTZ presets and page controls). One
+dashboard adapts to whoever is looking: wall tablets and phones get each camera's medium
+channel, everyone else the high one.
+
+**It is not how you show a commander.** A commander goes on a dashboard of your own as the
+[Camera Commander card](camera-commander.md#the-camera-commander-card); see
+[A camera commander on your home page](../how-to/commander-on-your-home-page.md). The
+card's tap on the main camera can open that camera's page here.
+
+Until 2026.11.12-b7 this dashboard also had a page for each commander, drawn as one
+picture with a tap zone over each tile. It no longer makes them. A dashboard deployed
+before then keeps its commander pages until its next **Deploy live**, which removes them.
 
 It is the start of a wider idea: dashboards built from Casa Mia's own data, rebuilt the
 same way every time.
@@ -22,8 +28,9 @@ same way every time.
 ## Switching it on
 
 Turn on **Auto Dashboards** in the app's Configuration tab (Settings → Apps → Casa Mia →
-Configuration), and **Camera Commander** too for the commanders' pictures. Set up the
-[Cameras](cameras.md) and the [Camera Commander](camera-commander.md) first.
+Configuration). Set up the [Cameras](cameras.md) and the
+[Camera Commander](camera-commander.md) first: a camera gets a page when a commander
+shows it.
 
 Before 2026.10.4-b18 this was the Camera Dashboard, and its page held the cameras and the
 commanders too.
@@ -36,8 +43,6 @@ cameras and the commanders are their own pages': the draft takes their changes a
 - **Deploy preview** writes the draft to a second dashboard, `<address>-preview`, visible
   to admins only, to try it out. **Remove preview** deletes it.
 - **Deploy live** writes it to the dashboard itself, keeping a copy of what it replaces.
-  The commanders' pictures are live on both at once (Camera Commander); a commander's
-  layout change reaches a dashboard's tap zones at its next deploy.
 - **YAML** shows the dashboard as it would be deployed, to copy.
 
 The bar says whether the draft differs from what is live, and what to fix before a
@@ -72,6 +77,5 @@ stops a deploy.
 
 - **Back does nothing on the dashboard:** switch on the Back button helper on the
   [Settings](settings.md) page.
-- **A tap on a commander does nothing:** see [Camera Commander](camera-commander.md#troubleshooting).
 - **The log** has a line for every save, deploy, restore and backup (`auto dashboards:
-  deployed /… (N views, composites from …)`).
+  deployed /… (N views)`).

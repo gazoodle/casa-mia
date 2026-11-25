@@ -272,7 +272,8 @@ def _ws_summary(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """The overall health, now and when it changes: the worst level, how many are
-    watched, a count per level, and the worst culprit (the longest standing at it)."""
+    watched, a count per level, the worst culprit (the longest standing at it), and how
+    many are snoozed, which none of those count."""
     last: list[dict[str, Any]] = []
 
     def say(found: Running, whole: bool) -> dict[str, Any] | None:
@@ -283,6 +284,7 @@ def _ws_summary(
             "health": worst,
             "watching": s["watching"],
             "counts": {lv: s[lv] for lv in LEVELS[1:] if s[lv]},
+            "snoozed": s["snoozed"],
             "worst": f"{top.get('name') or top.get('entity_id')}: "
             f"{top.get('message') or top.get('value')}"
             if top

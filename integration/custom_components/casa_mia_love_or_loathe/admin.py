@@ -62,7 +62,7 @@ from .const import (
     LOVE,
     STATION,
 )
-from .engine import ID, TYPE, Engine, ordered
+from .engine import ID, TYPE, Engine, favourite, ordered
 from .pure import felt, home, libraries
 
 _LOGGER = logging.getLogger(__name__)
@@ -185,12 +185,24 @@ def _entry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
             for s in subentries
             if s.subentry_type == STATION
         ],
+        # The players' own sources (a speaker's favourites), for a station by name.
+        "sources": _sources(hass, players),
         "playing": {e: _playing(hass, engine, e) for e in players}
         if engine and engine.enabled
         else {},
         "away": engine.away if engine else {},
         "last": engine.last if engine else None,
     }
+
+
+def _sources(hass: HomeAssistant, players: list[str]) -> list[str]:
+    """Every source any of the players has, once each, in the players' own order."""
+    lists = (
+        state.attributes.get("source_list") or []
+        for entity in players
+        if (state := hass.states.get(entity))
+    )
+    return list(dict.fromkeys(name for names in lists for name in names))
 
 
 def _playing(hass: HomeAssistant, engine: Engine, entity: str) -> dict[str, Any]:
@@ -211,6 +223,8 @@ def _playing(hass: HomeAssistant, engine: Engine, entity: str) -> dict[str, Any]
         "repeats": repeats,
         ID: state.attributes.get(ID),
         TYPE: state.attributes.get(TYPE),
+        # The one of its own sources it is on, for a station made of it by name.
+        "source": favourite(state),
     }
 
 

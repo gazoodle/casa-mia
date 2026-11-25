@@ -23,6 +23,11 @@ CONF_FLOOR_ORDER = "floor_order"
 CONF_ROOM_ORDER = "room_order"
 # Whether a model writes the agent's column (column.py): on unless switched off.
 CONF_COLUMN = "column"
+# Whether a Dash-Bored page reloads itself after an update, once nobody has touched it
+# for a minute (for a wall tablet, with nobody to press Reload). Off unless switched on:
+# a page doesn't reload without being asked (Frenck, reviewing hacs/default#14577,
+# 2026-11-24).
+CONF_RELOAD = "reload_when_idle"
 
 # Websocket commands, any signed-in user's.
 CARDS_VERSION = f"{DOMAIN}/cards"  # which version of cards.js is served
@@ -38,6 +43,8 @@ HOUSEHOLD = f"{DOMAIN}/household"  # the feed of the household's ages (household
 # here and not imported: the two integrations meet only through Home Assistant, and each
 # works without the other.
 WATCH_EVENT = "casa_mia_sensor_watch"
+# And its event that what it said of a sensor no longer stands, though it isn't back.
+WATCH_WITHDRAWN = f"{WATCH_EVENT}_withdrawn"
 NOMINAL = "nominal"
 # Love it or Loathe it's bus event for a song somebody rated: named, not imported, as above.
 RATED_EVENT = "casa_mia_love_or_loathe_rated"

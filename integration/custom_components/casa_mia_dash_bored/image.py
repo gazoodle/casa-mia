@@ -12,11 +12,6 @@ its commanders show, at their streams' full size: a picture it has from the last
 seconds is used, and the camera is asked only when it has none. The two meet through a
 Home Assistant service and nothing else, so this works the same with no app.
 
-A UniFi Protect camera's detection names its event, and Protect makes a thumbnail of
-each event, choosing the frame itself. The photograph taken at once is replaced by that
-thumbnail when Protect has it, so a sighting never waits for Protect and is never
-without a picture because of it.
-
 The entity holds the latest for its camera. Each sighting is also told to sightings.py,
 which keeps the last half hour's with their photographs for the pages. All in memory:
 after a restart there is no sighting until the next detection. Any brand of camera, as long as its detections are
@@ -25,7 +20,6 @@ entities on the same device as its camera entity.
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import binascii
 import logging
@@ -70,8 +64,6 @@ TIMEOUT = 10  # seconds for the camera to answer
 # oldest one worth having (s): the compositor's own default for how old a picture may be.
 CACHE = ("casa_mia", "camera_picture")
 FRESH = 5
-PROTECT = "unifiprotect"  # the integration whose detections name their event
-THUMB_WAIT = 15  # seconds for Protect to have an event's thumbnail
 
 
 def kind_of(name: str, device_class: str | None = None) -> str | None:
@@ -125,17 +117,6 @@ async def from_camera(hass: HomeAssistant, camera_id: str) -> tuple[bytes, str]:
     return image.content, image.content_type
 
 
-async def protect_thumbnail(
-    hass: HomeAssistant, entry_id: str, event_id: str
-) -> bytes | None:
-    """UniFi Protect's own thumbnail of an event, as its integration's thumbnail view
-    fetches it (unifiprotect/views.py): through that config entry's client. Another
-    integration's insides, so whatever goes wrong here is the caller's to catch."""
-    entry = hass.config_entries.async_get_entry(entry_id)
-    api = entry.runtime_data.api  # type: ignore[union-attr]
-    return await api.get_event_thumbnail(event_id, width=WIDTH)
-
-
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, add: AddConfigEntryEntitiesCallback
 ) -> None:
@@ -146,7 +127,6 @@ async def async_setup_entry(
     entities, devices = er.async_get(hass), dr.async_get(hass)
     cameras: dict[str, str] = {}
     triggers: dict[str, dict[str, str]] = {}
-    protect: dict[str, str] = {}  # a Protect detection -> its config entry
 
     for found in entities.entities.values():
         if not found.device_id or found.disabled or found.platform == DOMAIN:
@@ -169,11 +149,9 @@ async def async_setup_entry(
                 kind = BY_EVENT if any(kind_of(str(k)) for k in kinds) else None
             if kind is not None:
                 triggers.setdefault(found.device_id, {})[found.entity_id] = kind
-                if found.platform == PROTECT and found.config_entry_id:
-                    protect[found.entity_id] = found.config_entry_id
 
     sightings = [
-        Sighting(hass, device, camera_id, triggers[device_id], protect)
+        Sighting(hass, device, camera_id, triggers[device_id])
         for device_id, camera_id in cameras.items()
         if device_id in triggers and (device := devices.async_get(device_id))
     ]
@@ -195,18 +173,15 @@ class Sighting(ImageEntity):
         device: dr.DeviceEntry,
         camera_id: str,
         triggers: dict[str, str],
-        protect: dict[str, str],
     ) -> None:
         super().__init__(hass)
         self._camera = camera_id
         self._triggers = triggers
-        self._protect = protect
         self._kind = ""
         self._at: datetime | None = None
         self._photo: bytes | None = None
         self._source = ""  # where the photograph came from, for the log
         self._id = ""  # this sighting's, in sightings.py's log
-        self._event = ""  # Protect's event whose thumbnail has been asked for
         self._attr_unique_id = f"sighting-{device.id}"
         # The camera's own device, as a helper's entity joins one: the pages find the
         # room there.
@@ -218,8 +193,7 @@ class Sighting(ImageEntity):
             "kind": self._kind,
             "camera": self._camera,
             "photo": self._photo is not None,
-            # When it was seen. The state is when the photograph last changed, which
-            # is later when Protect's thumbnail has replaced the first one.
+            # When it was seen. The state is when the photograph last changed.
             "seen": self._at.isoformat() if self._at else None,
         }
 
@@ -250,17 +224,19 @@ class Sighting(ImageEntity):
         fresh = self._at is None or (now - self._at).total_seconds() >= APART
         # Within APART of the last still there is no new one: the same thing told again
         # by another of the camera's entities. But a doorbell rung as the person is seen
-        # makes the sighting a doorbell's, and an entity that names Protect's event
-        # (not all do) lets its thumbnail be asked for.
+        # makes the sighting a doorbell's.
+        #
+        # The still is the one taken now. UniFi Protect's own thumbnail of the event
+        # replaced it until 2026.11.12-b25, but only through Protect's internal client,
+        # which no other integration should use (Frenck, reviewing hacs/default#14577,
+        # 2026-11-24). Protect exposes no public way to have it.
         better = not fresh and ORDER.index(kind) < ORDER.index(self._kind)
-        entry_id = self._protect.get(new.entity_id)
-        event_id = str(new.attributes.get("event_id") or "") if entry_id else ""
-        if not fresh and not better and event_id in ("", self._event):
+        if not fresh and not better:
             return
 
         if fresh:
             self._at = now  # before the wait, so that what comes during it is not fresh
-            self._id, self._event = secrets.token_urlsafe(16), ""
+            self._id = secrets.token_urlsafe(16)
             try:
                 held = await cached(self.hass, self._camera)
                 self._source = "Casa Mia" if held else "the camera"
@@ -284,17 +260,6 @@ class Sighting(ImageEntity):
             )
             self._tell()
 
-        if entry_id and event_id and event_id != self._event:
-            self._event = event_id
-            # Not awaited: the sighting is told now, and the better picture follows.
-            # The entry's task, so that unloading the integration ends it.
-            assert self.platform.config_entry
-            self.platform.config_entry.async_create_background_task(
-                self.hass,
-                self._better(self._id, entry_id, event_id),
-                f"{DOMAIN} thumbnail {event_id}",
-            )
-
     def _tell(self) -> None:
         """This sighting, as it now is: to Home Assistant, and to the pages' log."""
         assert self._at and self.image_last_updated
@@ -311,43 +276,3 @@ class Sighting(ImageEntity):
             },
             (self._photo, self.content_type) if self._photo else None,
         )
-
-    async def _better(self, sighting: str, entry_id: str, event_id: str) -> None:
-        """Replace that sighting's photograph with Protect's thumbnail of its event, if
-        that comes within THUMB_WAIT and no later sighting has taken its place."""
-        try:
-            async with asyncio.timeout(THUMB_WAIT):
-                thumbnail = await protect_thumbnail(self.hass, entry_id, event_id)
-        except Exception as err:  # noqa: BLE001 (another integration's insides)
-            thumbnail = None
-            _LOGGER.warning(
-                "UniFi Protect's thumbnail of event %s at %s could not be had, so the "
-                "first photograph stays: %s: %s",
-                event_id,
-                self._camera,
-                type(err).__name__,
-                err,
-            )
-        else:
-            if not thumbnail:
-                _LOGGER.info(
-                    "UniFi Protect has no thumbnail of event %s at %s: the first "
-                    "photograph stays",
-                    event_id,
-                    self._camera,
-                )
-        if not thumbnail or self._id != sighting:
-            return
-
-        was = len(self._photo or b"")
-        self._photo, self._attr_content_type = thumbnail, "image/jpeg"
-        self._source = "UniFi Protect"
-        self._attr_image_last_updated = dt_util.utcnow()
-        _LOGGER.info(
-            "Sighting at %s: UniFi Protect's thumbnail (%d bytes) replaces the first "
-            "photograph (%d bytes)",
-            self._camera,
-            len(thumbnail),
-            was,
-        )
-        self._tell()

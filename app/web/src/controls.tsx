@@ -171,7 +171,14 @@ export function Select({
                 disabled={it.disabled}
                 className={css.menuItem}
                 onPointerEnter={() => setActive(i)}
-                onClick={() => pick(i)}
+                onClick={(e) => {
+                  // In a Field the menu is inside a <label>, and Safari passes a click
+                  // in a label on to its control, this select's own button, which
+                  // opened the menu again after every pick (2026.11.12-b3; seen in
+                  // Safari 26.6 only with a real click). A prevented click isn't passed on.
+                  e.preventDefault();
+                  pick(i);
+                }}
               >
                 {it.label}
               </button>,

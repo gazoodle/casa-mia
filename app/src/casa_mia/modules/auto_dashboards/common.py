@@ -33,14 +33,6 @@ PREVIEW = (
 )
 
 
-# A 1x1 transparent image: the tap zones over a composite.
-BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-
-
-# The same, marked: the commander's highlight, which Keep camera pictures live pulses.
-HIGHLIGHT = BLANK + "#cm-highlight"
-
-
 URL_PATH = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)+$")  # HA wants a hyphen in it
 
 

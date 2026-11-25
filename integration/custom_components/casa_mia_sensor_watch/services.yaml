@@ -16,3 +16,26 @@ list:
       selector:
         text:
 refresh: {}
+snooze:
+  fields:
+    entity_id:
+      required: true
+      example: "sensor.download_speed"
+      selector:
+        text:
+    duration:
+      example: {days: 1}
+      selector:
+        duration:
+          enable_day: true
+    until:
+      example: "2026-12-01 09:00:00"
+      selector:
+        datetime:
+unsnooze:
+  fields:
+    entity_id:
+      required: true
+      example: "sensor.download_speed"
+      selector:
+        text:

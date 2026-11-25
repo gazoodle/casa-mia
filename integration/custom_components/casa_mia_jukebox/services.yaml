@@ -1,0 +1,49 @@
+announce:
+  fields:
+    message:
+      selector:
+        text:
+          multiline: true
+    media:
+      selector:
+        text:
+    players:
+      selector:
+        entity:
+          domain: media_player
+          integration: sonos
+          multiple: true
+    chime:
+      default: true
+      selector:
+        boolean:
+    volume:
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+    priority:
+      default: false
+      selector:
+        boolean:
+play:
+  fields:
+    favourite:
+      required: true
+      selector:
+        text:
+    rooms:
+      required: true
+      selector:
+        entity:
+          domain: media_player
+          integration: sonos
+          multiple: true
+    enqueue:
+      selector:
+        select:
+          options:
+            - next
+            - add
+          translation_key: enqueue

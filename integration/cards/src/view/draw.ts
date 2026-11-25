@@ -1,6 +1,6 @@
 // Layer 3: edit mode's drawing (dimension lines, gap lines, marks, panel toolbars).
 import { LAYOUT, type Panel, type Rect } from "../layout.ts";
-import { ADD_LAYERS, depthOf, type Drawn, type Gap, gapLines, layerOf, panelName, placeOf, placePanels, type Side, sides, stackOf } from "../tablet.ts";
+import { ADD_LAYERS, depthOf, type Drawn, edgeSize, type Gap, gapLines, layerOf, lineAttrs, panelName, placeOf, placePanels, type Side, sides, stackOf } from "../tablet.ts";
 import { headerSpace, ROW, LOCKED, UNLOCKED } from "./common.ts";
 import { ViewEdit } from "./edit.ts";
 
@@ -37,21 +37,19 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
         layer.className = "cm-lines";
         grid.append(layer); // after Lit's part, so Lit leaves it alone; absolute, so no cell
       }
-      const svg = drawn
-        .map((l) => {
-          const w = l.width;
-          const dash = l.style === "dashed" ? ` stroke-dasharray="${3 * w} ${2 * w}"` : l.style === "dotted" ? ` stroke-dasharray="0 ${2 * w}" stroke-linecap="round"` : "";
-          if (l.style !== "double") return `<line x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}" stroke="${l.color}" stroke-width="${w}"${dash}/>`;
-          // Two thin lines, a third of its width each, a third apart.
-          const t = Math.max(1, w / 3);
-          const [dx, dy] = l.y1 === l.y2 ? [0, t] : [t, 0];
-          return [-1, 1]
-            .map((k) => `<line x1="${l.x1 + k * dx}" y1="${l.y1 + k * dy}" x2="${l.x2 + k * dx}" y2="${l.y2 + k * dy}" stroke="${l.color}" stroke-width="${t}"/>`)
-            .join("");
-        })
-        .join("");
-      const html = `<svg>${svg}</svg>`;
-      if (layer.dataset.html !== html) [layer.innerHTML, layer.dataset.html] = [html, html];
+      // Built with setAttribute, never as markup (lineAttrs says why).
+      const attrs = lineAttrs(drawn);
+      const key = JSON.stringify(attrs);
+      if (layer.dataset.lines === key) return drawn;
+      const NS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(NS, "svg");
+      for (const a of attrs) {
+        const line = document.createElementNS(NS, "line");
+        for (const [name, value] of Object.entries(a)) line.setAttribute(name, value);
+        svg.append(line);
+      }
+      layer.replaceChildren(svg);
+      layer.dataset.lines = key;
       return drawn;
     }
 
@@ -134,7 +132,7 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
         const c = layerOf(this.cmLayout, Number(layer))[place] ?? {};
         const across = place === "top" || place === "bottom";
         const depth = Math.max(...ns.map((n) => real.places[n]!.rect[across ? 3 : 2]));
-        const set = c.size === "auto" ? "auto" : c.unit === "px" ? "" : `${c.size ?? LAYOUT.panels[place as "top"].size}%`;
+        const set = edgeSize(c, place as Panel);
         const text = set ? `${set} · ${px(depth)}` : px(depth);
         const u = ns.map(on).reduce((a, r) => ({ l: Math.min(a!.l, r!.l), t: Math.min(a!.t, r!.t), r: Math.max(a!.r, r!.r), b: Math.max(a!.b, r!.b) }))!;
         const tip = `title="How ${across ? "tall" : "wide"} the ${Number(layer) > 1 ? `layer ${layer} ` : ""}${place} edge is: as its cards, or a size"`;

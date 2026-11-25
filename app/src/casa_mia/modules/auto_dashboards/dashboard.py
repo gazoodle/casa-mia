@@ -1,4 +1,8 @@
-"""auto_dashboards: The generated dashboard: the commanders' pages, then each camera's."""
+"""auto_dashboards: The generated dashboard: a live page for each camera.
+
+The commanders had pages here too, to 2026.11.12-b7: the compositor's picture with a tap
+zone over each tile. A commander is now put on a dashboard with its card (owner,
+2026-11-23: the generated page was mistaken for the way to show a commander)."""
 
 from __future__ import annotations
 
@@ -7,18 +11,8 @@ from typing import Any
 import yaml
 
 from ..cameras import preset_data, preset_entries
-from ..commander import COMMANDER_SELECT, commander_selects
-from ..compositor import (
-    EMPTY_COMMANDER,
-    cameras_of,
-    commander_cameras,
-    commanders_of,
-    follows_main,
-    placed,
-    slug,
-    visible,
-)
-from .common import BLANK, HIGHLIGHT, Store, with_defaults
+from ..compositor import cameras_of, commanders_of, slug, visible
+from .common import Store, with_defaults
 
 
 def menu_cameras(store: Store) -> list[str]:
@@ -33,18 +27,9 @@ def navigate(path: str) -> dict:
     return {"action": "navigate", "navigation_path": path}
 
 
-def build_dashboard(
-    store: Store,
-    image_base: str,
-    url_path: str,
-    selects: dict[str, str] | None = None,
-) -> dict:
-    """The whole dashboard config for HA (`views`), with the composites served from
-    image_base (http://host:port), the tap zones navigating inside url_path and setting
-    each commander's Main camera select (`selects`: id -> entity, see
-    `commander_selects`)."""
+def build_dashboard(store: Store) -> dict:
+    """The whole dashboard config for HA (`views`)."""
     s = with_defaults(store)
-    selects = selects or commander_selects(s, None)
     cams = s["cameras"]
     theme = s["theme"] or None
     # the wall tablets (by user) and phones can't take the big streams
@@ -152,138 +137,6 @@ def build_dashboard(
             view["sections"].insert(0, sec)
         return view
 
-    def zone(
-        rect: tuple[int, int, int, int], canvas: tuple[int, int], to: str | dict
-    ) -> dict:
-        """A transparent tap zone over rect (x, y, w, h), going to a view of this
-        dashboard (or doing an action); HA positions by centre."""
-        x, y, w, h = rect
-        cw, ch = canvas
-        return {
-            "type": "image",
-            "image": BLANK,
-            "tap_action": to if isinstance(to, dict) else navigate(f"/{url_path}/{to}"),
-            "style": {
-                "left": f"{(x + w / 2) / cw * 100:.2f}%",
-                "top": f"{(y + h / 2) / ch * 100:.2f}%",
-                "width": f"{w / cw * 100:.2f}%",
-                "height": f"{h / ch * 100:.2f}%",
-            },
-        }
-
-    def commander_view(cmd: dict) -> dict:
-        """The nav, then the commander's picture with its tap zones."""
-        v: dict[str, Any] = {
-            "type": "sections",
-            "max_columns": 3,
-            "title": cmd["name"],
-            "path": slug(cmd["name"]),
-            "sections": [
-                {
-                    "type": "grid",
-                    "column_span": 3,
-                    "cards": [
-                        {
-                            "type": "picture-elements",
-                            "image": f"{image_base}/g/{slug(cmd['name'])}.mjpg",
-                            "grid_options": {"columns": "full"},
-                            "elements": commander_zones(cmd),
-                        }
-                    ],
-                }
-            ],
-            "cards": [],
-        }
-        if theme:
-            v["theme"] = theme
-        return header(v, None, [])
-
-    def commander_zones(cmd: dict) -> list[dict]:
-        """A tap on a panel's camera makes it the main one (the integration's select); a
-        tap on the main camera opens its live page: one zone per camera over the main
-        area, each shown only while that camera is the main one. With the main camera
-        at its own shape the whole layout follows it, so then every zone is in one set
-        per main camera, each shown while that camera is the main one. While its select
-        holds none of its cameras (nothing yet, or unavailable), the commander shows its
-        own main camera, and so do its zones."""
-        title = lambda e: cams[e]["title"]  # noqa: E731
-        select = selects.get(cmd["id"], COMMANDER_SELECT)
-        mine = commander_cameras(cmd)
-        own = cmd["main"] if cmd.get("main") in mine else mine[0]
-
-        def shown_while(e: str | None, elements: list[dict]) -> dict:
-            test = (
-                {"state": title(e)}
-                if e
-                else {"state_not": [title(c) for c in mine]}  # its own main camera
-            )
-            return {
-                "type": "conditional",
-                "conditions": [{"condition": "state", "entity": select} | test],
-                "elements": elements,
-            }
-
-        if follows_main(cmd):
-            return [
-                shown_while(e, highlight(cmd, m, m) + layout_zones(cmd, m, select))
-                for e, m in [*((e, e) for e in mine), (None, own)]
-            ]
-        size, main_rect, *_ = placed(cmd)
-        return layout_zones(cmd, None, select) + [
-            shown_while(
-                e,
-                highlight(cmd, m, None)
-                + [zone(main_rect, size, f"cam-{slug(title(m))}")],
-            )
-            for e, m in [*((e, e) for e in mine), (None, own)]
-        ]
-
-    def highlight(cmd: dict, e: str, main: str | None) -> list[dict]:
-        """An outline over the main camera's own tile: drawn by the browser (so a tap
-        shows it at once), its colour, width and blur (a glow) as set; it lets taps
-        through, and pulses (Keep camera pictures live does that) unless pulse is 0."""
-        laid = placed(cmd, main)
-        h = {**EMPTY_COMMANDER["highlight"], **(cmd.get("highlight") or {})}
-        for _, cam, rect, _ in laid.tiles:
-            if cam == e and rect[2] > 0 and rect[3] > 0:
-                mark = zone(rect, laid.size, {"action": "none"})
-                mark["image"] = HIGHLIGHT
-                mark["style"] |= {
-                    "border": f"{h['width']}px solid {h['colour']}",
-                    "box-sizing": "border-box",
-                    "box-shadow": f"0 0 {h['blur']}px {h['colour']}",
-                    "pointer-events": "none",
-                    "--cm-colour": h["colour"],
-                    "--cm-blur": f"{h['blur']}px",
-                    "--cm-pulse": f"{h['pulse']}s",
-                    "--cm-style": h["style"],
-                }
-                return [mark]
-        return []
-
-    def layout_zones(cmd: dict, main: str | None, select: str) -> list[dict]:
-        """The panels' tap zones (and, given the main camera, its own) for one layout."""
-        laid = placed(cmd, main)
-        size = laid.size
-        title = lambda e: cams[e]["title"]  # noqa: E731
-        out = [
-            zone(
-                rect,
-                size,
-                {
-                    "action": "perform-action",
-                    "perform_action": "select.select_option",
-                    "target": {"entity_id": select},
-                    "data": {"option": title(e)},
-                },
-            )
-            for _, e, rect, _ in laid.tiles
-            if rect[2] > 0 and rect[3] > 0
-        ]
-        if main:
-            out.append(zone(laid.main, size, f"cam-{slug(title(main))}"))
-        return out
-
     def live_card(entity: str, title: str, condition: dict | None, kind: str) -> dict:
         if kind == "advanced-camera-card":
             # retries by itself when the stream drops, e.g. while a PTZ camera slews
@@ -359,17 +212,9 @@ def build_dashboard(
             view["theme"] = theme
         return header(view, cam.get("zoom"), cam.get("controls", []))
 
-    cmds = [
-        c
-        for c in map(visible, commanders_of(s))
-        if commander_cameras(c) and c.get("page", True)
-    ]
-    # the commanders with a page, then one live page per camera in any commander (a tap
-    # on a main camera opens its page, wherever the commander is shown)
-    return {
-        "views": [commander_view(c) for c in cmds]
-        + [camera_view(e) for e in menu_cameras(s)]
-    }
+    # one live page per camera in any commander (a tap on a main camera opens its page,
+    # wherever the commander's card is shown)
+    return {"views": [camera_view(e) for e in menu_cameras(s)]}
 
 
 def preset_action(ptz: dict, preset: str) -> dict:

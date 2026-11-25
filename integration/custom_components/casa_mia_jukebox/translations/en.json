@@ -1,0 +1,169 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Jukebox",
+        "description": "Adds the `announce` action, which plays a chime and a message on your Sonos speakers. Choose the rooms, the voice and quiet hours afterwards, under Configure."
+      },
+      "pick_implementation": {
+        "title": "Sign Jukebox in to Spotify",
+        "description": "For listening to Spotify on a phone. Choose the application credentials to sign in with.",
+        "data": {
+          "implementation": "Application credentials"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Jukebox is already set up.",
+      "reconfigure_successful": "Jukebox is signed in to Spotify. The people who may run a party can now listen to Spotify on their own phone.",
+      "reauth_successful": "Jukebox is signed in to Spotify again.",
+      "missing_credentials": "Jukebox needs application credentials to sign in to Spotify. Add them under Settings, Devices & services, Application credentials, for Jukebox: the client ID and secret of the Spotify developer app that Home Assistant's Spotify integration uses.",
+      "missing_configuration": "Jukebox has no application credentials to sign in to Spotify with.",
+      "authorize_url_timeout": "Spotify took too long to give the address to sign in at.",
+      "no_url_available": "Home Assistant has no address that Spotify can send the sign-in back to. Set its address under Settings, System, Network.",
+      "oauth_error": "Spotify sent back a sign-in that couldn't be read.",
+      "oauth_timeout": "Spotify took too long to finish the sign-in.",
+      "oauth_unauthorized": "Spotify refused the sign-in. Check the client ID and secret.",
+      "oauth_failed": "Spotify didn't finish the sign-in.",
+      "user_rejected_authorize": "The sign-in was turned down on Spotify's page."
+    }
+  },
+  "application_credentials": {
+    "description": "Jukebox signs in to Spotify itself, so that Spotify can be played on a phone. Enter the client ID and client secret of the Spotify developer app that Home Assistant's Spotify integration uses. That app needs the Web Playback SDK ticked among its APIs."
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Jukebox",
+        "data": {
+          "players": "Rooms",
+          "tts": "Voice",
+          "chime": "Chime",
+          "quiet": "Quiet hours",
+          "sidebar": "Show Jukebox in the sidebar",
+          "hosts": "Who may run a party",
+          "screens": "The house's own screens"
+        },
+        "data_description": {
+          "players": "The Sonos speakers an announcement goes to when the action names none. Each gets a number for its announcement volume.",
+          "tts": "The text-to-speech voice that says a message.",
+          "chime": "The sound played before each announcement: a web address or a media id. Jukebox's own is filled in; empty the box for none.",
+          "quiet": "While this is on, announcements are not played unless they have priority. A schedule helper suits it.",
+          "sidebar": "Jukebox's own page, in Home Assistant's sidebar. Turn it off if you use a dashboard of your own made from Jukebox's cards. The page stays at /jukebox either way.",
+          "hosts": "The logins that may turn the party lock on and off, change the music while it is on, and change the Sonos playlists at any time. Administrators always may.",
+          "screens": "Logins of shared screens, such as wall tablets. They may save, change and delete Sonos playlists, except while a party is on anywhere in the house. During a party they can change the music only while someone who runs it has let them, and never the party itself. Any other login can only look, and can never change a playlist."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "party": {
+        "name": "Party"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "{room} announcement volume"
+      }
+    },
+    "sensor": {
+      "last": {
+        "name": "Last announcement",
+        "state": {
+          "played": "Played",
+          "partly": "Played in some rooms",
+          "nothing": "Not played"
+        }
+      },
+      "put_back": {
+        "name": "Changes put back"
+      }
+    }
+  },
+  "exceptions": {
+    "not_set_up": {
+      "message": "Jukebox isn't set up. Add it under Settings, Devices & services."
+    },
+    "nothing_to_play": {
+      "message": "Give the announcement a message, a sound, or both."
+    },
+    "no_voice": {
+      "message": "Jukebox has no voice to say a message with. Choose one in its Configure dialog."
+    },
+    "no_players": {
+      "message": "No rooms to announce in. Name some in the action, or choose them in Jukebox's Configure dialog."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Jukebox",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Jukebox integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "announce": {
+      "name": "Announce",
+      "description": "Plays a chime, then a sound, then a message, over whatever each room is playing, and puts nothing out of place. Announcements to one speaker are played one after another. The answer names each room's result.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "Words to say, with the voice chosen in Jukebox's Configure dialog."
+        },
+        "media": {
+          "name": "Sound",
+          "description": "A sound to play: a web address or a media id. Played before the message when both are given."
+        },
+        "players": {
+          "name": "Rooms",
+          "description": "The Sonos speakers to announce on. Leave it out for all the rooms chosen in the Configure dialog."
+        },
+        "chime": {
+          "name": "Chime",
+          "description": "Whether the chime is played first."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "A volume for this announcement in every room, in place of each room's own announcement volume."
+        },
+        "priority": {
+          "name": "Priority",
+          "description": "Play it in quiet hours too."
+        }
+      }
+    },
+    "play": {
+      "name": "Play a favourite",
+      "description": "Plays a Sonos favourite or playlist, by its name, in one or more rooms. It goes through Jukebox, so it is logged and a party doesn't put it back.",
+      "fields": {
+        "favourite": {
+          "name": "Favourite",
+          "description": "The name of a favourite or a Sonos playlist, as it is written in Jukebox's Favourites."
+        },
+        "rooms": {
+          "name": "Rooms",
+          "description": "The Sonos speakers to play it on. With more than one, the first leads and the others join it."
+        },
+        "enqueue": {
+          "name": "Where in the queue",
+          "description": "Leave it out to play now. A station always plays now."
+        }
+      }
+    }
+  },
+  "selector": {
+    "enqueue": {
+      "options": {
+        "next": "Play next",
+        "add": "Add to the end of the queue"
+      }
+    }
+  }
+}

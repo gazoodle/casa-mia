@@ -239,8 +239,7 @@ Pressing a photograph opens it as a clipping, large and as it was taken, so that
 look at what was seen. Pinch it with two fingers to go closer and drag it to move about;
 a double tap, or the mouse wheel, zooms too. **See the camera as it is now** under it
 opens the camera in Home Assistant's own dialog, with its live view. A closer look shows
-more only as far as the photograph has detail, and one that came from UniFi Protect's
-thumbnail may be smaller than a still from the camera.
+more only as far as the photograph has detail.
 
 Each camera has one story at a time: the most pressing thing it saw in the last ten
 minutes. If a camera reports an animal just after a person, the person stays.
@@ -265,11 +264,6 @@ their streams' full size, so a picture it has from the last five seconds is used
 camera is not asked again. A camera that no commander being watched shows has no picture
 that new, and is asked directly. Home Assistant's log says where each photograph came
 from.
-
-A UniFi Protect camera gets one thing more. Protect makes its own thumbnail of each
-detection, choosing the frame itself. The sighting is printed at once with the photograph
-taken at that moment, and Protect's thumbnail replaces it when Protect has it, within 15
-seconds. If Protect has none, the first photograph stays.
 
 Each such camera gets one new entity on its device, an image called **Last sighting**. It
 holds the latest photograph and the sort of sighting, and you can use it on any other
@@ -505,10 +499,12 @@ does the same. A house without ZenOS has no column.
   its place, with since when and the error, and it tries again at the next change in the
   house. The browser's console has the details. This applies to every family.
 - After Dash-Bored is updated, a page that was already open keeps running the old version
-  until it is reloaded. Home Assistant shows a Reload button for it. The Dash-Bored page
-  also reloads by itself once nobody has touched it for a minute, so a wall tablet picks up
-  the update with nobody there. A dashboard card waits for you to press Reload, because
-  you may be part-way through editing the dashboard.
+  until it is reloaded. Home Assistant shows a Reload button for it. For a wall tablet,
+  where nobody is there to press it, switch on **Reload pages by themselves after an
+  update** in Dash-Bored's Configure dialog: the Dash-Bored page then reloads by itself
+  once nobody has touched it for a minute. It is off at first. A dashboard card always
+  waits for you to press Reload, because you may be part-way through editing the
+  dashboard.
 
 ## The Console
 

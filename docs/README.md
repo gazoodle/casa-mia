@@ -8,6 +8,7 @@
 
 ## How-to guides
 
+- [A camera commander on your home page](how-to/commander-on-your-home-page.md): from installing Casa Mia to a commander on a Tablet Layout view, step by step.
 - [Talk to a UniFi Protect doorbell from Home Assistant](how-to/talk-to-the-front-door.md): from a doorbell you can only watch to one you can answer from any tablet or phone.
 - [Put talk buttons on a wall tablet](how-to/talk-buttons-on-a-tablet.md): Talk and Hang up tiles, and hold to talk on the phones.
 - [Show the doorbell on every tablet when it rings](how-to/doorbell-over-every-tablet.md): an Over layer that comes up with the ring and goes when the call ends.
@@ -22,8 +23,8 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Firmware server](applets/firmware-server.md): Mirrors the Kiosk Satellite firmware so the wall tablets update without the internet.
 - [Kiosk mode](applets/kiosk-mode.md): What each dashboard hides, and from whom: the header, sidebar and more, through kiosk-mode.
 - [Cameras](applets/cameras.md): The house's cameras, chosen from Home Assistant: their names, streams and controls, for the commanders and the camera dashboard.
-- [Camera Commander](applets/camera-commander.md): The commanders, each a main camera framed by panels of cameras, one live picture for the card and the dashboard; and the Camera Commander card.
-- [Auto Dashboards](applets/auto-dashboards.md): Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed into Home Assistant.
+- [Camera Commander](applets/camera-commander.md): The commanders, each a main camera framed by panels of cameras, one live picture; and the Camera Commander card that shows it on a dashboard.
+- [Auto Dashboards](applets/auto-dashboards.md): Dashboards made for you: today the camera dashboard, a live page for each camera, previewed and deployed into Home Assistant.
 - [Camera compositor](applets/camera-compositor.md): Draws the Camera Commander as one live picture for the dashboards and wall tablets.
 - [Guest login](applets/guest-login.md): QR codes that sign guests and engineers straight into their own dashboard.
 - [People](applets/people.md): Who is known to the home.
@@ -33,6 +34,7 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Intercom](applets/intercom.md): A call for each doorbell, shared by every screen in the house, so only one person talks to the door at a time.
 - [UniFi Protect talkback](applets/protect-talkback.md): Talk through UniFi Protect doorbells and cameras from Home Assistant.
 - [Love it or Loathe it](applets/love-or-loathe.md): Boosts the volume for a song you love, and changes the radio station for one you loathe.
+- [Jukebox](applets/jukebox.md): A page for the music on your Sonos speakers, with a player for each thing playing, rooms, volumes and favourites, and announcements with a chime and quiet hours.
 - [Dash-Bored](applets/dash-bored.md): A dashboard that writes itself from your areas and devices, in eighteen styles. A newspaper, a control panel, a fridge door and a page of glass tiles are built, and the rest are mock-ups.
 
 ## Maturity

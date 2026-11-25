@@ -10,14 +10,10 @@ from typing import Any
 
 from ...ha import HA
 from ..cameras import Cameras
-from ..commander import Commander, commander_selects
-from ..compositor import (
-    DRAFT_STORE,
-    PORT,
-    Compositor,
-)
+from ..commander import Commander
+from ..compositor import DRAFT_STORE, Compositor
 from .checks import warnings
-from .common import DEPLOYED, DEPLOYS, BadRequest, Store, with_defaults
+from .common import DEPLOYED, DEPLOYS, PREVIEW, Store, with_defaults
 
 
 class Base:
@@ -85,27 +81,18 @@ class Base:
                 "changed": self._changed(),
             }
 
-    def _selects(self, store: Store) -> dict[str, str]:
-        """Each commander's Main camera select, from HA's entity registry."""
-        if self.ha is None:
-            return commander_selects(store, None)
-        (registry,) = self.ha.call({"type": "config/entity_registry/list"})
-        return commander_selects(store, registry)
-
     def from_ha(self) -> dict[str, Any]:
         """HA's users (for the wall tablets), entities (for the fields) and what the
         dashboard needs that HA seems to lack."""
         if self.ha is None:
             return {"error": "Home Assistant is not reachable."}
-        registry, states, resources = self.ha.call(
-            {"type": "config/entity_registry/list"},
+        states, resources = self.ha.call(
             {"type": "get_states"},
             {"type": "lovelace/resources"},
         )
         users = self.ha.users()
         with self._lock:
             store = self.store
-        selects = commander_selects(store, registry)
         return {
             "users": users,
             "warnings": warnings(
@@ -114,7 +101,6 @@ class Base:
                 [r.get("url", "") for r in resources or []],
                 {u["id"] for u in users},
                 self.helpers(),
-                selects,
             ),
             "entities": sorted(
                 (
@@ -131,14 +117,6 @@ class Base:
             "error": None,
         }
 
-    def _target(self, store: Store, live: bool) -> tuple[str, str]:
-        """The dashboard's url_path and the composites' address for a deploy."""
-        host = store["compositor_host"] or self.lan_host()
-        if not host:
-            raise BadRequest(
-                "This box's LAN address is not known; set the compositor host."
-            )
-        # the live compositor's pictures, for the preview dashboard too
-        port = self.live.port if self.live else PORT
-        url_path = store["dashboard"] + ("" if live else "-preview")
-        return url_path, f"http://{host}:{port}"
+    def _url_path(self, store: Store, live: bool) -> str:
+        """The dashboard a deploy writes: the live one, or its preview."""
+        return store["dashboard"] + ("" if live else PREVIEW)

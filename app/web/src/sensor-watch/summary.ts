@@ -9,7 +9,7 @@ import { follow, SUMMARY, type NotRunning } from "./ha";
 
 /** What the tile shows (modules.tsx): the feed's event, or `problem`: why there is none.
  * Empty until Sensor Watch answers, and for good where it isn't installed: no tile. */
-export type Summary = { health?: string; watching?: number; counts?: Record<string, number>; worst?: string | null; problem?: string };
+export type Summary = { health?: string; watching?: number; counts?: Record<string, number>; snoozed?: number; worst?: string | null; problem?: string };
 
 /** The summary, pushed at each change. */
 export function useSummary(): Summary {

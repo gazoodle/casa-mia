@@ -1,5 +1,6 @@
 """The house's settings, which every Dash-Bored page and card reads the house by: for
-now, the order of its floors and of its rooms. They are the config entry's options, set
+now, the order of its floors and of its rooms, and whether its pages reload themselves
+after an update. They are the config entry's options, set
 in the Configure dialog (config_flow.py), and are fed to the pages whole: as they stand
 when a page subscribes, and again each time they are saved.
 
@@ -16,7 +17,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from .const import CONF_FLOOR_ORDER, CONF_ROOM_ORDER, DOMAIN, SETTINGS
+from .const import CONF_FLOOR_ORDER, CONF_RELOAD, CONF_ROOM_ORDER, DOMAIN, SETTINGS
 from .feed import Send, follow
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,7 +26,11 @@ KEY = f"{DOMAIN}_settings"
 
 class Settings:
     def __init__(self) -> None:
-        self.now: dict[str, Any] = {CONF_FLOOR_ORDER: [], CONF_ROOM_ORDER: []}
+        self.now: dict[str, Any] = {
+            CONF_FLOOR_ORDER: [],
+            CONF_ROOM_ORDER: [],
+            CONF_RELOAD: False,
+        }
         self.feeds: list[Send] = []
 
     @callback
@@ -34,11 +39,14 @@ class Settings:
         self.now = {
             CONF_FLOOR_ORDER: list(options.get(CONF_FLOOR_ORDER) or []),
             CONF_ROOM_ORDER: list(options.get(CONF_ROOM_ORDER) or []),
+            CONF_RELOAD: bool(options.get(CONF_RELOAD, False)),
         }
         _LOGGER.info(
-            "Dash-Bored's settings: %d floor(s) and %d room(s) put in order",
+            "Dash-Bored's settings: %d floor(s) and %d room(s) put in order; pages %s"
+            " by themselves after an update",
             len(self.now[CONF_FLOOR_ORDER]),
             len(self.now[CONF_ROOM_ORDER]),
+            "reload" if self.now[CONF_RELOAD] else "don't reload",
         )
         for feed in list(self.feeds):
             feed(self.now)

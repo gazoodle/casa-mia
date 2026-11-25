@@ -10,12 +10,14 @@ Kept in memory, for this run of Home Assistant only, and never more than MOST of
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
 from aiohttp import web
 from homeassistant.components import websocket_api
 from homeassistant.components.http import KEY_HASS, HomeAssistantView
+from homeassistant.components.http.auth import async_sign_path
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
@@ -67,19 +69,35 @@ def setup(hass: HomeAssistant) -> None:
 def _ws_sightings(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """Every sighting held now, then each as it comes."""
+    """Every sighting held now, then each as it comes, each with a photograph its
+    address signed for this connection's login."""
     log: Log = hass.data[KEY]
-    follow(connection, msg, log.feeds, log.items.values())
+
+    def shape(item: dict[str, Any]) -> dict[str, Any]:
+        if not item["photo"]:
+            return item
+        path = f"{PHOTO.format(sighting_id=item['id'])}?v={item['changed']}"
+        # Its refresh token named: a sighting told later is sent from outside this
+        # command, where Home Assistant can't tell whose connection it is.
+        signed = async_sign_path(
+            hass,
+            path,
+            timedelta(seconds=KEEP),
+            refresh_token_id=connection.refresh_token_id,
+        )
+        return {**item, "photo_url": signed}
+
+    follow(connection, msg, log.feeds, log.items.values(), shape)
 
 
 class PhotoView(HomeAssistantView):
-    """A sighting's photograph. Open to whoever has its id, as Home Assistant's own
-    image addresses are to whoever has their token: an <img> can't sign in, and the id
-    is random, told only to signed-in pages, and gone with the sighting."""
+    """A sighting's photograph, for a signed-in page or a signed address (an <img>
+    can't sign in). Never open to whoever has the id: these are pictures of people at
+    the door, and an id ends up in browser history and logs (Frenck, reviewing
+    hacs/default#14577, 2026-11-24)."""
 
     url = PHOTO
     name = f"api:{DOMAIN}:photo"
-    requires_auth = False
 
     async def get(self, request: web.Request, sighting_id: str) -> web.Response:
         log: Log = request.app[KEY_HASS].data[KEY]
