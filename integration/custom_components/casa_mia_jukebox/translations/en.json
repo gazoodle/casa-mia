@@ -37,7 +37,7 @@
         "title": "Jukebox",
         "data": {
           "players": "Rooms",
-          "tts": "Voice",
+          "tts": "Speech engine",
           "chime": "Chime",
           "quiet": "Quiet hours",
           "sidebar": "Show Jukebox in the sidebar",
@@ -46,12 +46,30 @@
         },
         "data_description": {
           "players": "The Sonos speakers an announcement goes to when the action names none. Each gets a number for its announcement volume.",
-          "tts": "The text-to-speech voice that says a message.",
+          "tts": "The text-to-speech engine that says a message, such as Piper or Home Assistant Cloud. Its language and voice are chosen next.",
           "chime": "The sound played before each announcement: a web address or a media id. Jukebox's own is filled in; empty the box for none.",
           "quiet": "While this is on, announcements are not played unless they have priority. A schedule helper suits it.",
           "sidebar": "Jukebox's own page, in Home Assistant's sidebar. Turn it off if you use a dashboard of your own made from Jukebox's cards. The page stays at /jukebox either way.",
           "hosts": "The logins that may turn the party lock on and off, change the music while it is on, and change the Sonos playlists at any time. Administrators always may.",
           "screens": "Logins of shared screens, such as wall tablets. They may save, change and delete Sonos playlists, except while a party is on anywhere in the house. During a party they can change the music only while someone who runs it has let them, and never the party itself. Any other login can only look, and can never change a playlist."
+        }
+      },
+      "language": {
+        "title": "Language",
+        "data": {
+          "language": "Language"
+        },
+        "data_description": {
+          "language": "The language announcements are said in. The voices to choose from are this language's."
+        }
+      },
+      "voice": {
+        "title": "Voice",
+        "data": {
+          "voice": "Voice"
+        },
+        "data_description": {
+          "voice": "The voice for announcements only. Left empty, the engine's own default is used, which Assist uses too."
         }
       }
     }
@@ -90,6 +108,9 @@
     },
     "no_voice": {
       "message": "Jukebox has no voice to say a message with. Choose one in its Configure dialog."
+    },
+    "voice_gone": {
+      "message": "{engine} no longer has the voice {voice}. Choose another in Jukebox's Configure dialog."
     },
     "no_players": {
       "message": "No rooms to announce in. Name some in the action, or choose them in Jukebox's Configure dialog."

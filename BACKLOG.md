@@ -1143,6 +1143,20 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   repository in `documentation` and `issue_tracker`; 2026.11.9 published that, checked
   at each tag and in each release's ZIP, and the owner marks them ready for review.
   Don't request a review otherwise: HACS's template says that gets a pull request closed.
+- **Jukebox's catalog submission: two likely objections, left until raised** (owner,
+  2026-11-25). The submission is prepared: branch `add-casa-mia-jukebox` in the local
+  clone of `gazoodle/default`, one line in `integration`. Frenck rejected both patterns
+  in Dash-Bored (#14577), so they are fixed when he raises them, not before:
+  - `art.View` and `phone.Stream` are `requires_auth = False`, guarded by one key per
+    start shared by every page, which ends up in history and logs; the art view also
+    fetches from Spotify's picture servers. Fix as Dash-Bored's photos: addresses signed
+    for each connection's login (`async_sign_path` with `refresh_token_id`).
+  - `find._seek` searches through Home Assistant's Spotify integration's own client
+    (`runtime_data.coordinator.client._get`), another integration's internals. Fix:
+    search with Jukebox's own Spotify sign-in (the one the phone player uses) against
+    Spotify's public Web API, so search needs that sign-in.
+  - Lesser: `upnp.py` asks the speakers directly over UPnP for what Home Assistant's
+    Sonos integration doesn't expose.
 
 Decided (2026-10-02): **ship everything.** Every module is off until enabled; no private edition: the house runs the public release like everyone else. House-specific values go to configuration (the alarm's entity ids, the compositor's cameras, the house photo). FONA's hardware is published with its sketch ("FONA Arduino firmware into the repo"). The costs: security reports (guest login hands out HA sessions), docs and support for other setups.
 

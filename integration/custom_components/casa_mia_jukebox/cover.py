@@ -21,6 +21,7 @@ remastered one, the single before the album (owner, 2026-11-25), then the earlie
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from typing import NamedTuple
 
@@ -28,6 +29,8 @@ from typing import NamedTuple
 # follows " - " or "feat." ("- 2009 Remaster", "feat. Someone").
 _ASIDE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\s-\s.*$|\b(?:feat|ft|featuring)\b\.?.*$")
 _WORDS = re.compile(r"[^\w]+")
+# A hyphen or an apostrophe inside a word: "Un-Break" is "Unbreak", "Don't" is "Dont".
+_INSIDE = re.compile(r"(?<=\w)[-‐'’](?=\w)")
 # The words that only join two artists' names.
 _JOINS = frozenset({"and", "x", "with", "vs", "feat", "ft", "featuring"})
 
@@ -45,7 +48,13 @@ class Song(NamedTuple):
 
 
 def _words(text: str) -> str:
-    return _WORDS.sub(" ", text.lower()).strip()
+    # Spotify spells some names with marks a station leaves off ("JAŸ-Z", "Beyoncé"),
+    # and one side may hyphenate a word the other doesn't ("Un-Break My Heart"):
+    # owner's box, 2026-11-25, two songs without a cover.
+    bare = "".join(
+        c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)
+    )
+    return _WORDS.sub(" ", _INSIDE.sub("", bare.lower())).strip()
 
 
 def plain(text: str) -> str:

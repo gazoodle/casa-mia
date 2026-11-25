@@ -22,7 +22,8 @@ integration makes, and Jukebox, the Sonos app and your dashboards all use that e
 - Sonos S2 speakers. An announcement is played as a clip over the music, which S1
   speakers can't do. An S1 speaker is refused with a result that says so; support for
   S1 is planned.
-- A text-to-speech voice in Home Assistant, if you want messages said. Sounds need none.
+- A text-to-speech engine in Home Assistant, such as Piper or Home Assistant Cloud, if
+  you want messages said. Sounds need none.
 
 ## Installing it
 
@@ -61,7 +62,12 @@ integration is installed too; without it, Jukebox leaves them out.
 1. Go to **Settings → Devices & services → Add integration** and choose **Jukebox**.
 2. Open its **Configure** dialog and fill in:
    - **Rooms:** the speakers an announcement goes to when the action names none.
-   - **Voice:** the text-to-speech voice that says a message.
+   - **Speech engine:** the text-to-speech engine that says a message. After this
+     dialog Jukebox asks for its **Language**, then one of that language's **Voices**.
+     Leave the voice empty to use the engine's own default, the one Assist uses too
+     (for Piper, set in the Piper app's configuration). Choosing one here gives
+     announcements a voice of their own whatever Assist uses. If the engine later loses
+     that voice, an announcement is refused with the reason, and nothing is played.
    - **Chime:** the sound played before each announcement. Jukebox's own chime is
      filled in. Put a web address or a media id there for a different one, or empty the
      box for none.

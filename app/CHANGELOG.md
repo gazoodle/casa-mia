@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b1
+
+- **Jukebox: announcements can have a voice of their own.** After the Configure dialog,
+  Jukebox now asks for the speech engine's language and then one of its voices for that
+  language. Left empty, the engine's own default is used, as before, which Assist uses
+  too. An announcement whose voice the engine no longer has is refused with the reason,
+  and nothing is played. The dialog's **Voice** is now called **Speech engine**.
+- **Jukebox: more songs on the radio get their cover.** A name Spotify spells with an
+  accent the station leaves off, and a word one of them hyphenates and the other
+  doesn't, no longer stop the song being found.
+
 ## 2026.11.13
 
 - **New: Jukebox's micro player**, a card for a sidebar or any small space. It is the picture of what a room is playing, with no controls. Small bars on it move while music plays and stand still while it is paused, when the picture also loses its colour. A crossed speaker shows a muted room, and a warning sign a room that isn't answering or a Home Assistant that can't be reached. A quiet room is shown as a speaker, or an icon or picture of your choice.

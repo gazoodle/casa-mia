@@ -13,11 +13,13 @@ def report(*clips):
 
 
 def test_an_announcement_plays_its_chime_then_its_sound_then_its_words():
-    assert pure.clips("/chime.wav", "", "Dinner is ready", "tts.voice") == [
+    said = "media-source://tts/tts.voice?message=Dinner%20is%20ready"
+    assert pure.clips("/chime.wav", "/bell.mp3", said) == [
         "/chime.wav",
-        "media-source://tts/tts.voice?message=Dinner%20is%20ready",
+        "/bell.mp3",
+        said,
     ]
-    assert pure.clips("", "/bell.mp3", "", "") == ["/bell.mp3"]
+    assert pure.clips("", "/bell.mp3", "") == ["/bell.mp3"]
 
 
 def test_a_speakers_address_comes_from_its_devices_link():
@@ -228,6 +230,21 @@ def test_a_song_by_two_artists_is_found_however_the_station_joins_their_names():
     assert (
         cover.cover(("The Marigolds and Somebody Else", "Paper Lanterns"), both) is None
     )
+
+
+def test_marks_hyphens_and_apostrophes_dont_stop_a_song_being_found():
+    # Spotify's spelling of an artist with a mark the station leaves off.
+    marked = [("Paper Lanterns", "MARIGÖLD-Z, Velvet Arcade", "/marked.jpg")]
+    pair = ("Marigold-Z feat. Velvet Arcade", "Paper Lanterns")
+    assert cover.cover(pair, marked) == "/marked.jpg"
+    # A word one side hyphenates and the other doesn't, and an apostrophe.
+    broken = [("Un-Break My Lantern", "The Marigolds", "/broken.jpg")]
+    assert cover.cover(("The Marigolds", "Unbreak My Lantern"), broken) == "/broken.jpg"
+    dont = [("Don't Stop The Lanterns", "The Marigolds", "/dont.jpg")]
+    assert cover.cover(("The Marigolds", "Dont Stop The Lanterns"), dont) == "/dont.jpg"
+    # A title's own " - " still parts it from what follows.
+    live = [("Paper Lanterns - Live", "The Marigolds", "/live.jpg")]
+    assert cover.cover(("The Marigolds", "Paper Lanterns"), live) == "/live.jpg"
 
 
 def test_of_the_records_a_song_is_on_the_artists_own_single_gives_the_cover():
