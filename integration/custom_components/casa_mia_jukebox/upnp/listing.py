@@ -10,6 +10,7 @@ from xml.sax.saxutils import escape, quoteattr
 import aiohttp
 from homeassistant.exceptions import HomeAssistantError
 
+from ..playable import FILE
 from .common import (
     ABOUT,
     DC,
@@ -114,7 +115,7 @@ def _seconds(length: str | None) -> int | None:
 def _source(address: str) -> str:
     """Where a song is from, for the page to say: the music library, Spotify, or
     another streaming service."""
-    if address.startswith("x-file-cifs:"):
+    if address.startswith(FILE):
         return "library"
     return "spotify" if "spotify" in address else "streamed" if address else ""
 

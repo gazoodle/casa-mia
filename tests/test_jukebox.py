@@ -193,6 +193,13 @@ def test_a_stations_song_is_found_on_spotify_whichever_way_round_it_is_named():
     )
     # The title alone agreeing isn't enough: a wrong cover is worse than none.
     assert cover.cover(("Velvet Arcade", "Paper Lanterns"), SONGS) is None
+    # The song whose cover is shown is the one a playlist is given: its address too.
+    found = cover.best(("The Marigolds", "Paper Lanterns"), SONGS)
+    assert found and found.picture == "/right.jpg" and found.uri == ""
+    song = cover.Song(
+        "Paper Lanterns", "The Marigolds", "/p.jpg", uri="spotify:track:x"
+    )
+    assert cover.best(("The Marigolds", "Paper Lanterns"), [song]) == song
     # One name only (a show's, an advert's) is never looked for.
     assert cover.names("", "The Breakfast Show") is None
     assert cover.names("Harbour FM", "  ") is None

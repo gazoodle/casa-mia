@@ -178,45 +178,50 @@ def _by(thing: Any) -> str:
 
 
 class Covers:
-    """The cover of the song a radio station is playing, found on Spotify from the
-    station's own words for it (cover.py). Asked once for each song, when a speaker
-    is first seen playing it, never on a timer; `changed` is called when one is found.
-    The station's logo stays the group's picture: this is shown as well, not in its
-    place (owner, 2026-11-24)."""
+    """The song a radio station is playing, found on Spotify from the station's own
+    words for it (cover.py): its cover is shown, and it is what is added to a playlist.
+    Asked once for each song, when a speaker is first seen playing it, never on a
+    timer; `changed` is called when the answer comes. The station's logo stays the
+    group's picture: the cover is shown as well, not in its place (owner, 2026-11-24)."""
 
     # ponytail: the newest few hundred songs are remembered, in memory.
     KEPT = 500
+    NOT_NAMED = "The station didn't say an artist and a title for it"
+    ASKING = "It is still being looked for on Spotify"
+    NOT_FOUND = "Spotify has no song that matches what the station says"
 
     def __init__(self, hass: HomeAssistant, changed: Callable[[], None]) -> None:
         self.hass, self._changed = hass, changed
-        self._known: dict[tuple[str, str], str | None] = {}
+        # Each song's match on Spotify, or why there is none.
+        self._known: dict[tuple[str, str], cover.Song | str] = {}
         self._asking: set[tuple[str, str]] = set()
         self._why = ""
 
-    def of(self, artist: str, title: str) -> str | None:
-        """The cover, if it is known; if it hasn't been asked for, it is now."""
+    def of(self, artist: str, title: str) -> cover.Song | str:
+        """The song on Spotify, if it is known, or why it isn't; if it hasn't been
+        asked for, it is now."""
         pair = cover.names(artist, title)
         if pair is None:
             # Said once for each thing a station says, so the log shows why a song
             # has no cover: nothing was asked.
             if (artist or title) and (artist, title) not in self._known:
-                self._keep((artist, title), None)
+                self._keep((artist, title), self.NOT_NAMED)
                 _LOGGER.info(
                     "A station's words, %r / %r, aren't an artist and a title: "
                     "no cover is looked for",
                     artist,
                     title,
                 )
-            return None
+            return self.NOT_NAMED
         if pair not in self._known and pair not in self._asking:
             self._asking.add(pair)
             self.hass.async_create_background_task(
                 self._ask(pair), f"{PLAYER} cover on Spotify"
             )
-        return self._known.get(pair)
+        return self._known.get(pair, self.ASKING)
 
     async def _ask(self, pair: tuple[str, str]) -> None:
-        found: str | None = None
+        found: cover.Song | str = self.NOT_FOUND
         try:
             _, answer = await _seek(self.hass, " ".join(pair), ["track"])
             songs = [
@@ -227,18 +232,22 @@ class Covers:
                     _by(song.album) if hasattr(song.album, "artists") else "",
                     getattr(song.album, "album_type", ""),
                     getattr(song.album, "release_date", ""),
+                    getattr(song, "uri", ""),
                 )
                 for song in _each(answer, "tracks")
                 if (images := _images(song))
             ]
-            found = cover.cover(pair, songs)
+            found = cover.best(pair, songs) or self.NOT_FOUND
             _LOGGER.info(
                 "A station's song, %s / %s: %s on Spotify",
                 *pair,
-                "its cover found" if found else f"none of {len(songs)} songs is it",
+                "its cover found"
+                if isinstance(found, cover.Song)
+                else f"none of {len(songs)} songs is it",
             )
             self._why = ""
         except HomeAssistantError as err:
+            found = str(err)
             # Said once for each reason, not at every song: a house without Spotify
             # would otherwise fill its log.
             if str(err) != self._why:
@@ -247,10 +256,10 @@ class Covers:
         finally:
             self._asking.discard(pair)
         self._keep(pair, found)
-        if found:
-            self._changed()
+        # Told either way: the page says why a song can't be added until it can.
+        self._changed()
 
-    def _keep(self, pair: tuple[str, str], found: str | None) -> None:
+    def _keep(self, pair: tuple[str, str], found: cover.Song | str) -> None:
         self._known[pair] = found
         while len(self._known) > self.KEPT:
             del self._known[next(iter(self._known))]

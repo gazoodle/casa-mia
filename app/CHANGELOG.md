@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.11.14-b4
+
+- **Jukebox: a song on the radio can be added to a playlist.** **Add to a playlist**
+  under the song's title lists the Sonos playlists, with the one last chosen on that
+  screen first. The song added is the one found on Spotify for its cover, so the cover
+  shows what will be added. A song that hasn't been found says why when the button is
+  pressed (the station didn't name an artist and a title, Spotify has no match, or
+  Spotify isn't set up).
+- **Jukebox: a song can be moved or copied from one playlist to another.** Tap a song
+  while looking at a playlist, or choose it in the editor, then press **Move to another
+  playlist…** or **Copy to another playlist…**. It goes at the end of the other
+  playlist. A moved song is then taken out of this one, so a failure between the two
+  leaves it in both rather than in neither, and Jukebox says that it is in both. If the
+  playlist was changed by someone else meanwhile and another song is in that place,
+  nothing is changed and you are told.
+- **Jukebox: a playlist's tile shows its songs as they are now.** The tile's covers were
+  made when the favourites were first fetched, and stayed as they were after songs were
+  added, moved, taken out or sorted. They are now fetched again once the playlist is
+  closed.
+
 ## 2026.11.14-b3
 
 - Jukebox: nothing you can see. The code that asks a speaker directly was one file close

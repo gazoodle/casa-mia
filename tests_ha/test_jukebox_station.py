@@ -63,7 +63,11 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
     async def search(query, kinds, limit):
         asked.append((query, kinds))
         album = {"images": [{"url": "https://covers.example/lanterns.jpg"}]}
-        song = {"name": "Paper Lanterns", "artists": [{"name": "The Marigolds"}]}
+        song = {
+            "name": "Paper Lanterns",
+            "artists": [{"name": "The Marigolds"}],
+            "uri": "spotify:track:lanterns",
+        }
         return {"tracks": {"items": [song | {"album": album}]}}
 
     a_spotify(hass, monkeypatch, search)
@@ -84,10 +88,19 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
     # as the station's picture, not in its place.
     found = (await client.receive_json())["event"]["groups"][0]
     if found["cover"] is None:
+        # Until Spotify answers, the page can say why the song can't be added yet.
+        assert found["unfound"] == "It is still being looked for on Spotify"
         found = (await client.receive_json())["event"]["groups"][0]
     assert found["cover"] == "https://covers.example/lanterns.jpg"
     assert found["picture"] == "/logo.png"
     assert asked == [("Paper Lanterns The Marigolds", ["track"])]
+    # The same song is what a playlist is given, by Spotify's address for it.
+    assert found["found"] == {
+        "uri": "spotify:track:lanterns",
+        "title": "Paper Lanterns",
+        "by": "The Marigolds",
+    }
+    assert found["unfound"] is None
 
     # A show's name, with no artist, isn't looked for; and the same song isn't again.
     async def once(artist):
@@ -98,7 +111,9 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
                 return group
 
     hass.states.async_set(KITCHEN, "playing", station | {"media_artist": ""})
-    assert (await once(""))["cover"] is None
+    show = await once("")
+    assert show["cover"] is None and show["found"] is None
+    assert "didn't say an artist and a title" in show["unfound"]
     # The log says so, once, so that a missing cover can be explained.
     assert caplog.text.count("aren't an artist and a title") == 1
     assert "its cover found on Spotify" in caplog.text

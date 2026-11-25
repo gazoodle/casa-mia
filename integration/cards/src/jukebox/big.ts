@@ -8,7 +8,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { EDITOR, edit } from "./editor.ts";
-import { type Favourite, type Group, type House, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
+import { type Pick, chooser, sent } from "./pick.ts";
+import { type Favourite, type Group, type House, type Song, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -39,7 +40,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _vol: { state: true } };
+  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _vol: { state: true }, _putting: { state: true }, _tapped: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -68,6 +69,13 @@ export class Big extends LitElement {
   _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
   /** The sheet that asks what to call the queue as a playlist. */
   _naming = false;
+  /** The sheet that asks which playlist a song goes into (pick.ts). */
+  _putting?: Pick;
+  /** A song of the playlist looked at, tapped: asked whether it is moved or copied. */
+  _tapped?: { at: number; song: Song };
+  /** A playlist was changed since the favourites were fetched: their tiles show its
+   * first songs, so they are fetched again once its songs aren't being looked at. */
+  private _dirty = false;
   /** Drawn in place, in a card, and so with nothing to close. */
   inline = false;
   /** How many songs the speaker's queue holds, once the Queue tab has asked it. Home
@@ -112,8 +120,12 @@ export class Big extends LitElement {
       if (last && this._said !== undefined && last.at !== this._said) this._say(last.failed ? last.what : `Put back: ${last.what.replace(/^Someone/, "someone")}`);
       this._said = last?.at ?? "";
     }
-    // Wanted for their own tab, and to list the playlists a queue can be saved over.
-    if ((changed.has("tab") || changed.has("_favourites") || changed.has("_naming")) && (this.tab === "favourites" || this._naming) && this._favourites === undefined) {
+    // Not while its songs are shown: they are changed one at a time, and each change
+    // would fetch every tile again.
+    if (this._dirty && !this._viewing) [this._dirty, this._favourites] = [false, undefined];
+    // Wanted for their own tab, to list the playlists a queue can be saved over, and to
+    // choose one to put a song in.
+    if ((changed.has("tab") || changed.has("_favourites") || changed.has("_naming") || changed.has("_putting")) && (this.tab === "favourites" || this._naming || this._putting) && this._favourites === undefined) {
       favourites(this.hass, this.room).then(
         (found) => (this._favourites = found),
         (err) => (this._favourites = reason(err)),
@@ -141,7 +153,11 @@ export class Big extends LitElement {
    * that stands for `key` shows that it is waiting until the answer comes. */
   private _do(action: string, data: object = {}, key = action): Promise<boolean> {
     return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
-      () => (/^(queue_|play_media|stop)/.test(action) && this._stamp++, true),
+      () => {
+        if (/^(queue_|play_media|stop)/.test(action)) this._stamp++;
+        if (/^playlist_/.test(action)) this._dirty = true;
+        return true;
+      },
       (err) => (this._say(reason(err)), false),
     );
   }
@@ -258,6 +274,9 @@ export class Big extends LitElement {
         <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
              element, and it shows nothing where this login can't rate. -->
         ${group.id === PHONE ? nothing : html`<casa-mia-thumbs quiet .hass=${this.hass} .entityId=${group.id}></casa-mia-thumbs>`}
+        ${group.kind === "radio" && curates(house) && group.id !== PHONE
+          ? html`<button class="pill keep ${group.found ? "" : "off"} ${this._busy.on("keep")}" @click=${() => this._keep(group)}>${icon("plus")}Add to a playlist</button>`
+          : nothing}
         ${love ? html`<p class="love ${love.over ? "over" : ""}"><strong>Love it or Loathe it${love.over ? `, at ${clock(group.love!.at)}` : ""}:</strong> ${love.text}</p>` : nothing}
       </div>
       ${at !== null && group.duration
@@ -365,7 +384,34 @@ export class Big extends LitElement {
   /** The editor of a wide screen, for the queue or the playlist looked at. What it
    * changed is asked for again when it is closed. */
   private _edit(playlist?: Favourite) {
-    edit(this.hass, this.room, playlist, () => this._stamp++);
+    edit(this.hass, this.room, playlist, () => ((this._dirty ||= !!playlist), this._stamp++));
+  }
+
+  /** The station's song into a playlist: the song as it was found when the button was
+   * pressed, so that one ending meanwhile isn't taken for the next. */
+  private _keep(group: Group) {
+    const found = group.found;
+    if (!found) return this._say(`This song can't be added to a playlist. ${group.unfound ?? "It hasn't been found on Spotify"}.`);
+    const pick = async (playlist: Favourite) => {
+      this._putting = undefined;
+      const data = { playlist: playlist.media_content_id, media_content_id: found.uri, name: found.title.slice(0, 60) };
+      if (await this._do("playlist_add", data, "keep")) this._say(`Added to ${playlist.title}: ${found.title}`);
+    };
+    this._putting = { title: "Add to a playlist", text: `“${found.title}” by ${found.by}, from Spotify, goes at the end of the playlist you choose.`, pick };
+  }
+
+  /** A song of the playlist looked at, to the end of another playlist, and out of this
+   * one unless it is copied. */
+  private _send(from: Favourite, at: number, song: Song, copy: boolean) {
+    this._tapped = undefined;
+    const asked = sent(from, at, song, copy);
+    const pick = async (playlist: Favourite) => {
+      this._putting = undefined;
+      if (!(await this._do(asked.action, asked.data(playlist), `row:${at}`))) return;
+      this._say(asked.said(playlist));
+      this._stamp++; // the songs of this one are asked for again
+    };
+    this._putting = { ...asked.pick, pick };
   }
 
   private _delete(playlist: Favourite) {
@@ -440,13 +486,13 @@ export class Big extends LitElement {
       // A playlist's songs, to see what is in it before it is played. The people who
       // may change playlists can move, take out and add; anyone else only looks.
       const host = curates(this._house);
-      return html`${this._head(viewing.title, host ? "Drag a song by its handle to move it, or take it out with the cross." : "The songs in this playlist.")}
+      return html`${this._head(viewing.title, host ? "Drag a song by its handle to move it, or take it out with the cross. Tap one to move or copy it to another playlist." : "The songs in this playlist.")}
         <div class="tools">
           <button @click=${() => (this._viewing = undefined)}>${icon("back")}Favourites</button>
           <button @click=${() => (this._menu = viewing)}>${icon("play")}Play…</button>
           ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button><button class="wide" @click=${() => this._edit(viewing)} aria-label="Edit the playlist side by side with Search">${icon("drag")}Edit…</button>` : nothing}
         </div>
-        <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp}></casa-mia-jukebox-queue></div>`;
+        <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp} @jb-song=${(e: CustomEvent) => (this._tapped = e.detail)}></casa-mia-jukebox-queue></div>`;
     }
     return html`${this._head("Favourites", "The stations, playlists and songs saved in Sonos")}
       <div class="scroll">
@@ -480,6 +526,25 @@ export class Big extends LitElement {
           </div>
         </div>
       </div>`;
+    if (this._putting) {
+      const shut = () => (this._putting = undefined);
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${chooser(this._favourites, this._putting, shut)}</div>`;
+    }
+    const [tapped, viewing] = [this._tapped, this._viewing];
+    if (tapped && viewing) {
+      const shut = () => (this._tapped = undefined);
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>
+        <div class="sheet" role="dialog" aria-label=${tapped.song.title || "A song"}>
+          <h4>${tapped.song.title || "A song with no title"}</h4>
+          <p>${[tapped.song.artist, tapped.song.album].filter(Boolean).join(" · ")}</p>
+          <div class="acts">
+            <button class="main" @click=${() => this._send(viewing, tapped.at, tapped.song, false)}>Move to another playlist…</button>
+            <button @click=${() => this._send(viewing, tapped.at, tapped.song, true)}>Copy to another playlist…</button>
+            <button class="sep" @click=${shut}>Cancel</button>
+          </div>
+        </div>
+      </div>`;
+    }
     if (this._partying && group.party) {
       const party = group.party;
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._partying = false)}>
@@ -603,6 +668,9 @@ export class Big extends LitElement {
       .title b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 21px; line-height: 1.2; overflow-wrap: anywhere; text-wrap: balance; }
       .title span { color: var(--muted); }
       .title casa-mia-thumbs { display: flex; justify-content: center; --secondary-text-color: rgb(255 255 255 / 66%); --secondary-background-color: rgb(255 255 255 / 12%); }
+      .title .keep { display: inline-flex; margin-top: 8px; }
+      /* Not found on Spotify (yet): still pressed, to say why. */
+      .title .keep.off { opacity: 0.55; }
       .love { margin: 6px 0 0; font-size: 12.5px; line-height: 1.35; color: #fff; overflow-wrap: anywhere; }
       .love.over { color: var(--muted); }
       .barred { margin: 0; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / 12%); font-size: 13px; text-align: center; }
@@ -685,7 +753,7 @@ export class Big extends LitElement {
       .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
       .acts .sep { margin-top: 10px; }
       .sheet .or { margin: 16px 0 8px; }
-      .over { max-height: 32vh; overflow: auto; }
+      .over, .picks { max-height: 32vh; overflow: auto; }
       .toast { position: absolute; left: 14px; right: 14px; bottom: 18px; z-index: 6; margin: 0 auto; width: fit-content; max-width: calc(100% - 28px); padding: 11px 16px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 10px 30px rgb(0 0 0 / 45%); opacity: 0; transform: translateY(12px); transition: 0.25s; pointer-events: none; }
       .toast.on { opacity: 1; transform: none; }
       /* Out of the way of a question's buttons. */

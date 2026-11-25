@@ -1,5 +1,6 @@
 // The queue of one group, in the big player (or, given `playlist`, the songs of a Sonos
-// playlist, which are moved and taken out the same way but not played one by one): tap a song to play it, drag it by its handle
+// playlist, which are moved and taken out the same way but not played one by one: a tap
+// asks the player to move it to another playlist, `jb-song`): tap a song to play it, drag it by its handle
 // to move it, or take it out. Everything is asked of Jukebox, and after each change the
 // speaker is asked what the queue now is, so what is shown is the speaker's and not a guess.
 // The queue is asked for again when the house's music says its size or the song has
@@ -122,7 +123,9 @@ export class Queue extends LitElement {
           ${this.picks
             ? html`<button class="t" @click=${() => fire(this, "jb-pick", i)} aria-pressed=${this.selected === i} aria-label="Choose ${song.title}">${words(song)}</button>`
             : this.playlist
-              ? html`<span class="t">${words(song)}</span>`
+              ? fixed
+                ? html`<span class="t">${words(song)}</span>`
+                : html`<button class="t" @click=${() => fire(this, "jb-song", { at: i, song })} aria-label="Move or copy ${song.title} to another playlist">${words(song)}</button>`
               : html`<button class="t" @click=${() => this._busy.during(`row:${i}`, this.do("queue_play", { value: i + 1 }))} aria-label="Play ${song.title}">${words(song)}</button>`}
           <span class="len">${i + 1 === now ? icon("volume") : song.duration ? mmss(song.duration) : nothing}</span>
           ${fixed ? html`<span></span>` : html`<button class="ib" @click=${() => this._act("queue_remove", { value: i + 1 }, (all) => all.splice(i, 1))} aria-label="Take ${song.title} out of the ${list}">${icon("close")}</button>`}

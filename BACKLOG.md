@@ -43,6 +43,22 @@ The owner's idea, 2026-11-20: one place for both of the owners to manage the hou
 across Sonos, Spotify and the local library, in place of Music Assistant. The name is final
 (owner, 2026-11-20).
 
+- **A song into a playlist: what is left** (agreed with the owner, 2026-11-25, after
+  2026.11.14-b4). `feed.py` (772 lines) and `big.ts` (779) are close to the 800 limit
+  and each of these adds to them, so split those two first, as commits of their own.
+  - **New playlist…** in the chooser (`pick.ts`). A playlist can only be made by
+    saving a queue, so a new list can't be started from a song on the radio. The
+    speaker's `CreateSavedQueue` is thought to make one from a single song: try it on a
+    real speaker before building on it.
+  - **A song that is in the playlist already.** Adding the same radio song twice puts
+    it in twice. Say so, and ask, before adding it again.
+  - **A failed Spotify lookup is kept.** `find.Covers` remembers that Spotify didn't
+    answer for a song until the app restarts, so that song can't be added even when
+    Spotify is back. Pressing **Add to a playlist** should ask again.
+  - Lesser: the Favourites tab shows "Fetching…" while the tiles are fetched again
+    after a playlist change, where it could keep the old tiles until the new ones
+    come; the editor's chooser fetches every tile's covers to list the names; and a
+    song the house has as a file is still added from Spotify.
 - **Jukebox adds no media players** (owner, 2026-11-20). Each room stays the single
   entity that Home Assistant's Sonos integration makes. Jukebox's card, its services and
   the Sonos app all drive that one entity. Why: Music Assistant wraps each speaker in a

@@ -37,7 +37,8 @@ _JOINS = frozenset({"and", "x", "with", "vs", "feat", "ft", "featuring"})
 
 class Song(NamedTuple):
     """One of Spotify's songs, and the record it is on: who the record is by, what
-    kind it is ("single", "album", "compilation") and when it came out."""
+    kind it is ("single", "album", "compilation") and when it came out. `uri` is
+    Spotify's address for the song (`spotify:track:…`), which a playlist takes."""
 
     title: str
     artists: str
@@ -45,6 +46,7 @@ class Song(NamedTuple):
     record_by: str = ""
     kind: str = ""
     date: str = ""
+    uri: str = ""
 
 
 def _words(text: str) -> str:
@@ -92,9 +94,16 @@ def _is_by(named: str, artists: str) -> bool:
 
 
 def cover(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> str | None:
-    """The picture of the best of Spotify's `songs` (each a Song, or its fields) that
-    is the station's song, its two names taken either way round. Among equals,
-    Spotify's own order decides."""
+    """The picture of the best of Spotify's `songs` that is the station's song."""
+    found = best(pair, songs)
+    return found.picture if found else None
+
+
+def best(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> Song | None:
+    """The best of Spotify's `songs` (each a Song, or its fields) that is the
+    station's song, its two names taken either way round. Among equals, Spotify's own
+    order decides. The one whose cover is shown is the one added to a playlist, so
+    the two never disagree."""
     said = {_words(pair[0]), _words(pair[1])}
     ranked = []
     for song in (Song(*fields) for fields in songs):
@@ -107,7 +116,7 @@ def cover(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> str | None
                     song.kind != "single",
                     song.date or "9999",
                 )
-                ranked.append((rank, song.picture))
+                ranked.append((rank, song))
                 break
     # `min` keeps the first of equals: Spotify's order.
     return min(ranked, key=lambda found: found[0])[1] if ranked else None

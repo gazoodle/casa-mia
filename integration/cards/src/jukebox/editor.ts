@@ -8,7 +8,8 @@
 // Everything is asked of Jukebox.
 import { LitElement, css, html, nothing } from "lit";
 import { type Hass } from "../ha.ts";
-import { type Favourite, type House, type Song, ask, curates, follow, groupOf, mmss, names, reason } from "./common.ts";
+import { type Favourite, type House, type Song, ask, curates, favourites, follow, groupOf, mmss, names, reason } from "./common.ts";
+import { type Pick, chooser, sent } from "./pick.ts";
 import { type Queue } from "./queue.ts";
 import { Busy, EDGE, Split, art, grips, icon, shared } from "./parts.ts";
 
@@ -29,7 +30,7 @@ export function edit(hass: Hass, room: string, playlist: Favourite | undefined, 
 }
 
 export class Editor extends LitElement {
-  static properties = { room: {}, playlist: { attribute: false }, _house: { state: true }, _why: { state: true }, _lift: { state: true }, _mark: { state: true }, _songs: { state: true }, _total: { state: true }, _sel: { state: true }, _stamp: { state: true }, _toast: { state: true }, _menu: { state: true }, _sorting: { state: true }, _confirm: { state: true }, _unsort: { state: true }, _zoom: { state: true } };
+  static properties = { room: {}, playlist: { attribute: false }, _house: { state: true }, _why: { state: true }, _lift: { state: true }, _mark: { state: true }, _songs: { state: true }, _total: { state: true }, _sel: { state: true }, _stamp: { state: true }, _toast: { state: true }, _menu: { state: true }, _sorting: { state: true }, _confirm: { state: true }, _unsort: { state: true }, _zoom: { state: true }, _putting: { state: true }, _lists: { state: true } };
   hass!: Hass;
   room = "";
   /** The Sonos playlist being put together; none for the queue. */
@@ -56,6 +57,10 @@ export class Editor extends LitElement {
   _unsort = false;
   /** The chosen song's cover, shown as large as the screen allows. */
   _zoom = false;
+  /** The sheet that asks which playlist the chosen song moves to (pick.ts), and the
+   * favourites it lists: fetched each time it opens, a string when they couldn't be. */
+  _putting?: Pick;
+  _lists?: Favourite[] | string;
   /** Something is being added above or straight after the chosen song, which is to stay
    * chosen: how many songs there were, to tell how many came. */
   private _adding?: { total: number; over: boolean };
@@ -89,7 +94,7 @@ export class Editor extends LitElement {
     if (e.key !== "Escape") return;
     e.stopImmediatePropagation(); // the player under this one stays
     // What is up over the editor goes first; then the editor.
-    if (this._zoom || this._menu || this._sorting || this._confirm) [this._zoom, this._menu, this._sorting, this._confirm] = [false, undefined, false, undefined];
+    if (this._zoom || this._menu || this._sorting || this._confirm || this._putting) [this._zoom, this._menu, this._sorting, this._confirm, this._putting] = [false, undefined, false, undefined, undefined];
     else this.remove();
   };
 
@@ -126,7 +131,7 @@ export class Editor extends LitElement {
     const sel = this._sel;
     if (sel === undefined) return;
     const [from, to] = [Number(data.value) - 1, Number(data.to) - 1];
-    if (/_remove$/.test(action)) this._sel = from === sel ? undefined : from < sel ? sel - 1 : sel;
+    if (/_(remove|send)$/.test(action)) this._sel = from === sel ? undefined : from < sel ? sel - 1 : sel;
     else if (/_move$/.test(action)) this._sel = from === sel ? to : from < sel && to >= sel ? sel - 1 : from > sel && to <= sel ? sel + 1 : sel;
     else if (/sort$|dedupe$|clear$/.test(action)) this._sel = undefined;
   }
@@ -168,6 +173,23 @@ export class Editor extends LitElement {
   private _move(to: number) {
     const sel = this._sel!;
     if (to - 1 !== sel) this._run(this.playlist ? "playlist_move" : "queue_move", { ...this._which(), value: sel + 1, to });
+  }
+
+  /** The chosen song, to the end of another playlist, and out of this one unless it is
+   * copied. */
+  private _send(sel: number, song: Song, copy: boolean) {
+    const from = this.playlist!;
+    const asked = sent(from, sel, song, copy);
+    const pick = async (playlist: Favourite) => {
+      this._putting = undefined;
+      if (await this._run(asked.action, asked.data(playlist))) this._say(asked.said(playlist));
+    };
+    this._lists = undefined;
+    favourites(this.hass, this.room).then(
+      (found) => (this._lists = found),
+      (err) => (this._lists = reason(err)),
+    );
+    this._putting = { ...asked.pick, pick };
   }
 
   private _which() {
@@ -264,6 +286,10 @@ export class Editor extends LitElement {
           <button ?disabled=${sel === 0} @click=${() => this._move(1)}>To the top</button>
           <button ?disabled=${sel >= total - 1} @click=${() => this._move(total)}>To the end</button>
           <button @click=${() => this._run(this.playlist ? "playlist_remove" : "queue_remove", { ...this._which(), value: sel + 1 })}>${icon("close")}Take out</button>
+          ${this.playlist
+            ? html`<button class=${this._busy.on("playlist_send")} @click=${() => this._send(sel, song, false)}>Move to another playlist…</button>
+                <button class=${this._busy.on("playlist_copy")} @click=${() => this._send(sel, song, true)}>Copy to another playlist…</button>`
+            : nothing}
           <button @click=${() => (this._sel = undefined)}>Let go</button>
         </div>
       </div>
@@ -300,6 +326,10 @@ export class Editor extends LitElement {
         </div>`,
         () => (this._menu = undefined),
       );
+    }
+    if (this._putting) {
+      const shut = () => (this._putting = undefined);
+      return veil(chooser(this._lists, this._putting, shut), shut);
     }
     if (this._sorting)
       return veil(
@@ -409,6 +439,8 @@ export class Editor extends LitElement {
       .sheet .acts .main { background: #fff; color: #111; }
       .sheet .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
       .sheet .acts .sep { margin-top: 10px; }
+      .sheet .picks { max-height: 32vh; overflow: auto; }
+      .sheet .lost { color: #ff9a8f; }
       .large { width: min(84vw, 84vh); }
       .large .art { border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
       .toast { position: fixed; left: 50%; bottom: 26px; z-index: 8; transform: translateX(-50%); max-width: min(90vw, 520px); padding: 12px 18px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; }

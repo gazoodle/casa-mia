@@ -106,6 +106,106 @@ async def test_a_playlists_songs_are_listed_and_changed_where_it_is_kept(
     assert not (await do("playlist_remove", playlist="FV:2/1", value=1))["success"]
 
 
+# A song from Spotify as a speaker lists it in a playlist: its address, and what the
+# speaker says of it, which is all a playlist can be told of it.
+STREAMED = LISTED.replace(
+    "x-file-cifs://nas/music/a.mp3</res>",
+    "x-sonos-spotify:spotify%3atrack%3alanterns?sid=9</res>"
+    '<desc id="cdudn">SA_RINCON2311_X_#Svc2311-0-Token</desc>',
+).replace('id="S://nas/music/a.mp3"', 'id="SQ:4/2"')
+
+
+async def test_a_song_is_moved_or_copied_to_another_playlist_added_there_first(
+    hass,
+    hass_ws_client,
+    sent,  # noqa: F811
+    aioclient_mock,
+):
+    listed, refuse = [LISTED], []
+
+    async def browsed(method, url, data):
+        said = answered("ContentDirectory", "Browse", Result=listed[0])
+        return AiohttpClientMockResponse(method, url, text=said)
+
+    async def changed(method, url, data):
+        if any(action in data.decode() for action in refuse):
+            return AiohttpClientMockResponse(method, url, status=500, text="<e/>")
+        return AiohttpClientMockResponse(
+            method, url, text=answered("AVTransport", "Any")
+        )
+
+    aioclient_mock.post(BROWSE, side_effect=browsed)
+    aioclient_mock.post(TRANSPORT, side_effect=changed)
+    client = await hass_ws_client(hass)
+
+    async def do(action, name="Paper Lanterns", into="SQ:7"):
+        aioclient_mock.mock_calls.clear()
+        song = {"playlist": "SQ:4", "value": 2, "name": name, "into": into}
+        return await ask(client, DO, action=action, entity_id=KITCHEN, **song)
+
+    def sent_to_speaker(action):
+        bodies = [call[2].decode() for call in aioclient_mock.mock_calls]
+        return [i for i, body in enumerate(bodies) if f"<u:{action} " in body]
+
+    # Moved: the song itself is read, added at the end of the other playlist, and
+    # only then taken out of this one, so a failure between the two never loses it.
+    assert (await do("playlist_send"))["success"]
+    read = dict(
+        re.findall(r"<(\w+)>(.*?)</\1>", aioclient_mock.mock_calls[0][2].decode(), re.S)
+    )
+    assert (read["ObjectID"], read["StartingIndex"], read["RequestedCount"]) == (
+        "SQ:4",
+        "1",
+        "1",
+    )
+    added = asked(aioclient_mock, "AddURIToSavedQueue")
+    assert added["ObjectID"] == "SQ:7"
+    assert added["EnqueuedURI"] == "x-file-cifs://nas/music/a.mp3"
+    assert "S://nas/music/a.mp3" in added["EnqueuedURIMetaData"]
+    assert added["AddAtIndex"] == "4294967295"
+    gone = asked(aioclient_mock, "ReorderTracksInSavedQueue")
+    assert (gone["ObjectID"], gone["TrackList"], gone["NewPositionList"]) == (
+        "SQ:4",
+        "1",
+        "",
+    )
+    assert sent_to_speaker("AddURIToSavedQueue") < sent_to_speaker(
+        "ReorderTracksInSavedQueue"
+    )
+
+    # Copied: added to the other playlist the same way, and left where it was.
+    assert (await do("playlist_copy"))["success"]
+    assert asked(aioclient_mock, "AddURIToSavedQueue")["ObjectID"] == "SQ:7"
+    assert not sent_to_speaker("ReorderTracksInSavedQueue")
+
+    # A song from Spotify goes with everything the speaker said of it: its names, and
+    # the account it is played with.
+    listed[0] = STREAMED
+    assert (await do("playlist_copy"))["success"]
+    added = asked(aioclient_mock, "AddURIToSavedQueue")
+    assert added["EnqueuedURI"] == "x-sonos-spotify:spotify%3atrack%3alanterns?sid=9"
+    about = added["EnqueuedURIMetaData"]
+    assert "Paper Lanterns" in about and "The Marigolds" in about
+    assert "SA_RINCON2311_X_#Svc2311-0-Token" in about
+
+    # The playlist was changed since the page listed it, and another song has that
+    # number: refused, and nothing is asked of the speaker but to read it.
+    stale = await do("playlist_send", name="Low Tide Motel")
+    assert not stale["success"] and "has changed" in stale["error"]["message"]
+    assert not sent_to_speaker("AddURIToSavedQueue")
+
+    # Added, but it couldn't be taken out: said as it is, the song being in both.
+    refuse.append("ReorderTracksInSavedQueue")
+    half = await do("playlist_send")
+    assert not half["success"] and "it is in both" in half["error"]["message"]
+    assert sent_to_speaker("AddURIToSavedQueue")
+
+    # Not into the playlist it is in, and only between Sonos playlists.
+    same = await do("playlist_send", into="SQ:4")
+    assert not same["success"] and "already" in same["error"]["message"]
+    assert not (await do("playlist_send", into="FV:2/1"))["success"]
+
+
 async def test_the_queue_is_saved_over_a_playlist_and_remembers_where_it_came_from(
     hass,
     hass_ws_client,

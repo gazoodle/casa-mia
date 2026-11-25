@@ -308,7 +308,19 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   library, which isn't installed in the test environment.
 - **A playlist's tile** (b24) is four covers: `art.tiled` asks the speaker for each
   playlist's first songs when the favourites are fetched (`upnp.covers`, one for each
-  album) and the page draws them two by two (`mosaic` in `parts.ts`).
+  album) and the page draws them two by two (`mosaic` in `parts.ts`). The big player
+  fetches the favourites again after a playlist is changed (`_dirty` in `big.ts`),
+  once its songs aren't being looked at (2026.11.14-b4).
+- **A song into a playlist** (2026.11.14-b4). From the radio: `find.Covers` keeps the
+  Spotify song it matched, or why there is none, and the group carries them as `found`
+  and `unfound`; the page gives `found.uri` to the `playlist_add` action there already
+  was. Between playlists: `playlist_send` and `playlist_copy` (`upnp.playlist_send`)
+  read the song from the speaker by its number, refuse if its title isn't the one the
+  page showed, add it to the other playlist and then, for a move, take it out. The
+  chooser is `pick.ts`, shared by the big player and the editor. Not tried on a real
+  speaker: a library song goes as `playlist_add` sends one, which was; a streamed
+  song goes with the speaker's own description (`_described`), which was only tried
+  for putting a song back into the queue.
 - **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
   and the players' card both extend. Until then only the page had it.
 - **Who changes playlists** (b24, owner 2026-11-24): hosts at any time, and the

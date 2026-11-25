@@ -26,7 +26,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from . import art, find, house, may, speaker, upnp
+from . import art, cover, find, house, may, speaker, upnp
 from .announce import address, room_name
 from .const import DOMAIN
 from .curate import Curator
@@ -129,14 +129,21 @@ class Feed:
             ):
                 stream = players[group["id"]][2].get("media_content_id")
                 self._station(group, str(stream or ""))
-            # A station's song has its own cover as well as the station's picture.
-            group["cover"] = (
-                art.relayed(
-                    self.art_key, self.covers.of(group["artist"], group["title"])
-                )
+            # A station's song, found on Spotify: its own cover as well as the
+            # station's picture, and what is added to a playlist. Or why it wasn't.
+            match = (
+                self.covers.of(group["artist"], group["title"])
                 if group["kind"] == house.RADIO
                 else None
             )
+            song = match if isinstance(match, cover.Song) else None
+            group["cover"] = art.relayed(self.art_key, song.picture) if song else None
+            group["found"] = (
+                {"uri": song.uri, "title": song.title, "by": song.artists}
+                if song and song.uri
+                else None
+            )
+            group["unfound"] = match if isinstance(match, str) else None
             party = self.parties.led_by(group["id"])
             group["party"] = party.view() if party else None
             # What Love it or Loathe it last did to this player, and why (love.py),
@@ -460,11 +467,26 @@ class _Doing:
         await upnp.delete_playlist(*self._speaker(), playlist)
 
     # A Sonos playlist where it is kept: its songs moved, taken out and added to.
-    def _playlist(self) -> str:
-        playlist = str(self._value("playlist"))
+    def _playlist(self, name: str = "playlist") -> str:
+        playlist = str(self._value(name))
         if not playlist.startswith(upnp.SAVED_QUEUES):
             raise Refused("Only a Sonos playlist can be changed here")
         return playlist
+
+    async def playlist_send(self, keep: bool = False) -> None:
+        """Move a song of a playlist to the end of another one (`into`), or copy it
+        there with `keep`."""
+        playlist, into = self._playlist(), self._playlist("into")
+        if into == playlist:
+            raise Refused("The song is in that playlist already")
+        # The song's title as the page showed it, to tell that it is still the one.
+        called = str(self._value("name"))
+        await upnp.playlist_send(
+            *self._speaker(), playlist, self._song(), called, into, keep
+        )
+
+    async def playlist_copy(self) -> None:
+        await self.playlist_send(keep=True)
 
     async def playlist_move(self) -> None:
         await upnp.playlist_move(
@@ -606,6 +628,8 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "playlist_move": _Doing.playlist_move,
     "playlist_remove": _Doing.playlist_remove,
     "playlist_add": _Doing.playlist_add,
+    "playlist_send": _Doing.playlist_send,
+    "playlist_copy": _Doing.playlist_copy,
     "playlist_sort": lambda doing: doing.curator.sort(doing),
     "playlist_unsort": lambda doing: doing.curator.unsort(doing),
     "playlist_dedupe": lambda doing: doing.curator.dedupe(doing),

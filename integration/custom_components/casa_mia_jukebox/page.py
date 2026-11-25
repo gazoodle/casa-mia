@@ -139,6 +139,8 @@ def _ws_house(
         vol.Optional("name"): vol.All(str, vol.Length(max=60)),
         vol.Optional("by"): vol.In(tidy.BY),
         vol.Optional("playlist"): str,
+        # The playlist a song of `playlist` is moved to.
+        vol.Optional("into"): str,
     }
 )
 @websocket_api.async_response

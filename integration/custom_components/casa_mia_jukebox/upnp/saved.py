@@ -12,7 +12,8 @@ import aiohttp
 from homeassistant.exceptions import HomeAssistantError
 
 from .. import tidy
-from .common import ABOUT, DIDL, _described, _glance, call
+from ..playable import FILE
+from .common import ABOUT, DC, DIDL, _described, _glance, _listed, call
 
 # ---- Changing a Sonos playlist where it is kept. A playlist's songs are numbered from 0
 # by the speaker; here, as everywhere in Jukebox, from 1.
@@ -144,17 +145,8 @@ async def playlist_add(
     if streamed := spotify(thing, title):
         await _add_to(session, host, playlist, *streamed, to)
         return
-    if thing.startswith("x-file-cifs:"):
-        # A song's file. The speaker lists the same file as `S://…`, and won't describe
-        # one song when asked (a real speaker, 2026-11-24), so it is given the short
-        # description Sonos's own apps give, and looks the rest up in its library.
-        about = ABOUT.format(
-            id=quoteattr("S:" + thing.partition(":")[2]),
-            parent=quoteattr("A:TRACKS"),
-            title=escape(title),
-            kind="object.item.audioItem.musicTrack",
-        )
-        await _add_to(session, host, playlist, thing, about, to)
+    if thing.startswith(FILE):
+        await _add_to(session, host, playlist, thing, _filed(thing, title), to)
         return
     found = await call(
         session,
@@ -178,6 +170,61 @@ async def playlist_add(
     if not address:
         raise HomeAssistantError("The speaker gave no address for that")
     await _add_to(session, host, playlist, address, _described(item), to)
+
+
+def _filed(address: str, title: str) -> str:
+    """A song of the music library, by its file, as a playlist is told of it. The
+    speaker lists the same file as `S://…`, and won't describe one song when asked (a
+    real speaker, 2026-11-24), so it is given the short description Sonos's own apps
+    give, and looks the rest up in its library."""
+    return ABOUT.format(
+        id=quoteattr("S:" + address.partition(":")[2]),
+        parent=quoteattr("A:TRACKS"),
+        title=escape(title),
+        kind="object.item.audioItem.musicTrack",
+    )
+
+
+async def playlist_send(
+    session: aiohttp.ClientSession,
+    host: str,
+    playlist: str,
+    song: int,
+    called: str,
+    into: str,
+    keep: bool = False,
+) -> None:
+    """Move song number `song` of a Sonos playlist to the end of the playlist `into`,
+    or copy it there with `keep`. It is added there before it is taken out here: a
+    failure between the two leaves it in both, never in neither.
+
+    `called` is the start of the song's title as the asker saw it. The song is asked
+    for by its number, and the playlist may have been changed since the asker's list
+    was read: a different song at that number is refused, not moved."""
+    listed, _ = await _listed(session, host, playlist, "playlist", 1, song - 1)
+    item = listed[0] if listed else None
+    address = item.findtext(f"{DIDL}res") if item is not None else None
+    title = (item.findtext(f"{DC}title") or "") if item is not None else ""
+    if item is None or not address or not title.startswith(called):
+        raise HomeAssistantError(
+            "The playlist has changed since it was listed, and that song isn't "
+            "where it was. Nothing was changed."
+        )
+
+    # A streamed song keeps everything the speaker said of it: given less, a song put
+    # back into the queue lost its names (`_described`).
+    about = _filed(address, title) if address.startswith(FILE) else _described(item)
+    await _add_to(session, host, into, address, about, None)
+    if keep:
+        return
+    try:
+        await playlist_remove(session, host, playlist, song)
+    except HomeAssistantError as err:
+        # Said as it is: the song is in both, and the asker can take one out.
+        raise HomeAssistantError(
+            f"The song was added to the other playlist, but couldn't be taken out "
+            f"of this one, so it is in both ({err})"
+        ) from err
 
 
 async def _add_to(

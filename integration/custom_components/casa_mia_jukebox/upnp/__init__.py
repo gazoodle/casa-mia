@@ -70,6 +70,7 @@ from .saved import (
     playlist_drop,
     playlist_move,
     playlist_remove,
+    playlist_send,
     spotify,
 )
 
@@ -111,6 +112,7 @@ __all__ = [
     "playlist_drop",
     "playlist_move",
     "playlist_remove",
+    "playlist_send",
     "playlists",
     "queue",
     "queue_favourite",

@@ -41,6 +41,10 @@ export type Group = {
   /** On a station: the cover of the song it is playing, found on Spotify. `picture` is
    * then the station's own, and is shown on the cover as a badge. */
   cover?: string | null;
+  /** On a station: its song as found on Spotify, which is what a playlist is given; or,
+   * when there is none, why. */
+  found?: { uri: string; title: string; by: string } | null;
+  unfound?: string | null;
   /** The Sonos playlist (`SQ:3`) this queue was loaded from or last saved as, from Jukebox. */
   source?: string | null;
   /** This device's own room only (phone.ts): something that went wrong there, to say. */
