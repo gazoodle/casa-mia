@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.14-b6
+
+- Jukebox: nothing you can see. The big player's styles moved to a file of their own,
+  as the player's file was close to its size limit.
+
 ## 2026.11.14-b5
 
 - Jukebox: nothing you can see. The code behind the page's requests was one file close
