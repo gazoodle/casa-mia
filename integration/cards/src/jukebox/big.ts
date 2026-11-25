@@ -12,8 +12,8 @@ import { type Favourite, type Group, type House, PHONE, ask, average, clock, col
 import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
-type Tab = "queue" | "rooms" | "favourites" | "search";
-const TABS: [Tab, string][] = [
+export type Tab = "queue" | "rooms" | "favourites" | "search";
+export const TABS: [Tab, string][] = [
   ["queue", "Queue"],
   ["rooms", "Rooms"],
   ["favourites", "Favourites"],

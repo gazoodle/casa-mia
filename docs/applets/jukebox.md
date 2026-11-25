@@ -382,12 +382,12 @@ and add the pieces you want. Each is in the card picker under "Casa Mia Jukebox"
 | Card | What it shows | Options |
 |---|---|---|
 | **Players** | A small player for each thing playing, in the order you dragged them into. With no room chosen you can change the order on the card as well, the same way as on Jukebox's page. | A room, to show only that room's music. |
-| **Micro player** | Only the picture of what a room is playing, small enough for a sidebar. It has no controls. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. A quiet room is shown by its initials. | A room; with none chosen it shows one picture for each thing playing. The size of the picture: small (120 px), medium (184 px) or large (248 px). Where the picture sits in its card, chosen from a grid of nine places. What a tap does. |
+| **Micro player** | Only the picture of what a room is playing, small enough for a sidebar. It has no controls. Small bars on the picture move while music is playing and stand still while it is paused, when the picture also loses its colour. A crossed speaker is shown when the room is muted, and a warning sign when the room isn't answering or Home Assistant can't be reached. A room playing nothing is shown as a speaker. | A room; with none chosen it shows one picture for each thing playing. The size: small (120 px), medium (184 px) or large (248 px). Where the picture sits in its card, chosen from a grid of nine places. Whether it is the picture alone, with no card round it. What a tap does. An icon or a picture of your own for a room playing nothing. |
 | **Quiet rooms** | A chip for each room playing nothing, which opens its favourites, and any speaker that isn't answering. | Whether to show its heading, and whether to list the speakers that aren't answering. |
 | **Shortcut** | One button that plays one favourite in the rooms you choose. | The favourite's name, the rooms, and optionally what the button says, an icon, and whether to play it next or add it to the end of the queue. |
 | **Now playing** | The whole player for one room, in place: artwork, controls, queue, rooms, favourites, search and the party lock. | The room. |
 
-<img src="../screenshots/jukebox-micro.webp" alt="Five micro players side by side: a song playing, with small bars on its cover; a station that is muted, with a crossed speaker; a paused song, with the bars low and still; a quiet room, shown by its initial; and a room that is not answering, with a red warning sign" width="600">
+<img src="../screenshots/jukebox-micro.webp" alt="Five micro players side by side: a song playing, with small bars on its cover; a station that is muted, with a crossed speaker; a paused song, with the bars low and still; a quiet room, shown as a speaker; and a room that is not answering, with a red warning sign" width="600">
 
 Every card is set up with a form in the dashboard editor, with the usual Layout and
 Visibility tabs beside it; none needs YAML.
@@ -396,14 +396,43 @@ A tap on a small player, a micro player or a quiet room opens the big player ove
 screen, as on Jukebox's page. A micro player with no room chosen opens Jukebox's page
 when nothing is playing.
 
+The micro player is drawn in a card with the background and border of Home Assistant's
+own cards. Turn on **The picture alone** to take the card away and leave only the
+picture, as the Markdown card's text only does for words. In a card with a border the
+picture is 16 px smaller than the size chosen, so the card still fills whole rows.
+
 The micro player's picture keeps its size whatever the width of its card, so a card as
 wide as a sidebar can hold a small picture in its middle. Each size is a whole number of
 rows of a section (two, three or four), so the picture lines up with the cards beside it.
+A room that is playing nothing is shown as a speaker. Under **A room that is playing
+nothing** in the card's editor you can choose an icon for it, or give the address of a
+picture, such as `/local/quiet.png` for a file in Home Assistant's `www` folder. Either
+is drawn at the size you chose, in the same place and the same card. A picture is shown
+whole and in its own colours; the speaker and an icon are dimmed, as a paused cover is.
+
 Its tap action is Home Assistant's usual one. Left at its default it opens the big
 player. To open Jukebox's page instead, choose Navigate and enter `/jukebox`. The setting
 belongs to the card, so if some tablets should do one thing and some another, add the
 card twice and show each to the right tablets with its Visibility tab. The Now playing card needs room: give it at least half the width of a
 tablet and most of its height.
+
+### Opening the big player from a card of your own
+
+If you want a look that Jukebox's cards don't have, use any other card (Home Assistant's
+Tile, Button or Picture card, or one from the Marketplace) and give it this tap action:
+
+```yaml
+tap_action:
+  action: fire-dom-event
+  casa_mia_jukebox:
+    room: media_player.kitchen
+    tab: favourites        # optional: queue, rooms, favourites or search
+```
+
+A tap then opens the big player for that room, as a tap on Jukebox's own cards does. If
+the action names no room, or a tab that isn't one of the four, Home Assistant shows a
+message saying so. Such a card shows what Home Assistant knows of the speaker, so on a
+station it has the station's picture and not the song's cover.
 
 Which cards a tablet or a person sees is Home Assistant's to decide: each card has a
 Visibility tab in the dashboard editor. If your own view replaces Jukebox's page, turn

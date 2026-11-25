@@ -169,6 +169,18 @@ export function arrange(hass: Asking, rooms: string[]): Promise<unknown> {
   return hass.connection.sendMessagePromise({ type: `${DOMAIN}/order`, rooms: rooms.filter((room) => room !== PHONE) });
 }
 
+/** What a button of the dashboard's own asks of Jukebox, by Home Assistant's
+ * fire-dom-event action (opens.ts): the room whose big player to open, and which of its
+ * `tabs` to show. None when the action isn't for Jukebox; the complaint, in words to show,
+ * when it is and can't be followed. */
+export function wanted(detail: any, tabs: readonly string[]): { room: string; tab?: string } | string | undefined {
+  const order = detail?.casa_mia_jukebox;
+  if (order === undefined) return undefined;
+  if (typeof order?.room !== "string" || !order.room) return "this button's action names no room: give casa_mia_jukebox a room, such as media_player.kitchen";
+  if (order.tab !== undefined && !tabs.includes(order.tab)) return `this button's action asks for "${order.tab}", which isn't one of ${tabs.join(", ")}`;
+  return { room: order.room, tab: order.tab };
+}
+
 /** Why a failure happened, in words to show. */
 export const reason = (err: any): string => err?.message ?? String(err);
 

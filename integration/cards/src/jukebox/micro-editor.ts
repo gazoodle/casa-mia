@@ -25,11 +25,26 @@ const SCHEMA = [
       },
     },
   },
+  { name: "picture_only", selector: { boolean: {} } },
   { name: "tap_action", selector: { ui_action: {} } },
+  {
+    type: "expandable",
+    name: "",
+    title: "A room that is playing nothing",
+    flatten: true,
+    schema: [
+      { name: "quiet_icon", selector: { icon: { placeholder: "mdi:speaker" } } },
+      { name: "quiet_image", selector: { text: {} } },
+    ],
+  },
 ];
-const LABELS: Record<string, string> = { entity: "Room", size: "Size of the picture", tap_action: "Tap action" };
+const LABELS: Record<string, string> = { entity: "Room", size: "Size", picture_only: "The picture alone, with no card round it", tap_action: "Tap action", quiet_icon: "Icon", quiet_image: "Or a picture, by its address" };
 const HELP: Record<string, string> = {
   entity: "Leave empty for a picture of everything that is playing.",
+  size: "The height of the card. In a card with a border the picture is 16 px smaller, so the card still fills whole rows.",
+  picture_only: "Off: the card has the background and border of Home Assistant's own cards. On: only the picture shows, as the Markdown card's text only does for words.",
+  quiet_icon: "Shown in the picture's place while the room plays nothing. Empty: a speaker.",
+  quiet_image: "Such as /local/quiet.png, for a file in Home Assistant's www folder. It is shown whole, in the icon's place, at the size chosen above.",
   tap_action: "Left at its default, a tap opens the big player. For Jukebox's page instead, choose Navigate and /jukebox.",
 };
 

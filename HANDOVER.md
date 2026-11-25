@@ -234,8 +234,8 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   own page): `card.ts` (players), `micro.ts` (a room's picture alone, for a sidebar: it shows state
   and has no controls, so no transport glyphs go on it; `common.standing` decides its
   mark; three sizes that are whole rows of a section, one of nine places in its card by
-  the shared `../anchor-grid.ts`, and HA's `tap_action`; its editor is `micro-editor.ts`,
-  as a form HA draws can't hold the grid), `pieces.ts` (quiet rooms, shortcut, now playing) and `rooms.ts`. The Now playing card is the big player with `inline`; its wide layout is
+  the shared `../anchor-grid.ts`, HA's `tap_action`, and `picture_only` (the Markdown card's `text_only`: off by default, so it has `ha-card`'s chrome). A room playing nothing is a speaker (`parts.plate`), or the card's `quiet_icon` or `quiet_image`, never initials; its editor is `micro-editor.ts`,
+  as a form HA draws can't hold the grid), `pieces.ts` (quiet rooms, shortcut, now playing) and `rooms.ts`. **A new look is not a new option** (owner, 2026-11-25): `opens.ts` lets any card open the big player by a `fire-dom-event` action (`casa_mia_jukebox: {room, tab}`), so a tile or a button is made from HA's own cards. Why: the micro player was gathering words and second pictures. The Now playing card is the big player with `inline`; its wide layout is
   a container query, so it follows its own width and not the screen's. The Shortcut
   card and automations use the `casa_mia_jukebox.play` action (`feed.play`), which goes
   through `do`. Making each piece adapt to the size it is given is still to do.

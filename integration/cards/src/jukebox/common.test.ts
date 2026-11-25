@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type Group, type House, average, colours, groupOf, initials, latest, mmss, names, playing, position, standing } from "./common.ts";
+import { type Group, type House, average, colours, groupOf, initials, latest, mmss, names, playing, position, standing, wanted } from "./common.ts";
 
 const group = (over: Partial<Group>): Group => ({
   id: "media_player.den", rooms: ["media_player.den"], state: "playing", kind: "queue", quiet: false, title: "Paper Lanterns", artist: "The Marigolds",
@@ -47,6 +47,19 @@ test("what a micro player marks on a picture", () => {
   // A house that isn't heard from is never said to be playing, and nor is a player in trouble.
   assert.equal(standing(house, den, false), "trouble");
   assert.equal(standing(house, group({ trouble: "The stream stopped" }), true), "trouble");
+});
+
+test("what a dashboard's own button asks of Jukebox", () => {
+  const tabs = ["queue", "rooms", "favourites", "search"];
+  assert.deepEqual(wanted({ casa_mia_jukebox: { room: "media_player.den" } }, tabs), { room: "media_player.den", tab: undefined });
+  assert.deepEqual(wanted({ casa_mia_jukebox: { room: "media_player.den", tab: "favourites" } }, tabs), { room: "media_player.den", tab: "favourites" });
+  // Another card's action, or none: not Jukebox's to answer.
+  assert.equal(wanted({ casa_mia_commander: { talk: "toggle" } }, tabs), undefined);
+  assert.equal(wanted(undefined, tabs), undefined);
+  // For Jukebox, but not to be followed: it says why, and nothing opens.
+  assert.match(wanted({ casa_mia_jukebox: {} }, tabs) as string, /names no room/);
+  assert.match(wanted({ casa_mia_jukebox: null }, tabs) as string, /names no room/);
+  assert.match(wanted({ casa_mia_jukebox: { room: "media_player.den", tab: "lyrics" } }, tabs) as string, /"lyrics"/);
 });
 
 test("a title's colours and initials are the same every time", () => {

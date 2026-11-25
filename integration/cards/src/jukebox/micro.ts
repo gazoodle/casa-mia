@@ -10,13 +10,17 @@
 // The picture has one of three sizes whatever the width of its card, and sits in one of
 // nine places in it (owner, 2026-11-25), so that a card the width of a sidebar can hold a
 // small picture in its middle. Its editor is micro-editor.ts.
+//
+// It is drawn in a card as Home Assistant's own are, with their background and border,
+// unless it is asked for the picture alone: the same choice, made the same way, as the
+// Markdown card's `text_only` (owner, 2026-11-25).
 import { type TemplateResult, css, html, nothing } from "lit";
 import { type Anchor, placement } from "../anchors.ts";
 import { type Hass, fire, navigate } from "../ha.ts";
 import { open } from "./big.ts";
 import { type Group, type House, type Standing, groupOf, names, playing, position, standing } from "./common.ts";
 import { Following } from "./page.ts";
-import { Clock, art, icon, shared, sleeve } from "./parts.ts";
+import { Clock, icon, plate, shared, sleeve } from "./parts.ts";
 
 export const MICRO = "casa-mia-jukebox-micro";
 export const MICRO_EDITOR = `${MICRO}-editor`;
@@ -30,12 +34,22 @@ export type Config = {
   anchor?: Anchor;
   /** What a tap does, as Home Assistant's own cards say it; none: the big player. */
   tap_action?: { action: string; [key: string]: unknown };
+  /** The picture with no card round it: no background and no border. */
+  picture_only?: boolean;
+  /** What stands for a room playing nothing: an icon of Home Assistant's, or a picture
+   * by its address, in the speaker's place. */
+  quiet_icon?: string;
+  quiet_image?: string;
 };
 /** Each option's default: shown in the editor, and never saved. */
-export const DEFAULTS = { size: "small" as Size, anchor: "center" as Anchor };
-/** How wide a picture of each size is, in px, and how many rows of a section that is: a
- * row is 56 px and the gap between two is 8, so each size is a whole number of rows and
- * lines up with the cards beside it. `columns` is what a new card takes of a section's 12. */
+export const DEFAULTS = { size: "small" as Size, anchor: "center" as Anchor, picture_only: false };
+/** The space between a card's border and its picture, in px. */
+const EDGE = 8;
+/** How tall a card of each size is, in px, and how many rows of a section that is: a row
+ * is 56 px and the gap between two is 8, so each size is a whole number of rows and lines
+ * up with the cards beside it. The picture alone is this size; in a card with a border it
+ * is smaller by the space round it, so that the card stays on its rows. `columns` is what
+ * a new card takes of a section's 12. */
 export const SIZES: Record<Size, { px: number; rows: number; columns: number }> = {
   small: { px: 120, rows: 2, columns: 3 },
   medium: { px: 184, rows: 3, columns: 6 },
@@ -82,7 +96,7 @@ export class MicroCard extends Following {
   setConfig(config: Config) {
     this._config = { ...config };
     const at = placement(config.anchor ?? DEFAULTS.anchor);
-    this.style.setProperty("--jb-size", `${this._size.px}px`);
+    this.style.setProperty("--jb-size", `${this._size.px - (config.picture_only ? 0 : 2 * EDGE)}px`);
     this.style.setProperty("--jb-justify", at.justify);
     this.style.setProperty("--jb-align", at.align);
   }
@@ -110,6 +124,15 @@ export class MicroCard extends Following {
     return action ? () => fire(this, "hass-action", { config: { entity: room, tap_action: action }, action: "tap" }) : usual;
   }
 
+  /** The picture of a room that is playing nothing, or can't be asked: the icon or the
+   * picture the card was given for it, or the speaker the quiet rooms have on Jukebox's
+   * page. Never the initials of its name (owner, 2026-11-25: a room's gave "KS"). It is
+   * a picture as a cover is, so the size, the place and the card round it are the same. */
+  private _plate(name: string) {
+    const { quiet_icon, quiet_image } = this._config!;
+    return plate(this._hass!, name, quiet_icon ? html`<ha-icon .icon=${quiet_icon}></ha-icon>` : icon("rooms"), quiet_image);
+  }
+
   /** Jukebox's page, for a picture that stands for no one room. */
   private _page = () => navigate("/jukebox");
 
@@ -118,7 +141,7 @@ export class MicroCard extends Following {
     const hass = this._hass!;
     const name = room ? (hass.states[room]?.attributes.friendly_name ?? room) : "Jukebox";
     const asking = this._connected && !this._why;
-    return { picture: art(hass, null, name), state: asking ? "asking" : "trouble", says: `${name}: ${this._trouble}`, tap: room ? () => open(hass, room) : this._page, room };
+    return { picture: this._plate(name), state: asking ? "asking" : "trouble", says: `${name}: ${this._trouble}`, tap: room ? () => open(hass, room) : this._page, room };
   }
 
   private _group(house: House, group: Group, room: string | undefined): Tile {
@@ -134,8 +157,8 @@ export class MicroCard extends Following {
     const at = state === "trouble" || state === "quiet" ? null : position(group, Date.now());
 
     return {
-      // A quiet room has no picture of its own: its name's initials tell it from the next.
-      picture: state === "quiet" ? art(hass, null, where) : sleeve(hass, group, title),
+      // A quiet room has no picture of its own.
+      picture: state === "quiet" ? this._plate(where) : sleeve(hass, group, title),
       state,
       says: `${where}: ${what}${why}`,
       // The room, where one was chosen: the big player follows it if its group changes.
@@ -151,14 +174,14 @@ export class MicroCard extends Following {
       const group = groupOf(house, room);
       if (group) return [this._group(house, group, room)];
       const name = house.rooms[room]?.name ?? room;
-      return [{ picture: art(hass, null, name), state: "trouble", says: `${name} isn't answering`, tap: () => open(hass, room), room }];
+      return [{ picture: this._plate(name), state: "trouble", says: `${name} isn't answering`, tap: () => open(hass, room), room }];
     }
 
     const groups = house.groups.filter((g) => !g.quiet);
     if (groups.length) return groups.map((g) => this._group(house, g, undefined));
     // Nothing is playing: the card keeps its place, as the way to Jukebox's page.
     const [state, says] = this._connected ? (["quiet", "Nothing is playing"] as const) : (["trouble", this._trouble!] as const);
-    return [{ picture: art(hass, null, "Jukebox"), state, says: `Jukebox: ${says}`, tap: this._page }];
+    return [{ picture: this._plate("Jukebox"), state, says: `Jukebox: ${says}`, tap: this._page }];
   }
 
   render() {
@@ -166,13 +189,14 @@ export class MicroCard extends Following {
     if (!hass || !config) return nothing;
     const tiles = house ? this._tiles(house, config.entity) : [this._unknown(config.entity)];
 
-    return tiles.map(({ picture, state, says, tap, part, room }) => {
+    const pictures = tiles.map(({ picture, state, says, tap, part, room }) => {
       const still = state !== "playing" && state !== "muted";
       return html`<button class="tile ${state} ${still ? "still" : ""}" title=${says} aria-label=${says} @click=${this._tap(room, tap)}>
         ${picture} ${MARK[state] ?? nothing}
         ${part === undefined ? nothing : html`<i class="prog" style="width:${100 * part}%"></i>`}
       </button>`;
     });
+    return html`<ha-card class=${config.picture_only ? "picture-only" : ""}>${pictures}</ha-card>`;
   }
 
   static styles = [
@@ -180,7 +204,10 @@ export class MicroCard extends Following {
     css`
       /* The pictures in a row that wraps, placed in the card as the nine places say: across
          by justify, and down (in a card taller than they are) by align. */
-      :host { display: flex; flex-wrap: wrap; gap: 8px; height: 100%; justify-content: var(--jb-justify, center); align-content: var(--jb-align, center); }
+      :host { display: block; height: 100%; }
+      ha-card { display: flex; flex-wrap: wrap; gap: 8px; height: 100%; padding: ${EDGE}px; justify-content: var(--jb-justify, center); align-content: var(--jb-align, center); }
+      /* The picture alone: what Home Assistant's Markdown card takes off for text only. */
+      ha-card.picture-only { padding: 0; background: none; border: none; box-shadow: none; backdrop-filter: none; }
       /* No border, no raised edge and no hover: it is a picture that can be tapped, not a
          button of the player. Its size is the one chosen, less in a card too narrow for
          it. The marks are measured from its width. */
@@ -190,6 +217,9 @@ export class MicroCard extends Following {
       /* Not playing, or not known to be: the picture loses its colour. Muted music is
          still playing, and keeps it. */
       .still .art { filter: grayscale(0.85) brightness(0.65); }
+      /* A picture the card was given for a quiet room is shown as it is: it says quiet by
+         being there, and a logo with its colours taken off is no longer the logo. */
+      .still .art.plate:has(img) { filter: none; }
 
       /* A sign on the picture: square-cornered and too small for a finger, so it isn't
          taken for something to press. A tap on it is a tap on the picture. */

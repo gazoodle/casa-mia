@@ -60,6 +60,14 @@ export function sleeve(hass: Urls, group: { picture: string | null; cover?: stri
   return html`<span class="art" style="--a:${a};--b:${b}"><i>${initials(title)}</i><img src=${from(hass, group.cover)} alt="" @error=${gone} />${group.picture ? html`<img class="badge" src=${from(hass, group.picture)} alt="" @error=${gone} />` : nothing}</span>`;
 }
 
+/** A picture for a room that has none: `sign` (an icon) on the two colours of its name,
+ * or `picture` in the sign's place. A picture that won't load leaves the sign, so a
+ * mistyped address is seen as the usual sign and not as an empty square. */
+export function plate(hass: Urls, name: string, sign: unknown, picture?: string) {
+  const [a, b] = colours(name);
+  return html`<span class="art plate" style="--a:${a};--b:${b}">${picture ? html`<img src=${from(hass, picture)} alt="" @error=${gone} />` : nothing}<span class="sign">${sign}</span></span>`;
+}
+
 /** A playlist's tile: the covers of four of its albums, two by two, so that one playlist
  * is told from the next at a glance. With fewer than four, the first by itself. */
 export function mosaic(hass: Urls, pictures: string[] | undefined, fallback: string | null | undefined, title: string) {
@@ -413,6 +421,12 @@ export const shared = css`
   .art i { font-style: normal; font-size: 30cqw; letter-spacing: -0.02em; text-shadow: 0 2px 12px rgb(0 0 0 / 30%); }
   .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .art img.badge { inset: auto 5% 5% auto; width: 32%; height: 32%; border-radius: 50%; border: 2px solid rgb(255 255 255 / 85%); background: #111; box-shadow: 0 2px 10px rgb(0 0 0 / 55%); box-sizing: border-box; }
+  /* A plate's sign is half the picture's width, whatever the picture's size; its own
+     picture is shown whole (a logo isn't to be cut), and hides the sign while it is there. */
+  .plate .sign { display: grid; }
+  .plate img ~ .sign { display: none; }
+  .plate img { object-fit: contain; }
+  .plate svg, .plate ha-icon { width: 50cqw; height: 50cqw; --mdc-icon-size: 50cqw; }
   .art.four img { inset: auto; width: 50%; height: 50%; }
   .art.four img:nth-of-type(1) { top: 0; left: 0; }
   .art.four img:nth-of-type(2) { top: 0; left: 50%; }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.13-b10
+
+- Jukebox: the micro player is drawn in a card, with the background and border of Home Assistant's own cards, so it can stand as a button. Turn on "The picture alone" in its editor for the picture with no card round it, which is how it looked until now. In a card with a border the picture is 16 px smaller than the size chosen, so the card still fills whole rows.
+- Jukebox: on the micro player a room playing nothing is shown as a speaker, where it had the initials of its name. Its editor takes an icon, or the address of a picture, to show instead. Either is drawn at the size chosen.
+- Jukebox: any card's button can open the big player, with a tap action of `fire-dom-event` and `casa_mia_jukebox: {room: media_player.kitchen}`, and optionally `tab`. So a tile or a button of another look is made from Home Assistant's own cards. The guide has the YAML.
+
 ## 2026.11.13-b9
 
 - Jukebox: the micro player's picture has three sizes, small (120 px), medium (184 px) and large (248 px), and keeps its size whatever the width of its card. Each is a whole number of rows of a section. Until now the picture was as wide as its card.
