@@ -30,8 +30,13 @@ export const whereOf = (screen: boolean, full: boolean): Where =>
 type Sizes = Partial<Record<Item, number>>;
 /** The sizes set by hand, by commander (its select) and where: kept for this page only. */
 const TUNED = new Map<string, Record<Where, Sizes>>();
-/** The dialog: whether it is open, which size it shows and where it stands. */
-const DIALOG = { open: "", item: "main" as Item, x: -1, y: -1 };
+/** The dialog: whether it is open, which size it shows, where it stands, whether it is
+ * folded down to its title bar, and a drag under way (where the pointer and the dialog
+ * were when it began). Kept here, not in the function that draws it: each move redraws
+ * the dialog, and a drag held there was forgotten after its first step (b12). */
+const DIALOG = { open: "", item: "main" as Item, x: -1, y: -1, folded: false, from: null as [number, number, number, number] | null };
+/** The debug box folded down to its buttons, to see the tiles past it on a phone. */
+const BOX = { folded: false };
 /** Track motion, turned off by the dialog (its switch), to be turned on again. */
 let paused = "";
 
@@ -96,11 +101,21 @@ export function debugBox(o: {
   const set = tunedAt(select, f.where);
   const sw = trackMotion(o.hass, select);
   const size = (item: Item) => (set[item] !== undefined ? html`<b>${set[item]} px</b> (rule ${f.rules[item]})` : `${f.rules[item]} px`);
+  const buttons = html`<div class="debug-buttons">
+    <button
+      class="debug-fold"
+      @click=${() => ((BOX.folded = !BOX.folded), o.changed())}
+      aria-label=${BOX.folded ? "Show the figures" : "Fold the figures away"}
+    >
+      ${BOX.folded ? "+" : "−"}
+    </button>
+    <button @click=${() => (toggleDialog(o.hass, select, !dialogOpen(select)), o.changed())}>${dialogOpen(select) ? "DONE" : "EDIT"}</button>
+    <button @click=${o.record}>RECORD</button>
+  </div>`;
+  // Folded: its buttons alone, and what came of the last record.
+  if (BOX.folded) return html`<div class="debug folded" style="color:${o.colour}">${buttons}${o.note ? html`${o.note}` : nothing}</div>`;
   return html`<div class="debug" style="color:${o.colour}">
-    <div class="debug-buttons">
-      <button @click=${() => (toggleDialog(o.hass, select, !dialogOpen(select)), o.changed())}>${dialogOpen(select) ? "DONE" : "EDIT"}</button>
-      <button @click=${o.record}>RECORD</button>
-    </div>
+    ${buttons}
     ${o.head}<br />
     ${f.where}: card ${f.box.map(Math.round).join(" x ")}, main camera ${f.place.map(Math.round).join(" x ")} px<br />
     main name ${size("main")}: ${f.sums.main}<br />
@@ -127,25 +142,39 @@ export function tuneDialog(o: { hass: Hass; select: string; where: Where; rules:
     here[item] = Math.min(hi, Math.max(lo, Math.round(n)));
     o.changed();
   };
-  let from: [number, number, number, number] | null = null;
+  const done = (e: PointerEvent) => {
+    DIALOG.from = null;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+  const title = html`<div
+    class="tune-title"
+    @pointerdown=${(e: PointerEvent) => {
+      // A press on a button is the button's: captured for a drag, Safari gave its click
+      // to the title bar, and the × never closed the dialog (b12).
+      if ((e.target as Element).closest("button")) return;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      DIALOG.from = [e.clientX, e.clientY, DIALOG.x, DIALOG.y];
+    }}
+    @pointermove=${(e: PointerEvent) => {
+      const from = DIALOG.from;
+      if (!from) return;
+      DIALOG.x = Math.min(innerWidth - 120, Math.max(0, from[2] + e.clientX - from[0]));
+      DIALOG.y = Math.min(innerHeight - 40, Math.max(0, from[3] + e.clientY - from[1]));
+      o.changed();
+    }}
+    @pointerup=${done}
+    @pointercancel=${done}
+  >
+    <button @click=${() => ((DIALOG.folded = !DIALOG.folded), o.changed())} aria-label=${DIALOG.folded ? "Open the sizes" : "Fold the sizes away"}>
+      ${DIALOG.folded ? "+" : "−"}
+    </button>
+    <span>${DIALOG.folded ? "Sizes" : `Sizes here: ${o.where}`}</span>
+    <button @click=${() => (toggleDialog(o.hass, o.select, false), o.changed())} aria-label="Close">×</button>
+  </div>`;
+  // Folded: the title bar alone, to see the tiles past it, and still dragged by it.
+  if (DIALOG.folded) return html`<div class="tune folded" style="left:${DIALOG.x}px;top:${DIALOG.y}px">${title}</div>`;
   return html`<div class="tune" style="left:${DIALOG.x}px;top:${DIALOG.y}px">
-    <div
-      class="tune-title"
-      @pointerdown=${(e: PointerEvent) => {
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-        from = [e.clientX, e.clientY, DIALOG.x, DIALOG.y];
-      }}
-      @pointermove=${(e: PointerEvent) => {
-        if (!from) return;
-        DIALOG.x = Math.min(innerWidth - 120, Math.max(0, from[2] + e.clientX - from[0]));
-        DIALOG.y = Math.min(innerHeight - 40, Math.max(0, from[3] + e.clientY - from[1]));
-        o.changed();
-      }}
-      @pointerup=${() => (from = null)}
-    >
-      <span>Sizes here: ${o.where}</span>
-      <button @click=${() => (toggleDialog(o.hass, o.select, false), o.changed())} aria-label="Close">×</button>
-    </div>
+    ${title}
     <div class="tune-items">
       ${ITEMS.map(
         ([key, label]) =>
@@ -217,6 +246,16 @@ export const tuneStyles = css`
     gap: 6px;
     margin-bottom: 4px;
   }
+  /* The fold at the top left, the others at the right. */
+  .debug-fold {
+    margin-right: auto;
+  }
+  .debug.folded {
+    padding: 4px 6px;
+  }
+  .debug.folded .debug-buttons {
+    margin-bottom: 0;
+  }
   .debug b {
     color: #fff;
   }
@@ -253,6 +292,17 @@ export const tuneStyles = css`
   .tune button:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+  .tune.folded {
+    width: auto;
+    padding-bottom: 0;
+  }
+  .tune.folded .tune-title {
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+  .tune-title span {
+    flex: 1;
   }
   .tune-title {
     display: flex;

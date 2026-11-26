@@ -133,7 +133,9 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     debug is on) → POST `/commander/tuning` → one INFO line "commander tuning <ref>:
     <json>" in the app's log. Read those lines and fit the rules from them; the picture's
     own debug text is gone (live video hid it). Track motion is turned off while the
-    dialog is open and back on when it closes (or when debug goes off).
+    dialog is open and back on when it closes (or when debug goes off). Its drag state
+    lives in `DIALOG` (b13): a local in the drawing function was reset by each redraw,
+    and a pointer captured on a button's press stole Safari's click.
   - **The motion dot** (b11): `motion_share`, % of the smallest tile's shorter side, no
     least or most (`dotSize`); `motion_size` (px) is read as px x 1.2.
   - **The clock** is drawn only by the compositor, beside the main name, so only while

@@ -279,13 +279,15 @@ The **Any size** preview shows the names as you change them.
 ### Tuning the sizes on one device
 
 With a commander's **debug** on, every card showing it has a box of figures, in the
-middle of the card or of the main camera's full screen. It says where the card is (in
+middle of the card or of the main camera's full screen. The **−** at its top left folds
+it down to its buttons, so you can see the tiles past it; **+** shows the figures again. It says where the card is (in
 the page, with the whole screen, or with the main camera full screen), the main
 camera's place and the smallest tile in px, and for each of the tile names, the main
 camera's name, the controls and the motion dot the size in use and how it was worked
 out.
 
-**EDIT** opens a small dialog you can drag by its title bar. Choose one of the four, and
+**EDIT** opens a small dialog you can drag by its title bar, and fold down to that bar
+with its own **−**. Choose one of the four, and
 set its size with the slider or the number box: the card shows it at once. Each place
 the card can be is set on its own. The sizes are kept only on this device and only
 until the page is refreshed; **Back to the rule** returns one to the worked-out size.

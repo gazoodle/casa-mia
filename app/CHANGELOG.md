@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b13
+
+- **Camera Commander card: the sizes dialog can be dragged, closed in Safari and folded
+  away.** A drag stopped after its first step on every browser, as the dialog forgot it
+  each time it was redrawn. In Safari the × didn't close it, because a press on the
+  title bar's buttons also began a drag. A new − at the top left folds the dialog down
+  to its title bar, so the tiles can be seen past it; + opens it again.
+- **Camera Commander card: the debug box folds away.** A − at its top left, beside EDIT
+  and RECORD, folds it down to its buttons, so the tiles can be seen on a phone while
+  sizes are set; + shows the figures again.
+
 ## 2026.11.14-b12
 
 - **Camera Commander card: sizes can be tuned on a device, and recorded.** With a
