@@ -258,8 +258,9 @@ The **Any size** preview shows the names as you change them.
   so names are in proportion on a phone and on a large screen. A tile's name is a share
   of the shorter side of the commander's smallest tile, and every tile's name is that
   one size. The main camera's name and clock are a share of the shorter side of the main
-  camera's place. A name is never under 7 px or over 72 px. One too long for its tile is
-  cut short with "…".
+  camera's place. A tile's name is never under 11 px or over 22 px, and the main
+  camera's never under 13 px or over 30 px. One too long for its tile is cut short
+  with "…".
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
   with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the
@@ -363,9 +364,16 @@ buttons over the main camera, in one bar with two buttons of its own.
   with up to three presets has a button for each, named as the preset is on the Cameras
   page. A camera with more has one **PTZ** button: a tap opens all its presets as a
   second line beside the bar, on the picture's side of it (under a bar along the top, to
-  the left of a bar down the right), and another tap puts them away. A tap on a preset
+  the left of a bar down the right), and another tap on it, or a tap anywhere else on the camera, puts them away. A tap on a preset
   moves the camera. If Home Assistant refuses, the reason is shown with the controls for
   ten seconds.
+- **The camera's zoom.** A camera with a zoom entity has a **Zoom** button in the same
+  bar, showing its level as a share of the zoom's range. A tap opens a line beside the
+  bar: **Out** and **In** move a tenth of the range each, the level is between them, and
+  **Reset** zooms all the way out. The level is the camera's own, so it follows a PTZ
+  preset that moves the lens, and a level asked for and not yet reached is shown as on
+  its way. The presets and the zoom are never both opened out: opening one puts the
+  other away.
 - **Where they show.** With **Its controls over the main camera** on, over the main
   camera on the commander. They are always on the main camera's full screen (**A tap on
   the main camera: full screen, with its controls**), whatever that switch says.

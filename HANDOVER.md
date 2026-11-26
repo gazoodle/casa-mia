@@ -86,23 +86,37 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   at the height set: the proportions are once, in `app/web/src/cameras/controls.ts`
   (`CHIP`, `controlsStyle`), for the card and the Cameras page's preview. Seen on a
   throw-away page in Chromium, all four edges, at a fixed 40 px.
-- **Sizes are shares of the place, not px** (owner, 2026-11-26: buttons were large on
-  small screens and small on large ones, and names crowded small tiles; tidy and hard to
-  read is better than ugly). Never add a size in px to anything drawn over a camera.
-  - **Controls:** `controls_at.size` is % of the shorter side of the place (main area or
-    screen), 3 to 12, pill 10 to 96 px (`pillHeight`). A saved value over 12 is an old px
-    height and is read as px / 8 (`controlsAt`). `barFit` decides, from an estimate of
-    the names' widths (nothing is measured), what gives way: presets behind PTZ, then
-    icons alone. The card passes the place's CSS px (`mainPlace`, `screenPlace` in
-    `card.ts`). A small pill's tap area is 44 px (`.control::after`).
-  - **Names:** `labels.tile_share` and `main_share` (labels.json; `name` holds the floor,
-    cap and the sides old px sizes are read against). `commanders_of` converts a saved
+- **Sizes over a camera are anchored in CSS px and bend to the place within limits**
+  (owner, 2026-11-27). Neither plain px nor a plain share works: px (before b8) was
+  large over a small main camera; a share (b8, deployed) gave 11 px pills and 7 px names
+  on a phone and 70 px pills on a desktop. Below the floor nothing shrinks: content
+  gives way instead. Don't go back to either.
+  - **Controls:** `controls_at.size` is px where there is room (the place's shorter side
+    at least `PILL_ROOMY`, 600); smaller in proportion below that, floor 32, never over
+    the size, and 34 at most with a mouse (`pillHeight`, `matchMedia("(pointer: fine)")`
+    in `full.ts`). A saved value of 12 or less is a b8 share, read as x 8 (`controlsAt`).
+    `barFit` decides, from an estimate of the names' widths (nothing is measured), what
+    gives way: presets behind PTZ, then icons alone. The card passes the place's CSS px
+    (`mainPlace`, `screenPlace` in `card.ts`). A small pill's tap area is 44 px
+    (`.control::after`). `.controls-group` is only as big as the buttons and takes the
+    taps that miss one; `.controls-away` covers the place while the presets are open.
+  - **Zoom** (2026.11.14-b9; owner, 2026-11-27: always one Zoom button, never inline,
+    and a stepper, not a slider, which is hard to use on a phone): the camera's `zoom`
+    number entity is in the card's data; the button opens a second line (Out, level, In,
+    Reset) as PTZ does. `_opened` in `card.ts` holds the one open line and whose.
+    `zoomOf`/`zoomStep` in `controls.ts`: a tap is a tenth of the range. The level shown
+    is the entity's state; one asked for is a lease (`ZOOM_PENDING_MS`). **Not seen**
+    with a real zoom entity: its range and step are unknown here.
+  - **Names:** `labels.tile_share` and `main_share` (labels.json; `name` holds each
+    kind's floor and cap, 11 to 22 and 13 to 30 px, and the sides old px sizes are read
+    against). `commanders_of` converts a saved
     `tile_size`/`main_size` once, for every reader. The sum is twice: `labels.py`
     `name_px` and `labels.ts` `nameSize`, with the same cases in both tests. Every tile's
     name is one size, from the smallest tile. `fitted` cuts a long name short with "…".
-  - **Not seen:** any of this on a real card, tablet or phone, or a real PTZ camera. The
-    names were looked at as drawn by the compositor at 393 x 700, 960 x 600 and
-    2560 x 1440. The icons-alone bar has not been looked at anywhere. The docs'
+  - **Seen by the owner on b8** (phone, small tablet, Mac), which is what set the
+    limits above. **b9 not seen** on a device: the bar was looked at on a throw-away page
+    (tablet and phone-sized places, icons alone, the cutout outlined), and the names as
+    drawn by the compositor in b8. The docs'
     screenshots (`cameras-controls.webp`, `commander-controls.webp`,
     `commander-names-settings.webp`) show the old look and px sliders.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one

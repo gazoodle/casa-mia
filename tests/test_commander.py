@@ -209,6 +209,7 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
     store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
     edges = {"landscape": "right", "portrait": "bottom"}
     store["cameras"]["camera.a_low"]["controls_at"] = edges
+    store["cameras"]["camera.a_low"]["zoom"] = "number.a_zoom_level"
     store["cameras"]["camera.a_low"]["ptz"] = {
         "action": "unifiprotect.ptz_goto_preset",
         "data": {"device_id": "d1"},
@@ -259,6 +260,7 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
             },
         ]
         assert "presets" not in card["cameras"]["camera.b"]
+        assert bay["zoom"] == "number.a_zoom_level"  # its zoom, for the card's stepper
         assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
         assert cmd.control("main", body) == 200

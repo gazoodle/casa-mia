@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026.11.14-b9
+
+- **Camera Commander card: the controls' size is a height in pixels again, which bends
+  to the place.** In b8 it was a plain share of the place, which made the buttons tiny
+  over a phone's main camera and very large on a desktop. The size set on the Cameras
+  page (32 to 72 px, 44 at first) is now the height where there is room: a place whose
+  shorter side is 600 px or more. In a smaller place the buttons shrink in proportion,
+  but never under 32 px; what then doesn't fit gives way as before (the presets behind
+  PTZ, then icons in place of names). They are never larger than the size set, and with
+  a mouse never over 34 px. A size saved in b8 as a share is read as the height it gave
+  on a tablet (5% is 40 px).
+- **Camera Commander: the cameras' names can be read on a phone.** A name's size is still
+  a share of its tile or of the main camera's place, but a tile's name is never under
+  11 px or over 22 px, and the main camera's never under 13 px or over 30 px. In b8 the
+  limits were 7 px and 72 px.
+- **Camera Commander card: a tap that misses a control no longer opens the camera full
+  screen.** The area the buttons stand in, with the gaps between them and a little room
+  round them, takes the tap and does nothing.
+- **Camera Commander card: a tap anywhere on the camera puts the PTZ presets away** while
+  they are opened out. That tap does nothing else.
+- **Camera Commander card: a camera with a zoom has a Zoom button.** It stands with the
+  camera's controls and shows the zoom's level. A tap opens a line beside the bar, as the
+  PTZ button does: **Out**, the level, **In**, and **Reset**, which zooms all the way
+  out. A step is a tenth of the zoom's range. The level shown is the camera's own, so it
+  is right after a PTZ preset has moved the lens too; a level asked for and not yet
+  reached is shown as on its way ("40% → 60%"). A zoom that Home Assistant can't find or
+  that is unavailable has a dimmed button that says so, and a refusal is shown with the
+  controls for ten seconds. Only one line is open at a time, and a tap elsewhere on the
+  camera puts it away.
+
 ## 2026.11.14-b8
 
 - **Jukebox: a replaced or cleared queue can be put back.** Playing something in place

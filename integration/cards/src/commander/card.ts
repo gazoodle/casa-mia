@@ -9,7 +9,7 @@ import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, nameSize, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
-import { controlsBar, fullStyles, PTZ_NOTE_MS, type Own, type Ptz } from "./full.ts";
+import { controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
@@ -17,16 +17,19 @@ import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 
 export class CommanderCard extends CommanderTalk {
-  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _ptz: { state: true }, _ptzFailed: { state: true } };
+  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true } };
   /** The camera heard (its Sound button), "" for none: a camera's own, so another main
    * camera (a tap, Track motion) is never heard without a tap of its own. */
   _sound = "";
   /** The card has the whole screen (its Full screen button, screen.ts). */
   _screen = false;
-  /** The camera whose PTZ presets are opened out (its PTZ button, full.ts), "" for none:
-   * a camera's own, so they are put away when another becomes the main camera. */
-  _ptz = "";
-  /** Why the last preset didn't go, said with the controls for PTZ_NOTE_MS. */
+  /** The line of the controls bar that is opened out (its PTZ or Zoom button, full.ts),
+   * and whose: a camera's own, so it is put away when another becomes the main camera. */
+  _opened: { camera: string; line: Line | "" } = { camera: "", line: "" };
+  /** The zoom level asked for and whose, shown as on its way for ZOOM_PENDING_MS. */
+  _zoomTo: { camera: string; value: number } | null = null;
+  private zoomToGone = 0;
+  /** Why the last preset or zoom didn't go, said with the controls for PTZ_NOTE_MS. */
   _ptzFailed = "";
   private ptzNoteGone = 0;
 
@@ -188,7 +191,7 @@ export class CommanderCard extends CommanderTalk {
     // are sized from the one they are shown in, so both are in proportion on any screen.
     const mainPlace: [number, number] = [(mainRect[2] / w) * this._box[0], (mainRect[3] / h) * this._box[1]];
     const screenPlace: [number, number] = [innerWidth, innerHeight];
-    const nameIn = (place: [number, number]) => nameSize(labels.main_share, Math.min(...place));
+    const nameIn = (place: [number, number]) => nameSize("main", labels.main_share, Math.min(...place));
     const labelled = (place: [number, number]) =>
       `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
@@ -285,8 +288,8 @@ export class CommanderCard extends CommanderTalk {
           // card's, and the only way to it.
           (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
             ? this._config?.main_controls
-              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, [...sound, ...fills], this.ptz(main))
-              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [] }, at(mainRect), mainPlace, fills, this.ptz(main))
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, [...sound, ...fills], this.lines(main))
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, fills, this.lines(main))
             : nothing
         }
         ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn(mainPlace)) : nothing}
@@ -304,7 +307,7 @@ export class CommanderCard extends CommanderTalk {
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, [...sound, ...fills], this.ptz(main))
+              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, [...sound, ...fills], this.lines(main))
             }
             ${this.talkParts(card, whole, nameIn(screenPlace))}
           </div>`
@@ -318,27 +321,44 @@ export class CommanderCard extends CommanderTalk {
     this.hass?.callService("select", "select_option", { option: card.cameras[camera]?.title }, { entity_id: this._config!.entity });
   }
 
-  /** The main camera's PTZ presets, for the controls bar (full.ts): whether they are opened
-   * out, and a preset's tap, which calls the camera's PTZ action. One that fails is said
-   * with the controls: Home Assistant's own message is outside the card, so unseen while
-   * the card has the whole screen. */
-  private ptz(main: string): Ptz {
+  /** The main camera's presets and zoom, for the controls bar (full.ts): the line opened
+   * out, and the taps, which call the camera's PTZ action or set its zoom's number. One
+   * that fails is said with the controls: Home Assistant's own message is outside the
+   * card, so unseen while the card has the whole screen. */
+  private lines(main: string): Lines {
+    const sent = async (what: string, call: Promise<unknown>) => {
+      clearTimeout(this.ptzNoteGone);
+      this._ptzFailed = "";
+      try {
+        await call;
+        console.info(`casa-mia: ${main}: ${what}`);
+        return true;
+      } catch (err) {
+        const why = (err as { message?: string })?.message ?? String(err);
+        console.warn(`casa-mia: ${main}: ${what} failed: ${why}`);
+        this._ptzFailed = `${what}: ${why}`;
+        this.ptzNoteGone = window.setTimeout(() => (this._ptzFailed = ""), PTZ_NOTE_MS);
+        return false;
+      }
+    };
+    const open = this._opened.camera === main ? this._opened.line : "";
     return {
-      open: this._ptz === main,
+      open,
       failed: this._ptzFailed,
-      toggle: () => (this._ptz = this._ptz === main ? "" : main),
-      go: async (preset: Preset) => {
+      zoomTo: this._zoomTo?.camera === main ? this._zoomTo.value : null,
+      show: (line) => (this._opened = { camera: main, line: open === line ? "" : line }),
+      go: (preset: Preset) => {
         const [domain, service] = preset.action.split(".");
-        clearTimeout(this.ptzNoteGone);
-        this._ptzFailed = "";
-        try {
-          await this.hass!.callService(domain, service, preset.data);
-          console.info(`casa-mia: ${main} sent to its preset ${preset.name}`);
-        } catch (err) {
-          const why = (err as { message?: string })?.message ?? String(err);
-          console.warn(`casa-mia: ${main} not sent to its preset ${preset.name}: ${why}`);
-          this._ptzFailed = `${preset.name}: ${why}`;
-          this.ptzNoteGone = window.setTimeout(() => (this._ptzFailed = ""), PTZ_NOTE_MS);
+        void sent(preset.name, this.hass!.callService(domain, service, preset.data));
+      },
+      zoom: async (entity, value) => {
+        // On its way until the camera says it is there, or the lease lapses.
+        clearTimeout(this.zoomToGone);
+        this._zoomTo = { camera: main, value };
+        this.zoomToGone = window.setTimeout(() => (this._zoomTo = null), ZOOM_PENDING_MS);
+        if (!(await sent("Zoom", this.hass!.callService("number", "set_value", { value }, { entity_id: entity })))) {
+          clearTimeout(this.zoomToGone);
+          this._zoomTo = null;
         }
       },
     };

@@ -36,11 +36,13 @@ export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) 
  * were any has none). */
 export const labelsOf = (own?: Partial<Labels> | null): Labels => ({ ...DEFAULTS, ...own });
 
-/** A name's height in px: `share` % of the shorter side of its place (`side`, in px),
- * never under the floor nor over the cap (labels.json: name; CSS px, so both grow with
- * `scale`). The compositor's is the same sum (labels.py: name_px). */
-export function nameSize(share: number, side: number, scale = 1): number {
-  return Math.floor(Math.min(LABELS.name.cap * scale, Math.max(LABELS.name.floor * scale, (share * side) / 100)) + 0.5);
+/** A name's height in px (`which`: a tile's, or the main camera's): `share` % of the
+ * shorter side of its place (`side`, in px), never under its floor nor over its cap
+ * (labels.json: name; CSS px, so both grow with `scale`). The compositor's is the same
+ * sum (labels.py: name_px). */
+export function nameSize(which: "tile" | "main", share: number, side: number, scale = 1): number {
+  const [floor, cap] = [LABELS.name[`${which}_floor`] * scale, LABELS.name[`${which}_cap`] * scale];
+  return Math.floor(Math.min(cap, Math.max(floor, (share * side) / 100)) + 0.5);
 }
 
 const face = (font: string) => `Casa Mia ${font}`;

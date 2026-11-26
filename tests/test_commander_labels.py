@@ -103,17 +103,20 @@ def test_the_main_cameras_name_takes_its_own_style():
 def test_a_bigger_name_has_a_taller_bar():
     c = labelled(tile_share=25)
     pic, (x, row, w, h) = picture(c, CAMS[1]), tile_foot(c)
-    px = L.name_px(25, min(w, h))
+    px = L.name_px("tile", 25, min(w, h))
     high = px * 22 // 16 - 8  # near the top of its bar: 22 px of bar for a name of 16
-    assert px > 24 and green(pic, (x + w - 3, row - high))
+    assert px > 20 and green(pic, (x + w - 3, row - high))
     assert not green(picture(labelled(), CAMS[1]), (x + w - 3, row - high))
 
 
 def test_a_name_is_a_share_of_its_place_between_a_floor_and_a_cap():
-    assert L.name_px(11, 144) == 16 and L.name_px(4, 500) == 20  # a tablet's, as before
-    assert L.name_px(11, 288) == 32  # twice the tile, twice the name
-    assert L.name_px(11, 30) == 7 and L.name_px(11, 5000) == 72  # the floor, the cap
-    assert L.name_px(11, 30, scale=2) == 14  # in the picture's own pixels
+    assert L.name_px("tile", 11, 144) == 16  # a tablet's, as before
+    assert L.name_px("main", 4, 500) == 20
+    assert L.name_px("tile", 11, 180) == 20  # a larger tile, a larger name
+    # a phone's tile: the least that can be read; a very large one: only a little more
+    assert L.name_px("tile", 11, 60) == 11 and L.name_px("tile", 11, 5000) == 22
+    assert L.name_px("main", 4, 200) == 13 and L.name_px("main", 4, 5000) == 30
+    assert L.name_px("tile", 11, 60, scale=2) == 22  # in the picture's own pixels
 
 
 def test_a_name_too_long_for_its_tile_is_cut_short_not_drawn_over_the_next():

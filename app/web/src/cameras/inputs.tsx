@@ -153,6 +153,7 @@ export function ControlsEdges({
   entity,
   controls,
   presets,
+  zoom,
   value,
   onChange,
 }: {
@@ -160,6 +161,8 @@ export function ControlsEdges({
   controls: Control[];
   /** Its PTZ presets, by the names shown. */
   presets: string[];
+  /** Whether it has a zoom: one Zoom button, which opens its stepper. */
+  zoom: boolean;
   value?: Partial<ControlsAt>;
   onChange: (at: ControlsAt) => void;
 }) {
@@ -167,10 +170,11 @@ export function ControlsEdges({
   const set = (change: Partial<ControlsAt>) => onChange({ ...at, ...change });
   const entities = useContext(Entities);
   const names = controls.map((c) => c.name || entities.find((e) => e.entity === c.entity)?.name || c.entity);
+  const zooms = zoom ? ["Zoom"] : [];
   // Each screen's bar as the card would show it there (controls.ts: barFit): its pills'
   // height, the presets by name or behind PTZ, and icons alone when the names don't fit.
-  const bars = Object.fromEntries((["landscape", "portrait"] as const).map((shape) => [shape, barFit(at, TABLET[shape], at[shape], names, presets)]));
-  const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (bars[shape].fold ? ["PTZ"] : presets) : [])];
+  const bars = Object.fromEntries((["landscape", "portrait"] as const).map((shape) => [shape, barFit(at, TABLET[shape], at[shape], [...names, ...zooms], presets)]));
+  const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (bars[shape].fold ? ["PTZ"] : presets) : []), ...zooms];
   return (
     <>
       <div className={edges.edges}>
@@ -192,7 +196,7 @@ export function ControlsEdges({
       </div>
       <div className={edges.look}>
         <span>Size</span>
-        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v}%`} onChange={(size) => set({ size })} />
+        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v} px`} onChange={(size) => set({ size })} />
         <span>Along the edge</span>
         <Segmented
           value={at.align}

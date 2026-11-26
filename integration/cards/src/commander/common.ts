@@ -44,9 +44,9 @@ export type Card = {
   layout: Commander & { labels?: Partial<Labels>; main_keep?: string; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
   /** Each camera: its title, live page, channels smallest first, with their sizes, and
-   * its controls and PTZ presets with the edge they go along on a full screen (card.ts:
-   * full screen). */
-  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; presets?: Preset[]; controls_at?: Partial<ControlsAt> }>;
+   * its controls, PTZ presets and zoom (a number entity) with the edge they go along on
+   * a full screen (card.ts: full screen). */
+  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; presets?: Preset[]; zoom?: string; controls_at?: Partial<ControlsAt> }>;
   /** The compositor's Live main camera switch. */
   live_main?: boolean;
   /** This run of the app: when it changes, the app restarted and the stream with it. */

@@ -9,38 +9,46 @@ export const EDGES: Edge[] = ["top", "bottom", "left", "right"];
 /** Along its edge: left or top, the middle, right or bottom (as a sections view's badges). */
 export type Align = "start" | "center" | "end";
 
-/** The edge for each shape of screen, where along it, the pills' size (their height, as
- * % of the shorter side of the place they are shown in: a main camera's area, or the whole
- * screen; their text, icon and gaps scale with it) and how solid their background is (%);
- * a camera without its own takes these. */
+/** The edge for each shape of screen, where along it, the pills' size (their height in
+ * CSS px where there is room: see pillHeight; their text, icon and gaps scale with it) and
+ * how solid their background is (%); a camera without its own takes these. */
 export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align; size: number; opacity: number };
-export const CONTROLS_AT: ControlsAt = { landscape: "bottom", portrait: "bottom", align: "center", size: 7, opacity: 60 };
+export const CONTROLS_AT: ControlsAt = { landscape: "bottom", portrait: "bottom", align: "center", size: 44, opacity: 60 };
 
-/** The sizes the page's slider offers, %. */
-export const PILL_SIZES = { min: 3, max: 12, step: 0.5 };
+/** The sizes the page's slider offers, px. */
+export const PILL_SIZES = { min: 32, max: 72, step: 4 };
 
-/** A pill is never shorter or taller than this, px, whatever its place: under the floor
- * it is specks, and a very large screen needs no bigger button than the cap. */
-export const PILL_FLOOR = 10;
-export const PILL_CAP = 96;
+/** What a size bends to (owner, 2026-11-27, after a build that made it a plain share of
+ * the place: 11 px pills on a phone, 70 px ones on a desktop). A size is anchored in
+ * CSS px, which is near enough a physical size, and only shrinks in a small place:
+ * - a place whose shorter side is ROOMY px or more has room: the size as set, never more;
+ * - a smaller place has it in proportion, but never under FLOOR, the least a finger hits
+ *   and an eye reads: below that the bar gives way instead (barFit);
+ * - with a mouse it is never over FINE: a pointer needs no finger-sized button, and a
+ *   desktop's main camera is a very large place. */
+export const PILL_ROOMY = 600;
+export const PILL_FLOOR = 32;
+export const PILL_FINE = 34;
 
-/** Until 2026.11.14-b8 a size was a height in px, the same on every screen (and before
- * 2026.11.7 one of three names). It is read as the share it was of a 1280 x 800 tablet's
- * full screen, so a camera looks there as it did. No share is as much as the smallest of
- * the old heights (24 px), so the two can't be mistaken. */
+/** A size was one of three names before 2026.11.7, and in 2026.11.14-b8 alone a share
+ * (3 to 12 %) of a place's shorter side, read here as the height it gave on a 1280 x 800
+ * tablet's full screen. No height is as little as the largest share, so the two can't
+ * be mistaken. */
 const NAMED: Record<string, number> = { small: 40, medium: 56, large: 72 };
+const SHARE_MOST = 12;
 const TABLET_SIDE = 800;
 
 export function controlsAt(own?: Partial<Omit<ControlsAt, "size">> & { size?: number | string }): ControlsAt {
   const at = { ...CONTROLS_AT, ...own };
   const size = typeof at.size === "number" ? at.size : (NAMED[at.size] ?? CONTROLS_AT.size);
-  const share = size > PILL_SIZES.max ? Math.round((200 * size) / TABLET_SIDE) / 2 : size;
-  return { ...at, size: Math.min(PILL_SIZES.max, Math.max(PILL_SIZES.min, share)) };
+  const px = size <= SHARE_MOST ? (size * TABLET_SIDE) / 100 : size;
+  return { ...at, size: Math.min(PILL_SIZES.max, Math.max(PILL_SIZES.min, px)) };
 }
 
-/** A pill's height in px in a place w x h px. */
-export function pillHeight(at: ControlsAt, place: [number, number]): number {
-  return Math.min(PILL_CAP, Math.max(PILL_FLOOR, (at.size * Math.min(...place)) / 100));
+/** A pill's height in px in a place w x h px; `fine`: the device has a mouse. */
+export function pillHeight(at: ControlsAt, place: [number, number], fine = false): number {
+  const most = fine ? Math.min(at.size, PILL_FINE) : at.size;
+  return Math.min(most, Math.max(Math.min(PILL_FLOOR, most), (at.size * Math.min(...place)) / PILL_ROOMY));
 }
 
 /** The most PTZ presets that stand in the bar as buttons of their own; a camera with more
@@ -74,8 +82,8 @@ export type Bar = { height: number; names: boolean; fold: boolean };
  * behind the PTZ button (as more than PRESETS_INLINE always are), then the names go and
  * the pills are icons alone. The presets keep their names when opened out: their icons
  * are all the same. */
-export function barFit(at: ControlsAt, place: [number, number], edge: Edge, names: string[], presets: string[]): Bar {
-  const height = pillHeight(at, place);
+export function barFit(at: ControlsAt, place: [number, number], edge: Edge, names: string[], presets: string[], fine = false): Bar {
+  const height = pillHeight(at, place, fine);
   const along = edge === "top" || edge === "bottom";
   const fits = (named: boolean, fold: boolean) => {
     const ptz = presets.length ? (fold ? ["PTZ"] : presets) : [];
@@ -93,6 +101,32 @@ export function barFit(at: ControlsAt, place: [number, number], edge: Edge, name
   ];
   const [named, fold] = tries.find(([n, f]) => fits(n, f)) ?? tries[2];
   return { height, names: named, fold };
+}
+
+/** A camera's zoom, from its number entity: where it is, its range, how far one tap of
+ * the stepper moves it, and the entity's own step (`grain`), which every level sent is a
+ * whole number of. */
+export type Zoom = { value: number; min: number; max: number; step: number; grain: number };
+
+/** Taps of the stepper from one end of a zoom's range to the other. */
+const ZOOM_TAPS = 10;
+
+/** A zoom entity's state and attributes as a Zoom; null when it has no level now
+ * (unavailable, unknown) or no range. */
+export function zoomOf(state: string, attrs: Record<string, unknown>): Zoom | null {
+  const [value, min, max] = [Number(state), Number(attrs.min ?? 0), Number(attrs.max ?? 100)];
+  if (state.trim() === "" || !Number.isFinite(value) || !(max > min)) return null;
+  const grain = Number(attrs.step) > 0 ? Number(attrs.step) : 1;
+  return { value, min, max, grain, step: Math.max(grain, (max - min) / ZOOM_TAPS) };
+}
+
+/** A level as a share of the zoom's range, %: 0 is all the way out. */
+export const zoomPct = (z: Zoom, value: number) => Math.round(((value - z.min) / (z.max - z.min)) * 100);
+
+/** The level one tap in (`by` 1) or out (-1) from `from`, within the range. */
+export function zoomStep(z: Zoom, from: number, by: 1 | -1): number {
+  const to = Math.min(z.max, Math.max(z.min, from + by * z.step));
+  return Number((z.min + Math.round((to - z.min) / z.grain) * z.grain).toFixed(6));
 }
 
 /** The pills' look as CSS custom properties, for the card and the page's preview alike:

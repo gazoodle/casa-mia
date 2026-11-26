@@ -10,12 +10,14 @@ test("every setting has a default, and a commander saved without labels gets the
 });
 
 test("a name is a share of its place, between a floor and a cap (as labels.py: name_px)", () => {
-  assert.equal(nameSize(11, 144), 16);
-  assert.equal(nameSize(4, 500), 20);
-  assert.equal(nameSize(11, 288), 32);
-  assert.equal(nameSize(11, 30), 7);
-  assert.equal(nameSize(11, 5000), 72);
-  assert.equal(nameSize(11, 30, 2), 14);
+  assert.equal(nameSize("tile", 11, 144), 16);
+  assert.equal(nameSize("main", 4, 500), 20);
+  assert.equal(nameSize("tile", 11, 180), 20); // a larger tile, a larger name
+  assert.equal(nameSize("tile", 11, 60), 11); // a phone's tile: the least that can be read
+  assert.equal(nameSize("tile", 11, 5000), 22);
+  assert.equal(nameSize("main", 4, 200), 13);
+  assert.equal(nameSize("main", 4, 5000), 30);
+  assert.equal(nameSize("tile", 11, 60, 2), 22); // in the picture's own pixels
 });
 
 test("every font offered but the standard one has a file", () => {

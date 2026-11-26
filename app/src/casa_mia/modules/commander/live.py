@@ -87,10 +87,10 @@ class Live(Base):
         comp = self.live
         full = self.full()
         cfg = config_from_store(full)
-        # each camera's controls, their edges and its presets (each as the call that
-        # goes to it), for the card's full screen
+        # each camera's controls, their edges, its zoom (a number entity) and its presets
+        # (each as the call that goes to it), for the card's full screen
         own = {
-            e: {k: cam[k] for k in ("controls", "controls_at") if cam.get(k)}
+            e: {k: cam[k] for k in ("controls", "controls_at", "zoom") if cam.get(k)}
             | ({"presets": calls} if (calls := preset_calls(cam)) else {})
             for e, cam in full["cameras"].items()
         }

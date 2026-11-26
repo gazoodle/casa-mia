@@ -30,13 +30,14 @@ KEEP: dict[str, Any] = LABELS["picture"]["main_keep"]  # the part of a cropped m
 NAME: dict[str, int] = LABELS["name"]  # a name's least and most, in CSS px
 
 
-def name_px(share: float, side: float, scale: float = 1) -> int:
-    """A name's height: `share` % of the shorter side of its place, never under the
-    floor nor over the cap (CSS px, so both grow with a picture's scale). The cards'
-    is the same sum (integration/cards/src/labels.ts: nameSize)."""
-    return int(
-        min(NAME["cap"] * scale, max(NAME["floor"] * scale, share * side / 100)) + 0.5
-    )
+def name_px(which: str, share: float, side: float, scale: float = 1) -> int:
+    """A name's height (`which`: a tile's, or the main camera's): `share` % of the
+    shorter side of its place, never under its floor (the least that can be read: a
+    plain share gave 7 px names on a phone, 2026.11.14-b8) nor over its cap (CSS px, so
+    both grow with a picture's scale). The cards' is the same sum
+    (integration/cards/src/labels.ts: nameSize)."""
+    floor, cap = NAME[f"{which}_floor"] * scale, NAME[f"{which}_cap"] * scale
+    return int(min(cap, max(floor, share * side / 100)) + 0.5)
 
 
 @functools.lru_cache(maxsize=1024)
@@ -108,8 +109,8 @@ def look(cmd: dict, tile_side: float, main_side: float) -> Look:
     place (`main_side`), both in the picture's own pixels."""
     o = {**DEFAULTS, **(cmd.get("labels") or {})}
     scale = float(cmd.get("scale", 1))
-    tile_px = name_px(o["tile_share"], tile_side, scale)
-    main_px = name_px(o["main_share"], main_side, scale)
+    tile_px = name_px("tile", o["tile_share"], tile_side, scale)
+    main_px = name_px("main", o["main_share"], main_side, scale)
     return Look(
         font(o["font"], tile_px),
         font(o["font"], main_px),

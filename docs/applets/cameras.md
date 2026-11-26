@@ -33,7 +33,8 @@ Every change is saved at once: there is no Save button.
   - **Title:** its name on the commander's tile and its page.
   - **Medium channel:** for the wall tablets and phones. **High channel:** for everyone
     else. Blank: the camera itself.
-  - **Zoom:** a number entity, shown on its page.
+  - **Zoom:** a number entity, shown on its page, and as a **Zoom** button with the
+    camera's controls on a Camera Commander card.
   - **PTZ presets** and **page controls** (a gate, a light): shown on its page, and on a
     Camera Commander card with the camera's controls.
 - **Remove:** it also leaves every commander that shows it.
@@ -65,14 +66,16 @@ places. It is there for a camera that has controls or presets:
 - **The edge** they go along: one choice for a wide screen and one for a tall one, so a
   tablet turned upright can have them somewhere else.
 - **Along the edge:** at its start, its middle or its end.
-- **Size:** a slider for the buttons' height, from 3% to 12% of the shorter side of the
-  place they are shown in (the main camera's area, or the whole screen). They start at
-  7%, which is 56 px on a 1280 × 800 tablet's full screen. Because it is a share, the
-  buttons are in proportion over a small main camera on a phone and on a large screen.
-  They are never under 10 px or over 96 px high, and a button drawn small can still be
-  tapped over an area 44 px across.
+- **Size:** a slider for the buttons' height, from 32 px to 72 px. They start at 44 px.
+  This is their height where there is room, which is a place whose shorter side is
+  600 px or more (a tablet's full screen). In a smaller place, such as the main camera
+  on a phone, they are smaller in proportion, but never under 32 px. They are never
+  larger than the size set, and on a computer with a mouse never over 34 px.
 - **When they don't fit:** the PTZ presets go behind the PTZ button first. If there is
   still no room, the names go and the buttons are round icons.
+- **A missed tap:** the area the buttons stand in takes a tap that lands between them or
+  just beside one, so it doesn't open the camera full screen. While the PTZ presets are
+  opened out, a tap anywhere else on the camera puts them away.
 - **Background:** from clear to solid.
 
 The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to
