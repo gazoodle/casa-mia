@@ -187,7 +187,7 @@ export function Stage({
   usePageFont(labels.font);
   const sides = [...tilesShown.map((t) => t.rect), ...(laid.more ? [laid.more.rect] : [])].map(([, , w, h]) => Math.min(w, h));
   const tilePx = nameSize("tile", labels.tile_share, sides.length ? Math.min(...sides) : 0);
-  const mainPx = nameSize("main", labels.main_share, mainShown ? Math.min(mainShown.rect[2], mainShown.rect[3]) : 0);
+  const mainPx = nameSize("main", labels.main_scale, mainShown ? Math.min(mainShown.rect[2], mainShown.rect[3]) : 0);
   const named = {
     "--label-font": family(labels.font),
     "--label-colour": labels.colour,

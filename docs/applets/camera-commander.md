@@ -254,13 +254,15 @@ The **Any size** preview shows the names as you change them.
   DejaVu Sans Mono, which is fixed width. With Standard, the name over a live main camera
   is in the browser's own font, which is a little different from the drawn one; with the
   DejaVu fonts the two are the same.
-- **Tile name size** and **Main camera name size:** a share of the place the name is in,
-  so names are in proportion on a phone and on a large screen. A tile's name is a share
-  of the shorter side of the commander's smallest tile, and every tile's name is that
-  one size. The main camera's name and clock are a share of the shorter side of the main
-  camera's place. A tile's name is never under 11 px or over 22 px, and the main
-  camera's never under 13 px or over 30 px. One too long for its tile is cut short
-  with "…".
+- **Tile name size:** a share of the shorter side of the commander's smallest tile, so
+  every tile's name is one size and in proportion on a phone and on a large screen. It is
+  never under 11 px or over 22 px. A name too long for its tile is cut short with "…".
+- **Main camera name size:** a % of a size worked out for the device, 100% at first. On
+  a touch screen that size grows slowly with the main camera's place: 13 px over a
+  phone's main camera, about 22 px on a wall tablet, never over 30 px. On a computer
+  with a mouse it is 15 px whatever the commander's size. The clock and the camera's
+  controls are the same size as the name. When the main camera isn't playing live, its
+  name is drawn into the picture at the touch screen size.
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
   with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the

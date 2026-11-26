@@ -6,17 +6,24 @@ test("every setting has a default, and a commander saved without labels gets the
   assert.deepEqual(Object.keys(DEFAULTS), Object.keys(OPTIONS));
   assert.deepEqual(labelsOf(undefined), DEFAULTS);
   assert.equal(labelsOf({ tile_share: 20 }).tile_share, 20);
-  assert.equal(labelsOf({ tile_share: 20 }).main_share, DEFAULTS.main_share);
+  assert.equal(labelsOf({ tile_share: 20 }).main_scale, DEFAULTS.main_scale);
 });
 
 test("a name is a share of its place, between a floor and a cap (as labels.py: name_px)", () => {
   assert.equal(nameSize("tile", 11, 144), 16);
-  assert.equal(nameSize("main", 4, 500), 20);
+  // the main camera's: the owner's devices (2026-11-27), as labels.py's test has them
+  assert.equal(nameSize("main", 100, 206), 13); // a phone
+  assert.equal(nameSize("main", 100, 582), 22); // a small wall tablet
+  assert.equal(nameSize("main", 100, 628), 23); // a large one
+  assert.equal(nameSize("main", 100, 1062), 29); // a desktop's large commander, by touch
+  assert.equal(nameSize("main", 100, 1062, 1, true), 15); // with a mouse: one size
+  assert.equal(nameSize("main", 100, 421, 1, true), 15);
+  assert.equal(nameSize("main", 50, 206), 7); // % of the size worked out
+  assert.equal(nameSize("main", 100, 5000), 30);
+  assert.equal(nameSize("main", 100, 412, 2), 26); // a phone's, in pixels twice as fine
   assert.equal(nameSize("tile", 11, 180), 20); // a larger tile, a larger name
   assert.equal(nameSize("tile", 11, 60), 11); // a phone's tile: the least that can be read
   assert.equal(nameSize("tile", 11, 5000), 22);
-  assert.equal(nameSize("main", 4, 200), 13);
-  assert.equal(nameSize("main", 4, 5000), 30);
   assert.equal(nameSize("tile", 11, 60, 2), 22); // in the picture's own pixels
 });
 

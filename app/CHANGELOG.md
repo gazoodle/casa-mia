@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026.11.14-b10
+
+- **Camera Commander card: a camera's controls are the main camera's name pill.** They
+  no longer have a size of their own: the Size slider is gone from the Cameras page, and
+  a size saved there is ignored. Each button is the height, text size and font of the
+  main camera's name where it is shown, so a name and a button over a camera match. In
+  b9 a size set on a camera only showed on a wall tablet: a phone held the buttons at
+  32 px and showed icons only, and a Mac capped them at 34 px.
+- **Camera Commander: the main camera's name is sized for the device.** On a touch
+  screen it grows slowly with the main camera's place, by the square root of its
+  shorter side: 13 px over a phone's main camera, about 22 px on a wall tablet, never
+  over 30 px. On a computer with a mouse it is 15 px whatever the commander's size, as a
+  desktop app keeps its text one size. The numbers are fitted to a phone, two wall
+  tablets and two commanders on a Mac. **Main camera name size** on the Camera
+  Commander page is now a % of that size, 100% at first; a commander set larger or
+  smaller than the default before is still larger or smaller by as much. When the main
+  camera isn't playing live, the name drawn into the picture uses the touch screen
+  size, because the app can't tell which device it is drawing for.
+- **Camera Commander card: controls go at the top right by default,** wide or tall. A
+  camera with its own edge set keeps it.
+
 ## 2026.11.14-b9
 
 - **Camera Commander card: the controls' size is a height in pixels again, which bends

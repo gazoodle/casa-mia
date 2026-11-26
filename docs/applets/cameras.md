@@ -66,11 +66,9 @@ places. It is there for a camera that has controls or presets:
 - **The edge** they go along: one choice for a wide screen and one for a tall one, so a
   tablet turned upright can have them somewhere else.
 - **Along the edge:** at its start, its middle or its end.
-- **Size:** a slider for the buttons' height, from 32 px to 72 px. They start at 44 px.
-  This is their height where there is room, which is a place whose shorter side is
-  600 px or more (a tablet's full screen). In a smaller place, such as the main camera
-  on a phone, they are smaller in proportion, but never under 32 px. They are never
-  larger than the size set, and on a computer with a mouse never over 34 px.
+- **Their size** is not set here. Each button is the size of the main camera's name
+  where it is shown, which is set for each commander (**Main camera name size** on the
+  Camera Commander page). The buttons start at the top right, wide or tall.
 - **When they don't fit:** the PTZ presets go behind the PTZ button first. If there is
   still no room, the names go and the buttons are round icons.
 - **A missed tap:** the area the buttons stand in takes a tap that lands between them or

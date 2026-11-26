@@ -73,7 +73,7 @@ def test_a_pill_is_only_as_wide_as_the_name():
 
 
 def test_a_pill_has_rounded_ends():
-    c = labelled(main_style="pill", main_share=12)
+    c = labelled(main_style="pill", main_scale=200)
     pic, (x, y, _, h) = picture(c, CAMS[1]), placed(c, CAMS[1]).main
     # the pill's rows, and where it starts on each: further in at its top than half-way
     rows = [
@@ -111,11 +111,19 @@ def test_a_bigger_name_has_a_taller_bar():
 
 def test_a_name_is_a_share_of_its_place_between_a_floor_and_a_cap():
     assert L.name_px("tile", 11, 144) == 16  # a tablet's, as before
-    assert L.name_px("main", 4, 500) == 20
+    # the main camera's: the owner's devices (2026-11-27), as the cards' test has them
+    assert [L.name_px("main", 100, side) for side in (206, 582, 628, 1062)] == [
+        13,
+        22,
+        23,
+        29,
+    ]
+    assert L.name_px("main", 50, 206) == 7  # % of the size worked out
+    assert L.name_px("main", 100, 412, scale=2) == 26  # in the picture's own pixels
     assert L.name_px("tile", 11, 180) == 20  # a larger tile, a larger name
     # a phone's tile: the least that can be read; a very large one: only a little more
     assert L.name_px("tile", 11, 60) == 11 and L.name_px("tile", 11, 5000) == 22
-    assert L.name_px("main", 4, 200) == 13 and L.name_px("main", 4, 5000) == 30
+    assert L.name_px("main", 100, 200) == 13 and L.name_px("main", 100, 5000) == 30
     assert L.name_px("tile", 11, 60, scale=2) == 22  # in the picture's own pixels
 
 
@@ -132,11 +140,15 @@ def test_a_size_saved_in_px_is_read_as_the_share_it_was_on_a_tablet():
 
     old = {"labels": {"tile_size": 16, "main_size": 20, "font": "sans"}}
     (c,) = commanders_of({"commanders": [old]})
-    assert c["labels"] == {"font": "sans", "tile_share": 11, "main_share": 4}
+    assert c["labels"] == {"font": "sans", "tile_share": 11, "main_scale": 100}
     # a share already set is kept, and one out of range is held within it
     kept = {"labels": {"tile_size": 40, "tile_share": 9, "main_size": 60}}
     (c,) = commanders_of({"commanders": [kept]})
-    assert c["labels"] == {"tile_share": 9, "main_share": 12}
+    assert c["labels"] == {"tile_share": 9, "main_scale": 200}
+    # the main camera's share of b8 and b9: the default is 100%, and in step from it
+    for share, scale in ((4, 100), (4.0, 100), (5, 125), (2, 50)):
+        (c,) = commanders_of({"commanders": [{"labels": {"main_share": share}}]})
+        assert c["labels"] == {"main_scale": scale}
 
 
 def test_the_background_is_see_through_at_its_opacity():

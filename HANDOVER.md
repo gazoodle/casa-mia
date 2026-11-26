@@ -86,16 +86,21 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   at the height set: the proportions are once, in `app/web/src/cameras/controls.ts`
   (`CHIP`, `controlsStyle`), for the card and the Cameras page's preview. Seen on a
   throw-away page in Chromium, all four edges, at a fixed 40 px.
-- **Sizes over a camera are anchored in CSS px and bend to the place within limits**
-  (owner, 2026-11-27). Neither plain px nor a plain share works: px (before b8) was
-  large over a small main camera; a share (b8, deployed) gave 11 px pills and 7 px names
-  on a phone and 70 px pills on a desktop. Below the floor nothing shrinks: content
-  gives way instead. Don't go back to either.
-  - **Controls:** `controls_at.size` is px where there is room (the place's shorter side
-    at least `PILL_ROOMY`, 600); smaller in proportion below that, floor 32, never over
-    the size, and 34 at most with a mouse (`pillHeight`, `matchMedia("(pointer: fine)")`
-    in `full.ts`). A saved value of 12 or less is a b8 share, read as x 8 (`controlsAt`).
-    `barFit` decides, from an estimate of the names' widths (nothing is measured), what
+- **Sizes over a camera** (owner, 2026-11-27, after three builds). Plain px (before b8)
+  was large over a small main camera; a plain share (b8) gave 7 px names and 11 px pills
+  on a phone and 70 px pills on a desktop; px bent to the place (b9) let its floor and
+  mouse cap override the setting, so a camera's size showed only on a wall tablet. Now
+  (b10), fitted to the owner's devices: a phone, the 8.7" wall tablets, a larger one, and
+  a small and a big commander on a Mac.
+  - **The main camera's name** (`nameSize`/`name_px`, labels.json `name`): by touch
+    0.9 x sqrt(shorter side of the main place), 13 to 30 px; with a mouse
+    (`matchMedia("(pointer: fine)")` in `card.ts`) 15 px flat: viewing distance, not
+    place, is what the Mac's verdict showed. `labels.main_scale` (% of that, 100 at
+    first) replaced `main_share`, converted in `commanders_of`. The compositor can't know
+    the pointer, so a drawn (not live) main name uses the touch curve.
+  - **Controls** have no size: they are the main name's pill (`controlsStyle(at, name)`,
+    1.4 x the name high, its font) at that name's size. `controls_at.size` saved before
+    is dropped by `controlsAt`. Default edge top right (`CONTROLS_AT`). `barFit` decides, from an estimate of the names' widths (nothing is measured), what
     gives way: presets behind PTZ, then icons alone. The card passes the place's CSS px
     (`mainPlace`, `screenPlace` in `card.ts`). A small pill's tap area is 44 px
     (`.control::after`). `.controls-group` is only as big as the buttons and takes the
@@ -107,16 +112,17 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     `zoomOf`/`zoomStep` in `controls.ts`: a tap is a tenth of the range. The level shown
     is the entity's state; one asked for is a lease (`ZOOM_PENDING_MS`). **Not seen**
     with a real zoom entity: its range and step are unknown here.
-  - **Names:** `labels.tile_share` and `main_share` (labels.json; `name` holds each
-    kind's floor and cap, 11 to 22 and 13 to 30 px, and the sides old px sizes are read
-    against). `commanders_of` converts a saved
-    `tile_size`/`main_size` once, for every reader. The sum is twice: `labels.py`
+  - **Tile names:** `labels.tile_share` (labels.json; `name` holds its floor and cap,
+    11 to 22 px, and the side an old px size is read against). The owner is happy with
+    them on every device. `commanders_of` converts a saved `tile_size` once. The sum is twice: `labels.py`
     `name_px` and `labels.ts` `nameSize`, with the same cases in both tests. Every tile's
     name is one size, from the smallest tile. `fitted` cuts a long name short with "…".
-  - **Seen by the owner on b8** (phone, small tablet, Mac), which is what set the
-    limits above. **b9 not seen** on a device: the bar was looked at on a throw-away page
-    (tablet and phone-sized places, icons alone, the cutout outlined), and the names as
-    drawn by the compositor in b8. The docs'
+  - **Measured, 2026-11-27:** the live compositor's `/status` on :8099 lists each card's
+    picture (size, scale) and viewer address; the commander's layout is its select's
+    `card` attribute; `placed()` then gives the main place. Main place shorter sides:
+    phone 206, small tablets 550 to 582, large tablet 628, Mac small 421, Mac big 1034
+    to 1062. Per-device tweaks, if wanted, go on top of this (owner's plan).
+  - **b10 not seen** on a device. The docs'
     screenshots (`cameras-controls.webp`, `commander-controls.webp`,
     `commander-names-settings.webp`) show the old look and px sliders.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one

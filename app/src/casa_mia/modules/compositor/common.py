@@ -230,18 +230,35 @@ def key_of(cmd: dict) -> str:
 
 
 def _shares(labels: Any) -> Any:
-    """A commander's labels with its names' sizes as shares. Until 2026.11.14-b8 they
-    were heights in px (tile_size, main_size), the same on every screen: read against
-    the tile and the main camera of a tablet (labels.json: name), so a commander looks
-    there as it did, within the shares' limits."""
+    """A commander's labels with its names' sizes as they are now: a tile's as a share
+    of its tile, the main camera's as a % of the size worked out for its screen. Until
+    2026.11.14-b8 both were heights in px (tile_size, main_size), and in b8 and b9 the
+    main camera's was a share of its place (main_share). Each is read so that a commander
+    set at the default is at the default now, and one set larger or smaller is still
+    larger or smaller by as much (labels.json: name), within the options' limits."""
     if not isinstance(labels, dict):
         return labels
-    out = {k: v for k, v in labels.items() if k not in ("tile_size", "main_size")}
-    for which in ("tile", "main"):
-        px, o = labels.get(f"{which}_size"), LABELS["labels"][f"{which}_share"]
-        if f"{which}_share" not in out and isinstance(px, (int, float)):
-            share = round(200 * px / LABELS["name"][f"{which}_was"]) / 2  # to a half
-            out[f"{which}_share"] = min(o["max"], max(o["min"], share))
+    gone = ("tile_size", "main_size", "main_share")
+    out = {k: v for k, v in labels.items() if k not in gone}
+    name, options = LABELS["name"], LABELS["labels"]
+
+    def held(key: str, value: float) -> float:
+        return min(options[key]["max"], max(options[key]["min"], value))
+
+    px = labels.get("tile_size")
+    if "tile_share" not in out and isinstance(px, (int, float)):
+        out["tile_share"] = held("tile_share", round(200 * px / name["tile_was"]) / 2)
+    if "main_scale" not in out:
+        share, px = labels.get("main_share"), labels.get("main_size")
+        was = (
+            share / name["main_was_share"]
+            if isinstance(share, (int, float))
+            else px / name["main_was_px"]
+            if isinstance(px, (int, float))
+            else None
+        )
+        if was is not None:
+            out["main_scale"] = held("main_scale", round(20 * was) * 5)  # to a 5
     return out
 
 

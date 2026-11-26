@@ -191,7 +191,9 @@ export class CommanderCard extends CommanderTalk {
     // are sized from the one they are shown in, so both are in proportion on any screen.
     const mainPlace: [number, number] = [(mainRect[2] / w) * this._box[0], (mainRect[3] / h) * this._box[1]];
     const screenPlace: [number, number] = [innerWidth, innerHeight];
-    const nameIn = (place: [number, number]) => nameSize("main", labels.main_share, Math.min(...place));
+    // With a mouse, the main camera's name is one size whatever its place (labels.ts).
+    const desk = matchMedia("(pointer: fine)").matches;
+    const nameIn = (place: [number, number]) => nameSize("main", labels.main_scale, Math.min(...place), 1, desk);
     const labelled = (place: [number, number]) =>
       `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
@@ -288,8 +290,8 @@ export class CommanderCard extends CommanderTalk {
           // card's, and the only way to it.
           (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
             ? this._config?.main_controls
-              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, [...sound, ...fills], this.lines(main))
-              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, fills, this.lines(main))
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, nameIn(mainPlace), [...sound, ...fills], this.lines(main))
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, nameIn(mainPlace), fills, this.lines(main))
             : nothing
         }
         ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn(mainPlace)) : nothing}
@@ -307,7 +309,7 @@ export class CommanderCard extends CommanderTalk {
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, [...sound, ...fills], this.lines(main))
+              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, nameIn(screenPlace), [...sound, ...fills], this.lines(main))
             }
             ${this.talkParts(card, whole, nameIn(screenPlace))}
           </div>`

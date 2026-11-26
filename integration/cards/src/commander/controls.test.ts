@@ -2,63 +2,38 @@
 // and what gives way where they don't fit.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { barFit, controlsAt, controlsStyle, pillHeight, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+import { barFit, controlsAt, controlsStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 
-test("a size is a height in px; one saved as a share or by name is the height it was on a tablet", () => {
-  assert.equal(controlsAt().size, 44);
-  assert.equal(controlsAt({ size: 40 }).size, 40);
-  assert.equal(controlsAt({ size: 5 }).size, 40); // 5% of a tablet's 800 (2026.11.14-b8)
-  assert.equal(controlsAt({ size: 7 }).size, 56);
-  assert.deepEqual(["small", "medium", "large"].map((size) => controlsAt({ size }).size), [40, 56, 72]);
-  assert.equal(controlsAt({ size: "huge" }).size, 44); // not a size there ever was
-  assert.equal(controlsAt({ size: 96 }).size, 72); // held to the slider's range
-  assert.equal(controlsAt({ size: 24 }).size, 32);
+test("controls have no size of their own, and sit top right unless a camera says otherwise", () => {
+  assert.deepEqual(controlsAt(), { landscape: "top", portrait: "top", align: "end", opacity: 60 });
+  assert.equal("size" in controlsAt({ size: 72 } as never), false); // a size saved before: dropped
+  assert.equal(controlsAt({ landscape: "bottom" }).landscape, "bottom");
 });
 
-test("a pill is its size where there is room, smaller in a small place, never under the floor", () => {
-  const at = controlsAt({ size: 40 });
-  assert.equal(pillHeight(at, [1280, 800]), 40); // a tablet's full screen
-  assert.equal(pillHeight(at, [800, 1280]), 40); // either way up
-  assert.equal(Math.round(pillHeight(at, [850, 530])), 35); // its main area
-  assert.equal(pillHeight(at, [390, 220]), 32); // a phone's main area: the floor
-  assert.equal(pillHeight(at, [2560, 1400]), 40); // a very large place: never more
-  assert.equal(pillHeight(controlsAt({ size: 72 }), [390, 220]), 32);
-});
-
-test("with a mouse a pill is never finger-sized, however large the place", () => {
-  assert.equal(pillHeight(controlsAt({ size: 40 }), [2560, 1400], true), 34);
-  assert.equal(pillHeight(controlsAt({ size: 72 }), [2560, 1400], true), 34);
-  assert.equal(pillHeight(controlsAt({ size: 32 }), [2560, 1400], true), 32);
-  assert.equal(pillHeight(controlsAt({ size: 40 }), [390, 220], true), 32);
-});
-
-test("a pill is the style guide's chip at its height: 22 px high has 10 px text and ends", () => {
-  const look = controlsStyle(controlsAt(), 22);
-  assert.equal(look["--cm-pill-height"], "22px");
-  assert.equal(look["--cm-pill-font"], "10px");
+test("a pill is the main camera's name pill at the name's size", () => {
+  const look = controlsStyle(controlsAt(), 20);
+  assert.equal(look["--cm-pill-height"], "28px");
+  assert.equal(look["--cm-pill-font"], "20px");
   assert.equal(look["--cm-pill-pad"], "10px");
-  assert.equal(look["--cm-pill-gap"], "4px");
-  assert.equal(controlsStyle(controlsAt(), 80, 0.5)["--cm-pill-font"], "18.18px");
+  assert.equal(controlsStyle(controlsAt(), 20, 0.5)["--cm-pill-font"], "10px");
 });
 
 test("what doesn't fit gives way: the presets behind PTZ, then the names", () => {
   const names = ["Sound off", "Gate light", "Gate"];
   const three = ["Gate", "Drive", "Door"];
-  const small = controlsAt({ size: 40 });
-  const large = controlsAt({ size: 56 });
-  // room for all of it: three presets stand in the bar, four never do
-  assert.deepEqual(barFit(small, [1280, 800], "bottom", names, three), { height: 40, names: true, fold: false });
-  assert.equal(barFit(small, [1280, 800], "bottom", names, [...three, "Lawn"]).fold, true);
-  // a narrower place, or larger pills: the presets fold first, the names stay
-  assert.deepEqual(barFit(small, [700, 800], "bottom", names, three), { height: 40, names: true, fold: true });
-  assert.deepEqual(barFit(large, [1280, 800], "bottom", names, three), { height: 56, names: true, fold: true });
-  // a phone's main area: the pills stay at the floor, so the names go
-  assert.deepEqual(barFit(small, [390, 220], "bottom", names, three), { height: 32, names: false, fold: true });
+  // a tablet's full screen (a name of 25 px): all of it, and four presets never stand inline
+  assert.deepEqual(barFit(25, [1280, 800], "top", names, three), { height: 35, names: true, fold: false });
+  assert.equal(barFit(25, [1280, 800], "top", names, [...three, "Lawn"]).fold, true);
+  // a narrower place: the presets fold first, the names stay
+  assert.deepEqual(barFit(20, [700, 550], "top", names, three), { height: 28, names: true, fold: true });
+  // a phone's main area (13 px): the names fit; a narrower one still, icons alone
+  assert.equal(barFit(13, [378, 206], "top", names, three).names, true);
+  assert.equal(barFit(22, [250, 300], "top", names, three).names, false);
   // down a side: names only while the bar is no more than its share of the width
-  assert.equal(barFit(small, [1280, 800], "right", names, []).names, true);
-  assert.equal(barFit(small, [500, 800], "right", names, []).names, false);
+  assert.equal(barFit(25, [1280, 800], "right", names, []).names, true);
+  assert.equal(barFit(25, [500, 800], "right", names, []).names, false);
   // nothing to show fits anywhere
-  assert.deepEqual(barFit(small, [100, 100], "top", [], []), { height: 32, names: true, fold: false });
+  assert.deepEqual(barFit(10, [100, 100], "top", [], []), { height: 14, names: true, fold: false });
 });
 
 test("a zoom steps a tenth of its range a tap, in whole steps of its entity, within its range", () => {

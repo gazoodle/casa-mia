@@ -58,9 +58,6 @@
   background: rgb(0 0 0 / var(--cm-pill-alpha));
   color: #fff;
   font-size: var(--cm-pill-font);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 

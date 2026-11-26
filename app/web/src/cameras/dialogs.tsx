@@ -4,6 +4,7 @@ import { Dialog, Field, Switch } from "../ui";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import { Camera, DEFAULT_PTZ, HACamera, Preset } from "./common";
+import { controlsAt } from "./controls";
 import { Controls, ControlsEdges, EntityInput } from "./inputs";
 
 export function AddCameras({
@@ -102,6 +103,7 @@ export function CameraDialog({
               if (out.ptz) out.ptz = { ...out.ptz, presets: parsePresets(presets) };
               if (!out.controls?.length) delete out.controls;
               if (!out.controls && !out.ptz?.presets.length && !out.zoom) delete out.controls_at;
+              else if (out.controls_at) out.controls_at = controlsAt(out.controls_at); // (a size of its own dropped)
               onSave(out);
             }}
           >
@@ -159,7 +161,7 @@ export function CameraDialog({
         <Field
           group
           label="Controls on a full screen"
-          help="How its controls, PTZ presets and zoom are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), or over its main camera: the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The size is the buttons' height where there is room; in a smaller place (a main camera on a phone) they are smaller, though never under 32 px, and with a mouse never over 34 px. Up to three presets are buttons of their own; more are behind one PTZ button, which opens them out beside the others. Where they don't all fit, the presets go behind PTZ, then the names go and the buttons are icons. The previews are a 1280 × 800 tablet, to scale."
+          help="How its controls, PTZ presets and zoom are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), or over its main camera: the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The buttons are the size of the main camera's name there, set for each commander on the Camera Commander page. Up to three presets are buttons of their own; more are behind one PTZ button, which opens them out beside the others. Where they don't all fit, the presets go behind PTZ, then the names go and the buttons are icons. The previews are a 1280 × 800 tablet, to scale."
         >
           <ControlsEdges entity={entity} controls={c.controls ?? []} presets={presetNames} zoom={!!c.zoom} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
         </Field>

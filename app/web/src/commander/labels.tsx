@@ -37,7 +37,7 @@ export function LabelSettings({
   const l = labelsOf(value.labels);
   const set = (change: Partial<Labels>) => onChange({ ...l, ...change });
 
-  const size = (key: "tile_share" | "main_share" | "opacity" | "talk_status_x" | "talk_status_y" | "talk_buttons_x" | "talk_buttons_y") => {
+  const size = (key: "tile_share" | "main_scale" | "opacity" | "talk_status_x" | "talk_status_y" | "talk_buttons_x" | "talk_buttons_y") => {
     const o = OPTIONS[key] as { label: string; min: number; max: number; step?: number };
     return (
       <Field label={o.label.replace(/, (px|%)$/, "")} help={help(key)}>
@@ -73,7 +73,7 @@ export function LabelSettings({
       <h4 className={css.sub}>Camera names</h4>
       {pick("font")}
       {size("tile_share")}
-      {size("main_share")}
+      {size("main_scale")}
       {style("tile_style")}
       {style("main_style")}
       {colour("colour")}

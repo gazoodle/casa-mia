@@ -4,8 +4,9 @@ import ui from "../ui.module.css";
 import edges from "./edges.module.css";
 import { Segmented } from "../ui";
 import { Slider } from "../controls";
+import { nameSize } from "../../../../integration/cards/src/labels.ts";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, PILL_SIZES, barFit, controlsAt, controlsStyle } from "./controls";
+import { type ControlsAt, EDGES, barFit, controlsAt, controlsStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -145,6 +146,9 @@ export function Thumb({ entity, className = css.thumb }: { entity: string; class
  * landscape and 240 px in portrait (edges.module.css). */
 const PREVIEW = 0.3;
 const TABLET: Record<"landscape" | "portrait", [number, number]> = { landscape: [1280, 800], portrait: [800, 1280] };
+/** The controls' size on that tablet's full screen: the main camera's name there, at a
+ * commander's default (labels.ts: nameSize). */
+const NAME_PX = nameSize("main", 100, 800);
 
 /** How a camera's controls and PTZ presets are shown on a commander's full screen: an edge
  * for a wide screen and one for a tall one, where along it, the pills' size and
@@ -173,7 +177,7 @@ export function ControlsEdges({
   const zooms = zoom ? ["Zoom"] : [];
   // Each screen's bar as the card would show it there (controls.ts: barFit): its pills'
   // height, the presets by name or behind PTZ, and icons alone when the names don't fit.
-  const bars = Object.fromEntries((["landscape", "portrait"] as const).map((shape) => [shape, barFit(at, TABLET[shape], at[shape], [...names, ...zooms], presets)]));
+  const bars = Object.fromEntries((["landscape", "portrait"] as const).map((shape) => [shape, barFit(NAME_PX, TABLET[shape], at[shape], [...names, ...zooms], presets)]));
   const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (bars[shape].fold ? ["PTZ"] : presets) : []), ...zooms];
   return (
     <>
@@ -183,7 +187,7 @@ export function ControlsEdges({
             <Segmented value={at[shape]} options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])} onChange={(edge) => set({ [shape]: edge })} />
             <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
               <Thumb entity={entity} className={edges.screenPicture} />
-              <div className={`${edges.screenControls} ${edges[at[shape]]} ${bars[shape].names ? "" : edges.icons}`} style={controlsStyle(at, bars[shape].height, PREVIEW)}>
+              <div className={`${edges.screenControls} ${edges[at[shape]]} ${bars[shape].names ? "" : edges.icons}`} style={controlsStyle(at, NAME_PX, PREVIEW)}>
                 {pills(shape).map((n, i) => (
                   <span key={i} className={edges.pill} title={n}>
                     <span>{n}</span>
@@ -195,8 +199,6 @@ export function ControlsEdges({
         ))}
       </div>
       <div className={edges.look}>
-        <span>Size</span>
-        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v} px`} onChange={(size) => set({ size })} />
         <span>Along the edge</span>
         <Segmented
           value={at.align}

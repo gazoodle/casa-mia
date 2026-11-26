@@ -9,59 +9,34 @@ export const EDGES: Edge[] = ["top", "bottom", "left", "right"];
 /** Along its edge: left or top, the middle, right or bottom (as a sections view's badges). */
 export type Align = "start" | "center" | "end";
 
-/** The edge for each shape of screen, where along it, the pills' size (their height in
- * CSS px where there is room: see pillHeight; their text, icon and gaps scale with it) and
- * how solid their background is (%); a camera without its own takes these. */
-export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align; size: number; opacity: number };
-export const CONTROLS_AT: ControlsAt = { landscape: "bottom", portrait: "bottom", align: "center", size: 44, opacity: 60 };
+/** The edge for each shape of screen, where along it and how solid the pills' background
+ * is (%); a camera without its own takes these. The pills have no size of their own
+ * (owner, 2026-11-27): they are the main camera's name pill, at the name's size there
+ * (labels.ts: mainName), so a name and a button over a camera are one family. Two builds
+ * gave them a size of their own, in px and then as a share of their place, and neither
+ * looked right on a phone, a wall tablet and a Mac at once. */
+export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align; opacity: number };
+/** Top right, either way up (owner, 2026-11-27). */
+export const CONTROLS_AT: ControlsAt = { landscape: "top", portrait: "top", align: "end", opacity: 60 };
 
-/** The sizes the page's slider offers, px. */
-export const PILL_SIZES = { min: 32, max: 72, step: 4 };
-
-/** What a size bends to (owner, 2026-11-27, after a build that made it a plain share of
- * the place: 11 px pills on a phone, 70 px ones on a desktop). A size is anchored in
- * CSS px, which is near enough a physical size, and only shrinks in a small place:
- * - a place whose shorter side is ROOMY px or more has room: the size as set, never more;
- * - a smaller place has it in proportion, but never under FLOOR, the least a finger hits
- *   and an eye reads: below that the bar gives way instead (barFit);
- * - with a mouse it is never over FINE: a pointer needs no finger-sized button, and a
- *   desktop's main camera is a very large place. */
-export const PILL_ROOMY = 600;
-export const PILL_FLOOR = 32;
-export const PILL_FINE = 34;
-
-/** A size was one of three names before 2026.11.7, and in 2026.11.14-b8 alone a share
- * (3 to 12 %) of a place's shorter side, read here as the height it gave on a 1280 x 800
- * tablet's full screen. No height is as little as the largest share, so the two can't
- * be mistaken. */
-const NAMED: Record<string, number> = { small: 40, medium: 56, large: 72 };
-const SHARE_MOST = 12;
-const TABLET_SIDE = 800;
-
-export function controlsAt(own?: Partial<Omit<ControlsAt, "size">> & { size?: number | string }): ControlsAt {
-  const at = { ...CONTROLS_AT, ...own };
-  const size = typeof at.size === "number" ? at.size : (NAMED[at.size] ?? CONTROLS_AT.size);
-  const px = size <= SHARE_MOST ? (size * TABLET_SIDE) / 100 : size;
-  return { ...at, size: Math.min(PILL_SIZES.max, Math.max(PILL_SIZES.min, px)) };
-}
-
-/** A pill's height in px in a place w x h px; `fine`: the device has a mouse. */
-export function pillHeight(at: ControlsAt, place: [number, number], fine = false): number {
-  const most = fine ? Math.min(at.size, PILL_FINE) : at.size;
-  return Math.min(most, Math.max(Math.min(PILL_FLOOR, most), (at.size * Math.min(...place)) / PILL_ROOMY));
+/** A camera's own settings, each it lacks at its default. A size saved before
+ * 2026.11.14-b10 (a height, a share or one of three names) is left out: it is no longer
+ * used, and is dropped when the camera is next saved. */
+export function controlsAt(own?: Partial<ControlsAt> & { size?: unknown }): ControlsAt {
+  const { size: _size, ...rest } = own ?? {};
+  return { ...CONTROLS_AT, ...rest };
 }
 
 /** The most PTZ presets that stand in the bar as buttons of their own; a camera with more
  * has one PTZ button, which opens them out beside the bar. */
 export const PRESETS_INLINE = 3;
 
-/** The style guide's chip (pills.css: cm-chip), which the pills are in proportion to at
- * any height: 22 px high, 10 px text, 10 px at each end, 4 px between icon and text. The
- * icon is a little over the text's height, as the guide's icons are beside their words. */
-const CHIP = { height: 22, font: 10, pad: 10, gap: 4, icon: 13 };
-/** A letter's width, of the text's size: capitals with the chip's letter spacing. An
- * estimate, as nothing is measured: it decides only when names give way (barFit). */
-const LETTER = 0.72;
+/** The name pill (the card's caption; the compositor's labels.py: name): its height, the
+ * room at each end and between icon and text, and the icon, each of the name's size. */
+const PILL = { height: 1.4, pad: 0.5, gap: 0.3, icon: 1.1 };
+/** A letter's width, of the text's size, in a name's mixed case. An estimate, as nothing
+ * is measured: it decides only when names give way (barFit). */
+const LETTER = 0.58;
 /** Between pills, and around the bar, of a pill's height (full.ts, edges.module.css). */
 const BETWEEN = 0.2;
 const AROUND = 0.3;
@@ -70,20 +45,20 @@ const SIDE_SHARE = 0.3;
 
 /** A pill's width, in pill heights: with its name, or its icon alone (a circle). */
 const pillWidth = (name: string | null) =>
-  name === null ? 1 : (2 * CHIP.pad + CHIP.icon + CHIP.gap + name.length * CHIP.font * LETTER) / CHIP.height;
+  name === null ? 1 : (2 * PILL.pad + PILL.icon + PILL.gap + name.length * LETTER) / PILL.height;
 
 /** How a bar is shown in its place: the pills' height (px), whether they keep their names
  * (else icons alone), and whether the presets are behind one PTZ button. */
 export type Bar = { height: number; names: boolean; fold: boolean };
 
 /** A bar of pills (`names`: the card's own buttons and the camera's controls) and PTZ
- * presets, as it fits along `edge` of a place w x h px. What doesn't fit gives way in a
- * fixed order, so a bar never wraps untidily or runs off its place: first the presets go
- * behind the PTZ button (as more than PRESETS_INLINE always are), then the names go and
- * the pills are icons alone. The presets keep their names when opened out: their icons
- * are all the same. */
-export function barFit(at: ControlsAt, place: [number, number], edge: Edge, names: string[], presets: string[], fine = false): Bar {
-  const height = pillHeight(at, place, fine);
+ * presets, at the main camera's name size there (`name`, px), as it fits along `edge` of
+ * a place w x h px. What doesn't fit gives way in a fixed order, so a bar never wraps
+ * untidily or runs off its place: first the presets go behind the PTZ button (as more
+ * than PRESETS_INLINE always are), then the names go and the pills are icons alone. The
+ * presets keep their names when opened out: their icons are all the same. */
+export function barFit(name: number, place: [number, number], edge: Edge, names: string[], presets: string[]): Bar {
+  const height = name * PILL.height;
   const along = edge === "top" || edge === "bottom";
   const fits = (named: boolean, fold: boolean) => {
     const ptz = presets.length ? (fold ? ["PTZ"] : presets) : [];
@@ -130,17 +105,16 @@ export function zoomStep(z: Zoom, from: number, by: 1 | -1): number {
 }
 
 /** The pills' look as CSS custom properties, for the card and the page's preview alike:
- * `height` is a pill's (barFit), and `scale` shrinks it for a preview drawn smaller than
- * a screen. */
-export function controlsStyle(at: ControlsAt, height: number, scale = 1): Record<string, string> {
-  const h = height * scale;
-  const part = (of: number) => `${Math.round((h * of * 100) / CHIP.height) / 100}px`;
+ * `name` is the main camera's name size there (px), and `scale` shrinks it for a preview
+ * drawn smaller than a screen. */
+export function controlsStyle(at: ControlsAt, name: number, scale = 1): Record<string, string> {
+  const px = (of: number) => `${Math.round(name * scale * of * 100) / 100}px`;
   return {
-    "--cm-pill-height": `${Math.round(h * 100) / 100}px`,
-    "--cm-pill-font": part(CHIP.font),
-    "--cm-pill-pad": part(CHIP.pad),
-    "--cm-pill-gap": part(CHIP.gap),
-    "--cm-pill-icon": part(CHIP.icon),
+    "--cm-pill-height": px(PILL.height),
+    "--cm-pill-font": px(1),
+    "--cm-pill-pad": px(PILL.pad),
+    "--cm-pill-gap": px(PILL.gap),
+    "--cm-pill-icon": px(PILL.icon),
     "--cm-pill-alpha": `${at.opacity}%`,
     "--cm-pill-align": at.align === "center" ? "center" : `flex-${at.align}`,
   };

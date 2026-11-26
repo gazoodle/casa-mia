@@ -44,16 +44,14 @@ export type Lines = {
 /** The camera's controls and presets (after the card's own buttons) along their edge of
  * `place`: the full screen, or the main area (Config.main_controls), `size` px. The wide
  * or the tall edge goes by the shape of that place, not the screen's: a main area can be
- * wide on an upright tablet. The pills' height is the camera's size where there is room and
- * less in a small place, down to a floor (controls.ts: pillHeight), and what then doesn't
- * fit gives way (controls.ts: barFit): the presets go behind one PTZ button,
+ * wide on an upright tablet. The pills are the main camera's name pill at the name's size
+ * there (`name`, px: labels.ts nameSize), and what doesn't fit gives way (controls.ts:
+ * barFit): the presets go behind one PTZ button,
  * which opens them out as a second line on the picture's side of the bar (under a bar at
  * the top, left of one on the right), then the names go and the pills are icons. A camera
  * with a zoom always has one Zoom button (owner, 2026-11-27), which opens its stepper the
  * same way: out, the level, in, and Reset (all the way out). */
-export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, size: [number, number], own: Own[], lines: Lines) {
-  // a mouse needs no finger-sized button (controls.ts: PILL_FINE)
-  const fine = matchMedia("(pointer: fine)").matches;
+export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, size: [number, number], name: number, own: Own[], lines: Lines) {
   const controls = camera.controls ?? [];
   const presets = camera.presets ?? [];
   if (!controls.length && !own.length && !presets.length && !camera.zoom) return nothing;
@@ -67,9 +65,9 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
   const edge = size[0] >= size[1] ? at.landscape : at.portrait;
   const nameOf = (c: (typeof controls)[number]) => c.name || (hass.states[c.entity]?.attributes.friendly_name as string | undefined) || c.entity;
   const named = [...own.map((b) => b.label), ...controls.map(nameOf), ...(camera.zoom ? [zoomName] : [])];
-  const bar = barFit(at, size, edge, named, presets.map((p) => p.name), fine);
+  const bar = barFit(name, size, edge, named, presets.map((p) => p.name));
   // Its size, place along the edge and background, as the Cameras page previews them.
-  const look = Object.entries(controlsStyle(at, bar.height))
+  const look = Object.entries(controlsStyle(at, name))
     .map(([k, v]) => `${k}:${v}`)
     .join(";");
   const folded = bar.fold && presets.length > 0;
@@ -211,9 +209,10 @@ export const fullStyles = css`
     justify-content: var(--cm-pill-align);
     gap: calc(var(--cm-pill-height) * 0.2);
   }
-  /* The style guide's chip (pills.css: cm-chip) at the pill's height: its text, ends and
-     gap in the guide's proportions (controls.ts: CHIP), in capitals. Its colours are its
-     own: white on a black of the camera's chosen strength, to be read over a picture. */
+  /* The main camera's name pill (the caption, styles.ts), at the name's size there
+     (controls.ts: controlsStyle): its height, ends and font, the commander's label font.
+     Its colours are its own: white on a black of the camera's chosen strength, to be read
+     over a picture, and the active colour while its entity is on. */
   .control {
     position: relative;
     display: flex;
@@ -225,9 +224,7 @@ export const fullStyles = css`
     border-radius: calc(var(--cm-pill-height) / 2);
     background: rgb(0 0 0 / var(--cm-pill-alpha));
     color: #fff;
-    font: 500 var(--cm-pill-font) / 1.2 var(--ha-font-family-body, sans-serif);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font: var(--cm-pill-font) / 1.2 var(--cm-label-font, sans-serif);
     white-space: nowrap;
     cursor: pointer;
     --mdc-icon-size: var(--cm-pill-icon);
