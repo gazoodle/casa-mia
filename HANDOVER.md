@@ -132,7 +132,9 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     only with debug on. RECORD: ws `casa_mia_commander/tuning` (`live.py`, refused unless
     debug is on) → POST `/commander/tuning` → one INFO line "commander tuning <ref>:
     <json>" in the app's log. Read those lines and fit the rules from them; the picture's
-    own debug text is gone (live video hid it). Track motion is turned off while the
+    own debug text is gone (live video hid it). The controls follow the main name in
+    use unless set by hand; `inUse` in `tune.ts` is that link for the box, the dialog and
+    a record (b14: the box had shown the rule's name × 1.4, wrong once the name moved). Track motion is turned off while the
     dialog is open and back on when it closes (or when debug goes off). Its drag state
     lives in `DIALOG` (b13): a local in the drawing function was reset by each redraw,
     and a pointer captured on a button's press stole Safari's click.

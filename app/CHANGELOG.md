@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.14-b14
+
+- **Camera Commander card: the debug figures say that the controls follow the main
+  camera's name.** The controls are the main name's pill, so changing the main name's
+  size in the sizes dialog changes them too, until the controls' own size is set there.
+  The debug box gave a controls height worked from the rule's name, not the name in use,
+  so it was wrong once the name had been changed. It now says "controls follow the main
+  name" with the height in use, or the size set by hand and what following the name
+  would give. In the dialog, the controls show what following the name gives, and their
+  button is **Follow the main name**. A record has the sizes in use and whether the
+  controls were following the name.
+
 ## 2026.11.14-b13
 
 - **Camera Commander card: the sizes dialog can be dragged, closed in Safari and folded

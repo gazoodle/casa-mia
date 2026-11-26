@@ -10,6 +10,7 @@ import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from "../labels.ts";
 import { dot, dotSize, MOTION } from "./motion.ts";
 import { debugBox, dialogOpen, type Figures, recordOf, reference, toggleDialog, tunedAt, tuneDialog, tuneStyles, whereOf } from "./tune.ts";
+import { PILL_HEIGHT } from "../../../../app/web/src/cameras/controls.ts";
 import { controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown, VERSION } from "./common.ts";
@@ -210,8 +211,9 @@ export class CommanderCard extends CommanderTalk {
     const where = whereOf(this._screen, full);
     const set = tuning ? tunedAt(select, where) : {};
     const nameIn = (place: [number, number]) => set.main ?? ruleName(place);
-    // The controls are the main name's pill (controls.ts), unless set by hand: a height.
-    const controlsName = (place: [number, number]) => (set.controls ? set.controls / 1.4 : nameIn(place));
+    // The controls are the main name's pill (controls.ts), the name in use, unless set by
+    // hand: a height. The debug box and a record say the same link (tune.ts: inUse).
+    const controlsName = (place: [number, number]) => (set.controls ? set.controls / PILL_HEIGHT : nameIn(place));
     const labelled = (place: [number, number]) =>
       `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     // The commander's smallest tile, in CSS px: the tiles' names (drawn in the picture) and
@@ -230,7 +232,7 @@ export class CommanderCard extends CommanderTalk {
       box: full ? screenPlace : this._box,
       place,
       tile: smallest,
-      rules: { main: ruleName(place), controls: Math.round(ruleName(place) * 1.4), tile: nameSize("tile", labels.tile_share, tileSide), dot: dotRule },
+      rules: { main: ruleName(place), controls: Math.round(ruleName(place) * PILL_HEIGHT), tile: nameSize("tile", labels.tile_share, tileSide), dot: dotRule },
       sums: {
         main: `${desk ? `mouse, ${NAME.main_desk}` : `touch, ${NAME.main_root} x √${shorter} = ${(NAME.main_root * Math.sqrt(shorter)).toFixed(1)} held ${NAME.main_floor} to ${NAME.main_cap}`}, at ${labels.main_scale}%`,
         tile: `${labels.tile_share}% of ${Math.round(tileSide)} = ${((labels.tile_share * tileSide) / 100).toFixed(1)}, held ${NAME.tile_floor} to ${NAME.tile_cap}`,

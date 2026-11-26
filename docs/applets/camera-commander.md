@@ -291,6 +291,8 @@ with its own **−**. Choose one of the four, and
 set its size with the slider or the number box: the card shows it at once. Each place
 the card can be is set on its own. The sizes are kept only on this device and only
 until the page is refreshed; **Back to the rule** returns one to the worked-out size.
+The controls follow the main name's size, set by hand or not, until you set the
+controls' own size; their **Follow the main name** joins them up again.
 While the dialog is open the commander's **Track motion** is off, so the main camera
 doesn't change under you. That switch is every device's, and the box says so in red; it
 is turned on again when the dialog is closed.

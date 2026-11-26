@@ -34,6 +34,8 @@ export const PRESETS_INLINE = 3;
 /** The name pill (the card's caption; the compositor's labels.py: name): its height, the
  * room at each end and between icon and text, and the icon, each of the name's size. */
 const PILL = { height: 1.4, pad: 0.5, gap: 0.3, icon: 1.1 };
+/** A pill's height, of its name's size: the controls are this high, of the main name. */
+export const PILL_HEIGHT = PILL.height;
 /** A letter's width, of the text's size, in a name's mixed case. An estimate, as nothing
  * is measured: it decides only when names give way (barFit). */
 const LETTER = 0.58;
