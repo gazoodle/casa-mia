@@ -456,11 +456,8 @@ def commander(
     size, main_rect, main_fit, places, more, _ = placed(cmd, main)
     # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
     scale = float(cmd.get("scale", 1))
-    # Its labels' font, colours and style (labels.py), sized for this picture: the
-    # tiles' names from its smallest tile, the main camera's from its place.
-    sides = [min(w, h) for _, _, (_, _, w, h), _ in places if w > 0 and h > 0]
-    sides += [min(m[0][2:]) for m in [more] if m]
-    seen = look(cmd, min(sides, default=0), min(main_rect[2:]))
+    # Its labels' font, colours and style (labels.py), sized for this picture.
+    seen = look(cmd)
     small, font, big = seen.small, seen.font, seen.big
 
     def u(n: float) -> int:

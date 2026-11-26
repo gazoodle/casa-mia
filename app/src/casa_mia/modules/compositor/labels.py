@@ -27,21 +27,17 @@ FONTS = COMPONENTS / "casa_mia" / "www" / "fonts"
 Colour = tuple[int, int, int, int]
 
 KEEP: dict[str, Any] = LABELS["picture"]["main_keep"]  # the part of a cropped main kept
-NAME: dict[str, Any] = LABELS["name"]  # each name's rule, [k, p]: k x side^p CSS px
+NAME: dict[str, Any] = LABELS["name"]  # the names' sizes, CSS px
 
 
-def name_px(which: str, setting: float, side: float, scale: float = 1) -> int:
-    """A name's height, in the picture's own pixels (`scale` of them to a CSS px),
-    `setting` % of its rule, for a place whose shorter side is `side` of them: a tile's
-    from the commander's smallest tile, the main camera's from its place. Each grows
-    slowly with its side, with no floor or cap (owner, 2026-11-26: fitted to the sizes
-    set by hand on a phone, two wall tablets and a Mac). The card's is the same sum, and
-    less with a mouse, which the compositor can't know of: a card says its sizes in the
-    picture's address (`look`; integration/cards/src/labels.ts: nameSize). At least 1 px,
-    as a font can't be 0 px (a commander with no tiles)."""
-    k, p = NAME["tile" if which == "tile" else "main_touch"]
-    css = k * (side / scale) ** p * setting / 100
-    return max(1, int(css * scale + 0.5))
+def name_px(which: str, setting: float, scale: float = 1) -> int:
+    """A name's height, in the picture's own pixels (`scale` of them to a CSS px):
+    `setting` % of its one size (labels.json: name; "tile" or "main"), the same on every
+    device, as the style guide's pills and chips are (owner, 2026-11-26). From
+    2026.11.14-b8 to b15 it was a share of its place and then a fitted rule; the rules
+    fitted to sizes set by hand came out close to a constant. The card's is the same sum
+    (integration/cards/src/labels.ts: nameSize)."""
+    return int(NAME[which] * setting / 100 * scale + 0.5)
 
 
 @functools.lru_cache(maxsize=1024)
@@ -106,25 +102,22 @@ class Look(NamedTuple):
     main_style: str
 
 
-def look(cmd: dict, tile_side: float, main_side: float) -> Look:
+def look(cmd: dict) -> Look:
     """A commander's labels, each setting it lacks at its default, sized for the picture
-    being drawn: a tile's name from the shorter side of its smallest tile (`tile_side`,
-    so every tile's name is one size), the main camera's from the shorter side of its
-    place (`main_side`), both in the picture's own pixels."""
+    being drawn, in its own pixels."""
     o = {**DEFAULTS, **(cmd.get("labels") or {})}
     scale = float(cmd.get("scale", 1))
-    # The sizes the card asked for, in CSS px (compositor.sized): it works them out with
-    # the same rules, and knows whether its device has a mouse. Else the rules'.
-    asked = cmd.get("names") or {}
+    # A card being tuned (its debug on, compositor.sized): the sizes it asked for, CSS px.
+    tuned = cmd.get("tuned") or {}
     tile_px = (
-        round(asked["tile"] * scale)
-        if asked.get("tile")
-        else name_px("tile", o["tile_scale"], tile_side, scale)
+        round(tuned["tile"] * scale)
+        if tuned.get("tile")
+        else name_px("tile", o["tile_scale"], scale)
     )
     main_px = (
-        round(asked["main"] * scale)
-        if asked.get("main")
-        else name_px("main", o["main_scale"], main_side, scale)
+        round(tuned["main"] * scale)
+        if tuned.get("main")
+        else name_px("main", o["main_scale"], scale)
     )
     return Look(
         font(o["font"], tile_px),

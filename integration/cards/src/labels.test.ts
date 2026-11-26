@@ -9,19 +9,13 @@ test("every setting has a default, and a commander saved without labels gets the
   assert.equal(labelsOf({ tile_scale: 120 }).main_scale, DEFAULTS.main_scale);
 });
 
-test("a name grows slowly with its place, with no floor or cap (as labels.py: name_px)", () => {
-  // the owner's devices (2026-11-26), as labels.py's test has them: the tiles' names from
-  // the smallest tile (a phone's, a small wall tablet's, a large commander's)
-  assert.deepEqual([50, 59, 144, 178].map((side) => nameSize("tile", 100, side)), [11, 11, 16, 18]);
-  // the main camera's by touch: a phone, a small wall tablet, a large one, its full screen
-  assert.deepEqual([205, 550, 616, 1171, 1506].map((side) => nameSize("main", 100, side)), [12, 16, 16, 20, 21]);
-  // with a mouse: a little smaller, and growing more slowly (a small card to a full screen)
-  assert.deepEqual([455, 1066, 1800].map((side) => nameSize("main", 100, side, 1, true)), [13, 15, 16]);
-  assert.equal(nameSize("main", 50, 206), 6); // % of the size worked out
-  assert.equal(nameSize("tile", 200, 144), 32);
-  assert.equal(nameSize("main", 100, 412, 2), 24); // a phone's, in pixels twice as fine
-  assert.equal(nameSize("tile", 100, 120, 2), 23);
-  assert.equal(nameSize("main", 100, 5000), 29); // a very large place: only a little more
+test("a name is one size on every device, a % of it by the setting (as labels.py: name_px)", () => {
+  assert.equal(nameSize("tile", 100), 11);
+  assert.equal(nameSize("main", 100), 14);
+  assert.equal(nameSize("main", 50), 7); // % of its size
+  assert.equal(nameSize("tile", 200), 22);
+  assert.equal(nameSize("main", 100, 2), 28); // in pixels twice as fine
+  assert.equal(nameSize("tile", 100, 1.0625), 12);
 });
 
 test("every font offered but the standard one has a file", () => {

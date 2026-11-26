@@ -254,21 +254,11 @@ The **Any size** preview shows the names as you change them.
   DejaVu Sans Mono, which is fixed width. With Standard, the name over a live main camera
   is in the browser's own font, which is a little different from the drawn one; with the
   DejaVu fonts the two are the same.
-- **Tile name size:** a % of a size worked out for the screen, 100% at first. That size
-  grows slowly with the shorter side of the commander's smallest tile, so every tile's
-  name is one size: about 11 px on a phone or a small wall tablet, and 16 px on a large
-  commander. A name too long for its tile is cut short with "…". The motion dot is half
-  the size of the tiles' names.
-- **Main camera name size:** a % of a size worked out for the screen, 100% at first.
-  That size grows slowly with the main camera's place: about 12 px over a phone's main
-  camera and 16 to 21 px on a wall tablet. On a computer with a mouse it is a little
-  smaller and grows more slowly, 13 to 16 px. The clock is the same size as the name,
-  and the camera's controls are one and a half times it.
-
-The sizes worked out for the screen come from sizes set by hand with the tuning dialog
-(below) on a phone, two wall tablets and a Mac. Neither has a least or a most size. The
-card works out the sizes for its own screen and asks for its picture with its names at
-those sizes, so the names drawn in the picture match the ones the card draws itself.
+- **Tile name size:** a % of the tiles' names' size, 100% at first. At 100% they are
+  11 px, the same on a phone, a tablet and a computer. A name too long for its tile is
+  cut short with "…". The motion dot is half the size of the tiles' names.
+- **Main camera name size:** a % of the main camera's name's size, 100% at first. At
+  100% it is 14 px on every device. The clock is the same size as the name.
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
   with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the
@@ -289,16 +279,14 @@ middle of the card or of the main camera's full screen. The **−** at its top l
 it down to its buttons, so you can see the tiles past it; **+** shows the figures again. It says where the card is (in
 the page, with the whole screen, or with the main camera full screen), the main
 camera's place and the smallest tile in px, and for each of the tile names, the main
-camera's name, the controls and the motion dot the size in use and how it was worked
-out.
+camera's name and the motion dot the size in use and how it was worked out.
 
 **EDIT** opens a small dialog you can drag by its title bar, and fold down to that bar
-with its own **−**. Choose one of the four, and
+with its own **−**. Choose one of the three, and
 set its size with the slider or the number box: the card shows it at once. Each place
 the card can be is set on its own. The sizes are kept only on this device and only
-until the page is refreshed; **Back to the rule** returns one to the worked-out size.
-The controls follow the main name's size, set by hand or not, until you set the
-controls' own size; their **Follow the main name** joins them up again.
+until the page is refreshed; **Back to the rule** returns one to the size its setting
+gives. The controls are not in the dialog: they are one size everywhere.
 While the dialog is open the commander's **Track motion** is off, so the main camera
 doesn't change under you. That switch is every device's, and the box says so in red; it
 is turned on again when the dialog is closed.
@@ -389,8 +377,10 @@ buttons over the main camera, in one bar with two buttons of its own.
 
 <img src="../screenshots/commander-controls.webp" alt="A commander on a dashboard whose main camera, Entrance, shows a front door. Along the foot of the main camera are three rounded buttons: Full screen, Front door with a padlock icon, and Hall light with a lamp icon. Panels of other cameras run down the left and along the bottom" width="800">
 
+- **The buttons** are Casa Mia's own chips: one small size on every device, in
+  capitals, and always with their names.
 - **The camera's controls.** Each button shows the entity's own icon and the name you
-  gave it, and is coloured while the entity is on, open or unlocked. A tap is Home
+  gave it, and is filled in the theme's colour while the entity is on, open or unlocked. A tap is Home
   Assistant's toggle, the same as a tap on the entity's tile on a dashboard: a light
   switches, a lock locks or unlocks, a cover opens or closes. An entity that Home
   Assistant can't find, or that is unavailable, has a dimmed button that says so. The
@@ -412,9 +402,8 @@ buttons over the main camera, in one bar with two buttons of its own.
 - **Where they show.** With **Its controls over the main camera** on, over the main
   camera on the commander. They are always on the main camera's full screen (**A tap on
   the main camera: full screen, with its controls**), whatever that switch says.
-- **How they look.** The edge they go along, where along it they sit, their size and how
-  solid their background is are set for each camera on the Cameras page, under
-  **Controls on a full screen**. There is one edge for a wide space and one for a tall
+- **Where they go.** The edge they go along and where along it they sit are set for each
+  camera on the Cameras page, under **Controls on a full screen**. There is one edge for a wide space and one for a tall
   one. Over the main camera, wide or tall goes by the shape of the main camera's area,
   not by the screen's.
 - **Sound button.** Off by default. A button to hear the main camera, shown wherever the
@@ -422,17 +411,17 @@ buttons over the main camera, in one bar with two buttons of its own.
   to off when the main camera changes, so a camera is never heard without a tap of its
   own. The camera is not heard while you talk to a doorbell, because the visitor is heard
   through Talk.
-- **Full screen button.** Off by default. A button that puts the whole commander over
-  the entire screen. It shows over the main camera whether or not the camera's controls
-  do.
+- **Full screen button.** Off by default. A button named **Full** that puts the whole
+  commander over the entire screen. It shows over the main camera whether or not the
+  camera's controls do.
 
 #### The commander full screen
 
 <img src="../screenshots/commander-full-screen.webp" alt="The same commander after a tap on Full screen: it fills the whole screen, with no browser bars and none of Home Assistant's header or sidebar. The first button now reads Exit full screen and is coloured; Front door and Hall light are beside it" width="800">
 
-A tap on **Full screen** asks the browser to show the card by itself. The browser's
+A tap on **Full** asks the browser to show the card by itself. The browser's
 address bar and tabs go, and so do Home Assistant's header and sidebar. The commander is
-drawn again for the larger space. Tap **Exit full screen** to go back, or use the
+drawn again for the larger space. The button is shown pressed; tap it again to go back, or use the
 browser's own way out (Esc on a keyboard, or the close button Safari shows).
 
 - It works in a browser on a computer or a tablet, Safari on an iPad included. It is not

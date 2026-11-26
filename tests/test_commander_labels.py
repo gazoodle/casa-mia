@@ -102,35 +102,20 @@ def test_the_main_cameras_name_takes_its_own_style():
 
 def test_a_bigger_name_has_a_taller_bar():
     c = labelled(tile_scale=200)
-    pic, (x, row, w, h) = picture(c, CAMS[1]), tile_foot(c)
-    px = L.name_px("tile", 200, min(w, h))
+    pic, (x, row, w, _) = picture(c, CAMS[1]), tile_foot(c)
+    px = L.name_px("tile", 200)
     high = px * 22 // 16 - 8  # near the top of its bar: 22 px of bar for a name of 16
     assert px > 20 and green(pic, (x + w - 3, row - high))
     assert not green(picture(labelled(), CAMS[1]), (x + w - 3, row - high))
 
 
-def test_a_name_grows_slowly_with_its_place_with_no_floor_or_cap():
-    # the owner's devices (2026-11-26), as the cards' test has them: the tiles' names
-    # from the smallest tile (a phone's, a small wall tablet's, a large commander's), the
-    # main camera's from its place (a phone, two wall tablets, a tablet's full screen)
-    assert [L.name_px("tile", 100, side) for side in (50, 59, 144, 178)] == [
-        11,
-        11,
-        16,
-        18,
-    ]
-    assert [L.name_px("main", 100, s) for s in (205, 550, 616, 1171, 1506)] == [
-        12,
-        16,
-        16,
-        20,
-        21,
-    ]
-    assert L.name_px("main", 50, 206) == 6  # % of the size worked out
-    assert L.name_px("main", 100, 412, scale=2) == 24  # in the picture's own pixels
-    assert L.name_px("tile", 100, 120, scale=2) == 23
-    assert L.name_px("main", 100, 5000) == 29  # a very large place: only a little more
-    assert L.name_px("tile", 100, 0) == 1  # no tiles: still a font
+def test_a_name_is_one_size_on_every_device_a_percentage_of_it_by_the_setting():
+    # as the cards' test has them (labels.test.ts)
+    assert L.name_px("tile", 100) == 11 and L.name_px("main", 100) == 14
+    assert L.name_px("main", 50) == 7  # % of its size
+    assert L.name_px("tile", 200) == 22
+    assert L.name_px("main", 100, scale=2) == 28  # in the picture's own pixels
+    assert L.name_px("tile", 100, scale=1.0625) == 12
 
 
 def test_a_name_too_long_for_its_tile_is_cut_short_not_drawn_over_the_next():
@@ -248,18 +233,19 @@ def test_the_part_to_keep_must_be_one_of_the_nine():
     assert any("part of the main camera to keep" in p for p in said)
 
 
-def test_the_names_are_drawn_at_the_sizes_the_card_asks_for():
+def test_a_card_being_tuned_gets_its_names_sizes_only_while_debug_is_on():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, asked_size, sized, view_key
     from casa_mia.modules.compositor.labels import look
 
     size = asked_size({"w": "1280", "h": "800", "dpr": "1", "tile": "14", "name": "19"})
     assert size == (1280, 800, 1.0, 14, 19)
-    assert asked_size({"w": "1280", "h": "800", "tile": "500"}) is None  # out of bounds
-    # its own picture, so a mouse's sizes change no touch screen's of the same size
+    assert asked_size({"w": "1280", "h": "800", "tile": "200"}) is None  # out of bounds
+    # its own picture, so a tuned card changes no other device's
     assert view_key("cams", size).endswith("~t14n19")
     assert view_key("cams", (1280, 800, 1.0, 0, 0)) == "cams@1280x800x1"
 
-    drawn = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 14, 19)), 80, 400)
+    on = {**EMPTY_COMMANDER, "debug": {**EMPTY_COMMANDER["debug"], "on": True}}
+    drawn = look(sized(on, (1280, 800, 2.0, 14, 19)))
     assert (drawn.tile_px, drawn.main_px) == (28, 38)  # in the picture's own pixels
-    rules = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 0, 0)), 80, 400)
-    assert (rules.tile_px, rules.main_px) == (20, 24)  # none asked: the rules'
+    off = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 14, 19)))
+    assert (off.tile_px, off.main_px) == (22, 28)  # debug off: the commander's own

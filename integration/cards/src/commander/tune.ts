@@ -1,25 +1,23 @@
 // Tuning a Camera Commander card's sizes on one device, while its commander's debug is on
 // (owner, 2026-11-27: "get a grip" on the sizes, from real devices, not guesses). The
-// debug box gives the figures the rules worked out; its EDIT button opens one small
+// debug box gives the sizes the settings give; its EDIT button opens one small
 // dialog that can be dragged about, where each size (the tiles' names, the main camera's
-// name, the controls, the motion dot) is set by hand and shown at once. Nothing is saved:
+// name, the motion dot) is set by hand and shown at once. The controls are the style
+// guide's chips and have no size to set (2026.11.14-b16). Nothing is saved:
 // the sizes last until the page is refreshed, and only on this device. Record sends them,
 // with the rules' sizes and the device's figures, to the app's log under a reference that
 // the owner and the agent can both quote (the integration's live.py: tuning).
 import { css, html, nothing, type TemplateResult } from "lit";
 import type { Hass } from "../ha.ts";
-import { CONTROLS_HEIGHT } from "../../../../app/web/src/cameras/controls.ts";
 
-export type Item = "tile" | "main" | "controls" | "dot";
+export type Item = "tile" | "main" | "dot";
 export const ITEMS: [Item, string][] = [
   ["tile", "Tile names"],
   ["main", "Main name"],
-  ["controls", "Controls"],
   ["dot", "Motion dot"],
 ];
-/** What each can be set to, px: the controls are a pill's height, the rest a name's or
- * the dot's. */
-const RANGE: Record<Item, [number, number]> = { tile: [6, 40], main: [8, 48], controls: [12, 80], dot: [3, 40] };
+/** What each can be set to, px: a name's height, or the dot's size across. */
+const RANGE: Record<Item, [number, number]> = { tile: [6, 40], main: [8, 48], dot: [3, 40] };
 
 /** Where the card is: in the page or with the whole screen (its Full screen button), and
  * whether the main camera is shown full screen on top. Each is tuned on its own: the
@@ -43,23 +41,9 @@ let paused = "";
 
 export const tunedAt = (entity: string, where: Where): Sizes => TUNED.get(entity)?.[where] ?? {};
 
-/** The sizes in use where the card is: each one set by hand, else the rule's. The controls
- * are linked to the main name (owner, 2026-11-27: the main name's pill, controls.ts):
- * unless set by hand they follow the main name in use (CONTROLS_HEIGHT of it), set by hand
- * or not, so moving the
- * main name moves them too. `follow`: they are following it. The card draws them so,
- * and the debug box, the dialog and a record all say it from here. */
-export function inUse(rules: Record<Item, number>, set: Sizes): Record<Item, number> & { follow: boolean } {
-  const main = set.main ?? rules.main;
-  const follow = set.controls === undefined;
-  return {
-    main,
-    tile: set.tile ?? rules.tile,
-    dot: set.dot ?? rules.dot,
-    controls: follow ? Math.round(main * CONTROLS_HEIGHT) : set.controls!,
-    follow,
-  };
-}
+/** The sizes in use where the card is: each one set by hand, else the settings'. The
+ * card draws them so, and the debug box, the dialog and a record all say it from here. */
+export const inUse = (rules: Record<Item, number>, set: Sizes): Record<Item, number> => ({ ...rules, ...set });
 
 /** A reference for a record: the date and time to the second, and three letters. */
 export function reference(now = new Date(), random = Math.random): string {
@@ -120,10 +104,6 @@ export function debugBox(o: {
   const set = tunedAt(select, f.where);
   const sw = trackMotion(o.hass, select);
   const size = (item: Item) => (set[item] !== undefined ? html`<b>${set[item]} px</b> (rule ${f.rules[item]})` : `${f.rules[item]} px`);
-  const use = inUse(f.rules, set);
-  const controls = use.follow
-    ? `controls follow the main name: ${use.controls} px high`
-    : html`controls <b>${use.controls} px</b> high, set by hand (following the main name: ${Math.round(use.main * CONTROLS_HEIGHT)})`;
   const buttons = html`<div class="debug-buttons">
     <button
       class="debug-fold"
@@ -142,7 +122,6 @@ export function debugBox(o: {
     ${o.head}<br />
     ${f.where}: card ${f.box.map(Math.round).join(" x ")}, main camera ${f.place.map(Math.round).join(" x ")} px<br />
     main name ${size("main")}: ${f.sums.main}<br />
-    ${controls}<br />
     smallest tile ${f.tile.map(Math.round).join(" x ")} px: names ${size("tile")}: ${f.sums.tile}<br />
     motion dot ${size("dot")}: ${f.sums.dot}
     ${sw && o.hass.states[sw]?.state === "off" ? html`<br /><span class="debug-warn">Track motion is off${paused ? " while sizes are set" : ""}: every device's</span>` : nothing}
@@ -150,9 +129,8 @@ export function debugBox(o: {
   </div>`;
 }
 
-/** The dialog: four chips for which size, its slider and number, the rule's size, and a
- * Reset to the rule (for the controls: following the main name again). Dragged by its
- * title bar, and kept on the screen. */
+/** The dialog: three chips for which size, its slider and number, the settings' size, and
+ * a Reset to it. Dragged by its title bar, and kept on the screen. */
 export function tuneDialog(o: { hass: Hass; select: string; where: Where; rules: Record<Item, number>; changed: () => void }): TemplateResult | typeof nothing {
   if (!dialogOpen(o.select)) return nothing;
   if (DIALOG.x < 0) [DIALOG.x, DIALOG.y] = [Math.max(8, innerWidth - 300), 60];
@@ -161,10 +139,7 @@ export function tuneDialog(o: { hass: Hass; select: string; where: Where; rules:
   const here = (sizes[o.where] ??= {});
   const item = DIALOG.item;
   const [lo, hi] = RANGE[item];
-  const use = inUse(o.rules, here);
-  const value = use[item];
-  // The controls' "rule" is the link: the main name in use, as a pill.
-  const linked = item === "controls";
+  const value = inUse(o.rules, here)[item];
   const set = (n: number) => {
     here[item] = Math.min(hi, Math.max(lo, Math.round(n)));
     o.changed();
@@ -216,7 +191,7 @@ export function tuneDialog(o: { hass: Hass; select: string; where: Where; rules:
       <span>px</span>
     </div>
     <div class="tune-rule">
-      ${linked ? `Follows the main name: ${Math.round(use.main * CONTROLS_HEIGHT)} px` : `Rule: ${o.rules[item]} px`}
+      Rule: ${o.rules[item]} px
       <button
         ?disabled=${here[item] === undefined}
         @click=${() => {
@@ -224,17 +199,15 @@ export function tuneDialog(o: { hass: Hass; select: string; where: Where; rules:
           o.changed();
         }}
       >
-        ${linked ? "Follow the main name" : "Back to the rule"}
+        Back to the rule
       </button>
     </div>
   </div>`;
 }
 
-/** A record of this device's sizes: the figures and the rules here, the sizes in use here
- * and whether the controls were following the main name, every size set by hand on this
- * page (each where), and the device. */
+/** A record of this device's sizes: the figures and the settings' sizes here, the sizes
+ * in use here, every size set by hand on this page (each where), and the device. */
 export function recordOf(o: { ref: string; select: string; figures: Figures; main: string; version: string; desk: boolean }) {
-  const { follow, ...use } = inUse(o.figures.rules, tunedAt(o.select, o.figures.where));
   return {
     ref: o.ref,
     at: new Date().toISOString(),
@@ -253,8 +226,7 @@ export function recordOf(o: { ref: string; select: string; figures: Figures; mai
     main_place: o.figures.place.map(Math.round),
     smallest_tile: o.figures.tile.map(Math.round),
     rules: o.figures.rules,
-    in_use: use,
-    controls_follow_main_name: follow,
+    in_use: inUse(o.figures.rules, tunedAt(o.select, o.figures.where)),
     sums: o.figures.sums,
     tuned: TUNED.get(o.select) ?? {},
   };

@@ -2,38 +2,35 @@
 // and what gives way where they don't fit.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { barFit, controlsAt, controlsStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+import { controlsAt, foldPresets, previewStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 
-test("controls have no size of their own, and go down the right from the top unless a camera says otherwise", () => {
-  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start", opacity: 60 });
-  assert.equal("size" in controlsAt({ size: 72 } as never), false); // a size saved before: dropped
-  assert.equal(controlsAt({ landscape: "bottom" }).landscape, "bottom");
+test("controls have no size or background of their own, and go down the right from the top unless a camera says otherwise", () => {
+  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start" });
+  // a size or a background saved before: dropped
+  assert.deepEqual(controlsAt({ size: 72, opacity: 60, landscape: "bottom" } as never), { landscape: "bottom", portrait: "right", align: "start" });
 });
 
-test("a pill is the main camera's name pill at the name's size", () => {
-  const look = controlsStyle(controlsAt(), 20);
-  assert.equal(look["--cm-pill-height"], "28px");
-  assert.equal(look["--cm-pill-font"], "20px");
-  assert.equal(look["--cm-pill-pad"], "10px");
-  assert.equal(controlsStyle(controlsAt(), 20, 0.5)["--cm-pill-font"], "10px");
+test("the Cameras page previews the style guide's chip at its screen's scale", () => {
+  const look = previewStyle(controlsAt(), 0.5);
+  assert.equal(look["--cm-chip-height"], "11px");
+  assert.equal(look["--cm-chip-font"], "5px");
+  assert.equal(look["--cm-chip-end"], "11px");
+  assert.equal(previewStyle(controlsAt({ align: "end" }), 1)["--cm-chip-align"], "flex-end");
 });
 
-test("what doesn't fit gives way: the presets behind PTZ, then the names", () => {
-  const names = ["Sound off", "Gate light", "Gate"];
+test("only the presets give way, behind PTZ: the chips always keep their names", () => {
+  const names = ["Full", "Sound off", "Gate light", "Gate"];
   const three = ["Gate", "Drive", "Door"];
-  // a tablet's full screen (a name of 25 px): all of it, and four presets never stand inline
-  assert.deepEqual(barFit(25, [1280, 800], "top", names, three), { height: 35, names: true, fold: false });
-  assert.equal(barFit(25, [1280, 800], "top", names, [...three, "Lawn"]).fold, true);
-  // a narrower place: the presets fold first, the names stay
-  assert.deepEqual(barFit(20, [700, 550], "top", names, three), { height: 28, names: true, fold: true });
-  // a phone's main area (13 px): the names fit; a narrower one still, icons alone
-  assert.equal(barFit(13, [378, 206], "top", names, three).names, true);
-  assert.equal(barFit(22, [250, 300], "top", names, three).names, false);
-  // down a side: names only while the bar is no more than its share of the width
-  assert.equal(barFit(25, [1280, 800], "right", names, []).names, true);
-  assert.equal(barFit(25, [500, 800], "right", names, []).names, false);
-  // nothing to show fits anywhere
-  assert.deepEqual(barFit(10, [100, 100], "top", [], []), { height: 14, names: true, fold: false });
+  // a tablet's full screen: all of it; more than three presets never stand inline
+  assert.equal(foldPresets([1280, 800], "top", names, three), false);
+  assert.equal(foldPresets([1280, 800], "top", names, [...three, "Lawn"]), true);
+  // a phone's main area: seven chips don't fit along its top, nor down its side
+  assert.equal(foldPresets([376, 205], "top", names, three), true);
+  assert.equal(foldPresets([376, 205], "right", names, three), true);
+  // down a tablet's side they do
+  assert.equal(foldPresets([905, 550], "right", names, three), false);
+  // no presets: nothing to fold
+  assert.equal(foldPresets([100, 100], "top", names, []), false);
 });
 
 test("a zoom steps a tenth of its range a tap, in whole steps of its entity, within its range", () => {

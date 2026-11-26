@@ -17,11 +17,8 @@ test("each place the card can be is tuned on its own", () => {
   assert.equal(whereOf(true, true), "commander full screen, main camera full screen");
 });
 
-test("the controls follow the main name in use, until they are set by hand", () => {
-  const rules = { tile: 11, main: 20, controls: 30, dot: 7 };
-  assert.deepEqual(inUse(rules, {}), { main: 20, tile: 11, dot: 7, controls: 30, follow: true });
-  // the main name set by hand: the controls go with it
-  assert.deepEqual(inUse(rules, { main: 15 }), { main: 15, tile: 11, dot: 7, controls: 23, follow: true });
-  // the controls set by hand: their own, whatever the main name
-  assert.deepEqual(inUse(rules, { main: 15, controls: 40 }), { main: 15, tile: 11, dot: 7, controls: 40, follow: false });
+test("a size in use is the one set by hand, else the settings'", () => {
+  const rules = { tile: 11, main: 14, dot: 5.5 };
+  assert.deepEqual(inUse(rules, {}), rules);
+  assert.deepEqual(inUse(rules, { main: 18 }), { tile: 11, main: 18, dot: 5.5 });
 });

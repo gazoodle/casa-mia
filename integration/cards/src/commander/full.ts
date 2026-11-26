@@ -8,7 +8,7 @@
 // the app built it (cameras.py: preset_calls).
 import { css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
-import { barFit, controlsAt, controlsStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+import { alignOf, CHIP, controlsAt, foldPresets, ROOM, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 import type { Card, Preset } from "./common.ts";
 
 /** States a control can't be used in: shown dimmed and said, never a dead button. */
@@ -21,7 +21,8 @@ export const PTZ_NOTE_MS = 10_000;
 export const ZOOM_PENDING_MS = 6_000;
 
 /** One of the card's own buttons, where it offers them (Config.sound_button,
- * screen_button): what it says and shows in its state now, and its tap. */
+ * screen_button): what it says and shows in its state now (`on`: a pressed chip), and its
+ * tap. */
 export type Own = { on: boolean; icon: string; label: string; title: string; toggle: () => void };
 
 /** The lines a bar can open out on the picture's side of it: the PTZ presets (where they
@@ -44,14 +45,14 @@ export type Lines = {
 /** The camera's controls and presets (after the card's own buttons) along their edge of
  * `place`: the full screen, or the main area (Config.main_controls), `size` px. The wide
  * or the tall edge goes by the shape of that place, not the screen's: a main area can be
- * wide on an upright tablet. The pills are the main camera's name pill at the name's size
- * there (`name`, px: labels.ts nameSize), and what doesn't fit gives way (controls.ts:
- * barFit): the presets go behind one PTZ button,
- * which opens them out as a second line on the picture's side of the bar (under a bar at
- * the top, left of one on the right), then the names go and the pills are icons. A camera
+ * wide on an upright tablet. The buttons are the style guide's chips (pills.css: cm-chip),
+ * one size on every device, pressed (cm-on) while their entity is on, and they always
+ * keep their names. Where the presets don't fit they go behind one PTZ button
+ * (controls.ts: foldPresets), which opens them out as a second line on the picture's side
+ * of the bar (under a bar at the top, left of one on the right). A camera
  * with a zoom always has one Zoom button (owner, 2026-11-27), which opens its stepper the
  * same way: out, the level, in, and Reset (all the way out). */
-export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, size: [number, number], name: number, own: Own[], lines: Lines) {
+export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, size: [number, number], own: Own[], lines: Lines) {
   const controls = camera.controls ?? [];
   const presets = camera.presets ?? [];
   if (!controls.length && !own.length && !presets.length && !camera.zoom) return nothing;
@@ -65,14 +66,9 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
   const edge = size[0] >= size[1] ? at.landscape : at.portrait;
   const nameOf = (c: (typeof controls)[number]) => c.name || (hass.states[c.entity]?.attributes.friendly_name as string | undefined) || c.entity;
   const named = [...own.map((b) => b.label), ...controls.map(nameOf), ...(camera.zoom ? [zoomName] : [])];
-  const bar = barFit(name, size, edge, named, presets.map((p) => p.name));
-  // Its size, place along the edge and background, as the Cameras page previews them.
-  const look = Object.entries(controlsStyle(at, name))
-    .map(([k, v]) => `${k}:${v}`)
-    .join(";");
-  const folded = bar.fold && presets.length > 0;
+  const folded = foldPresets(size, edge, named, presets.map((p) => p.name));
   const preset = (p: Preset) =>
-    html`<button class="control" title="Move the camera to ${p.name}" @click=${() => lines.go(p)}>
+    html`<button class="control cm-chip" title="Move the camera to ${p.name}" @click=${() => lines.go(p)}>
       <ha-icon icon="mdi:camera-control"></ha-icon>
       <span>${p.name}</span>
     </button>`;
@@ -84,22 +80,89 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
     const from = to ?? zoom!.value;
     const send = (value: number) => lines.zoom(camera.zoom!, value);
     return html`<div class="controls-line">
-      <button class="control" ?disabled=${from <= zoom!.min} title="Zoom out a step" @click=${() => send(zoomStep(zoom!, from, -1))}>
+      <button class="control cm-chip" ?disabled=${from <= zoom!.min} title="Zoom out a step" @click=${() => send(zoomStep(zoom!, from, -1))}>
         <ha-icon icon="mdi:magnify-minus-outline"></ha-icon>
         <span>Out</span>
       </button>
-      <span class="control level" title="The camera's zoom now${to === null ? "" : ", and the level it is going to"}">
+      <span class="level cm-pill" title="The camera's zoom now${to === null ? "" : ", and the level it is going to"}">
         ${zoomPct(zoom!, zoom!.value)}%${to === null ? "" : ` → ${zoomPct(zoom!, to)}%`}
       </span>
-      <button class="control" ?disabled=${from >= zoom!.max} title="Zoom in a step" @click=${() => send(zoomStep(zoom!, from, 1))}>
+      <button class="control cm-chip" ?disabled=${from >= zoom!.max} title="Zoom in a step" @click=${() => send(zoomStep(zoom!, from, 1))}>
         <ha-icon icon="mdi:magnify-plus-outline"></ha-icon>
         <span>In</span>
       </button>
-      <button class="control" ?disabled=${from <= zoom!.min} title="Zoom all the way out" @click=${() => send(zoom!.min)}>
+      <button class="control cm-chip" ?disabled=${from <= zoom!.min} title="Zoom all the way out" @click=${() => send(zoom!.min)}>
         <ha-icon icon="mdi:backup-restore"></ha-icon>
         <span>Reset</span>
       </button>
     </div>`;
+  };
+  // The bar's chips, in order: the card's own, the camera's controls, its presets (or
+  // the PTZ button they are behind), its zoom.
+  const chips = [
+    ...own.map(
+      (b) =>
+        html`<button class="control cm-chip ${b.on ? "cm-on" : ""}" title=${b.title} aria-label=${b.label} aria-pressed=${b.on} @click=${b.toggle}>
+          <ha-icon icon=${b.icon}></ha-icon>
+          <span>${b.label}</span>
+        </button>`,
+    ),
+    ...controls.map((c) => {
+      const st = hass.states[c.entity];
+      const name = nameOf(c);
+      const out = !st ? "Not found" : OUT.has(st.state) ? "Unavailable" : "";
+      return html`<button
+        class="control cm-chip ${st?.state === "on" || st?.state === "open" || st?.state === "unlocked" ? "cm-on" : ""}"
+        ?disabled=${Boolean(out)}
+        title=${out ? `${c.entity}: ${out}` : name}
+        aria-label=${name}
+        @click=${() => fire(el, "hass-action", { config: { entity: c.entity, tap_action: { action: "toggle" } }, action: "tap" })}
+      >
+        ${st ? html`<ha-state-icon .hass=${hass} .stateObj=${st} .icon=${c.icon}></ha-state-icon>` : html`<ha-icon icon="mdi:alert-circle-outline"></ha-icon>`}
+        <span>${name}</span>
+        ${out ? html`<span class="cm-pill cm-filled cm-bad">${out}</span>` : nothing}
+      </button>`;
+    }),
+    ...(folded
+      ? [
+          html`<button
+            class="control cm-chip ${lines.open === "ptz" ? "cm-on" : ""}"
+            title=${lines.open === "ptz" ? "Put the presets away" : `Its ${presets.length} PTZ presets`}
+            aria-label="PTZ"
+            aria-expanded=${lines.open === "ptz"}
+            @click=${() => lines.show("ptz")}
+          >
+            <ha-icon icon="mdi:camera-control"></ha-icon>
+            <span>PTZ</span>
+          </button>`,
+        ]
+      : presets.map(preset)),
+    ...(camera.zoom
+      ? [
+          html`<button
+            class="control cm-chip ${lines.open === "zoom" && zoom ? "cm-on" : ""}"
+            ?disabled=${Boolean(zoomOut)}
+            title=${zoomOut ? `${camera.zoom}: ${zoomOut}` : lines.open === "zoom" ? "Put the zoom away" : "Zoom in or out"}
+            aria-label=${zoomName}
+            aria-expanded=${lines.open === "zoom" && Boolean(zoom)}
+            @click=${() => lines.show("zoom")}
+          >
+            <ha-icon icon=${zst ? "mdi:magnify" : "mdi:alert-circle-outline"}></ha-icon>
+            <span>${zoomName}</span>
+            ${zoomOut ? html`<span class="cm-pill cm-filled cm-bad">${zoomOut}</span>` : nothing}
+          </button>`,
+        ]
+      : []),
+  ];
+  // Down a side, a line holds as many chips as the place is high, and the rest stand in
+  // another line on the picture's side of it. Made here and not by CSS: a flex column
+  // that wraps does not widen its box, so its second column fell outside the place.
+  const down = edge === "left" || edge === "right";
+  const most = down ? Math.max(1, Math.floor((size[1] - 2 * ROOM.end + ROOM.between) / (CHIP.height + ROOM.between))) : 0;
+  const inLines = (items: unknown[], last: unknown = nothing) => {
+    const per = most || items.length || 1;
+    const count = Math.max(1, Math.ceil(items.length / per));
+    return Array.from({ length: count }, (_, i) => html`<div class="controls-line">${items.slice(i * per, (i + 1) * per)}${i === count - 1 ? last : nothing}</div>`);
   };
   // A tap that misses a button, between two or just beside one, lands on the group they
   // stand in and does nothing: it was going through to the picture, which opened the
@@ -107,64 +170,11 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
   // anywhere else in the place puts it away, and does no more than that.
   return html`<div class="controls-area" style=${place}>
     ${opened ? html`<div class="controls-away" @click=${() => lines.show(lines.open as Line)}></div>` : nothing}
-    <div class="controls ${bar.names ? "" : "icons"}" style=${look} data-edge=${edge}>
-     <div class="controls-group">
-      <div class="controls-line">
-        ${own.map(
-          (b) =>
-            html`<button class="control ${b.on ? "on" : ""}" title=${b.title} aria-label=${b.label} @click=${b.toggle}>
-              <ha-icon icon=${b.icon}></ha-icon>
-              <span>${b.label}</span>
-            </button>`,
-        )}
-        ${controls.map((c) => {
-          const st = hass.states[c.entity];
-          const name = nameOf(c);
-          const out = !st ? "Not found" : OUT.has(st.state) ? "Unavailable" : "";
-          return html`<button
-            class="control ${st?.state === "on" || st?.state === "open" || st?.state === "unlocked" ? "on" : ""}"
-            ?disabled=${Boolean(out)}
-            title=${out ? `${c.entity}: ${out}` : name}
-            aria-label=${name}
-            @click=${() => fire(el, "hass-action", { config: { entity: c.entity, tap_action: { action: "toggle" } }, action: "tap" })}
-          >
-            ${st
-              ? html`<ha-state-icon .hass=${hass} .stateObj=${st} .icon=${c.icon}></ha-state-icon>`
-              : html`<ha-icon icon="mdi:alert-circle-outline"></ha-icon>`}
-            <span>${name}</span>
-            ${out ? html`<span class="cm-pill cm-filled cm-bad">${out}</span>` : nothing}
-          </button>`;
-        })}
-        ${folded
-          ? html`<button
-              class="control ${lines.open === "ptz" ? "on" : ""}"
-              title=${lines.open === "ptz" ? "Put the presets away" : `Its ${presets.length} PTZ presets`}
-              aria-label="PTZ"
-              aria-expanded=${lines.open === "ptz"}
-              @click=${() => lines.show("ptz")}
-            >
-              <ha-icon icon="mdi:camera-control"></ha-icon>
-              <span>PTZ</span>
-            </button>`
-          : presets.map(preset)}
-        ${camera.zoom
-          ? html`<button
-              class="control ${lines.open === "zoom" && zoom ? "on" : ""}"
-              ?disabled=${Boolean(zoomOut)}
-              title=${zoomOut ? `${camera.zoom}: ${zoomOut}` : lines.open === "zoom" ? "Put the zoom away" : "Zoom in or out"}
-              aria-label=${zoomName}
-              aria-expanded=${lines.open === "zoom" && Boolean(zoom)}
-              @click=${() => lines.show("zoom")}
-            >
-              <ha-icon icon=${zst ? "mdi:magnify" : "mdi:alert-circle-outline"}></ha-icon>
-              <span>${zoomName}</span>
-              ${zoomOut ? html`<span class="cm-pill cm-filled cm-bad">${zoomOut}</span>` : nothing}
-            </button>`
-          : nothing}
-        ${lines.failed ? html`<span class="cm-pill cm-filled cm-bad failed">${lines.failed}</span>` : nothing}
+    <div class="controls" style="--cm-chip-align:${alignOf(at)}" data-edge=${edge}>
+      <div class="controls-group">
+        ${inLines(chips, lines.failed ? html`<span class="cm-pill cm-filled cm-bad failed">${lines.failed}</span>` : nothing)}
+        ${!opened ? nothing : lines.open === "zoom" ? stepper() : inLines(presets.map(preset))}
       </div>
-      ${!opened ? nothing : lines.open === "zoom" ? stepper() : html`<div class="controls-line">${presets.map(preset)}</div>`}
-     </div>
     </div>
   </div>`;
 }
@@ -177,26 +187,26 @@ export const fullStyles = css`
     z-index: 10;
     background: #000;
   }
-  /* Sized from the pill's height (controls.ts: controlsStyle), as the page's preview is.
-     Along its edge, the group of buttons sits at the start, the middle or the end. The
+  /* Along its edge, the group of buttons sits at the start, the middle or the end. The
      group is only as big as its buttons and the room round them, and takes the taps that
      miss one. Its lines stand side by side from the edge inwards: the bar itself, then
-     the PTZ presets when they are opened out. */
+     the PTZ presets or the zoom's stepper when opened out. The buttons are the style
+     guide's chips (pills.css), and the room is controls.ts ROOM. */
   .controls {
     position: absolute;
     display: flex;
-    justify-content: var(--cm-pill-align);
+    justify-content: var(--cm-chip-align);
   }
   .controls-group {
     display: flex;
     box-sizing: border-box;
     max-width: 100%;
     max-height: 100%;
-    gap: calc(var(--cm-pill-height) * 0.2);
-    padding: calc(var(--cm-pill-height) * 0.3);
+    gap: 10px;
+    padding: 7px;
     pointer-events: auto;
   }
-  /* Over the whole place while the presets are opened out: a tap on it puts them away. */
+  /* Over the whole place while a line is opened out: a tap on it puts the line away. */
   .controls-away {
     position: absolute;
     inset: 0;
@@ -206,63 +216,29 @@ export const fullStyles = css`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: var(--cm-pill-align);
-    gap: calc(var(--cm-pill-height) * 0.2);
+    justify-content: var(--cm-chip-align);
+    gap: 10px;
   }
-  /* The main camera's name pill (the caption, styles.ts), at the name's size there
-     (controls.ts: controlsStyle): its height, ends and font, the commander's label font.
-     Its colours are its own: white on a black of the camera's chosen strength, to be read
-     over a picture, and the active colour while its entity is on. */
   .control {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--cm-pill-gap);
-    height: var(--cm-pill-height);
-    padding: 0 var(--cm-pill-pad);
-    border: none;
-    border-radius: calc(var(--cm-pill-height) / 2);
-    background: rgb(0 0 0 / var(--cm-pill-alpha));
-    color: #fff;
-    font: var(--cm-pill-font) / 1.2 var(--cm-label-font, sans-serif);
-    white-space: nowrap;
-    cursor: pointer;
-    --mdc-icon-size: var(--cm-pill-icon);
+    pointer-events: auto;
+    --mdc-icon-size: 14px;
   }
-  .control.on {
-    background: color-mix(in srgb, var(--state-active-color, var(--primary-color)) var(--cm-pill-alpha), transparent);
-  }
-  .control:disabled {
-    opacity: 0.7;
-    cursor: default;
-  }
-  /* A pill drawn small (a phone's main area) is still as easy to hit as a 44 px one: its
-     tap area reaches past it, across the bar, and half-way to the next pill along it. */
+  /* A chip is 22 px high, less than a finger: its tap area reaches half-way to the next
+     chip along the bar, and across the bar to 44 px. */
   .control::after {
     content: "";
     position: absolute;
-    inset: min(0px, calc((var(--cm-pill-height) - 44px) / 2)) calc(var(--cm-pill-height) * -0.1);
+    inset: -11px -5px;
   }
   .controls[data-edge="left"] .control::after,
   .controls[data-edge="right"] .control::after {
-    inset: calc(var(--cm-pill-height) * -0.1) min(0px, calc((var(--cm-pill-height) - 44px) / 2));
+    inset: -5px -11px;
   }
-  /* No room for the names (controls.ts: barFit): the bar's pills are their icons alone,
-     round, each still named to a screen reader and on a pointer's hover. The presets,
-     when opened out, keep their names. */
-  .controls.icons .controls-line:first-child .control {
-    justify-content: center;
-    width: var(--cm-pill-height);
-    padding: 0;
-  }
-  .controls.icons .controls-line:first-child .control span {
-    display: none;
-  }
-  /* The zoom's level, between its two steps: a pill that says, and is not pressed. */
-  .control.level {
-    justify-content: center;
-    min-width: calc(var(--cm-pill-height) * 1.6);
-    cursor: default;
+  /* The zoom's level, between its two steps: a pill, which says and is not pressed, on
+     the chips' own background so it reads over a picture. */
+  .controls .level {
+    background: var(--surface);
     font-variant-numeric: tabular-nums;
   }
   /* Why a preset didn't go: wraps, so a long reason stays on a narrow card. */
@@ -274,9 +250,6 @@ export const fullStyles = css`
   .controls-area {
     position: absolute;
     pointer-events: none;
-  }
-  .control {
-    pointer-events: auto;
   }
   /* The edge for its place's shape: set on the Cameras page. The second line is on the
      picture's side of the first. */
@@ -290,20 +263,20 @@ export const fullStyles = css`
   .controls[data-edge="right"] .controls-group { flex-direction: row-reverse; }
   .controls[data-edge="left"] .controls-line,
   .controls[data-edge="right"] .controls-line { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
-  /* A pill's height of room at each end of the edge (controls.ts: END), so the first
-     button isn't hard against the frame, where a finger misses it and presses the one
-     below (owner, 2026-11-26). The end buttons' tap areas reach across that room, so a
-     tap a little short still hits them. */
+  /* A chip's height of room at each end of the edge, so the first button isn't hard
+     against the frame, where a finger misses it and presses the one below (owner,
+     2026-11-26). The end buttons' tap areas reach across that room, so a tap a little
+     short still hits them. */
   .controls[data-edge="top"] .controls-group,
-  .controls[data-edge="bottom"] .controls-group { padding-inline: var(--cm-pill-height); }
+  .controls[data-edge="bottom"] .controls-group { padding-inline: 22px; }
   .controls[data-edge="left"] .controls-group,
-  .controls[data-edge="right"] .controls-group { padding-block: var(--cm-pill-height); }
+  .controls[data-edge="right"] .controls-group { padding-block: 22px; }
   .controls[data-edge="top"] .control:first-child::after,
-  .controls[data-edge="bottom"] .control:first-child::after { left: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="bottom"] .control:first-child::after { left: -22px; }
   .controls[data-edge="top"] .control:last-child::after,
-  .controls[data-edge="bottom"] .control:last-child::after { right: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="bottom"] .control:last-child::after { right: -22px; }
   .controls[data-edge="left"] .control:first-child::after,
-  .controls[data-edge="right"] .control:first-child::after { top: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="right"] .control:first-child::after { top: -22px; }
   .controls[data-edge="left"] .control:last-child::after,
-  .controls[data-edge="right"] .control:last-child::after { bottom: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="right"] .control:last-child::after { bottom: -22px; }
 `;

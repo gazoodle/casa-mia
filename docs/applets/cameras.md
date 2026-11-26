@@ -66,17 +66,15 @@ places. It is there for a camera that has controls or presets:
 - **The edge** they go along: one choice for a wide screen and one for a tall one, so a
   tablet turned upright can have them somewhere else.
 - **Along the edge:** at its start, its middle or its end.
-- **Their size** is not set here. Each button is one and a half times the main
-  camera's name where it is shown, which is set for each commander (**Main camera name
-  size** on the Camera Commander page). The buttons start down the right edge from the
-  top, wide or tall, a button's height in from each end of the edge, so the first one
-  isn't hard against the frame.
-- **When they don't fit:** the PTZ presets go behind the PTZ button first. If there is
-  still no room, the names go and the buttons are round icons.
+- **Their look** is not set here. The buttons are Casa Mia's own chips, the same small
+  size on every device, in capitals, and filled in the theme's colour while their entity
+  is on. They start down the right edge from the top, wide or tall, a button's height
+  in from each end of the edge, so the first one isn't hard against the frame.
+- **When they don't fit:** the PTZ presets go behind the PTZ button. The buttons always
+  keep their names, on a phone too, and a bar that is still too long wraps.
 - **A missed tap:** the area the buttons stand in takes a tap that lands between them or
   just beside one, so it doesn't open the camera full screen. While the PTZ presets are
   opened out, a tap anywhere else on the camera puts them away.
-- **Background:** from clear to solid.
 
 The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to
 scale. The buttons themselves are described under

@@ -42,64 +42,47 @@
   position: absolute;
   display: flex;
   flex-wrap: wrap;
-  justify-content: var(--cm-pill-align);
-  gap: calc(var(--cm-pill-height) * 0.2);
-  padding: calc(var(--cm-pill-height) * 0.3);
+  justify-content: var(--cm-chip-align);
+  gap: var(--cm-chip-between);
+  padding: var(--cm-chip-around);
 }
 
-/* A pill's height of room at each end of the edge, clear of the frame (controls.ts: END). */
+/* A chip's height of room at each end of the edge, clear of the frame (controls.ts: ROOM). */
 .top.screenControls,
 .bottom.screenControls {
-  padding-inline: var(--cm-pill-height);
+  padding-inline: var(--cm-chip-end);
 }
 
 .left.screenControls,
 .right.screenControls {
-  padding-block: var(--cm-pill-height);
+  padding-block: var(--cm-chip-end);
 }
 
-/* The style guide's chip at the pill's height (controls.ts: controlsStyle), as the card
-   draws it (integration/cards/src/commander/full.ts). */
+/* The style guide's chip, as the card draws it over a camera (full.ts), at the preview's
+   scale (controls.ts: previewStyle). */
 .pill {
-  display: flex;
-  align-items: center;
-  height: var(--cm-pill-height);
-  padding: 0 var(--cm-pill-pad);
-  border-radius: calc(var(--cm-pill-height) / 2);
-  background: rgb(0 0 0 / var(--cm-pill-alpha));
-  color: #fff;
-  font-size: var(--cm-pill-font);
-  white-space: nowrap;
-}
-
-/* No room for the names on that screen: icons alone, as the card shows them. */
-.icons .pill {
-  justify-content: center;
-  width: var(--cm-pill-height);
-  padding: 0;
-}
-
-.icons .pill span {
-  display: none;
-}
-
-.icons .pill::before {
-  margin-right: 0;
+  composes: cm-chip from global;
+  gap: 0;
+  height: var(--cm-chip-height);
+  padding: 0 var(--cm-chip-pad);
+  font-size: var(--cm-chip-font);
+  line-height: 1;
+  cursor: default;
 }
 
 /* Where the card draws the entity's icon (the page has no icons of its own). */
 .pill::before {
   content: "";
   flex: none;
-  width: var(--cm-pill-icon);
-  height: var(--cm-pill-icon);
-  margin-right: var(--cm-pill-gap);
+  width: var(--cm-chip-icon);
+  height: var(--cm-chip-icon);
+  margin-right: var(--cm-chip-gap);
   border-radius: 50%;
   background: currentColor;
   opacity: 0.8;
 }
 
-/* The pills' size, place along the edge and background, under the two screens. */
+/* Where along the edge, under the two screens. */
 .look {
   display: grid;
   grid-template-columns: auto 1fr;

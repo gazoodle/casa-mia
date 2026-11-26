@@ -103,7 +103,7 @@ export function CameraDialog({
               if (out.ptz) out.ptz = { ...out.ptz, presets: parsePresets(presets) };
               if (!out.controls?.length) delete out.controls;
               if (!out.controls && !out.ptz?.presets.length && !out.zoom) delete out.controls_at;
-              else if (out.controls_at) out.controls_at = controlsAt(out.controls_at); // (a size of its own dropped)
+              else if (out.controls_at) out.controls_at = controlsAt(out.controls_at); // (a size or background of its own dropped)
               onSave(out);
             }}
           >

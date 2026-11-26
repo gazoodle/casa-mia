@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026.11.14-b16
+
+- **Camera Commander card: the controls are the style guide's chips.** The buttons over
+  the main camera (Full, Sound, a camera's controls, PTZ, Zoom) are now the same chips
+  as everywhere else in Casa Mia: one fixed size on every device, in capitals, in Home
+  Assistant's font, and filled in the theme's colour while their entity is on. The sizes
+  worked out from the main camera's name in b8 to b15 are gone, as is each camera's
+  **Background** setting on the Cameras page; one saved before is no longer used.
+- **Camera Commander card: the controls always keep their names.** They no longer turn
+  into round icons where there is little room, as on a phone: a name is more to hit than
+  an icon. Only the PTZ presets give way, behind the PTZ button; a bar still too long
+  wraps.
+- **Camera Commander card: Full screen is called Full,** so it is not the longest name
+  in the bar. It is shown pressed while the commander has the screen.
+- **Camera Commander: the names are one size on every device.** The tiles' names are
+  11 px and the main camera's name 14 px, on a phone, a tablet and a computer alike.
+  **Tile name size** and **Main camera name size** are a % of those. The rules of b15,
+  which worked a size out from the tile, the main camera's place and whether the device
+  had a mouse, are gone: fitted to sizes set by hand, they came out close to one size.
+  The motion dot stays half the tiles' names.
+- **Camera Commander card: the tuning dialog no longer sets the controls' size,** as
+  they have none. It still sets the tiles' names, the main camera's name and the dot.
+
 ## 2026.11.14-b15
 
 - **Camera Commander: the names, the controls and the motion dot are sized by new rules,

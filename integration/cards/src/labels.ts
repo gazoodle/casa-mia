@@ -6,6 +6,8 @@
 import LABELS from "../../../app/src/casa_mia/labels.json" with { type: "json" };
 
 export const OPTIONS = LABELS.labels;
+/** The names' sizes, CSS px (nameSize), for the debug figures too. */
+export const NAME = LABELS.name;
 /** A font's file in the casa_mia component's www/fonts ("standard" has none: it is the
  * compositor's built-in font, and the browser's own sans-serif here). */
 export const FILES: Record<string, string> = LABELS.fonts;
@@ -14,9 +16,9 @@ export type Style = "bar" | "pill" | "none";
 export type Place = "top-left" | "top-centre" | "top-right" | "bottom-left" | "bottom-centre" | "bottom-right";
 export type Labels = {
   font: string;
-  /** The tiles' names, % of the size worked out for the screen (nameSize). */
+  /** The tiles' names, % of their size (nameSize). */
   tile_scale: number;
-  /** The main camera's name, % of the size worked out for its screen (nameSize). */
+  /** The main camera's name, % of its size (nameSize). */
   main_scale: number;
   colour: string;
   tint: string;
@@ -37,23 +39,14 @@ export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) 
  * were any has none). */
 export const labelsOf = (own?: Partial<Labels> | null): Labels => ({ ...DEFAULTS, ...own });
 
-/** The rule for a name: [k, p], k x side^p CSS px (labels.json: name). */
-export function nameRule(which: "tile" | "main", desk = false): [number, number] {
-  const n = LABELS.name;
-  return (which === "tile" ? n.tile : desk ? n.main_mouse : n.main_touch) as [number, number];
-}
-
-/** A name's height in px, `setting` % of its rule, for a place whose shorter side is
- * `side` px (`scale` of them to a CSS px): a tile's from the commander's smallest tile, the
- * main camera's from its place, less with a mouse (`desk`). Each grows slowly with its
- * side, and has no floor or cap: fitted to the sizes the owner set on a phone, two wall
- * tablets and a Mac (2026-11-26), the old floors were too large on a phone and the caps
- * were reached on a tablet. The compositor's is the same sum but for `desk`, which it
- * can't know; the card says its sizes in the picture's address (labels.py: name_px). */
-export function nameSize(which: "tile" | "main", setting: number, side: number, scale = 1, desk = false): number {
-  const [k, p] = nameRule(which, desk);
-  const css = (k * Math.pow(side / scale, p) * setting) / 100;
-  return Math.floor(css * scale + 0.5);
+/** A name's height in px (`scale` of them to a CSS px): `setting` % of its one size
+ * (labels.json: name), the same on every device, as the style guide's pills and chips are
+ * (owner, 2026-11-26). It was a share of its place and then a fitted rule from
+ * 2026.11.14-b8 to b15; the rules fitted to sizes set by hand came out close to a constant,
+ * and a fixed size in CSS px is what suits a phone, a tablet and a computer alike. The
+ * compositor's is the same sum (labels.py: name_px). */
+export function nameSize(which: "tile" | "main", setting: number, scale = 1): number {
+  return Math.floor(((NAME[which] * setting) / 100) * scale + 0.5);
 }
 
 const face = (font: string) => `Casa Mia ${font}`;

@@ -3,10 +3,8 @@ import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import edges from "./edges.module.css";
 import { Segmented } from "../ui";
-import { Slider } from "../controls";
-import { nameSize } from "../../../../integration/cards/src/labels.ts";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, barFit, controlsAt, controlsName, controlsStyle } from "./controls";
+import { type ControlsAt, EDGES, controlsAt, foldPresets, previewStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -146,13 +144,10 @@ export function Thumb({ entity, className = css.thumb }: { entity: string; class
  * landscape and 240 px in portrait (edges.module.css). */
 const PREVIEW = 0.3;
 const TABLET: Record<"landscape" | "portrait", [number, number]> = { landscape: [1280, 800], portrait: [800, 1280] };
-/** The controls' size on that tablet's full screen, from the main camera's name there at
- * a commander's default (labels.ts: nameSize; controls.ts: controlsName). */
-const NAME_PX = controlsName(nameSize("main", 100, 800));
 
 /** How a camera's controls and PTZ presets are shown on a commander's full screen: an edge
- * for a wide screen and one for a tall one, where along it, the pills' size and
- * background, each screen previewed to scale over the camera's still. */
+ * for a wide screen and one for a tall one, and where along it, each screen previewed to
+ * scale over the camera's still. */
 export function ControlsEdges({
   entity,
   controls,
@@ -175,10 +170,10 @@ export function ControlsEdges({
   const entities = useContext(Entities);
   const names = controls.map((c) => c.name || entities.find((e) => e.entity === c.entity)?.name || c.entity);
   const zooms = zoom ? ["Zoom"] : [];
-  // Each screen's bar as the card would show it there (controls.ts: barFit): its pills'
-  // height, the presets by name or behind PTZ, and icons alone when the names don't fit.
-  const bars = Object.fromEntries((["landscape", "portrait"] as const).map((shape) => [shape, barFit(NAME_PX, TABLET[shape], at[shape], [...names, ...zooms], presets)]));
-  const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (bars[shape].fold ? ["PTZ"] : presets) : []), ...zooms];
+  // Each screen's bar as the card would show it there: the presets by name, or behind
+  // PTZ where they don't fit (controls.ts: foldPresets).
+  const fold = (shape: "landscape" | "portrait") => foldPresets(TABLET[shape], at[shape], [...names, ...zooms], presets);
+  const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (fold(shape) ? ["PTZ"] : presets) : []), ...zooms];
   return (
     <>
       <div className={edges.edges}>
@@ -187,7 +182,7 @@ export function ControlsEdges({
             <Segmented value={at[shape]} options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])} onChange={(edge) => set({ [shape]: edge })} />
             <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
               <Thumb entity={entity} className={edges.screenPicture} />
-              <div className={`${edges.screenControls} ${edges[at[shape]]} ${bars[shape].names ? "" : edges.icons}`} style={controlsStyle(at, NAME_PX, PREVIEW)}>
+              <div className={`${edges.screenControls} ${edges[at[shape]]}`} style={previewStyle(at, PREVIEW)}>
                 {pills(shape).map((n, i) => (
                   <span key={i} className={edges.pill} title={n}>
                     <span>{n}</span>
@@ -205,8 +200,6 @@ export function ControlsEdges({
           options={[["start", "Left or top"], ["center", "Centre"], ["end", "Right or bottom"]]}
           onChange={(align) => set({ align })}
         />
-        <span>Background</span>
-        <Slider value={at.opacity} min={0} max={100} step={5} format={(v) => (v ? (v === 100 ? "solid" : `${v}%`) : "clear")} onChange={(opacity) => set({ opacity })} />
       </div>
     </>
   );
