@@ -48,7 +48,8 @@ test("a song the playlist holds already is asked about before it goes in again",
   // In it: nothing is done until the person says so, and then it is asked for again.
   await put(run(true), { playlist: "SQ:7" }, already, sure, () => done++);
   assert.deepEqual([questions.length, done], [1, 1]);
-  assert.deepEqual([questions[0].text, questions[0].go], ["It is in Sunday Morning already.", "Add it again"]);
+  // A plain question, not the red of what can't be got back: nothing is lost either way.
+  assert.deepEqual([questions[0].text, questions[0].go, questions[0].tone], ["It is in Sunday Morning already.", "Add it again", "ask"]);
   await questions[0].run();
   assert.deepEqual([asked.at(-1), done], [{ playlist: "SQ:7", again: true }, 2]);
 

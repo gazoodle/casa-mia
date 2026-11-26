@@ -8,6 +8,7 @@ from typing import Any
 import aiohttp
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .. import find, house, speaker, upnp
@@ -15,6 +16,7 @@ from ..announce import address
 from ..curate import Curator
 from ..house import QUEUE
 from ..party import Parties
+from ..undo import Undo
 from .common import FAVOURITE, LINED_UP, PLAYER, SONOS, Refused
 
 
@@ -30,6 +32,7 @@ class _Doing:
         parties: Parties,
         curator: Curator | None = None,
         covers: find.Covers | None = None,
+        undo: Undo | None = None,
     ) -> None:
         group = house.group_of(model, entity)
         if group is None:
@@ -39,6 +42,7 @@ class _Doing:
         self.parties = parties
         self.curator = curator
         self.covers = covers
+        self.undo = undo
         # What an action has to say of what it did, for the page: none for most.
         self.result: dict[str, Any] | None = None
         # What this changed that a party must know of, to tell it from a guest's change
@@ -106,8 +110,14 @@ class _Doing:
 
     async def play_media(self) -> None:
         """Something to play: a favourite, or what a search or browsing found. Without
-        `enqueue` it plays now. A favourite playlist then takes the queue's place, so
-        the page asks first; anything else joins the queue and is played from it."""
+        `enqueue` it plays now. In place of the queue ("replace"), the queue is kept
+        first, to put back; anything else joins the queue and is played from it."""
+        if self.data.get("enqueue") == "replace":
+            await self._in_place(self._play_media)
+        else:
+            await self._play_media()
+
+    async def _play_media(self) -> None:
         enqueue = self.data.get("enqueue")
         favourite = self._value("media_content_type") == FAVOURITE
         if favourite and enqueue in LINED_UP:
@@ -195,8 +205,39 @@ class _Doing:
         await upnp.remove(*self._speaker(), self._song())
 
     async def queue_clear(self) -> None:
+        await self._in_place(self._clear)
+
+    async def _clear(self) -> None:
         await upnp.clear(*self._speaker())
         self.source = ""
+
+    async def _in_place(self, how: Callable[[], Awaitable[None]]) -> None:
+        """Do what replaces or clears the queue, with the queue kept first (undo.py).
+
+        If it fails part-way the queue is put back at once: whoever asked is shown only
+        the failure, and must not be left with an empty queue and no offer of it back.
+        When that fails too the copy stays kept, and the page still offers it."""
+        if self.undo is None:
+            raise Refused("The queue can't be kept to put back here")
+        await self.undo.keep(self)
+        try:
+            await how()
+        except HomeAssistantError as err:
+            if not self.undo.has(self.group["id"]):
+                raise  # the queue was empty: there is nothing to put back
+            try:
+                await self.undo.back(self)
+            except HomeAssistantError as worse:
+                raise Refused(
+                    f"{err}. The queue couldn't be put back either ({worse}). It is "
+                    "kept for a while: Put the queue back tries again."
+                ) from err
+            raise Refused(f"{err}. The queue was put back as it was.") from err
+
+    async def queue_back(self) -> None:
+        if self.undo is None:
+            raise Refused("The queue can't be put back here")
+        await self.undo.back(self)
 
     async def queue_save(self) -> None:
         """Save the queue as a new playlist called `name`, or, given `playlist`, in
@@ -208,8 +249,8 @@ class _Doing:
             titles = {p["id"]: p["title"] for p in await upnp.playlists(*speaker)}
             if not (name := titles.get(over, "")):
                 raise Refused("That playlist is no longer in Sonos")
-            if name.startswith(upnp.COPY):
-                raise Refused("That is a party's copy of its queue, not a playlist")
+            if name.startswith(upnp.COPIES):
+                raise Refused("That is Jukebox's own copy of a queue, not a playlist")
         elif not (name := str(self._value("name")).strip()):
             raise Refused("The playlist needs a name")
         self.source = await upnp.save(*speaker, name, over or "") or None
@@ -404,6 +445,7 @@ ACTIONS: dict[str, Callable[[_Doing], Awaitable[None]]] = {
     "queue_move": _Doing.queue_move,
     "queue_remove": _Doing.queue_remove,
     "queue_clear": _Doing.queue_clear,
+    "queue_back": _Doing.queue_back,
     "queue_save": _Doing.queue_save,
     "playlist_delete": _Doing.playlist_delete,
     "volume": _Doing.volume,

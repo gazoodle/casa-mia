@@ -27,7 +27,14 @@ async def do(
     HomeAssistantError, with the reason, when it can't be done, or when this asker may
     not do it while a party is on (may.py)."""
     doing = _Doing(
-        feed.hass, feed.model(), entity, data, feed.parties, feed.curator, feed.covers
+        feed.hass,
+        feed.model(),
+        entity,
+        data,
+        feed.parties,
+        feed.curator,
+        feed.covers,
+        feed.undo,
     )
     party = feed.parties.led_by(doing.group["id"])
     # The addresses of what is played stay out of the log: a link can carry a key.
@@ -123,7 +130,7 @@ async def favourites(hass: HomeAssistant, entity: str) -> list[dict[str, Any]]:
             PLAYLISTS, p["title"], p["id"], playlist=True, picture=pictures.get(p["id"])
         )
         for p in await upnp.playlists(async_get_clientsession(hass), host)
-        if not p["title"].startswith(upnp.COPY)
+        if not p["title"].startswith(upnp.COPIES)
     ]
     # The playlists lead, in their folder with any favourite that is a playlist too.
     return (

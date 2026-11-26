@@ -40,6 +40,7 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
     hass.data[VERSION] = version
     hass.data[FEED] = feed = Feed(hass)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, feed.parties.stop_all)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, feed.undo.stop_all)
     hass.http.register_view(art.View(feed))
     phone.setup(hass, feed)
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={version}")

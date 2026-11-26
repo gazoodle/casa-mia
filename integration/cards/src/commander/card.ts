@@ -7,22 +7,28 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
-import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
+import { back, family, keepPosition, labelsOf, nameSize, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
-import { controlsBar, fullStyles, type Own } from "./full.ts";
+import { controlsBar, fullStyles, PTZ_NOTE_MS, type Own, type Ptz } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
-import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
+import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 
 export class CommanderCard extends CommanderTalk {
-  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true } };
+  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _ptz: { state: true }, _ptzFailed: { state: true } };
   /** The camera heard (its Sound button), "" for none: a camera's own, so another main
    * camera (a tap, Track motion) is never heard without a tap of its own. */
   _sound = "";
   /** The card has the whole screen (its Full screen button, screen.ts). */
   _screen = false;
+  /** The camera whose PTZ presets are opened out (its PTZ button, full.ts), "" for none:
+   * a camera's own, so they are put away when another becomes the main camera. */
+  _ptz = "";
+  /** Why the last preset didn't go, said with the controls for PTZ_NOTE_MS. */
+  _ptzFailed = "";
+  private ptzNoteGone = 0;
 
   constructor() {
     super();
@@ -178,7 +184,13 @@ export class CommanderCard extends CommanderTalk {
     // integration's own files (const.py: SCRIPTS_URL).
     const labels = labelsOf(own.labels);
     useFont(labels.font, (file) => `/casa_mia/fonts/${file}`);
-    const labelled = `--cm-label-font:${family(labels.font)};--cm-label-size:${labels.main_size}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
+    // The main camera's place and the whole screen, in CSS px: its name and its controls
+    // are sized from the one they are shown in, so both are in proportion on any screen.
+    const mainPlace: [number, number] = [(mainRect[2] / w) * this._box[0], (mainRect[3] / h) * this._box[1]];
+    const screenPlace: [number, number] = [innerWidth, innerHeight];
+    const nameIn = (place: [number, number]) => nameSize(labels.main_share, Math.min(...place));
+    const labelled = (place: [number, number]) =>
+      `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
     const mark = tiles.find((t) => t.camera === main)?.rect;
     // The cameras there is no room for ("+n more"): motion on one is marked on that tile.
@@ -210,7 +222,7 @@ export class CommanderCard extends CommanderTalk {
           ? `height:${tall}px`
           : "";
     return html`<ha-card style=${size}>
-      <div class="box" style=${labelled}>
+      <div class="box" style=${labelled(mainPlace)}>
         <div class="seen" style="filter:${this.look()}">
         ${editing
           ? still ? html`<img class="still" src=${still} alt="" />` : nothing
@@ -273,11 +285,11 @@ export class CommanderCard extends CommanderTalk {
           // card's, and the only way to it.
           (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
             ? this._config?.main_controls
-              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainRect[2] >= mainRect[3], [...sound, ...fills])
-              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [] }, at(mainRect), mainRect[2] >= mainRect[3], fills)
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, [...sound, ...fills], this.ptz(main))
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [] }, at(mainRect), mainPlace, fills, this.ptz(main))
             : nothing
         }
-        ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect)) : nothing}
+        ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn(mainPlace)) : nothing}
         ${down
           ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>`
           : unfit
@@ -285,16 +297,16 @@ export class CommanderCard extends CommanderTalk {
             : nothing}
       </div>
       ${full
-        ? html`<div class="full" style=${labelled}>
+        ? html`<div class="full" style=${labelled(screenPlace)}>
             <div class="seen" style="filter:${this.look()}">${videos(`${whole};object-fit:contain`)}</div>
             ${live ? this.caption(card.cameras[main].title, whole, live) : nothing}
             <div class="zone" style=${whole} title="Back" @click=${() => (this._full = "")}></div>
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, innerWidth >= innerHeight, [...sound, ...fills])
+              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, [...sound, ...fills], this.ptz(main))
             }
-            ${this.talkParts(card, whole)}
+            ${this.talkParts(card, whole, nameIn(screenPlace))}
           </div>`
         : nothing}
     </ha-card>`;
@@ -304,6 +316,32 @@ export class CommanderCard extends CommanderTalk {
    * (the select is shared); a call goes on, as talking is a session of its own (talk.ts). */
   private choose(card: Card, camera: string) {
     this.hass?.callService("select", "select_option", { option: card.cameras[camera]?.title }, { entity_id: this._config!.entity });
+  }
+
+  /** The main camera's PTZ presets, for the controls bar (full.ts): whether they are opened
+   * out, and a preset's tap, which calls the camera's PTZ action. One that fails is said
+   * with the controls: Home Assistant's own message is outside the card, so unseen while
+   * the card has the whole screen. */
+  private ptz(main: string): Ptz {
+    return {
+      open: this._ptz === main,
+      failed: this._ptzFailed,
+      toggle: () => (this._ptz = this._ptz === main ? "" : main),
+      go: async (preset: Preset) => {
+        const [domain, service] = preset.action.split(".");
+        clearTimeout(this.ptzNoteGone);
+        this._ptzFailed = "";
+        try {
+          await this.hass!.callService(domain, service, preset.data);
+          console.info(`casa-mia: ${main} sent to its preset ${preset.name}`);
+        } catch (err) {
+          const why = (err as { message?: string })?.message ?? String(err);
+          console.warn(`casa-mia: ${main} not sent to its preset ${preset.name}: ${why}`);
+          this._ptzFailed = `${preset.name}: ${why}`;
+          this.ptzNoteGone = window.setTimeout(() => (this._ptzFailed = ""), PTZ_NOTE_MS);
+        }
+      },
+    };
   }
 
   /** A tap on the main camera: its more-info (HA's camera dialog, the default), its live

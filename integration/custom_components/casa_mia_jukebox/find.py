@@ -236,7 +236,12 @@ class Covers:
     async def _ask(self, pair: tuple[str, str]) -> None:
         found: cover.Song | str = self.NOT_FOUND
         try:
-            _, answer = await _seek(self.hass, " ".join(pair), ["track"])
+            # Several searches at once, and the best of all they find (cover.searches
+            # says why). If one fails, the song has that reason, and is looked for
+            # again when someone asks.
+            answers = await asyncio.gather(
+                *(_seek(self.hass, query, ["track"]) for query in cover.searches(pair))
+            )
             songs = [
                 cover.Song(
                     song.name,
@@ -247,17 +252,18 @@ class Covers:
                     getattr(song.album, "release_date", ""),
                     getattr(song, "uri", ""),
                 )
+                for _, answer in answers
                 for song in _each(answer, "tracks")
                 if (images := _images(song))
             ]
             found = cover.best(pair, songs) or self.NOT_FOUND
-            _LOGGER.info(
-                "A station's song, %s / %s: %s on Spotify",
-                *pair,
-                "its cover found"
-                if isinstance(found, cover.Song)
-                else f"none of {len(songs)} songs is it",
-            )
+            if isinstance(found, cover.Song):
+                said = "its cover found"
+            else:
+                # What Spotify did send, each once, so the log shows why none was it.
+                sent = dict.fromkeys(f"{s.title!r} by {s.artists!r}" for s in songs)
+                said = f"none of {len(songs)} songs is it ({', '.join(sent)})"
+            _LOGGER.info("A station's song, %s / %s: %s on Spotify", *pair, said)
             self._why = ""
         except HomeAssistantError as err:
             found = str(err)

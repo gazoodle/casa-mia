@@ -10,7 +10,7 @@ import aiohttp
 from homeassistant.exceptions import HomeAssistantError
 
 from .common import DC, DIDL, OWN_QUEUE, QUEUE, UPNP, _described, _listed, call
-from .listing import _seconds
+from .listing import _seconds, playlists
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,6 +87,20 @@ async def save(
     return saved.get("AssignedObjectID", "")
 
 
+async def keep(session: aiohttp.ClientSession, host: str, name: str) -> str:
+    """Have the speaker keep its queue as a playlist of Jukebox's own called `name`, to
+    put the queue back from, and give its id. One left with that name (a restart of Home
+    Assistant before it was deleted) is replaced, so they never pile up.
+
+    A playlist the speaker loads itself comes back as the queue was made; songs put back
+    one at a time from the queue's listing came back with less (a real speaker,
+    2026-11-24)."""
+    for old in await playlists(session, host):
+        if old["title"] == name:
+            await delete_playlist(session, host, old["id"])
+    return await save(session, host, name)
+
+
 async def delete_playlist(
     session: aiohttp.ClientSession, host: str, playlist: str
 ) -> None:
@@ -153,10 +167,11 @@ async def play_from(
     about: str,
     song: int,
     seconds: int = 0,
+    play: bool = True,
 ) -> None:
     """Make the speaker play from `uri` again (see `source`), and when that is its
     queue, from song number `song`, `seconds` into it. A song that can't be moved
-    within plays from its start."""
+    within plays from its start. Without `play` it is left there, stopped."""
     await call(
         session,
         host,
@@ -182,7 +197,8 @@ async def play_from(
                 )
             except HomeAssistantError as err:
                 _LOGGER.info("%s: playing song %s from its start (%s)", host, song, err)
-    await call(session, host, "AVTransport", "Play", InstanceID=0, Speed=1)
+    if play:
+        await call(session, host, "AVTransport", "Play", InstanceID=0, Speed=1)
 
 
 async def go_to(session: aiohttp.ClientSession, host: str, song: int) -> None:

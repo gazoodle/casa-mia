@@ -209,6 +209,11 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
     store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
     edges = {"landscape": "right", "portrait": "bottom"}
     store["cameras"]["camera.a_low"]["controls_at"] = edges
+    store["cameras"]["camera.a_low"]["ptz"] = {
+        "action": "unifiprotect.ptz_goto_preset",
+        "data": {"device_id": "d1"},
+        "presets": ["Gate", {"preset": "Home", "label": "Drive"}],
+    }
     live = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
     cmd = make(
         tmp_path,
@@ -240,6 +245,20 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
         bay = card["cameras"]["camera.a_low"]
         assert bay["controls"] == [{"entity": "button.gate"}]
         assert bay["controls_at"] == edges
+        # its PTZ presets, each as the call that goes to it (the dashboard's own)
+        assert bay["presets"] == [
+            {
+                "name": "Gate",
+                "action": "unifiprotect.ptz_goto_preset",
+                "data": {"device_id": "d1", "preset": "Gate"},
+            },
+            {
+                "name": "Drive",
+                "action": "unifiprotect.ptz_goto_preset",
+                "data": {"device_id": "d1", "preset": "Home"},
+            },
+        ]
+        assert "presets" not in card["cameras"]["camera.b"]
         assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
         assert cmd.control("main", body) == 200

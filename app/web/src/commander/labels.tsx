@@ -37,11 +37,14 @@ export function LabelSettings({
   const l = labelsOf(value.labels);
   const set = (change: Partial<Labels>) => onChange({ ...l, ...change });
 
-  const size = (key: "tile_size" | "main_size" | "opacity" | "talk_status_x" | "talk_status_y" | "talk_buttons_x" | "talk_buttons_y") => (
-    <Field label={OPTIONS[key].label.replace(/, (px|%)$/, "")} help={help(key)}>
-      <Slider value={l[key]} min={OPTIONS[key].min} max={OPTIONS[key].max} format={(n) => `${n}${key === "opacity" ? "%" : " px"}`} onChange={(n) => set({ [key]: n })} />
-    </Field>
-  );
+  const size = (key: "tile_share" | "main_share" | "opacity" | "talk_status_x" | "talk_status_y" | "talk_buttons_x" | "talk_buttons_y") => {
+    const o = OPTIONS[key] as { label: string; min: number; max: number; step?: number };
+    return (
+      <Field label={o.label.replace(/, (px|%)$/, "")} help={help(key)}>
+        <Slider value={l[key]} min={o.min} max={o.max} step={o.step} format={(n) => `${n}${o.label.endsWith("%") ? "%" : " px"}`} onChange={(n) => set({ [key]: n })} />
+      </Field>
+    );
+  };
   const colour = (key: "colour" | "tint") => (
     <Field label={OPTIONS[key].label} help={help(key)}>
       <input type="color" className={css.colour} value={l[key]} onChange={(e) => set({ [key]: e.target.value })} />
@@ -69,8 +72,8 @@ export function LabelSettings({
     <section className={`${css.options} ${css.responsive} ${css.wide}`}>
       <h4 className={css.sub}>Camera names</h4>
       {pick("font")}
-      {size("tile_size")}
-      {size("main_size")}
+      {size("tile_share")}
+      {size("main_share")}
       {style("tile_style")}
       {style("main_style")}
       {colour("colour")}

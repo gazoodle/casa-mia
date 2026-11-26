@@ -13,8 +13,13 @@ const LAST = "casa-mia-jukebox-last-playlist";
 /** What a chooser is for: its heading, what will happen, a playlist not to offer (the
  * one the song is in), and what to do with the playlist chosen. */
 export type Pick = { title: string; text: string; except?: string; pick: (playlist: Favourite) => void };
-/** A question put before something is done, as the player and the editor ask theirs. */
-export type Sure = { warn: string; text: string; keep: string; go: string; run: () => void };
+/** A question put before something is done, as the player and the editor ask theirs. Its
+ * tone says what is at stake (owner, 2026-11-26): red, the default, for what can't be got
+ * back (a playlist deleted or saved over); `caution`, amber, for what can only be put
+ * together again by hand (the music stopped and the rooms parted); and `ask` for a plain
+ * question with nothing lost. What Jukebox can put back isn't asked about at all: it is
+ * done, and the player offers to put it back. */
+export type Sure = { warn: string; text: string; keep: string; go: string; run: () => void; tone?: "caution" | "ask" };
 /** What Jukebox answered (`{}` when it had nothing to say), or none when it couldn't. */
 export type Told = Record<string, unknown> | undefined;
 
@@ -28,7 +33,20 @@ export async function put(run: (data: object) => Promise<Told>, data: object, al
   const again = async () => {
     if (await run({ ...data, again: true })) done();
   };
-  sure({ warn: "It is in there already", text: already.text, keep: "Leave it", go: already.go, run: again });
+  sure({ warn: "It is in there already", text: already.text, keep: "Leave it", go: already.go, run: again, tone: "ask" });
+}
+
+/** The question, as a sheet: `shut` puts it away, before `run` when it is answered yes. */
+export function asking(sure: Sure, shut: () => void) {
+  const tone = sure.tone ?? "danger";
+  return html`<div class="sheet" role="alertdialog" aria-label=${sure.warn}>
+    <p class="warn ${tone}">${sure.warn}</p>
+    <p>${sure.text}</p>
+    <div class="acts">
+      <button class="main" @click=${shut}>${sure.keep}</button>
+      <button class=${tone} @click=${() => (shut(), sure.run())}>${sure.go}</button>
+    </div>
+  </div>`;
 }
 
 /** Make an empty Sonos playlist called `name`, and give it as the favourite it will be
@@ -115,6 +133,12 @@ export function chooser(found: Favourite[] | string | undefined, asked: Pick, ca
 
 /** The chooser's own look, for whatever shows it, on top of that one's sheets. */
 export const PICK = css`
+  .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+  .sheet .warn.caution { color: #ffb648; }
+  .sheet .warn.ask { margin-bottom: 4px; color: #fff; font-size: 18px; font-weight: 700; text-transform: none; }
+  .sheet .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
+  .sheet .acts .caution { background: none; border: 1px solid #ffb648; color: #ffb648; }
+  .sheet .acts .danger:hover, .sheet .acts .caution:hover { background: rgb(255 255 255 / 18%); }
   .sheet .picks { max-height: 32vh; overflow: auto; }
   .sheet .lost { color: #ff9a8f; }
   .sheet .new { display: flex; gap: 8px; margin-top: 10px; }

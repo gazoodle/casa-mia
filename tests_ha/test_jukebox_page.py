@@ -224,12 +224,18 @@ async def test_the_favourites_come_as_one_list_with_their_folders(
     )
     # Home Assistant's list of the Sonos playlists is renewed only when a favourite
     # changes: it still has one deleted since, and not one saved since. The speaker is
-    # asked for them, and Home Assistant's are used only for their pictures.
+    # asked for them, and Home Assistant's are used only for their pictures. Jukebox's
+    # own copies of a queue, a party's and one kept to put back, aren't the household's
+    # playlists, and aren't listed.
     kept = (
         '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"'
         ' xmlns:dc="http://purl.org/dc/elements/1.1/">'
         '<container id="SQ:3"><dc:title>Friday Night</dc:title></container>'
         '<container id="SQ:9"><dc:title>Saved just now</dc:title></container>'
+        '<container id="SQ:10"><dc:title>Jukebox party copy (Kitchen)</dc:title>'
+        "</container>"
+        '<container id="SQ:11"><dc:title>Jukebox undo copy (Kitchen)</dc:title>'
+        "</container>"
         "</DIDL-Lite>"
     )
     aioclient_mock.post(
@@ -402,6 +408,8 @@ async def test_a_song_found_is_always_played_from_the_queue(
     the queue to put it, and the queue then doesn't show what is playing."""
     client = await hass_ws_client(hass)
     aioclient_mock.post(TRANSPORT, text=answered("AVTransport", "Any"))
+    # An empty queue: there is nothing to keep before it is replaced (undo.py).
+    aioclient_mock.post(BROWSE, text=answered("ContentDirectory", "Browse"))
     song = {
         "media_content_id": "x-file-cifs://nas.example/a.mp3",
         "media_content_type": "track",
@@ -468,7 +476,9 @@ async def test_a_sonos_playlist_replaces_the_queue_without_home_assistant(
         call[3]["SOAPACTION"].split("#")[1].strip('"')
         for call in aioclient_mock.mock_calls
     ]
-    assert asked == ["RemoveAllTracksFromQueue", "Browse", "AddURIToQueue"]
+    # The first Browse is how many songs the queue holds, to keep it to put back first;
+    # this speaker lists none, so nothing is kept (undo.py).
+    assert asked == ["Browse", "RemoveAllTracksFromQueue", "Browse", "AddURIToQueue"]
     assert started == [{"entity_id": KITCHEN, "queue_position": 0}]
 
 

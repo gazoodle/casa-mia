@@ -47,6 +47,8 @@ export type Group = {
   unfound?: string | null;
   /** The Sonos playlist (`SQ:3`) this queue was loaded from or last saved as, from Jukebox. */
   source?: string | null;
+  /** A queue replaced or cleared from Jukebox is kept, and can still be put back. */
+  undo?: boolean;
   /** This device's own room only (phone.ts): something that went wrong there, to say. */
   trouble?: string;
 };

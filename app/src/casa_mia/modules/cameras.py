@@ -184,26 +184,29 @@ def preset_data(ptz: dict, preset: str) -> dict:
     return {**ptz.get("data", {}), "preset": preset}
 
 
+def preset_calls(cam: dict) -> list[dict]:
+    """A camera's presets, each as the call that goes to it (the name shown, the action
+    and its data), so no page or card builds one of its own. None without an action."""
+    ptz = cam.get("ptz") or {}
+    if not ptz.get("action"):
+        return []
+    return [
+        {"name": label, "action": ptz["action"], "data": preset_data(ptz, preset)}
+        for label, preset in preset_entries(ptz)
+    ]
+
+
 def for_pages(cameras: Cams) -> list[dict]:
     """The cameras as a page in Home Assistant is told them (they ride /health, and the
     integration feeds them to any signed-in user: casa_mia/cameras/subscribe). Each preset
     comes as the call that goes to it, so no page builds one of its own."""
     out = []
     for entity, cam in cameras.items():
-        ptz = cam.get("ptz") or {}
         out.append(
             {"entity": entity, "title": cam["title"]}
             | {k: cam[k] for k in ("medium", "high", "zoom") if cam.get(k)}
             | {
-                "presets": [
-                    {
-                        "name": label,
-                        "action": ptz["action"],
-                        "data": preset_data(ptz, preset),
-                    }
-                    for label, preset in preset_entries(ptz)
-                    if ptz.get("action")
-                ],
+                "presets": preset_calls(cam),
                 "controls": [
                     {"entity": c["entity"], "name": c.get("name") or ""}
                     for c in cam.get("controls", [])

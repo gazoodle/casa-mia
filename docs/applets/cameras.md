@@ -34,7 +34,8 @@ Every change is saved at once: there is no Save button.
   - **Medium channel:** for the wall tablets and phones. **High channel:** for everyone
     else. Blank: the camera itself.
   - **Zoom:** a number entity, shown on its page.
-  - **PTZ presets** and **page controls** (a gate, a light): shown on its page.
+  - **PTZ presets** and **page controls** (a gate, a light): shown on its page, and on a
+    Camera Commander card with the camera's controls.
 - **Remove:** it also leaves every commander that shows it.
 
 ### Page controls
@@ -53,13 +54,25 @@ They are shown in three places, and a tap on one is Home Assistant's toggle in e
 - as buttons over the main camera on a Camera Commander card, when the card's **Its
   controls over the main camera** is on.
 
+A camera's **PTZ presets** are shown on the card in the same two places, in the same bar
+as its controls. A camera with up to three presets has a button for each. A camera with
+more has one **PTZ** button, which opens the presets out as a second line beside the bar,
+on the picture's side of it. A tap on a preset moves the camera.
+
 **Controls on a full screen** sets how the buttons look on the card, in both of its
-places:
+places. It is there for a camera that has controls or presets:
 
 - **The edge** they go along: one choice for a wide screen and one for a tall one, so a
   tablet turned upright can have them somewhere else.
 - **Along the edge:** at its start, its middle or its end.
-- **Size:** a slider for the buttons' height, from 24 px to 96 px. They start at 56 px. Under about 44 px a button is hard to hit with a finger.
+- **Size:** a slider for the buttons' height, from 3% to 12% of the shorter side of the
+  place they are shown in (the main camera's area, or the whole screen). They start at
+  7%, which is 56 px on a 1280 × 800 tablet's full screen. Because it is a share, the
+  buttons are in proportion over a small main camera on a phone and on a large screen.
+  They are never under 10 px or over 96 px high, and a button drawn small can still be
+  tapped over an area 44 px across.
+- **When they don't fit:** the PTZ presets go behind the PTZ button first. If there is
+  still no room, the names go and the buttons are round icons.
 - **Background:** from clear to solid.
 
 The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to

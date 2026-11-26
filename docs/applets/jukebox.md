@@ -368,8 +368,9 @@ it as a small round badge. The badge is how you tell a station from a queue.
 - Some stations send the artist and the title the wrong way round, and some send
   "Artist - Title" as the title. Jukebox tries both ways.
 - A show's name or an advert, with no artist, isn't looked up.
-- Each song is looked up once, when a speaker starts playing it. The title and artist
-  of every song your stations play are sent to Spotify as a search from your account.
+- Each song is looked up once, when a speaker starts playing it, with three searches
+  sent together. The title and artist of every song your stations play are sent to
+  Spotify as searches from your account.
 - Without the Spotify integration nothing changes.
 
 ### Adding a song on the radio to a playlist

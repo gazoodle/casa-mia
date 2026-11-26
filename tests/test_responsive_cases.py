@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from casa_mia.modules.compositor.responsive import (
+    BLOCK_OVER,
     DEFAULTS,
     EDGES,
     MAIN_SHAPE,
@@ -234,7 +235,17 @@ def test_the_main_camera_loses_no_more_than_a_tile_may():
                 continue
             mw, mh = r["main"][2:]
             a, b = mw * 9, mh * 16
-            assert 1000 - 1000 * min(a, b) // max(a, b) <= DEFAULTS["tile_loss"] * 10
+            # a tile's limit, and the hair the gaps add to a block of cells at it
+            lost = 1000 - 1000 * min(a, b) // max(a, b)
+            assert lost <= DEFAULTS["tile_loss"] * 10 + BLOCK_OVER
+
+
+def test_a_block_of_cells_at_the_limit_is_not_thrown_away():
+    """A space taller than the cameras' shape: the cells are shortened to the tile's
+    limit, and the block of them (a hair over it, by the gaps) is still a grid."""
+    r = laid(768, 1024, 4)
+    assert r["grid"] == [2, 4, 2, 2] and r["dropped"] == 0
+    assert r["tiles"][0][2:] == [382, 244]
 
 
 def test_the_main_camera_keeps_its_least_unless_it_gave_way():

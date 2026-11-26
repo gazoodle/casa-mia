@@ -9,7 +9,7 @@ import { LitElement, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { STYLES } from "./big/styles.ts";
 import { EDITOR, edit } from "./editor.ts";
-import { PICK, type Pick, type Told, chooser, create, put, sent } from "./pick.ts";
+import { PICK, type Pick, type Sure, type Told, asking, chooser, create, put, sent } from "./pick.ts";
 import { type Favourite, type Group, type House, type Song, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
@@ -22,6 +22,10 @@ export const TABS: [Tab, string][] = [
   ["search", "Search"],
 ];
 const REPEAT = { off: "all", all: "one", one: "off" } as const;
+// How long this player offers to put a replaced or cleared queue back, in ms. Jukebox
+// keeps its copy for longer (FOR in undo.py), and the offer shows only while Jukebox
+// says it has one (`group.undo`).
+const UNDO = 15_000;
 /** Where this device keeps which folders of favourites are closed. A convenience only:
  * a browser that won't keep it (a private window) shows them all open. */
 const FOLDED = "casa-mia-jukebox-folded";
@@ -41,7 +45,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _vol: { state: true }, _putting: { state: true }, _tapped: { state: true } };
+  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _undo: { state: true }, _vol: { state: true }, _putting: { state: true }, _tapped: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -66,8 +70,9 @@ export class Big extends LitElement {
   /** The folders of favourites that are closed up, remembered on this device. */
   _folded: string[] = remembered();
   _menu?: Favourite;
-  /** Something that can't be undone, asked about again in large letters. */
-  _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
+  /** A question to answer before something is done, in the tone of what is at stake
+   * (`Sure`, pick.ts). */
+  _confirm?: Sure;
   /** The sheet that asks what to call the queue as a playlist. */
   _naming = false;
   /** The sheet that asks which playlist a song goes into (pick.ts). */
@@ -90,6 +95,12 @@ export class Big extends LitElement {
   /** The newest thing put back that has been said, so each is said once. */
   private _said?: string;
   _toast = "";
+  /** What this player did to the queue that can be put back, while it offers to (UNDO).
+   * The offer shows only while Jukebox says it keeps the queue (`group.undo`): it can't
+   * outlive the copy, another message doesn't take it away, and it is still there
+   * after a put-back that failed. */
+  _undo?: string;
+  private _offered?: ReturnType<typeof setTimeout>;
   private _off?: () => void;
   private _fade?: ReturnType<typeof setTimeout>;
   private _sliders = new Map<string, (value: number) => void>();
@@ -150,6 +161,25 @@ export class Big extends LitElement {
     this._fade = setTimeout(() => (this._toast = ""), 3500);
   }
 
+  /** The queue was replaced or cleared, or that was tried: offer it back (`_undo`), for
+   * long enough to read `text` and change one's mind. */
+  private _offer(text: string) {
+    this._undo = text;
+    clearTimeout(this._offered);
+    this._offered = setTimeout(() => (this._undo = undefined), UNDO);
+  }
+
+  private _putBack = async () => {
+    const offered = this._undo ?? "";
+    if (await this._do("queue_back")) {
+      this._undo = undefined;
+      this._say("The queue is back as it was");
+    } else {
+      // It couldn't be, and why has been said: offered again, while it is still kept.
+      this._offer(offered);
+    }
+  };
+
   /** Ask Jukebox for something, and say so on the player if it can't be done. The button
    * that stands for `key` shows that it is waiting until the answer comes. */
   private _do(action: string, data: object = {}, key = action): Promise<boolean> {
@@ -202,9 +232,12 @@ export class Big extends LitElement {
 
   private async _play(favourite: Favourite, enqueue?: "next" | "add" | "replace") {
     this._menu = this._confirm = undefined;
-    const done = await this._do("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) }, `fav:${favourite.media_content_id}`);
-    const said = { next: "Playing next", add: "Added to the end" } as Record<string, string>;
-    if (!done) return;
+    const told = await this._told("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) }, `fav:${favourite.media_content_id}`);
+    const said = { next: "Playing next", add: "Added to the end", replace: "Playing in place of the queue" } as Record<string, string>;
+    // Offered back whether it worked or not: a queue that couldn't be put back after a
+    // failure is still kept (undo.py).
+    if (enqueue === "replace") this._offer(told ? `Playing in place of the queue: ${favourite.title}` : "The queue is kept, and can be put back");
+    if (!told) return;
     this._say(`${said[enqueue ?? ""] ?? "Playing"}: ${favourite.title}`);
     // Search was opened from the queue, to add to it: back to the queue, to carry on.
     if (this._adding === "queue") [this._adding, this.tab] = [undefined, "queue"];
@@ -330,6 +363,15 @@ export class Big extends LitElement {
     if (await this._do("party", { on }, "party")) this._say(on ? "Party on. The queue, the rooms and the volume can only be changed from Jukebox." : "Party off. Other apps can change things again.");
   }
 
+  /** What is said at the foot of the player, and with it the queue offered back. */
+  private _toasted(group: Group) {
+    const back = this._undo !== undefined && !!group.undo;
+    const text = this._toast || (back ? this._undo : "");
+    return html`<div class="toast ${text ? "on" : ""} ${back ? "back" : ""}" role="status">
+      <span>${text}</span>${back ? html`<button class=${this._busy.on("queue_back")} @click=${this._putBack}>Put the queue back</button>` : nothing}
+    </div>`;
+  }
+
   private _songs(group: Group) {
     const songs = this._queued ?? (group.kind === "queue" ? group.queue_size : null);
     return songs ? (songs === 1 ? "The one song in the queue" : `The ${songs} songs in the queue`) : "Whatever is in the queue";
@@ -338,11 +380,14 @@ export class Big extends LitElement {
   /** End the music here and give the rooms back to the quiet ones, after asking. */
   private _stop(house: House, group: Group) {
     const run = async () => (await this._do("stop", {}, "stop")) && !this.inline && this.remove();
-    this._confirm = { warn: "This stops the music here", text: `${this._songs(group)} will go, and ${names(house, group)} will be listed with the quiet rooms again.`, keep: "Keep it", go: "Stop it", run };
+    this._confirm = { warn: "This stops the music here", text: `${this._songs(group)} will go, and ${names(house, group)} will be listed with the quiet rooms again.`, keep: "Keep it", go: "Stop it", run, tone: "caution" };
   }
 
-  private _clear(group: Group) {
-    this._confirm = { warn: "This clears the whole queue", text: `${this._songs(group)} will go, and the music stops.`, keep: "Keep the queue", go: "Clear it", run: () => this._do("queue_clear") };
+  /** Clear the queue without asking: it is offered back. */
+  private async _clear() {
+    const done = await this._do("queue_clear");
+    this._offer(done ? "Cleared the queue" : "The queue is kept, and can be put back");
+    if (done) this._say("Cleared the queue");
   }
 
   private _save = async (e: SubmitEvent) => {
@@ -478,7 +523,7 @@ export class Big extends LitElement {
         <button @click=${() => this._add("queue")}>${icon("plus")}Add</button>
         <button class="wide" @click=${() => this._edit()} aria-label="Edit the queue side by side with Search">${icon("drag")}Edit…</button>
         ${curates(this._house) && group.id !== PHONE ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)} aria-label="Save the queue as a playlist">${icon("save")}Save…</button>` : nothing}
-        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)} aria-label="Clear the queue">${icon("trash")}Clear…</button>
+        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear()} aria-label="Clear the queue">${icon("trash")}Clear</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e: CustomEvent) => (this._queued = e.detail)}></casa-mia-jukebox-queue></div>`;
   }
@@ -545,16 +590,7 @@ export class Big extends LitElement {
   private _sheets(house: House, group: Group) {
     const { _menu: menu, _confirm: sure } = this;
     if (sure)
-      return html`<div class="veil">
-        <div class="sheet" role="alertdialog" aria-label=${sure.warn}>
-          <p class="warn">${sure.warn}</p>
-          <p>${sure.text}</p>
-          <div class="acts">
-            <button class="main" @click=${() => (this._confirm = undefined)}>${sure.keep}</button>
-            <button class="danger" @click=${() => ((this._confirm = undefined), sure.run())}>${sure.go}</button>
-          </div>
-        </div>
-      </div>`;
+      return html`<div class="veil">${asking(sure, () => (this._confirm = undefined))}</div>`;
     if (this._putting) {
       const shut = () => (this._putting = undefined);
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${chooser(this._favourites, this._putting, shut, this._new)}</div>`;
@@ -590,7 +626,7 @@ export class Big extends LitElement {
                 </button>
                 <div class="acts">
                   <button class="main" @click=${() => (this._partying = false)}>Keep the party going</button>
-                  <button class="danger" @click=${() => this._party(false)}>End the party</button>
+                  <button @click=${() => this._party(false)}>End the party</button>
                 </div>`
             : html`<p>${shut(house, group) ? "The music can't be changed from this screen." : "This screen has been let to change the music."} Only the people who run the party can end it.</p>
                 <div class="acts"><button class="main" @click=${() => (this._partying = false)}>Close</button></div>`}
@@ -611,7 +647,6 @@ export class Big extends LitElement {
         </form>
       </div>`;
     if (menu) {
-      const replace = { warn: "This replaces the whole queue", text: `${this._songs(group)} will go, and "${menu.title}" will start now.`, keep: "Keep the queue", go: "Replace it", run: () => void this._play(menu, "replace") };
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._menu = undefined)}>
         <div class="sheet" role="dialog" aria-label=${menu.title}>
           <h4>${menu.title}</h4>
@@ -621,7 +656,7 @@ export class Big extends LitElement {
               ? html`<button class="main" @click=${() => this._play(menu)}>Play now</button>`
               : html`<button class="main" @click=${() => this._play(menu, "next")}>Play next</button>
                   <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
-                  <button class="danger sep" @click=${() => ([this._menu, this._confirm] = [undefined, replace])}>Play now and replace the queue…</button>`}
+                  <button class="sep" @click=${() => this._play(menu, "replace")}>Play now in place of the queue</button>`}
             ${menu.playlist && this._viewing !== menu ? html`<button class="sep" @click=${() => ([this._menu, this._viewing, this.tab] = [undefined, menu, "favourites"])}>See what is in it</button>` : nothing}
             ${menu.playlist && curates(house) ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
           </div>
@@ -652,7 +687,7 @@ export class Big extends LitElement {
       ${this._now(house, group)}
       <div class="side ${this.tab ? "up" : ""}">${this._split.grip(width)}${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : shown === "search" ? this._search(group) : this._favouritesPanel(group)}</div>
       ${this._sheets(house, group)}
-      <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
+      ${this._toasted(group)}
     </div>`;
   }
 

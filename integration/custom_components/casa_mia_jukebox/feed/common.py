@@ -14,7 +14,7 @@ FAVOURITE = "favorite_item_id"
 LINED_UP = ("next", "add")
 # What puts different music on: after one of these, what Love it or Loathe it did to the
 # music before, and has finished with, is no longer said on the players.
-NEW_MUSIC = frozenset({"play_media", "queue_play", "queue_clear", "stop"})
+NEW_MUSIC = frozenset({"play_media", "queue_play", "queue_clear", "queue_back", "stop"})
 # The folder Home Assistant puts a favourite playlist in, and Jukebox the Sonos playlists.
 PLAYLISTS = "Playlists"
 

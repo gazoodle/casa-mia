@@ -456,14 +456,19 @@ def commander(
     size, main_rect, main_fit, places, more, _ = placed(cmd, main)
     # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
     scale = float(cmd.get("scale", 1))
-    seen = look(cmd)  # its labels' font, colours and style (labels.py)
+    # Its labels' font, colours and style (labels.py), sized for this picture: the
+    # tiles' names from its smallest tile, the main camera's from its place.
+    sides = [min(w, h) for _, _, (_, _, w, h), _ in places if w > 0 and h > 0]
+    sides += [min(m[0][2:]) for m in [more] if m]
+    seen = look(cmd, min(sides, default=0), min(main_rect[2:]))
     small, font, big = seen.small, seen.font, seen.big
 
     def u(n: float) -> int:
         return round(n * scale)
 
-    # A tile's name bar: 22 px for a name of 16, and in step with it.
+    # A tile's name bar: 22 px for a name of 16, and in step with it; its name 6 px in.
     bar = round(seen.tile_px * SMALL_BAR / 16)
+    tile_in = round(seen.tile_px * 6 / 16)
     # Drawn solid, so the name bars and labels shade the picture under them; the gaps
     # are cut out at the end. (Drawn on a transparent canvas, a see-through bar would
     # replace the picture under it, and the dashboard's background would show through.)
@@ -495,13 +500,13 @@ def commander(
         name(
             draw,
             swap.out(str(titles.get(entity) or entity)),
-            (x + u(6), y + h - bar // 2),
+            (x + tile_in, y + h - bar // 2),
             small,
             seen,
             seen.tile_style,
             (x, y + h - bar, x + w, y + h),
             seen.tile_px,
-            u(2),
+            tile_in // 3,
         )
         if raw and entity in stale:
             _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
@@ -579,21 +584,29 @@ def commander(
         # Its name's row: 18 px up from the foot for a name of 20, and in step with it.
         up = round(seen.main_px * 0.9)
         foot = py + ph - up
+        main_in = round(seen.main_px / 2)  # 10 px in for a name of 20
         if not live:  # (the card draws a live main camera's caption)
+            clock = datetime.now().strftime("%H:%M:%S")
+            # the name stops short of the clock, which keeps the right of the foot
+            taken = round(font.getlength(clock)) + main_in
             name(
                 draw,
                 label,
-                (px + u(10), foot),
+                (px + main_in, foot),
                 font,
                 seen,
                 seen.main_style,
-                (px, foot - up, px + pw, py + ph),
+                (px, foot - up, px + pw - taken, py + ph),
                 seen.main_px,
-                u(6),
+                round(seen.main_px * 0.3),
             )
+            if seen.main_style == "bar":  # the bar itself runs on under the clock
+                draw.rectangle(
+                    (px + pw - taken, foot - up, px + pw, py + ph), fill=seen.back
+                )
             draw.text(
-                (px + pw - u(10), foot),
-                datetime.now().strftime("%H:%M:%S"),
+                (px + pw - main_in, foot),
+                clock,
                 fill=seen.colour,
                 font=font,
                 anchor="rm",

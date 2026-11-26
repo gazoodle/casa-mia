@@ -12,6 +12,7 @@ from typing import Any
 
 from ... import swap
 from ...settings import CHANGED_EVENT
+from ..cameras import preset_calls
 from ..compositor import (
     EMPTY_COMMANDER,
     LAYOUT,
@@ -76,7 +77,8 @@ class Live(Base):
         camera's title (its select's option) and live page on the dashboard, its
         channels, smallest first, each with its size where known (the card plays its
         main camera's as live video, when the compositor's live_main switch is on), and
-        its controls with their edges, where it has them (the card's full screen)."""
+        its controls and PTZ presets with their edges, where it has them (the card's
+        full screen)."""
         try:
             url_path, base = self._target()
         except BadRequest:  # the LAN address not known yet: no picture until it is
@@ -85,9 +87,11 @@ class Live(Base):
         comp = self.live
         full = self.full()
         cfg = config_from_store(full)
-        # each camera's controls and their edges, for the card's full screen
+        # each camera's controls, their edges and its presets (each as the call that
+        # goes to it), for the card's full screen
         own = {
             e: {k: cam[k] for k in ("controls", "controls_at") if cam.get(k)}
+            | ({"presets": calls} if (calls := preset_calls(cam)) else {})
             for e, cam in full["cameras"].items()
         }
         sizes = comp.gather.res if comp else {}

@@ -36,6 +36,8 @@ export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) 
 export const EDGES: Edge[] = ["bottom", "right", "left", "top"];
 export const MAIN_SHAPE: Shape = [16, 9];
 export const WHOLE_OVER = 50;
+/** The block's allowance over a tile's limit, per mille (responsive.py: BLOCK_OVER). */
+const BLOCK_OVER = 5;
 const MOST_LINES = 24;
 
 const div = (a: number, b: number) => Math.floor(a / b);
@@ -99,7 +101,7 @@ function best(w: number, h: number, gap: number, tiles: number, tile: Shape, mai
           const [bw, bh] = [mc * cw + (mc - 1) * gap, mr * ch + (mr - 1) * gap];
           const lost = lostIn(bw, bh, main);
           const shown = bw * bh;
-          if (lost > Math.max(loss * 10, WHOLE_OVER) || shown * 100 < least * biggest) continue;
+          if (lost > Math.max(loss * 10 + BLOCK_OVER, WHOLE_OVER) || shown * 100 < least * biggest) continue;
 
           const dropped = room >= tiles ? 0 : tiles - (room - 1);
           const used = Math.min(tiles, room);

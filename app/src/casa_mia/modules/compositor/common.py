@@ -229,6 +229,22 @@ def key_of(cmd: dict) -> str:
     return cmd.get("view") or slug(cmd["name"])
 
 
+def _shares(labels: Any) -> Any:
+    """A commander's labels with its names' sizes as shares. Until 2026.11.14-b8 they
+    were heights in px (tile_size, main_size), the same on every screen: read against
+    the tile and the main camera of a tablet (labels.json: name), so a commander looks
+    there as it did, within the shares' limits."""
+    if not isinstance(labels, dict):
+        return labels
+    out = {k: v for k, v in labels.items() if k not in ("tile_size", "main_size")}
+    for which in ("tile", "main"):
+        px, o = labels.get(f"{which}_size"), LABELS["labels"][f"{which}_share"]
+        if f"{which}_share" not in out and isinstance(px, (int, float)):
+            share = round(200 * px / LABELS["name"][f"{which}_was"]) / 2  # to a half
+            out[f"{which}_share"] = min(o["max"], max(o["min"], share))
+    return out
+
+
 def commanders_of(store: dict) -> list[dict]:
     """A store's commanders, in order, each with every setting. A store saved before
     there were several has its one commander (named Cameras). Its own size is always
@@ -238,7 +254,13 @@ def commanders_of(store: dict) -> list[dict]:
     if not isinstance(found, list):
         found = [store.get("commander") or {}]
     own = {k: EMPTY_COMMANDER[k] for k in ("width", "height")}
-    return [{**EMPTY_COMMANDER, **c, **own} for c in found if isinstance(c, dict)]
+    return [
+        {**EMPTY_COMMANDER, **c, **own, "labels": _shares(c.get("labels", {}))}
+        if "labels" in c
+        else {**EMPTY_COMMANDER, **c, **own}
+        for c in found
+        if isinstance(c, dict)
+    ]
 
 
 def config_from_store(store: dict) -> Config:

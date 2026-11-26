@@ -9,7 +9,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { type Hass } from "../ha.ts";
 import { type Favourite, type House, type Song, ask, curates, favourites, follow, groupOf, mmss, names, reason } from "./common.ts";
-import { PICK, type Pick, chooser, create, put, sent } from "./pick.ts";
+import { PICK, type Pick, type Sure, asking, chooser, create, put, sent } from "./pick.ts";
 import { type Queue } from "./queue.ts";
 import { Busy, EDGE, Split, art, grips, icon, shared } from "./parts.ts";
 
@@ -20,7 +20,6 @@ const SORTS: [by: string, label: string, said: string][] = [
   ["artist", "By artist, then album", "artist"],
   ["album", "By album, in the album's own order", "album"],
 ];
-type Sure = { warn: string; text: string; keep: string; go: string; run: () => void };
 
 /** Open the editor over everything, for the queue of the group `room` is in or, given
  * one, for a Sonos playlist. `done` is called when it is closed. */
@@ -313,14 +312,7 @@ export class Editor extends LitElement {
     const veil = (inside: unknown, shut: () => void) => html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${inside}</div>`;
     if (sure)
       return veil(
-        html`<div class="sheet" role="alertdialog" aria-label=${sure.warn}>
-          <p class="warn">${sure.warn}</p>
-          <p>${sure.text}</p>
-          <div class="acts">
-            <button class="main" @click=${() => (this._confirm = undefined)}>${sure.keep}</button>
-            <button class="danger" @click=${() => ((this._confirm = undefined), sure.run())}>${sure.go}</button>
-          </div>
-        </div>`,
+        asking(sure, () => (this._confirm = undefined)),
         () => (this._confirm = undefined),
       );
     if (menu && song && this._sel !== undefined) {
@@ -445,11 +437,9 @@ export class Editor extends LitElement {
       .sheet { width: min(100%, 440px); padding: 18px; border-radius: 22px; background: #26231f; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
       .sheet h4 { margin: 0 0 2px; font-size: 16px; overflow-wrap: anywhere; }
       .sheet p { margin: 0 0 14px; color: rgb(255 255 255 / 70%); overflow-wrap: anywhere; }
-      .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
       .sheet .acts { display: grid; gap: 8px; }
       .sheet .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
       .sheet .acts .main { background: #fff; color: #111; }
-      .sheet .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
       .sheet .acts .sep { margin-top: 10px; }
       .large { width: min(84vw, 84vh); }
       .large .art { border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }

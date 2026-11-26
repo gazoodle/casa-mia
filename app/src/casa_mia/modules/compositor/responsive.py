@@ -31,6 +31,12 @@ MAIN_SHAPE: Shape = (16, 9)
 # Show whole: a main camera that would lose no more than this (per mille) is cropped
 # instead, so one in a block of nearly its own shape gets no hairline bars.
 WHOLE_OVER = 50
+# The main camera's block may be this much (per mille) further from its shape than a tile
+# may be from the tile shape. A cell that is too tall is shortened to exactly the tile's
+# limit, and the gaps then put a block of such cells a fraction over it: without this,
+# every grid of them was thrown away, and a space taller than the cameras' shape got a
+# grid with smaller tiles and more of it empty (2026.11.14-b8: 11 of 275 cases).
+BLOCK_OVER = 5
 # The most cells along a side. The smallest tile stops the search long before, except
 # when that limit has been given up.
 MOST_LINES = 24
@@ -125,7 +131,7 @@ def _best(
                     lost = _lost(bw, bh, main)
                     shown = bw * bh
                     if (
-                        lost > max(loss * 10, WHOLE_OVER)
+                        lost > max(loss * 10 + BLOCK_OVER, WHOLE_OVER)
                         or shown * 100 < least * biggest
                     ):
                         continue

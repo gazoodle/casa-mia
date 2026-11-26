@@ -23,6 +23,7 @@ from ..curate import Curator
 from ..love import Love
 from ..may import Who
 from ..party import Parties
+from ..undo import Undo
 from .common import PLAYER, SONOS
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +58,8 @@ class Feed:
         self.sources: dict[str, str] = {}
         # Tidying a playlist as a whole, and its memory of a sort to put back.
         self.curator = Curator()
+        # A queue Jukebox replaced or cleared, kept for a while to put back.
+        self.undo = Undo(hass, self._changed)
         # The cover of the song a station is playing, found on Spotify (find.Covers).
         self.covers = find.Covers(hass, self._changed)
         # What a page shows a song's picture with (art.py): new at each start.
@@ -132,6 +135,8 @@ class Feed:
             if stale and str(love.get("at", "")) <= self._renewed.get(group["id"], ""):
                 love = None
             group["source"] = self.sources.get(group["id"])
+            # A queue replaced or cleared from Jukebox can still be put back (undo.py).
+            group["undo"] = self.undo.has(group["id"])
             group["love"] = love
         return model
 

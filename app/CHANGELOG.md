@@ -1,5 +1,84 @@
 # Changelog
 
+## 2026.11.14-b8
+
+- **Jukebox: a replaced or cleared queue can be put back.** Playing something in place
+  of the queue, or clearing it, now happens without a question, and the player offers to
+  put the queue back for 15 seconds, whatever else it says in that time. It comes back
+  with the same songs, at the song and the place it had reached. Before replacing or
+  clearing, the speaker keeps a copy of the queue as a playlist called "Jukebox undo
+  copy", which Jukebox doesn't list and deletes after two minutes. If the copy can't be
+  made, the queue is left as it is and the reason is shown. If the replacing fails
+  part-way, the queue is put back at once; if that fails too, the player goes on
+  offering it. The phone player puts its own queue back too, with the station if one
+  was on.
+- **Jukebox: a station's song gets its cover when Spotify lists karaoke versions of it
+  first.** A song by "Calvin Harris feat. Rihanna" had no cover: asked for the station's
+  words as they were, Spotify sent ten karaoke and tribute versions and not the song
+  itself. Each song is now looked for with three searches at once: its title and first
+  artist through Spotify's own title and artist filters, the same with the two names
+  the other way round, and the plain words without "feat." or a title's bracketed
+  words. The cover is chosen from everything the three find. When a station's title
+  has words in brackets, such as "(Radio Edit)", the song itself is now chosen before
+  a remix of it. When no song is accepted, the log lists the songs Spotify sent.
+- **Jukebox: red is kept for what can't be got back.** Deleting a playlist, saving the
+  queue over one and taking out repeated songs still ask in red. Stopping the music asks
+  in amber, since the queue and the rooms have to be put together again by hand. The End
+  the party button is no longer red, and adding a song to a playlist that has it already
+  is asked as a plain question.
+- **Camera Commander card: a camera's PTZ presets are with its controls.** They are
+  shown wherever the camera's controls are: on its full screen, and over the main camera
+  when the card's "controls over the main camera" option is on. A camera with up to three
+  presets has a button for each. A camera with more has one PTZ button, which opens the
+  presets out as a second line beside the bar, on the picture's side of it: under a bar
+  at the top, to the left of a bar on the right. A tap on a preset moves the camera, and
+  if Home Assistant refuses, the reason is shown with the controls for ten seconds. The
+  Cameras page's previews show the presets too, and a camera with presets and no controls
+  can now set where they go.
+- **Camera Commander card: the controls are in the style guide's chip proportions.** The
+  text was small for the height of the button, which left about twice the guide's space
+  above and below it. The text, the space at each end and the icon are now in the guide's
+  proportions at whatever size is set, in capitals as the guide's chips are.
+- **Camera Commander card: the controls are sized for where they are shown.** A camera's
+  Size was a height in pixels, so the buttons were large over a small main camera and
+  small on a large screen. It is now a share of the shorter side of the place they are
+  in (the main camera's area, or the whole screen), from 3% to 12%, never under 10 px or
+  over 96 px. A size already saved is read as the share it was of a 1280 x 800 tablet's
+  full screen (40 px is 5%), so it looks the same there. A button drawn small can still
+  be tapped over an area 44 px across.
+- **Camera Commander card: controls that don't fit give way in order.** They no longer
+  wrap onto a second row or run off the end. First the PTZ presets go behind the PTZ
+  button, then the names go and the buttons are round icons (each still named to a
+  screen reader and on hover). The Cameras page's previews show what a tablet would get.
+- **Camera Commander: the cameras' names are sized for their tiles.** The two name sizes
+  were heights in pixels, so names crowded small tiles. A tile's name is now a share of
+  the shorter side of the commander's smallest tile, so every tile's name is the same
+  size, and the main camera's name and clock are a share of the main camera's place.
+  Neither is under 7 px or over 72 px. Sizes already saved are converted (16 px becomes
+  11%, 20 px becomes 4%), so a tablet looks as it did. The name's bar and the space
+  around it scale with it.
+- **Camera Commander: a name too long for its tile is cut short with "…".** It was drawn
+  over the next tile. The main camera's name stops short of the clock.
+- **Cameras page: the controls' positions no longer go back to Top.** A click on a
+  preview, on a caption or on an entity in a control's list was passed on to the first
+  button of the section, which is Top for a wide screen. The two sections that hold
+  several controls no longer pass clicks on.
+- **Cameras page: an entity's list closes when one is chosen with the mouse.** The same
+  passed-on click opened a list again after a choice.
+- **Camera Commander: a camera chosen as the main camera doesn't start with an old
+  picture.** The larger channels are fetched only while a picture uses them, so the one
+  kept from the last time the camera was the main camera could be hours old, and it was
+  drawn first. A picture older than the commander's "stale after" time now gives way to
+  the camera's newest, which is its tile's, until the channel's own arrives.
+- **Camera compositor page: a camera's channels are listed low, medium, high** when the
+  cache is sorted by name. They were in alphabetical order: high, low, medium.
+- **Camera Commander, Responsive layout: fewer empty spaces in a space taller than the
+  cameras' shape.** Tiles shortened to the most they may be cropped made a main camera's
+  place a fraction of a per cent over that limit, and every such layout was thrown away.
+  The main camera's place is allowed half a per cent more. In 11 of 275 spaces tried the
+  tiles are larger and less of the space is empty (4 cameras in 768 x 1024: 5% empty,
+  where it was 22%).
+
 ## 2026.11.14-b7
 
 - **Jukebox: a new playlist can be started from a song.** Where you choose a playlist

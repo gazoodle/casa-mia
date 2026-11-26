@@ -80,6 +80,8 @@ export function CameraDialog({
   const [presets, setPresets] = useState(presetText(camera.ptz?.presets ?? []));
   const set = (change: Partial<Camera>) => setC((x) => ({ ...x, ...change }));
   const opt = (v: string) => v.trim() || undefined;
+  // The names its presets are shown by, where it has PTZ: they stand with its controls.
+  const presetNames = c.ptz ? parsePresets(presets).map((p) => (typeof p === "string" ? p : (p.label ?? p.preset))) : [];
   return (
     <Dialog
       title={`${camera.title}`}
@@ -98,10 +100,8 @@ export function CameraDialog({
               for (const k of ["medium", "high", "zoom"] as const) if (!out[k]) delete out[k];
               delete out.live; // the dashboard's choice now (Auto Dashboards)
               if (out.ptz) out.ptz = { ...out.ptz, presets: parsePresets(presets) };
-              if (!out.controls?.length) {
-                delete out.controls;
-                delete out.controls_at;
-              }
+              if (!out.controls?.length) delete out.controls;
+              if (!out.controls && !out.ptz?.presets.length) delete out.controls_at;
               onSave(out);
             }}
           >
@@ -152,15 +152,16 @@ export function CameraDialog({
           </Field>
         </div>
       )}
-      <Field label="Page controls" help="Entities at the top of its live page (a gate, a light); a tap toggles them.">
+      <Field group label="Page controls" help="Entities at the top of its live page (a gate, a light); a tap toggles them.">
         <Controls value={c.controls ?? []} onChange={(controls) => set({ controls })} />
       </Field>
-      {!!c.controls?.length && (
+      {(!!c.controls?.length || presetNames.length > 0) && (
         <Field
+          group
           label="Controls on a full screen"
-          help="How they are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen): the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The previews are a 1280 × 800 tablet, to scale."
+          help="How its controls and PTZ presets are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), or over its main camera: the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The size is a share of the shorter side of wherever they are shown, so they are in proportion on a phone and on a large screen. Up to three presets are buttons of their own; more are behind one PTZ button, which opens them out beside the others. Where they don't all fit, the presets go behind PTZ, then the names go and the buttons are icons. The previews are a 1280 × 800 tablet, to scale."
         >
-          <ControlsEdges entity={entity} controls={c.controls} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
+          <ControlsEdges entity={entity} controls={c.controls ?? []} presets={presetNames} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
         </Field>
       )}
     </Dialog>

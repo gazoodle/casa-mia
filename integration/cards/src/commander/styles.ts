@@ -69,11 +69,19 @@ export const styles = [motionStyles, css`
       align-content: flex-end;
       align-items: flex-end;
       gap: 4px 6px;
-      padding: 0 10px 10px 10px;
+      /* in step with the name: 10 px for a name of 20 */
+      padding: 0 calc(var(--cm-label-size) / 2) calc(var(--cm-label-size) / 2);
       pointer-events: none;
     }
-    /* Its font, size and colours are the commander's labels (labels.ts), set on the box. */
+    /* Its font, size and colours are the commander's labels (labels.ts), set on the box:
+       the size is a share of the main camera's place (labels.ts: nameSize). A name too
+       long for its place is cut short with …, as the compositor's is (labels.py: fitted). */
     .caption span {
+      box-sizing: border-box;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       padding: 2px 6px;
       background: var(--cm-label-back);
       color: var(--cm-label-colour);
@@ -92,10 +100,10 @@ export const styles = [motionStyles, css`
       order: 1;
       flex: 1 0 100%;
       box-sizing: border-box;
-      padding: 0.35em 10px;
+      padding: 0.35em 0.5em;
     }
     .caption.bar .lost {
-      margin-left: 10px;
+      margin-left: 0.5em;
     }
     .caption.none .title {
       display: none;

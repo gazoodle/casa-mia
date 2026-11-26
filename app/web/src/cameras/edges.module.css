@@ -47,25 +47,45 @@
   padding: calc(var(--cm-pill-height) * 0.3);
 }
 
+/* The style guide's chip at the pill's height (controls.ts: controlsStyle), as the card
+   draws it (integration/cards/src/commander/full.ts). */
 .pill {
   display: flex;
   align-items: center;
   height: var(--cm-pill-height);
-  padding: 0 calc(var(--cm-pill-height) * 0.32);
+  padding: 0 var(--cm-pill-pad);
   border-radius: calc(var(--cm-pill-height) / 2);
   background: rgb(0 0 0 / var(--cm-pill-alpha));
   color: #fff;
-  font-size: calc(var(--cm-pill-height) * 0.29);
+  font-size: var(--cm-pill-font);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* No room for the names on that screen: icons alone, as the card shows them. */
+.icons .pill {
+  justify-content: center;
+  width: var(--cm-pill-height);
+  padding: 0;
+}
+
+.icons .pill span {
+  display: none;
+}
+
+.icons .pill::before {
+  margin-right: 0;
 }
 
 /* Where the card draws the entity's icon (the page has no icons of its own). */
 .pill::before {
   content: "";
   flex: none;
-  width: calc(var(--cm-pill-height) * 0.43);
-  height: calc(var(--cm-pill-height) * 0.43);
-  margin-right: calc(var(--cm-pill-height) * 0.14);
+  width: var(--cm-pill-icon);
+  height: var(--cm-pill-icon);
+  margin-right: var(--cm-pill-gap);
   border-radius: 50%;
   background: currentColor;
   opacity: 0.8;

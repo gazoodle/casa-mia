@@ -42,6 +42,28 @@ def test_every_channel_waits_until_its_first_picture(tmp_path):
     assert g.pick("camera.a")[0] == jpeg() and "camera.a" not in g._waiting
 
 
+def test_a_stale_picture_gives_way_to_the_cameras_newest(tmp_path):
+    """A channel is fetched only while it is used, so the one a camera was last the main
+    camera with is old when it is chosen again: the tile's picture stands in for it."""
+    g = gatherer(tmp_path)
+    g.cfg.entities["camera.a"] = {"high": "camera.a_high"}
+    now = time.monotonic()
+    g.keep("camera.a_high", jpeg((320, 180)), at=now - 3600)
+    g.keep("camera.a", jpeg(), at=now - 2)
+
+    picture, age = g.pick("camera.a", "camera.a_high", stale=30)
+    assert picture == jpeg() and age < 30
+
+    # no limit given, or within it: the channel's own
+    assert g.pick("camera.a", "camera.a_high")[0] == jpeg((320, 180))
+    assert g.pick("camera.a", "camera.a_high", stale=7200)[0] == jpeg((320, 180))
+
+    # nothing newer: the old one, with its age, never none
+    g.keep("camera.a", jpeg(), at=now - 7200)
+    picture, age = g.pick("camera.a", "camera.a_high", stale=30)
+    assert picture == jpeg((320, 180)) and age > 3000
+
+
 def test_sizes_are_kept_across_restarts(tmp_path):
     sizes = tmp_path / "sizes.json"
     g = gatherer(tmp_path, sizes_path=sizes)

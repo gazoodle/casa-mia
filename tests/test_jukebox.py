@@ -239,6 +239,39 @@ def test_a_song_by_two_artists_is_found_however_the_station_joins_their_names():
     )
 
 
+def test_spotify_is_asked_for_a_song_by_its_title_and_first_artist_both_ways_round():
+    # Owner's box, 2026-11-26: no cover for this one. Asked for with the guest's
+    # "feat." in the words, Spotify sent karaoke versions and not the artist's own.
+    pair = ("Calvin Harris feat. Rihanna", "This Is What You Came For (Radio Edit)")
+    assert cover.searches(pair) == [
+        'track:"this is what you came for" artist:"calvin harris"',
+        # The station may have the two the wrong way round.
+        'track:"calvin harris" artist:"this is what you came for"',
+        # The plain words, without the asides, for what the filters are too strict for.
+        "calvin harris this is what you came for",
+    ]
+    came = [("This Is What You Came For", "Calvin Harris, Rihanna", "/came.jpg")]
+    assert cover.cover(pair, came) == "/came.jpg"
+
+    def artist(named):
+        return cover.searches((named, "Paper Lanterns"))[0].partition(" artist:")[2]
+
+    # Only the first artist is asked for, however the station joins the rest on.
+    for joined in (
+        "The Marigolds and Velvet Arcade",
+        "The Marigolds & Velvet Arcade",
+        "The Marigolds, Velvet Arcade",
+        "The Marigolds x Velvet Arcade",
+        "The Marigolds ft. Velvet Arcade",
+        "The Marigolds With Velvet Arcade",
+    ):
+        assert artist(joined) == '"the marigolds"', joined
+    # A band named by a joining word, or with one inside a word, keeps its name.
+    assert artist("X") == '"x"' and artist("Andover Sextet") == '"andover sextet"'
+    # A name keeps its marks, and can't end the phrase it is asked in.
+    assert artist('Beyoncé "B" Lantern') == '"beyoncé b lantern"'
+
+
 def test_marks_hyphens_and_apostrophes_dont_stop_a_song_being_found():
     # Spotify's spelling of an artist with a mark the station leaves off.
     marked = [("Paper Lanterns", "MARIGÖLD-Z, Velvet Arcade", "/marked.jpg")]
@@ -276,6 +309,9 @@ def test_of_the_records_a_song_is_on_the_artists_own_single_gives_the_cover():
     assert chosen(hits, best, album, again, single) == "/single.jpg"
     # The song as the station named it before a live one.
     assert chosen(live, album) == "/album.jpg"
+    # A station's own aside doesn't stop that: its "(Radio Edit)" is the song itself.
+    edit = ("The Marigolds", "Paper Lanterns (Radio Edit)")
+    assert cover.cover(edit, (live, album)) == "/album.jpg"
     # A song that is only on a collection still has a cover.
     assert chosen(hits) == "/hits.jpg"
 

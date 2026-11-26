@@ -78,6 +78,40 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   b8). Why: a new user took the generated commander page (one picture with a base64 tap
   zone over each tile) for the way to show a commander. A commander goes on a dashboard
   as its card; `docs/how-to/commander-on-your-home-page.md` is the worked example.
+- **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
+  the card's own buttons, the camera's controls, then its PTZ presets (each the call the
+  app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up
+  to `PRESETS_INLINE` (3) are buttons; more are behind a PTZ button that opens a second
+  `.controls-line` on the picture's side of the bar. The pills are the style guide's chip
+  at the height set: the proportions are once, in `app/web/src/cameras/controls.ts`
+  (`CHIP`, `controlsStyle`), for the card and the Cameras page's preview. Seen on a
+  throw-away page in Chromium, all four edges, at a fixed 40 px.
+- **Sizes are shares of the place, not px** (owner, 2026-11-26: buttons were large on
+  small screens and small on large ones, and names crowded small tiles; tidy and hard to
+  read is better than ugly). Never add a size in px to anything drawn over a camera.
+  - **Controls:** `controls_at.size` is % of the shorter side of the place (main area or
+    screen), 3 to 12, pill 10 to 96 px (`pillHeight`). A saved value over 12 is an old px
+    height and is read as px / 8 (`controlsAt`). `barFit` decides, from an estimate of
+    the names' widths (nothing is measured), what gives way: presets behind PTZ, then
+    icons alone. The card passes the place's CSS px (`mainPlace`, `screenPlace` in
+    `card.ts`). A small pill's tap area is 44 px (`.control::after`).
+  - **Names:** `labels.tile_share` and `main_share` (labels.json; `name` holds the floor,
+    cap and the sides old px sizes are read against). `commanders_of` converts a saved
+    `tile_size`/`main_size` once, for every reader. The sum is twice: `labels.py`
+    `name_px` and `labels.ts` `nameSize`, with the same cases in both tests. Every tile's
+    name is one size, from the smallest tile. `fitted` cuts a long name short with "…".
+  - **Not seen:** any of this on a real card, tablet or phone, or a real PTZ camera. The
+    names were looked at as drawn by the compositor at 393 x 700, 960 x 600 and
+    2560 x 1440. The icons-alone bar has not been looked at anywhere. The docs'
+    screenshots (`cameras-controls.webp`, `commander-controls.webp`,
+    `commander-names-settings.webp`) show the old look and px sliders.
+- **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one
+  older than the commander's `stale` seconds is replaced by the camera's newest channel
+  (its tile's), so a camera chosen as main doesn't start with last night's picture. No
+  extra fetching: RULE FOUR.
+- **Responsive solver:** `BLOCK_OVER` (5 per mille) lets a block of cells shortened to
+  the crop limit pass (2026.11.14-b8). Trying more cell shapes was measured and made
+  layouts emptier: don't.
 - **Integration:** each commander is a device with a Main camera select and a Track motion
   switch (`motion.py`). The device keeps its old identifier (`DEVICE_KEYS` in
   `sensor.py`); the old `/camera-dashboard/` paths still route to `/commander/`.
@@ -293,6 +327,24 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   name up. `Feed.sources` is the playlist each group's queue was loaded from or last
   saved as, from Jukebox, sent to the page as the group's `source`; it is in memory
   only, and a queue replaced from another app isn't noticed.
+- **A replaced or cleared queue is put back** (2026.11.14-b8, owner 2026-11-26;
+  `undo.py`). Neither is asked about. `_Doing._in_place` has the speaker keep the queue
+  first as a playlist, "Jukebox undo copy (room)" (`upnp.keep`, which the party's copy
+  uses too), with the song and place it was at; `queue_back` loads it again, and the
+  copy is deleted after `FOR` seconds, when it is used, and when Home Assistant stops.
+  If the copy can't be made nothing is done, and if the replacing fails part-way the
+  queue is put back at once. The page offers it back only while the model says a queue
+  is kept (`group.undo`) and for 15 s on the device that did it (`_undo` in `big.ts`),
+  so the offer lapses with the copy and is still there after a put-back that failed.
+  The phone's own room keeps its line in memory (`_before` in `phone.ts`). Not yet
+  tried on a real speaker; six more requests go to the speaker before a replace or a
+  clear, and the wait they add hasn't been measured.
+- **What a question's colour means** (owner, 2026-11-26; the `Sure` tones and `asking`
+  in `pick.ts`, one sheet for the player and the editor): red for what can't be got
+  back (a playlist deleted, saved over, or rid of repeated songs), amber (`caution`)
+  for what has to be put together again by hand (Stop), and plain (`ask`) where
+  nothing is lost. What Jukebox can put back isn't asked about. The playlist questions
+  lose their red when Jukebox keeps a copy of the playlists (BACKLOG).
 - **Songs' pictures** (b21): a speaker lists every playlist song's picture as a path
   on itself (`/getaa?…`), for library, Spotify and other streamed songs alike (read
   from real speakers 2026-11-24, with title and album for all of them). `art.py`
@@ -303,7 +355,12 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   one of the owner's stations always sends them swapped): `find.Covers` asks Spotify
   once for each song, through Home Assistant's Spotify integration, and `cover.py`
   (no Home Assistant in it) decides which song it is. The group's `cover` goes to the
-  page beside `picture`; `sleeve` in `parts.ts` draws the two. Not seen with a real
+  page beside `picture`; `sleeve` in `parts.ts` draws the two. Three searches for
+  each song, pooled (`cover.searches` says why, as measured on the box 2026-11-26:
+  plain words with "feat." brought back only karaoke versions). Lesson: the 2026-11-25
+  fixes changed the matching only, and no test ran the search; `a_catalogue` in
+  `tests_ha/test_jukebox_station.py` is a stand-in Spotify that takes a song through
+  both, so a new missed song goes there first. Not seen with a real
   Spotify answer: that a song's pictures are its album's is from memory of the
   library, which isn't installed in the test environment.
 - **A playlist's tile** (b24) is four covers: `art.tiled` asks the speaker for each
@@ -1474,7 +1531,9 @@ CLAUDE.md has them all. What trips agents here:
 - **Default-stripping editors:** a saved card keeps old values, so a changed default doesn't
   reach it. The owner's two commander cards still hold `tap_main: live`.
 - **`Field` is a `<label>`:** a click on anything non-interactive inside it clicks its first
-  button (`Chips` cancels that).
+  button (`Chips` cancels that). A field that holds several controls takes `group` and is
+  a `div` (2026.11.14-b8: the Cameras page's controls went back to Top on any stray
+  click); a menu's choice inside a label prevents its click, as `Select` does.
 - **HA's visibility is decided in core since 2026.9:** read a section's `hidden` attribute
   and `section-visibility-changed`, not private methods.
 - **`clip-path` makes an element a backdrop root:** a `backdrop-filter` inside it sees

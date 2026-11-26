@@ -438,9 +438,9 @@ class Generator:
         main_image, age = None, math.inf
         for where, camera, chan, _, _ in self._places(cmd, main):
             if where == "main":
-                main_image, age = self.gather.pick(camera, chan)
+                main_image, age = self.gather.pick(camera, chan, limit)
                 continue
-            images[camera], tile_age = self.gather.pick(camera, chan)
+            images[camera], tile_age = self.gather.pick(camera, chan, limit)
             if tile_age > limit:
                 stale.add(camera)
         async with self._draw_lock:

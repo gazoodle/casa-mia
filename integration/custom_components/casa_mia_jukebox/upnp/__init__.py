@@ -17,6 +17,7 @@ lists), `saved` (changing a Sonos playlist, which a speaker calls a saved queue)
 from .common import (
     ABOUT,
     ANSWER,
+    COPIES,
     COPY,
     DC,
     DIDL,
@@ -30,6 +31,7 @@ from .common import (
     QUEUE,
     SAVED_QUEUES,
     SONOS,
+    UNDO,
     UPNP,
     _described,  # noqa: F401  (its test reads it as it was written, from here)
     call,
@@ -50,6 +52,7 @@ from .player import (
     delete_playlist,
     go_to,
     insert,
+    keep,
     move,
     place,
     play_from,
@@ -79,6 +82,7 @@ from .saved import (
 __all__ = [
     "ABOUT",
     "ANSWER",
+    "COPIES",
     "COPY",
     "DC",
     "DIDL",
@@ -93,6 +97,7 @@ __all__ = [
     "SAVED_QUEUES",
     "SONOS",
     "SPOTIFY",
+    "UNDO",
     "UPNP",
     "call",
     "changes",
@@ -104,6 +109,7 @@ __all__ = [
     "go_to",
     "holds",
     "insert",
+    "keep",
     "library",
     "move",
     "named",

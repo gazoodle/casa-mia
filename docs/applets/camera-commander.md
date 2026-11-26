@@ -254,8 +254,12 @@ The **Any size** preview shows the names as you change them.
   DejaVu Sans Mono, which is fixed width. With Standard, the name over a live main camera
   is in the browser's own font, which is a little different from the drawn one; with the
   DejaVu fonts the two are the same.
-- **Tile name size** and **Main camera name size:** in px. A screen with more pixels draws
-  a name with more of them, so it looks the same size on every screen.
+- **Tile name size** and **Main camera name size:** a share of the place the name is in,
+  so names are in proportion on a phone and on a large screen. A tile's name is a share
+  of the shorter side of the commander's smallest tile, and every tile's name is that
+  one size. The main camera's name and clock are a share of the shorter side of the main
+  camera's place. A name is never under 7 px or over 72 px. One too long for its tile is
+  cut short with "…".
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
   with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the
@@ -355,6 +359,13 @@ buttons over the main camera, in one bar with two buttons of its own.
   switches, a lock locks or unlocks, a cover opens or closes. An entity that Home
   Assistant can't find, or that is unavailable, has a dimmed button that says so. The
   controls belong to the camera, so they change when the main camera does.
+- **The camera's PTZ presets.** They are in the same bar, after the controls. A camera
+  with up to three presets has a button for each, named as the preset is on the Cameras
+  page. A camera with more has one **PTZ** button: a tap opens all its presets as a
+  second line beside the bar, on the picture's side of it (under a bar along the top, to
+  the left of a bar down the right), and another tap puts them away. A tap on a preset
+  moves the camera. If Home Assistant refuses, the reason is shown with the controls for
+  ten seconds.
 - **Where they show.** With **Its controls over the main camera** on, over the main
   camera on the commander. They are always on the main camera's full screen (**A tap on
   the main camera: full screen, with its controls**), whatever that switch says.

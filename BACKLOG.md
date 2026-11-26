@@ -50,6 +50,17 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
   Spotify. A new playlist is made before its song is put in, so if that fails an
   empty playlist is left (the reason is said). None of b4 to b7's playlist work has
   been tried on a real speaker: do that first.
+- **Every playlist change put back, once the playlists are copied** (owner, 2026-11-26).
+  The owner is to ask for Jukebox to copy all the Sonos playlists into the integration's
+  data, so that Home Assistant's backups hold them. With that copy, deleting a playlist,
+  saving the queue over one and taking out repeated songs can be put back from the toast,
+  as a replaced or cleared queue is since 2026.11.14-b8 (`undo.py`), and their red
+  questions can go: red is for what can't be got back (the `Sure` tones in
+  `integration/cards/src/jukebox/pick.ts`). Not yet tried on a real speaker: putting a
+  queue back, its copy kept as "Jukebox undo copy (room)".
+- **Restoring the playlists from a backup** (owner, 2026-11-26: later, after the copy
+  above). Offer to put a playlist back from the copy in the integration's data, after
+  it was deleted or changed in Sonos, or after a restore of Home Assistant.
 - **Jukebox adds no media players** (owner, 2026-11-20). Each room stays the single
   entity that Home Assistant's Sonos integration makes. Jukebox's card, its services and
   the Sonos app all drive that one entity. Why: Music Assistant wraps each speaker in a
@@ -400,17 +411,30 @@ the Gazette's own work is parked below it.
   - Step 3: the bands drawn as zones on the scale, in all five eras' `meter`.
   - Step 4: stand-in meters on the test VM, a picture for the guide, and the guide saying
     the card is in daily use in the author's house once it is on the live dashboards.
-- **The Console's cards, made clear for someone building their own dashboard** (owner,
-  2026-11-20: the gauges and controls "are currently there but a bit confusing to use").
-  Revisit all of Dash-Bored's Home Assistant cards so that it is clear which card to pick
-  and what each one will draw: the part cards (`dash-bored-console-instrument`, `-room`,
-  `-lamps` in `console/cards.ts`), the meter panel and their editors. The owner expects
-  this to mean taking out the way a control picks its own form from its entity, so the
-  user chooses the control and then the entity it shows, not the other way round. Why:
-  the entity-first way suits generating a whole dashboard automatically, but someone
-  putting one card on a page of their own can't tell what they will get. Agree the new
-  shape with the owner before building it, and keep the automatic choice wherever a
-  family draws the whole house.
+- **A design session: the Console's pieces, for building your own dashboard** (owner,
+  2026-11-25; a big one, to be designed with the owner before anything is built). Clean up
+  Dash-Bored's controls so that anyone can put together a styled house board of their own
+  from the basic pieces. It takes in the earlier item on the Console's cards (owner,
+  2026-11-20: the gauges and controls "are currently there but a bit confusing to use";
+  the part cards `dash-bored-console-instrument`, `-room` and `-lamps` in
+  `console/cards.ts`, the meter panel and their editors). What the owner asked for:
+  - **Individual controls**, each one a card of its own. The user chooses the control and
+    then the entity it shows, not the other way round, so it is clear what a card will
+    draw. The automatic choice of control from an entity stays wherever a family draws
+    the whole house.
+  - **Panels that are just a list of entities**, laid out automatically, or in an order
+    the user sets.
+  - **Each era's pieces separate**, so a board can be built in one era's style.
+  - **Offered as suggestions when an entity is chosen** in Home Assistant's card picker,
+    and **put in categories** so they are easy to find.
+  - **A clock for every era**, built as a specialisation of one clock, because the owner
+    wants many clock designs: styled after fine chronographs, station clocks and flap
+    digit clocks (like the departure board's style), and more.
+  - **More knobs and colours**: everything someone would need to style their own board
+    from the basic controls.
+  Open for the session: the cards' names and categories, what a panel's ordering looks
+  like in its editor, how a clock design is described, and how much of the existing part
+  cards is kept or replaced.
 - **Every family gets every capability** (owner, 2026-11-17; the rule is in HANDOVER and
   the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
   lists each of these in its `OWED`, and fails when a family starts to show something
@@ -1090,11 +1114,6 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 - **KNX BMS machine** (`knx-bms`): the RPi-to-KNX machine giving BMS programming control over the bus. First job: bring the Hue lights into BMS land. Open: where its code lives, RPi or app, how Hue is reached, how it relates to the `knx` module.
 
 ## Cameras, Camera Commander and the compositor
-
-- **PTZ presets on the commander's main camera** (asked 2026-11-12; the owner: "we need to do this"). A camera's PTZ presets show only on its page on the camera dashboard (`auto_dashboards/dashboard.py`: `preset_entries`, `preset_action`). The Camera Commander card shows none, over the main camera or on its full screen, so a PTZ camera can't be moved from a commander.
-  - **The design (owner):** one button in the bar with the others (the camera's controls, Sound, Full screen; `integration/cards/src/commander/full.ts`: `controlsBar`), which opens a drop-down or menu of the camera's presets. A tap on a preset performs the camera's PTZ action with that preset, as its page's tile does.
-  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`). Since 2026.11.9-b11 the app builds each preset as a call for pages (`cameras.py` `for_pages`, fed by `casa_mia/cameras/subscribe`, which Dash-Bored uses): give the card the same list. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
-  - **To settle when built:** whether it is a card option like the Sound button or always shown with the controls; and the menu, which is new chrome on the card (none of its buttons opens one today) and must stay inside the card to be seen while the commander is full screen.
 
 - **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:
   - **Seen on the guest network:** the low channel plays; the medium channel shows a first frame and is lost about 10 seconds later, on a regular cycle; nothing arrives on the high channel. Each loss and return also restarts the card's picture stream (see below), which is what makes the page feel slow.

@@ -73,7 +73,7 @@ def test_a_pill_is_only_as_wide_as_the_name():
 
 
 def test_a_pill_has_rounded_ends():
-    c = labelled(main_style="pill", main_size=40)
+    c = labelled(main_style="pill", main_share=12)
     pic, (x, y, _, h) = picture(c, CAMS[1]), placed(c, CAMS[1]).main
     # the pill's rows, and where it starts on each: further in at its top than half-way
     rows = [
@@ -101,10 +101,39 @@ def test_the_main_cameras_name_takes_its_own_style():
 
 
 def test_a_bigger_name_has_a_taller_bar():
-    c = labelled(tile_size=32)
-    pic, (x, row, w, _) = picture(c, CAMS[1]), tile_foot(c)
-    assert green(pic, (x + w - 3, row - 36))  # 44 px of bar for a name of 32
-    assert not green(picture(labelled(), CAMS[1]), (x + w - 3, row - 36))
+    c = labelled(tile_share=25)
+    pic, (x, row, w, h) = picture(c, CAMS[1]), tile_foot(c)
+    px = L.name_px(25, min(w, h))
+    high = px * 22 // 16 - 8  # near the top of its bar: 22 px of bar for a name of 16
+    assert px > 24 and green(pic, (x + w - 3, row - high))
+    assert not green(picture(labelled(), CAMS[1]), (x + w - 3, row - high))
+
+
+def test_a_name_is_a_share_of_its_place_between_a_floor_and_a_cap():
+    assert L.name_px(11, 144) == 16 and L.name_px(4, 500) == 20  # a tablet's, as before
+    assert L.name_px(11, 288) == 32  # twice the tile, twice the name
+    assert L.name_px(11, 30) == 7 and L.name_px(11, 5000) == 72  # the floor, the cap
+    assert L.name_px(11, 30, scale=2) == 14  # in the picture's own pixels
+
+
+def test_a_name_too_long_for_its_tile_is_cut_short_not_drawn_over_the_next():
+    font = L.font("sans", 16)
+    assert L.fitted("Gate", font, 200) == "Gate"
+    short = L.fitted("The far end of the long drive", font, 100)
+    assert short.endswith("…") and font.getlength(short) <= 100
+    assert L.fitted("The far end of the long drive", font, 12) == ""  # no room at all
+
+
+def test_a_size_saved_in_px_is_read_as_the_share_it_was_on_a_tablet():
+    from casa_mia.modules.compositor.common import commanders_of
+
+    old = {"labels": {"tile_size": 16, "main_size": 20, "font": "sans"}}
+    (c,) = commanders_of({"commanders": [old]})
+    assert c["labels"] == {"font": "sans", "tile_share": 11, "main_share": 4}
+    # a share already set is kept, and one out of range is held within it
+    kept = {"labels": {"tile_size": 40, "tile_share": 9, "main_size": 60}}
+    (c,) = commanders_of({"commanders": [kept]})
+    assert c["labels"] == {"tile_share": 9, "main_share": 12}
 
 
 def test_the_background_is_see_through_at_its_opacity():
@@ -127,7 +156,9 @@ def test_what_is_wrong_with_labels_is_said():
 
     assert wrong() == []
     assert any("font is not one" in p for p in wrong(font="comic"))
-    assert any("tile name size must be 8-40" in p for p in wrong(tile_size=4))
+    assert any("tile name size must be 4-25" in p for p in wrong(tile_share=2))
+    assert wrong(main_share=4.5) == []  # a share takes halves
+    assert any("nudge across must be" in p for p in wrong(talk_status_x=1.5))
     assert any("text colour must be like" in p for p in wrong(colour="white"))
     assert any("call status at is not one" in p for p in wrong(talk_status="middle"))
     assert any(

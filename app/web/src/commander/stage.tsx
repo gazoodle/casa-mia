@@ -8,7 +8,7 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import type { Rect } from "../../../../integration/cards/src/layout.ts";
-import { back, corner, family, footOf, keepPosition, labelsOf, nudge } from "../../../../integration/cards/src/labels.ts";
+import { back, corner, family, footOf, keepPosition, labelsOf, nameSize, nudge } from "../../../../integration/cards/src/labels.ts";
 import { lostBy, measure, shapeName, type Shown } from "../../../../integration/cards/src/measure.ts";
 import { camerasOf, placed, type Commander as Laid, type Placed } from "../../../../integration/cards/src/placed.ts";
 import { Camera, ThumbRound, plural } from "../cameras";
@@ -181,15 +181,19 @@ export function Stage({
   const lit = { ...HIGHLIGHT, ...value.highlight };
 
   // Its names as the compositor draws them (labels.py): font, sizes, colours and style,
-  // at the stage's scale.
+  // at the stage's scale. A tile's name is a share of the smallest tile's shorter side
+  // (so all are one size), the main camera's of its place's.
   const labels = labelsOf(value.labels);
   usePageFont(labels.font);
+  const sides = [...tilesShown.map((t) => t.rect), ...(laid.more ? [laid.more.rect] : [])].map(([, , w, h]) => Math.min(w, h));
+  const tilePx = nameSize(labels.tile_share, sides.length ? Math.min(...sides) : 0);
+  const mainPx = nameSize(labels.main_share, mainShown ? Math.min(mainShown.rect[2], mainShown.rect[3]) : 0);
   const named = {
     "--label-font": family(labels.font),
     "--label-colour": labels.colour,
     "--label-back": back(labels),
-    "--tile-px": `${labels.tile_size * k}px`,
-    "--main-px": `${labels.main_size * k}px`,
+    "--tile-px": `${tilePx * k}px`,
+    "--main-px": `${mainPx * k}px`,
   } as React.CSSProperties;
 
   return (
@@ -269,12 +273,12 @@ export function Stage({
             // A sample of what the card shows in a call, where the labels put each
             // (the card's own chips, at their real size whatever the stage's scale).
             <div className={css.talk} style={at(mainShown.rect)}>
-              <div style={corner(labels.talk_status, footOf(labels, labels.talk_status))}>
+              <div style={corner(labels.talk_status, footOf(labels, labels.talk_status, mainPx))}>
                 <span className="cm-pill cm-filled cm-warn" style={nudge(labels, "talk_status")}>
                   Ringing
                 </span>
               </div>
-              <div style={corner(labels.talk_buttons, footOf(labels, labels.talk_buttons))}>
+              <div style={corner(labels.talk_buttons, footOf(labels, labels.talk_buttons, mainPx))}>
                 <span className="cm-chip cm-on cm-good" style={nudge(labels, "talk_buttons")}>
                   Talk
                 </span>

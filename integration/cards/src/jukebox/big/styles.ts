@@ -117,17 +117,18 @@ export const STYLES = css`
   .undone { max-height: 34vh; margin: 0 0 14px; padding: 0; overflow: auto; list-style: none; }
   .undone li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
   .undone time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
   .acts { display: grid; gap: 8px; }
   .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; }
   .acts button:hover { background: rgb(255 255 255 / 18%); }
   .acts .main { background: #fff; color: #111; }
-  .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
   .acts .sep { margin-top: 10px; }
   .sheet .or { margin: 16px 0 8px; }
   .over { max-height: 32vh; overflow: auto; }
   .toast { position: absolute; left: 14px; right: 14px; bottom: 18px; z-index: 6; margin: 0 auto; width: fit-content; max-width: calc(100% - 28px); padding: 11px 16px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 10px 30px rgb(0 0 0 / 45%); opacity: 0; transform: translateY(12px); transition: 0.25s; pointer-events: none; }
   .toast.on { opacity: 1; transform: none; }
+  /* Offering to put something back: the button must take a tap. */
+  .toast.on.back { display: flex; align-items: center; gap: 14px; pointer-events: auto; }
+  .toast button { flex: none; padding: 7px 12px; border-radius: 10px; background: #111; color: #fff; font-weight: 700; }
   /* Out of the way of a question's buttons. */
   .veil ~ .toast { top: max(18px, env(safe-area-inset-top)); bottom: auto; }
 

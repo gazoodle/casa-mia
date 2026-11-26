@@ -35,7 +35,9 @@ def _labels(the: str, cmd: dict) -> list[str]:
         value = labels.get(key, o["default"])
         label = re.sub(r", (px|%)$", "", o["label"]).lower()  # (less its unit)
         if "min" in o:
-            ok = isinstance(value, int) and not isinstance(value, bool)
+            # whole numbers, or halves too where the option has a step
+            ok = isinstance(value, (int, float) if "step" in o else int)
+            ok = ok and not isinstance(value, bool)
             if not ok or not o["min"] <= value <= o["max"]:
                 out.append(f"{the}'s labels: {label} must be {o['min']}-{o['max']}.")
         elif "options" in o:

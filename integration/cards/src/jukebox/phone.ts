@@ -186,6 +186,7 @@ class Phone {
       party: null,
       love: null,
       trouble: this._trouble || this._note || undefined,
+      undo: !!this._before,
     };
   }
 
@@ -218,7 +219,10 @@ class Phone {
     seek: (data) => this._seek(Number(data.value)),
     shuffle: (data) => void (this._line = { ...this._line, shuffle: !!data.on }),
     repeat: (data) => void (this._line = { ...this._line, repeat: data.mode }),
-    play_media: (data) => this._add(data, data.enqueue),
+    play_media: (data) => {
+      if (data.enqueue === "replace") this._keep();
+      return this._add(data, data.enqueue);
+    },
     queue_add: (data) => this._add(data, "add", data.to),
     queue_play: (data) => this._go(Number(data.value) - 1),
     queue_move: (data) => void (this._line = move(this._line, Number(data.value), Number(data.to))),
@@ -230,14 +234,40 @@ class Phone {
       if (playing && !this._station) this._rest();
     },
     queue_clear: () => {
+      this._keep();
       this._line = { ...this._line, songs: [], at: -1 };
       if (!this._station) this._rest();
+    },
+    // The queue as it was before it was replaced or cleared, as Jukebox puts a speaker's
+    // back (undo.py): the same songs, the station if one was on, and the place in the
+    // song. In memory here, until the next one is kept.
+    queue_back: () => {
+      const kept = this._before;
+      if (!kept) throw new Error("The queue can't be put back any more");
+      const same = kept.station !== undefined && kept.station === this._station;
+      [this._line, this._station, this._before] = [kept.line, kept.station, undefined];
+      // A station that played on through a cleared queue is left playing.
+      if (same) return;
+      const track = this._current();
+      if (track && kept.playing) return this._start(track, track.live ? 0 : kept.position);
+      // It wasn't playing: nothing sounds, and play starts from where it was.
+      this._sound.stop();
+      this._serial++;
+      this._told = { playing: false, position: kept.position, duration: track?.duration ?? null, at: Date.now() };
     },
     stop: () => {
       [this._line, this._station] = [{ ...this._line, songs: [], at: -1 }, undefined];
       this._rest();
     },
   };
+
+  private _before?: { line: Lineup; station?: Track; playing: boolean; position: number };
+
+  /** Keep the queue before it goes, to put back; an empty one isn't kept. */
+  private _keep(): void {
+    if (!this._line.songs.length) return;
+    this._before = { line: this._line, station: this._station, playing: this._told.playing, position: this._position() };
+  }
 
   private _send(message: object): Promise<any> {
     return this._hass!.connection.sendMessagePromise(message);

@@ -37,6 +37,10 @@ QUEUE = "Q:0"
 # How the name of a playlist starts that is a party's copy of its queue (party.py), kept
 # by the speaker for Jukebox: not one of the household's, so it isn't listed with them.
 COPY = "Jukebox party copy"
+# The queue as it was before Jukebox replaced or cleared it, for a while (undo.py).
+UNDO = "Jukebox undo copy"
+# Jukebox's own copies, which are never listed as playlists or saved over.
+COPIES = (COPY, UNDO)
 # How a speaker names its own queue as what it plays from.
 OWN_QUEUE = "x-rincon-queue:"
 ABOUT = (

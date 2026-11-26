@@ -14,8 +14,9 @@ export type Style = "bar" | "pill" | "none";
 export type Place = "top-left" | "top-centre" | "top-right" | "bottom-left" | "bottom-centre" | "bottom-right";
 export type Labels = {
   font: string;
-  tile_size: number;
-  main_size: number;
+  /** A name's height, % of the shorter side of its place (nameSize). */
+  tile_share: number;
+  main_share: number;
   colour: string;
   tint: string;
   opacity: number;
@@ -34,6 +35,13 @@ export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) 
 /** A commander's labels, each setting it lacks at its default (one saved before there
  * were any has none). */
 export const labelsOf = (own?: Partial<Labels> | null): Labels => ({ ...DEFAULTS, ...own });
+
+/** A name's height in px: `share` % of the shorter side of its place (`side`, in px),
+ * never under the floor nor over the cap (labels.json: name; CSS px, so both grow with
+ * `scale`). The compositor's is the same sum (labels.py: name_px). */
+export function nameSize(share: number, side: number, scale = 1): number {
+  return Math.floor(Math.min(LABELS.name.cap * scale, Math.max(LABELS.name.floor * scale, (share * side) / 100)) + 0.5);
+}
 
 const face = (font: string) => `Casa Mia ${font}`;
 
@@ -62,10 +70,11 @@ export function useFont(font: string, url: (file: string) => string): void {
 const EDGE = 10;
 
 /** How far up from the main camera's foot chips at `place` sit, px: clear of its name
- * when that is a bar across the foot, or a pill in the same corner. */
-export function footOf(l: Labels, place: Place): number {
-  if (l.main_style === "bar") return Math.round(l.main_size * 1.9) + 6;
-  if (l.main_style === "pill" && place === "bottom-left") return EDGE + Math.round(l.main_size * 1.2) + 4 + 6;
+ * (`px` high: nameSize of its place) when that is a bar across the foot, or a pill in
+ * the same corner. */
+export function footOf(l: Labels, place: Place, px: number): number {
+  if (l.main_style === "bar") return Math.round(px * 1.9) + 6;
+  if (l.main_style === "pill" && place === "bottom-left") return EDGE + Math.round(px * 1.2) + 4 + 6;
   return EDGE;
 }
 

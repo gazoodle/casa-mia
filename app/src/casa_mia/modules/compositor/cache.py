@@ -498,13 +498,23 @@ class Cache:
         return best, self.shots[best][1], now - self.shots[best][0]
 
     def pick(
-        self, camera: str, channel: str | None = None
+        self, camera: str, channel: str | None = None, stale: float = math.inf
     ) -> tuple[Picture | None, float]:
-        """A camera's picture from that channel; one still waiting for its first gives
-        way to the newest of the camera's others that has come. The picture and its age
-        in seconds (inf when there is none)."""
+        """A camera's picture from that channel; one still waiting for its first, or
+        older than `stale` seconds, gives way to the newest of the camera's channels
+        that has come. The picture and its age in seconds (inf when there is none).
+
+        A channel is fetched only while a picture uses it, so the one a camera was last
+        the main camera with can be hours old when it is chosen again: the first
+        drawing then showed last night's picture (2026.11.14-b8). The camera's tile is
+        fetched all the while, so its picture stands in, enlarged, until the channel's
+        own arrives."""
         hit = self.shots.get(channel or camera)
-        if hit is None or (channel or camera) in self._waiting:
+        if (
+            hit is None
+            or (channel or camera) in self._waiting
+            or time.monotonic() - hit[0] > stale
+        ):
             come = [
                 self.shots[c]
                 for c in channels(self.cfg, camera).values()

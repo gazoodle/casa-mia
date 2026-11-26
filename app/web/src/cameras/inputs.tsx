@@ -5,7 +5,7 @@ import edges from "./edges.module.css";
 import { Segmented } from "../ui";
 import { Slider } from "../controls";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, PILL_SIZES, controlsAt, controlsStyle } from "./controls";
+import { type ControlsAt, EDGES, PILL_SIZES, barFit, controlsAt, controlsStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -100,7 +100,13 @@ export function EntityInput({
               ref={i === at ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
               onPointerEnter={() => setAt(i)}
               onPointerDown={(ev) => ev.preventDefault()} // keep the focus in the field
-              onClick={() => pick(e.entity)}
+              onClick={(ev) => {
+                // In a Field the menu is inside a <label>, which passes this click on to
+                // its field: the menu opened again after a pick (as the Select's did,
+                // 2026.11.12-b3). A prevented click isn't passed on.
+                ev.preventDefault();
+                pick(e.entity);
+              }}
             >
               <span className={css.entity}>
                 <span>{e.name}</span>
@@ -138,18 +144,22 @@ export function Thumb({ entity, className = css.thumb }: { entity: string; class
 /** The previews' scale: a 1280 x 800 tablet each way round, drawn 384 px wide in
  * landscape and 240 px in portrait (edges.module.css). */
 const PREVIEW = 0.3;
+const TABLET: Record<"landscape" | "portrait", [number, number]> = { landscape: [1280, 800], portrait: [800, 1280] };
 
-/** How a camera's controls are shown on a commander's full screen: an edge for a wide
- * screen and one for a tall one, where along it, the pills' size and background, each
- * screen previewed to scale over the camera's still. */
+/** How a camera's controls and PTZ presets are shown on a commander's full screen: an edge
+ * for a wide screen and one for a tall one, where along it, the pills' size and
+ * background, each screen previewed to scale over the camera's still. */
 export function ControlsEdges({
   entity,
   controls,
+  presets,
   value,
   onChange,
 }: {
   entity: string;
   controls: Control[];
+  /** Its PTZ presets, by the names shown. */
+  presets: string[];
   value?: Partial<ControlsAt>;
   onChange: (at: ControlsAt) => void;
 }) {
@@ -157,6 +167,10 @@ export function ControlsEdges({
   const set = (change: Partial<ControlsAt>) => onChange({ ...at, ...change });
   const entities = useContext(Entities);
   const names = controls.map((c) => c.name || entities.find((e) => e.entity === c.entity)?.name || c.entity);
+  // Each screen's bar as the card would show it there (controls.ts: barFit): its pills'
+  // height, the presets by name or behind PTZ, and icons alone when the names don't fit.
+  const bars = Object.fromEntries((["landscape", "portrait"] as const).map((shape) => [shape, barFit(at, TABLET[shape], at[shape], names, presets)]));
+  const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (bars[shape].fold ? ["PTZ"] : presets) : [])];
   return (
     <>
       <div className={edges.edges}>
@@ -165,10 +179,10 @@ export function ControlsEdges({
             <Segmented value={at[shape]} options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])} onChange={(edge) => set({ [shape]: edge })} />
             <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
               <Thumb entity={entity} className={edges.screenPicture} />
-              <div className={`${edges.screenControls} ${edges[at[shape]]}`} style={controlsStyle(at, PREVIEW)}>
-                {names.map((n, i) => (
+              <div className={`${edges.screenControls} ${edges[at[shape]]} ${bars[shape].names ? "" : edges.icons}`} style={controlsStyle(at, bars[shape].height, PREVIEW)}>
+                {pills(shape).map((n, i) => (
                   <span key={i} className={edges.pill} title={n}>
-                    {n}
+                    <span>{n}</span>
                   </span>
                 ))}
               </div>
@@ -178,7 +192,7 @@ export function ControlsEdges({
       </div>
       <div className={edges.look}>
         <span>Size</span>
-        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v} px`} onChange={(size) => set({ size })} />
+        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v}%`} onChange={(size) => set({ size })} />
         <span>Along the edge</span>
         <Segmented
           value={at.align}

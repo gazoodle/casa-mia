@@ -7,6 +7,10 @@ import type { Corner } from "./motion.ts";
 import type { Duplex } from "./talk-rules.ts";
 import type { Control, ControlsAt } from "../../../../app/web/src/cameras/controls.ts";
 
+/** One of a camera's PTZ presets, as the app sends it: the name shown and the call that
+ * goes to it (cameras.py: preset_calls). */
+export type Preset = { name: string; action: string; data: Record<string, unknown> };
+
 export type Route = "auto" | "direct" | "ha";
 export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "full" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
   leave_after?: number;
@@ -40,8 +44,9 @@ export type Card = {
   layout: Commander & { labels?: Partial<Labels>; main_keep?: string; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
   /** Each camera: its title, live page, channels smallest first, with their sizes, and
-   * its controls with the edge they go along on a full screen (card.ts: full screen). */
-  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; controls_at?: Partial<ControlsAt> }>;
+   * its controls and PTZ presets with the edge they go along on a full screen (card.ts:
+   * full screen). */
+  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; presets?: Preset[]; controls_at?: Partial<ControlsAt> }>;
   /** The compositor's Live main camera switch. */
   live_main?: boolean;
   /** This run of the app: when it changes, the app restarted and the stream with it. */
