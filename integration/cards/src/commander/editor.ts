@@ -89,7 +89,6 @@ export class CommanderEditor extends LitElement {
       { name: "leave_after", selector: { number: { min: 0, max: 120, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       { name: "motion_dot", selector: { boolean: {} } },
       { name: "motion_colour", selector: { color_rgb: {} } },
-      { name: "motion_share", selector: { number: { min: 4, max: 40, step: 1, mode: "slider", unit_of_measurement: "%" } } },
       { name: "motion_pulse", selector: { number: { min: 0, max: 5, step: 0.1, mode: "slider", unit_of_measurement: "s" } } },
       { name: "motion_linger", selector: { number: { min: 0, max: 300, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       {
@@ -142,7 +141,6 @@ export class CommanderEditor extends LitElement {
       look_darkness: "Darkness",
       motion_dot: "Show motion dot",
       motion_colour: "Colour",
-      motion_share: "Size",
       motion_pulse: "Pulse",
       motion_linger: "Keep after motion",
       motion_corner: "Corner",
@@ -166,7 +164,7 @@ export class CommanderEditor extends LitElement {
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
             : s.name === "main_controls"
-            ? "The main camera's page controls (a gate, a light) over it, as on its full screen: the edge, size and background set for it on the Cameras page, the wide or tall edge by the main camera's own shape."
+            ? "The main camera's page controls (a gate, a light) over it, as on its full screen: the edge and background set for it on the Cameras page, the wide or tall edge by the main camera's own shape."
             : s.name === "sound_button"
             ? "A Sound button with the main camera's controls (on its full screen, and over it when its controls are), to hear the camera. It goes back to off when the main camera changes, and the camera is not heard while you talk (the visitor is heard through Talk)."
             : s.name === "screen_button"
@@ -174,7 +172,7 @@ export class CommanderEditor extends LitElement {
             : s.name === "talk_button"
             ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
-            ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when."
+            ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when. It is half the size of the tiles' names (the commander's Tile name size)."
             : s.name === "motion_pulse"
             ? "Seconds each pulse takes; 0: a steady dot."
             : s.name === "motion_linger"
@@ -207,7 +205,7 @@ export class CommanderEditor extends LitElement {
         ${form(fields("motion_dot"))}
         ${data.motion_dot ? html`<div class="details">
           ${form(fields("motion_colour"), "colour")}
-          ${form(fields("motion_share", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
+          ${form(fields("motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
         </div>` : nothing}
       </section>
       <section aria-labelledby="talk-heading">

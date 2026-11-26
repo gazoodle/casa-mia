@@ -12,20 +12,17 @@ export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export const MOTION = {
   motion_dot: true,
   motion_colour: [255, 59, 48] as [number, number, number],
-  motion_share: 12, // across, % of the shorter side of the commander's smallest tile
   motion_pulse: 1.5, // seconds a pulse takes; 0: steady
   motion_linger: 10, // seconds the dot stays once the motion has stopped
   motion_corner: "top-right" as Corner,
 };
 
-/** The dot's size across, px, on a commander whose smallest tile's shorter side is `side`
- * px: a share of it, with no least or most, so it is in proportion on every screen and
- * the setting does something on all of them. A size saved in px before 2026.11.14-b11
- * is read as the share it was of a wall tablet's tile (about 83 px: 10 px is 12%). */
-export function dotSize(config: Config, side: number): number {
-  const share = config.motion_share ?? (config.motion_size === undefined ? MOTION.motion_share : Math.round(config.motion_size * 1.2));
-  return Math.round((share * side) / 10) / 10;
-}
+/** The dot's size across, px, beside tiles' names `tileName` px high: half of them, so it
+ * is in proportion with the names on every screen (owner, 2026-11-26: set by hand on a
+ * phone, two wall tablets and a Mac, it came out at about half the names each time). It
+ * has no size of its own: one saved before 2026.11.14-b15 (motion_share, motion_size)
+ * is no longer used. */
+export const dotSize = (tileName: number): number => Math.round(tileName * 5) / 10;
 
 /** A camera's motion to show: since when, and until when once it has stopped. */
 type Seen = { since?: number; until?: number };

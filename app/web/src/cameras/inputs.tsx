@@ -6,7 +6,7 @@ import { Segmented } from "../ui";
 import { Slider } from "../controls";
 import { nameSize } from "../../../../integration/cards/src/labels.ts";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, barFit, controlsAt, controlsStyle } from "./controls";
+import { type ControlsAt, EDGES, barFit, controlsAt, controlsName, controlsStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -146,9 +146,9 @@ export function Thumb({ entity, className = css.thumb }: { entity: string; class
  * landscape and 240 px in portrait (edges.module.css). */
 const PREVIEW = 0.3;
 const TABLET: Record<"landscape" | "portrait", [number, number]> = { landscape: [1280, 800], portrait: [800, 1280] };
-/** The controls' size on that tablet's full screen: the main camera's name there, at a
- * commander's default (labels.ts: nameSize). */
-const NAME_PX = nameSize("main", 100, 800);
+/** The controls' size on that tablet's full screen, from the main camera's name there at
+ * a commander's default (labels.ts: nameSize; controls.ts: controlsName). */
+const NAME_PX = controlsName(nameSize("main", 100, 800));
 
 /** How a camera's controls and PTZ presets are shown on a commander's full screen: an edge
  * for a wide screen and one for a tall one, where along it, the pills' size and

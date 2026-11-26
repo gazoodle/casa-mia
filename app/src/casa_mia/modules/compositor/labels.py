@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import math
 from typing import Any, NamedTuple
 
 from PIL import ImageDraw, ImageFont
@@ -28,26 +27,21 @@ FONTS = COMPONENTS / "casa_mia" / "www" / "fonts"
 Colour = tuple[int, int, int, int]
 
 KEEP: dict[str, Any] = LABELS["picture"]["main_keep"]  # the part of a cropped main kept
-NAME: dict[str, int] = LABELS["name"]  # a name's least and most, in CSS px
+NAME: dict[str, Any] = LABELS["name"]  # each name's rule, [k, p]: k x side^p CSS px
 
 
 def name_px(which: str, setting: float, side: float, scale: float = 1) -> int:
-    """A name's height, in the picture's own pixels (`scale` of them to a CSS px), for
-    a place whose shorter side is `side` of them. A tile's: `setting` % of that side,
-    between its floor and its cap. The main camera's (`setting` % of it): 0.9 x the
-    square root of the side in CSS px, between its floor and its cap (owner, 2026-11-27,
-    from a phone, two wall tablets and a Mac: a straight share made it 30 px over a
-    desktop's large main camera, where 13 to 15 were wanted). The card's is the same sum,
-    and on a device with a mouse a fixed size the compositor can't know of
-    (integration/cards/src/labels.ts: nameSize)."""
-    if which == "tile":
-        css = min(
-            NAME["tile_cap"], max(NAME["tile_floor"], setting * side / scale / 100)
-        )
-    else:
-        root = NAME["main_root"] * math.sqrt(side / scale)
-        css = min(NAME["main_cap"], max(NAME["main_floor"], root)) * setting / 100
-    return int(css * scale + 0.5)
+    """A name's height, in the picture's own pixels (`scale` of them to a CSS px),
+    `setting` % of its rule, for a place whose shorter side is `side` of them: a tile's
+    from the commander's smallest tile, the main camera's from its place. Each grows
+    slowly with its side, with no floor or cap (owner, 2026-11-26: fitted to the sizes
+    set by hand on a phone, two wall tablets and a Mac). The card's is the same sum, and
+    less with a mouse, which the compositor can't know of: a card says its sizes in the
+    picture's address (`look`; integration/cards/src/labels.ts: nameSize). At least 1 px,
+    as a font can't be 0 px (a commander with no tiles)."""
+    k, p = NAME["tile" if which == "tile" else "main_touch"]
+    css = k * (side / scale) ** p * setting / 100
+    return max(1, int(css * scale + 0.5))
 
 
 @functools.lru_cache(maxsize=1024)
@@ -119,12 +113,19 @@ def look(cmd: dict, tile_side: float, main_side: float) -> Look:
     place (`main_side`), both in the picture's own pixels."""
     o = {**DEFAULTS, **(cmd.get("labels") or {})}
     scale = float(cmd.get("scale", 1))
-    tile_px = name_px("tile", o["tile_share"], tile_side, scale)
-    main_px = name_px("main", o["main_scale"], main_side, scale)
-    # A card being tuned (its debug on, compositor.sized): the sizes it asked for.
-    tuned = cmd.get("tuned") or {}
-    tile_px = round(tuned["tile"] * scale) if tuned.get("tile") else tile_px
-    main_px = round(tuned["main"] * scale) if tuned.get("main") else main_px
+    # The sizes the card asked for, in CSS px (compositor.sized): it works them out with
+    # the same rules, and knows whether its device has a mouse. Else the rules'.
+    asked = cmd.get("names") or {}
+    tile_px = (
+        round(asked["tile"] * scale)
+        if asked.get("tile")
+        else name_px("tile", o["tile_scale"], tile_side, scale)
+    )
+    main_px = (
+        round(asked["main"] * scale)
+        if asked.get("main")
+        else name_px("main", o["main_scale"], main_side, scale)
+    )
     return Look(
         font(o["font"], tile_px),
         font(o["font"], main_px),

@@ -5,26 +5,23 @@ import { DEFAULTS, FILES, OPTIONS, back, corner, family, footOf, keepPosition, l
 test("every setting has a default, and a commander saved without labels gets them", () => {
   assert.deepEqual(Object.keys(DEFAULTS), Object.keys(OPTIONS));
   assert.deepEqual(labelsOf(undefined), DEFAULTS);
-  assert.equal(labelsOf({ tile_share: 20 }).tile_share, 20);
-  assert.equal(labelsOf({ tile_share: 20 }).main_scale, DEFAULTS.main_scale);
+  assert.equal(labelsOf({ tile_scale: 120 }).tile_scale, 120);
+  assert.equal(labelsOf({ tile_scale: 120 }).main_scale, DEFAULTS.main_scale);
 });
 
-test("a name is a share of its place, between a floor and a cap (as labels.py: name_px)", () => {
-  assert.equal(nameSize("tile", 11, 144), 16);
-  // the main camera's: the owner's devices (2026-11-27), as labels.py's test has them
-  assert.equal(nameSize("main", 100, 206), 13); // a phone
-  assert.equal(nameSize("main", 100, 582), 22); // a small wall tablet
-  assert.equal(nameSize("main", 100, 628), 23); // a large one
-  assert.equal(nameSize("main", 100, 1062), 29); // a desktop's large commander, by touch
-  assert.equal(nameSize("main", 100, 1062, 1, true), 15); // with a mouse: one size
-  assert.equal(nameSize("main", 100, 421, 1, true), 15);
-  assert.equal(nameSize("main", 50, 206), 7); // % of the size worked out
-  assert.equal(nameSize("main", 100, 5000), 30);
-  assert.equal(nameSize("main", 100, 412, 2), 26); // a phone's, in pixels twice as fine
-  assert.equal(nameSize("tile", 11, 180), 20); // a larger tile, a larger name
-  assert.equal(nameSize("tile", 11, 60), 11); // a phone's tile: the least that can be read
-  assert.equal(nameSize("tile", 11, 5000), 22);
-  assert.equal(nameSize("tile", 11, 60, 2), 22); // in the picture's own pixels
+test("a name grows slowly with its place, with no floor or cap (as labels.py: name_px)", () => {
+  // the owner's devices (2026-11-26), as labels.py's test has them: the tiles' names from
+  // the smallest tile (a phone's, a small wall tablet's, a large commander's)
+  assert.deepEqual([50, 59, 144, 178].map((side) => nameSize("tile", 100, side)), [11, 11, 16, 18]);
+  // the main camera's by touch: a phone, a small wall tablet, a large one, its full screen
+  assert.deepEqual([205, 550, 616, 1171, 1506].map((side) => nameSize("main", 100, side)), [12, 16, 16, 20, 21]);
+  // with a mouse: a little smaller, and growing more slowly (a small card to a full screen)
+  assert.deepEqual([455, 1066, 1800].map((side) => nameSize("main", 100, side, 1, true)), [13, 15, 16]);
+  assert.equal(nameSize("main", 50, 206), 6); // % of the size worked out
+  assert.equal(nameSize("tile", 200, 144), 32);
+  assert.equal(nameSize("main", 100, 412, 2), 24); // a phone's, in pixels twice as fine
+  assert.equal(nameSize("tile", 100, 120, 2), 23);
+  assert.equal(nameSize("main", 100, 5000), 29); // a very large place: only a little more
 });
 
 test("every font offered but the standard one has a file", () => {

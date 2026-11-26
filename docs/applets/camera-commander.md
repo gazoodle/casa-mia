@@ -254,15 +254,21 @@ The **Any size** preview shows the names as you change them.
   DejaVu Sans Mono, which is fixed width. With Standard, the name over a live main camera
   is in the browser's own font, which is a little different from the drawn one; with the
   DejaVu fonts the two are the same.
-- **Tile name size:** a share of the shorter side of the commander's smallest tile, so
-  every tile's name is one size and in proportion on a phone and on a large screen. It is
-  never under 11 px or over 22 px. A name too long for its tile is cut short with "…".
-- **Main camera name size:** a % of a size worked out for the device, 100% at first. On
-  a touch screen that size grows slowly with the main camera's place: 13 px over a
-  phone's main camera, about 22 px on a wall tablet, never over 30 px. On a computer
-  with a mouse it is 15 px whatever the commander's size. The clock and the camera's
-  controls are the same size as the name. When the main camera isn't playing live, its
-  name is drawn into the picture at the touch screen size.
+- **Tile name size:** a % of a size worked out for the screen, 100% at first. That size
+  grows slowly with the shorter side of the commander's smallest tile, so every tile's
+  name is one size: about 11 px on a phone or a small wall tablet, and 16 px on a large
+  commander. A name too long for its tile is cut short with "…". The motion dot is half
+  the size of the tiles' names.
+- **Main camera name size:** a % of a size worked out for the screen, 100% at first.
+  That size grows slowly with the main camera's place: about 12 px over a phone's main
+  camera and 16 to 21 px on a wall tablet. On a computer with a mouse it is a little
+  smaller and grows more slowly, 13 to 16 px. The clock is the same size as the name,
+  and the camera's controls are one and a half times it.
+
+The sizes worked out for the screen come from sizes set by hand with the tuning dialog
+(below) on a phone, two wall tablets and a Mac. Neither has a least or a most size. The
+card works out the sizes for its own screen and asks for its picture with its names at
+those sizes, so the names drawn in the picture match the ones the card draws itself.
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
   with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the
@@ -366,9 +372,9 @@ Its options (each left at its default unless you change it):
 - **Security look:** every picture in tinted monochrome, like a control room, with its
   tint, strength and darkness.
 - **Motion dot:** a small dot pulsing on a camera's tile while its motion sensor sees
-  motion, and for a while after; hover it for when. Its colour, size (a % of the
-  shorter side of the commander's smallest tile, so it is in proportion on every screen), pulse (0: steady),
-  how long it stays after the motion, and its corner. A camera whose own motion detection
+  motion, and for a while after; hover it for when. Its colour, pulse (0: steady), how
+  long it stays after the motion, and its corner. It is half the size of the tiles'
+  names, so it is in proportion on every screen (the commander's **Tile name size**). A camera whose own motion detection
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
   your own buttons.

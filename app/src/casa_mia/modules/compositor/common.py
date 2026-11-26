@@ -168,15 +168,16 @@ def slug(text: str) -> str:
 MAX_PIXELS = 2560 * 1600
 MIN_SIDE = 64
 # Width and height in device pixels, the scale (dpr), and the tile names' and the main
-# camera name's sizes a card is being tuned with (CSS px; 0: the rule's).
+# camera name's sizes the card worked out (CSS px; 0: the compositor's own rules').
 Size = tuple[int, int, float, int, int]
-# The sizes a card may ask names to be drawn at while it is tuned (debug on), CSS px.
-TUNED_MOST = 60
+# The largest name a card may ask for, CSS px: a bound on what is asked, far above any
+# the rules give.
+NAME_MOST = 200
 
 
 def asked_size(query: Any) -> Size | None:
     """The size in a picture's address (?w=&h= in device pixels, dpr: the screen's
-    pixels per CSS pixel; tile= and name=: the names' sizes while the card is tuned);
+    pixels per CSS pixel; tile= and name=: the names' sizes, as the card works them out);
     None when there is none, or it is out of bounds."""
     try:
         w, h = int(query["w"]), int(query["h"])
@@ -185,8 +186,8 @@ def asked_size(query: Any) -> Size | None:
     except (KeyError, ValueError, TypeError):
         return None
     ok = MIN_SIDE <= min(w, h) and w * h <= MAX_PIXELS * 1.1 and 0.5 <= dpr <= 4
-    tuned = all(0 <= n <= TUNED_MOST for n in (tile, name))
-    return (w, h, dpr, tile, name) if ok and tuned else None
+    names = all(0 <= n <= NAME_MOST for n in (tile, name))
+    return (w, h, dpr, tile, name) if ok and names else None
 
 
 def viewer(request: web.BaseRequest) -> str | None:
@@ -205,7 +206,7 @@ def view_key(name: str, size: Size | None, live_main: bool = False) -> str:
     """A commander's picture at a size: its own key (its slug alone at its set size),
     marked when its main camera is the card's live video (see `sized`)."""
     key = name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
-    if size is not None and (size[3] or size[4]):  # a card being tuned: its own
+    if size is not None and (size[3] or size[4]):  # names of the card's own sizes
         key += f"~t{size[3]}n{size[4]}"
     return key + LIVE_MAIN if live_main else key
 
@@ -215,8 +216,8 @@ def sized(cmd: dict, size: Size | None, live_main: bool = False) -> dict:
     by the scale, so they look the same in CSS pixels on any screen. `live_main`: its
     main camera is played by the card as live video over the picture, so its main area
     is drawn from whatever the cache holds (its channel is not fetched for it) and
-    without its caption (the card draws it). Names' sizes a card is tuned with are
-    taken only while the commander's debug is on (EMPTY_COMMANDER["debug"])."""
+    without its caption (the card draws it). The names are drawn at the sizes the card
+    asked for (labels.py: look): only it knows whether its device has a mouse."""
     if size is None and not live_main:
         return cmd
     out = dict(cmd)
@@ -229,8 +230,8 @@ def sized(cmd: dict, size: Size | None, live_main: bool = False) -> dict:
             "margin": round(cmd.get("margin", 0) * dpr),
             "scale": dpr,
         }
-        if (tile or name) and (cmd.get("debug") or {}).get("on"):
-            out["tuned"] = {"tile": tile, "main": name}
+        if tile or name:
+            out["names"] = {"tile": tile, "main": name}
     out["main_video"] = live_main
     out["view"] = view_key(slug(cmd["name"]), size, live_main)
     return out
@@ -242,24 +243,27 @@ def key_of(cmd: dict) -> str:
 
 
 def _shares(labels: Any) -> Any:
-    """A commander's labels with its names' sizes as they are now: a tile's as a share
-    of its tile, the main camera's as a % of the size worked out for its screen. Until
-    2026.11.14-b8 both were heights in px (tile_size, main_size), and in b8 and b9 the
-    main camera's was a share of its place (main_share). Each is read so that a commander
-    set at the default is at the default now, and one set larger or smaller is still
-    larger or smaller by as much (labels.json: name), within the options' limits."""
+    """A commander's labels with its names' sizes as they are now: each a % of the size
+    worked out for its screen. Until 2026.11.14-b8 both were heights in px (tile_size,
+    main_size); from b8 to b14 a tile's was a share of its tile (tile_share), and in b8
+    and b9 the main camera's a share of its place (main_share). Each is read so that a
+    commander set at the default is at the default now, and one set larger or smaller is
+    still larger or smaller by as much (labels.json: name), within the options' limits."""
     if not isinstance(labels, dict):
         return labels
-    gone = ("tile_size", "main_size", "main_share")
+    gone = ("tile_size", "tile_share", "main_size", "main_share")
     out = {k: v for k, v in labels.items() if k not in gone}
     name, options = LABELS["name"], LABELS["labels"]
 
     def held(key: str, value: float) -> float:
         return min(options[key]["max"], max(options[key]["min"], value))
 
-    px = labels.get("tile_size")
-    if "tile_share" not in out and isinstance(px, (int, float)):
-        out["tile_share"] = held("tile_share", round(200 * px / name["tile_was"]) / 2)
+    share, px = labels.get("tile_share"), labels.get("tile_size")
+    if not isinstance(share, (int, float)) and isinstance(px, (int, float)):
+        share = 100 * px / name["tile_was"]
+    if "tile_scale" not in out and isinstance(share, (int, float)):
+        was = share / name["tile_share_was"]
+        out["tile_scale"] = held("tile_scale", round(20 * was) * 5)  # to a 5
     if "main_scale" not in out:
         share, px = labels.get("main_share"), labels.get("main_size")
         was = (

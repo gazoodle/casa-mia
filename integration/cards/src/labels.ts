@@ -6,8 +6,6 @@
 import LABELS from "../../../app/src/casa_mia/labels.json" with { type: "json" };
 
 export const OPTIONS = LABELS.labels;
-/** A name's limits and the main camera's rule (nameSize), for the debug figures too. */
-export const NAME = LABELS.name;
 /** A font's file in the casa_mia component's www/fonts ("standard" has none: it is the
  * compositor's built-in font, and the browser's own sans-serif here). */
 export const FILES: Record<string, string> = LABELS.fonts;
@@ -16,8 +14,8 @@ export type Style = "bar" | "pill" | "none";
 export type Place = "top-left" | "top-centre" | "top-right" | "bottom-left" | "bottom-centre" | "bottom-right";
 export type Labels = {
   font: string;
-  /** A tile's name's height, % of the shorter side of its tile (nameSize). */
-  tile_share: number;
+  /** The tiles' names, % of the size worked out for the screen (nameSize). */
+  tile_scale: number;
   /** The main camera's name, % of the size worked out for its screen (nameSize). */
   main_scale: number;
   colour: string;
@@ -39,19 +37,22 @@ export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) 
  * were any has none). */
 export const labelsOf = (own?: Partial<Labels> | null): Labels => ({ ...DEFAULTS, ...own });
 
-/** A name's height in px, for a place whose shorter side is `side` px (`scale` of them to
- * a CSS px). A tile's: `setting` % of the side, between its floor and its cap. The main
- * camera's (`setting` % of it): 0.9 x the square root of the side in CSS px, between its
- * floor and its cap; on a device with a mouse (`desk`) a fixed size whatever its place,
- * as a desktop app keeps its text one size (owner, 2026-11-27, from a phone, two wall
- * tablets and a Mac). The compositor's is the same sum but for `desk`, which it can't
- * know (labels.py: name_px). */
-export function nameSize(which: "tile" | "main", setting: number, side: number, scale = 1, desk = false): number {
+/** The rule for a name: [k, p], k x side^p CSS px (labels.json: name). */
+export function nameRule(which: "tile" | "main", desk = false): [number, number] {
   const n = LABELS.name;
-  const css =
-    which === "tile"
-      ? Math.min(n.tile_cap, Math.max(n.tile_floor, (setting * side) / scale / 100))
-      : ((desk ? n.main_desk : Math.min(n.main_cap, Math.max(n.main_floor, n.main_root * Math.sqrt(side / scale)))) * setting) / 100;
+  return (which === "tile" ? n.tile : desk ? n.main_mouse : n.main_touch) as [number, number];
+}
+
+/** A name's height in px, `setting` % of its rule, for a place whose shorter side is
+ * `side` px (`scale` of them to a CSS px): a tile's from the commander's smallest tile, the
+ * main camera's from its place, less with a mouse (`desk`). Each grows slowly with its
+ * side, and has no floor or cap: fitted to the sizes the owner set on a phone, two wall
+ * tablets and a Mac (2026-11-26), the old floors were too large on a phone and the caps
+ * were reached on a tablet. The compositor's is the same sum but for `desk`, which it
+ * can't know; the card says its sizes in the picture's address (labels.py: name_px). */
+export function nameSize(which: "tile" | "main", setting: number, side: number, scale = 1, desk = false): number {
+  const [k, p] = nameRule(which, desk);
+  const css = (k * Math.pow(side / scale, p) * setting) / 100;
   return Math.floor(css * scale + 0.5);
 }
 

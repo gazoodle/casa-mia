@@ -290,4 +290,20 @@ export const fullStyles = css`
   .controls[data-edge="right"] .controls-group { flex-direction: row-reverse; }
   .controls[data-edge="left"] .controls-line,
   .controls[data-edge="right"] .controls-line { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  /* A pill's height of room at each end of the edge (controls.ts: END), so the first
+     button isn't hard against the frame, where a finger misses it and presses the one
+     below (owner, 2026-11-26). The end buttons' tap areas reach across that room, so a
+     tap a little short still hits them. */
+  .controls[data-edge="top"] .controls-group,
+  .controls[data-edge="bottom"] .controls-group { padding-inline: var(--cm-pill-height); }
+  .controls[data-edge="left"] .controls-group,
+  .controls[data-edge="right"] .controls-group { padding-block: var(--cm-pill-height); }
+  .controls[data-edge="top"] .control:first-child::after,
+  .controls[data-edge="bottom"] .control:first-child::after { left: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="top"] .control:last-child::after,
+  .controls[data-edge="bottom"] .control:last-child::after { right: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="left"] .control:first-child::after,
+  .controls[data-edge="right"] .control:first-child::after { top: calc(var(--cm-pill-height) * -1); }
+  .controls[data-edge="left"] .control:last-child::after,
+  .controls[data-edge="right"] .control:last-child::after { bottom: calc(var(--cm-pill-height) * -1); }
 `;

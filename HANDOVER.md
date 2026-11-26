@@ -84,67 +84,55 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   to `PRESETS_INLINE` (3) are buttons; more are behind a PTZ button that opens a second
   `.controls-line` on the picture's side of the bar. The pills are the style guide's chip
   at the height set: the proportions are once, in `app/web/src/cameras/controls.ts`
-  (`CHIP`, `controlsStyle`), for the card and the Cameras page's preview. Seen on a
-  throw-away page in Chromium, all four edges, at a fixed 40 px.
-- **Sizes over a camera** (owner, 2026-11-27, after three builds). Plain px (before b8)
-  was large over a small main camera; a plain share (b8) gave 7 px names and 11 px pills
-  on a phone and 70 px pills on a desktop; px bent to the place (b9) let its floor and
-  mouse cap override the setting, so a camera's size showed only on a wall tablet. Now
-  (b10), fitted to the owner's devices: a phone, the 8.7" wall tablets, a larger one, and
-  a small and a big commander on a Mac.
-  - **The main camera's name** (`nameSize`/`name_px`, labels.json `name`): by touch
-    0.9 x sqrt(shorter side of the main place), 13 to 30 px; with a mouse
-    (`matchMedia("(pointer: fine)")` in `card.ts`) 15 px flat: viewing distance, not
-    place, is what the Mac's verdict showed. `labels.main_scale` (% of that, 100 at
-    first) replaced `main_share`, converted in `commanders_of`. The compositor can't know
-    the pointer, so a drawn (not live) main name uses the touch curve.
-  - **Controls** have no size: they are the main name's pill (`controlsStyle(at, name)`,
-    1.4 x the name high, its font) at that name's size. `controls_at.size` saved before
-    is dropped by `controlsAt`. Default: down the right edge from the top (`CONTROLS_AT`; owner, 2026-11-27). `barFit` decides, from an estimate of the names' widths (nothing is measured), what
-    gives way: presets behind PTZ, then icons alone. The card passes the place's CSS px
-    (`mainPlace`, `screenPlace` in `card.ts`). A small pill's tap area is 44 px
-    (`.control::after`). `.controls-group` is only as big as the buttons and takes the
-    taps that miss one; `.controls-away` covers the place while the presets are open.
-  - **Zoom** (2026.11.14-b9; owner, 2026-11-27: always one Zoom button, never inline,
-    and a stepper, not a slider, which is hard to use on a phone): the camera's `zoom`
-    number entity is in the card's data; the button opens a second line (Out, level, In,
-    Reset) as PTZ does. `_opened` in `card.ts` holds the one open line and whose.
-    `zoomOf`/`zoomStep` in `controls.ts`: a tap is a tenth of the range. The level shown
-    is the entity's state; one asked for is a lease (`ZOOM_PENDING_MS`). **Not seen**
-    with a real zoom entity: its range and step are unknown here.
-  - **Tile names:** `labels.tile_share` (labels.json; `name` holds its floor and cap,
-    11 to 22 px, and the side an old px size is read against). The owner is happy with
-    them on every device. `commanders_of` converts a saved `tile_size` once. The sum is twice: `labels.py`
-    `name_px` and `labels.ts` `nameSize`, with the same cases in both tests. Every tile's
-    name is one size, from the smallest tile. `fitted` cuts a long name short with "…".
-  - **Measured, 2026-11-27:** the live compositor's `/status` on :8099 lists each card's
-    picture (size, scale) and viewer address; the commander's layout is its select's
-    `card` attribute; `placed()` then gives the main place. Main place shorter sides:
-    phone 206, small tablets 550 to 582, large tablet 628, Mac small 421, Mac big 1034
-    to 1062. Per-device tweaks, if wanted, go on top of this (owner's plan).
-  - **Tuning on a device** (b12; owner, 2026-11-27: "get a grip", no more guessing).
-    With a commander's debug on, the card's box (`tune.ts` `debugBox`, also on the main
-    camera's full screen) gives where the card is, the places and each size with the sum
-    behind it. EDIT opens one draggable dialog (owner chose one with a picker over four)
-    whose px sizes are kept per commander and per where, in memory only. Tile and main
-    names drawn by the app travel as `&tile=&name=` on the picture's URL, so a tuned card
-    gets its own picture (`Size` is 5 long, `view_key` `~t..n..`); `sized` takes them
-    only with debug on. RECORD: ws `casa_mia_commander/tuning` (`live.py`, refused unless
-    debug is on) → POST `/commander/tuning` → one INFO line "commander tuning <ref>:
-    <json>" in the app's log. Read those lines and fit the rules from them; the picture's
-    own debug text is gone (live video hid it). The controls follow the main name in
-    use unless set by hand; `inUse` in `tune.ts` is that link for the box, the dialog and
-    a record (b14: the box had shown the rule's name × 1.4, wrong once the name moved). Track motion is turned off while the
-    dialog is open and back on when it closes (or when debug goes off). Its drag state
-    lives in `DIALOG` (b13): a local in the drawing function was reset by each redraw,
-    and a pointer captured on a button's press stole Safari's click.
-  - **The motion dot** (b11): `motion_share`, % of the smallest tile's shorter side, no
-    least or most (`dotSize`); `motion_size` (px) is read as px x 1.2.
+  (`PILL`, `controlsStyle`), for the card and the Cameras page's preview.
+- **Sizes over a camera** (2026.11.14-b15: fitted to records, after four builds of
+  guessing). Every size is k x side^p CSS px (labels.json `name`), with no floor or cap,
+  fitted to 23 tuning records the owner made on 2026-11-26 (a phone, the 8.7" and larger
+  wall tablets, the larger one at its kiosk's 1.6x page zoom and at 1.0x, and a Mac's
+  small and large cards), in the page and both full screens. Repeats of one view
+  differed by up to 5 px, so about +-2 px is as fine as any rule can be.
+  - **The main camera's name** (`nameSize`/`name_px`): side = shorter side of the main
+    place. Touch [2.71, 0.28]; with a mouse (`matchMedia("(pointer: fine)")` in
+    `card.ts`) [6.4, 0.12]. On one device it barely moves between page and full screen.
+    `labels.main_scale` is a % of it.
+  - **Tile names:** side = shorter side of the smallest tile, [2.32, 0.39];
+    `labels.tile_scale` is a % of it (b15; `tile_share` of b8 to b14 converted in
+    `commanders_of`, 11% = 100). The large wall tablet wanted them 2 to 3 px bigger
+    than the fit (viewing distance): the per-device tweak the owner planned, not built.
+  - **The card always asks for its names** (`&tile=&name=` on the picture's URL, its
+    own `view_key` `~t..n..`; `sized` puts them in `cmd["names"]`, `look` draws them):
+    the compositor can't know the pointer. Its own rules (touch) are for pictures asked
+    without them. `NAME_MOST` (200) only bounds what is asked.
+  - **Controls** are the main name's pill at `CONTROLS_HEIGHT` (1.5) x the name
+    (`controlsName` in `controls.ts`; the owner set 1.39 to 1.56 by hand). Default: down
+    the right edge from the top. `barFit` decides what gives way (presets behind PTZ,
+    then icons alone) from estimated widths. A pill's height of room at each end of the
+    edge (`END`; owner, 2026-11-26: Full screen at the top of a wall tablet's frame was
+    missed and the button under it pressed), and the end pills' tap areas cover it.
+    Small pills' tap areas are 44 px (`.control::after`); `.controls-group` takes taps
+    that miss; `.controls-away` covers the place while a line is open.
+  - **The motion dot** is half the tile names (`dotSize`, b15); the card editor's Size
+    is gone, `motion_share`/`motion_size` are ignored.
+  - **Zoom** (b9; owner: always one Zoom button and a stepper, not a slider): a second
+    line (Out, level, In, Reset) as PTZ has. `zoomOf`/`zoomStep`: a tap is a tenth of
+    the range; a level asked for is a lease (`ZOOM_PENDING_MS`). **Not seen** with a
+    real zoom entity.
   - **The clock** is drawn only by the compositor, beside the main name, so only while
     the main camera is not live video. It has no settings of its own.
-  - **b10 to b12 not seen** on a device; the tuning dialog has not been seen at all. The docs'
-    screenshots (`cameras-controls.webp`, `commander-controls.webp`,
-    `commander-names-settings.webp`) show the old look and px sliders.
+  - **Tuning on a device** (b12 to b14): with a commander's debug on, the card's box
+    (`tune.ts` `debugBox`) gives where the card is, the places, each size and its sum;
+    EDIT opens one draggable dialog, sizes kept per commander and per where, in memory.
+    RECORD: ws `casa_mia_commander/tuning` (refused unless debug is on) → POST
+    `/commander/tuning` → one INFO line "commander tuning <ref>: <json>" in the app log.
+    Read them with the Supervisor's `/api/hassio/addons/<slug>/logs` (strip the ANSI
+    colours). Quirks: two cards of one commander share their tuned sizes on a device;
+    one record came out with the wrong full-screen label, not reproduced.
+  - **The 1.6x page zoom** on the large wall tablet's kiosk is a true page zoom (the
+    window shrinks, devicePixelRatio stays 1.0625), and full screen drops it. The rules
+    need nothing for it (the owner's choices followed the card's own px), but the
+    picture is asked at 1.0625 and stretched 1.6x, so it is soft there: not fixed yet.
+  - The docs' screenshots (`cameras-controls.webp`, `commander-controls.webp`,
+    `commander-names-settings.webp`) show the old look.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one
   older than the commander's `stale` seconds is replaced by the camera's newest channel
   (its tile's), so a camera chosen as main doesn't start with last night's picture. No

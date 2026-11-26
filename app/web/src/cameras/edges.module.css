@@ -47,6 +47,17 @@
   padding: calc(var(--cm-pill-height) * 0.3);
 }
 
+/* A pill's height of room at each end of the edge, clear of the frame (controls.ts: END). */
+.top.screenControls,
+.bottom.screenControls {
+  padding-inline: var(--cm-pill-height);
+}
+
+.left.screenControls,
+.right.screenControls {
+  padding-block: var(--cm-pill-height);
+}
+
 /* The style guide's chip at the pill's height (controls.ts: controlsStyle), as the card
    draws it (integration/cards/src/commander/full.ts). */
 .pill {

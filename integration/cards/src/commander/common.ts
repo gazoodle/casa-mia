@@ -20,13 +20,11 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   look_tint?: [number, number, number];
   look_strength?: number;
   look_darkness?: number;
-  /** Motion on a tile: a dot, its colour, size (% of the smallest tile's shorter side),
-   * pulse (s; 0 steady), how long it stays after the motion (s) and its corner
-   * (motion.ts: MOTION). `motion_size` was its size in px until 2026.11.14-b11. */
+  /** Motion on a tile: a dot, its colour, pulse (s; 0 steady), how long it stays after
+   * the motion (s) and its corner (motion.ts: MOTION). Its size is half the tiles' names
+   * (motion.ts: dotSize). */
   motion_dot?: boolean;
   motion_colour?: [number, number, number];
-  motion_share?: number;
-  motion_size?: number;
   motion_pulse?: number;
   motion_linger?: number;
   motion_corner?: Corner;

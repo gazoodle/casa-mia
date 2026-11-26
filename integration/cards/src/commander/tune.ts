@@ -8,7 +8,7 @@
 // the owner and the agent can both quote (the integration's live.py: tuning).
 import { css, html, nothing, type TemplateResult } from "lit";
 import type { Hass } from "../ha.ts";
-import { PILL_HEIGHT } from "../../../../app/web/src/cameras/controls.ts";
+import { CONTROLS_HEIGHT } from "../../../../app/web/src/cameras/controls.ts";
 
 export type Item = "tile" | "main" | "controls" | "dot";
 export const ITEMS: [Item, string][] = [
@@ -45,7 +45,8 @@ export const tunedAt = (entity: string, where: Where): Sizes => TUNED.get(entity
 
 /** The sizes in use where the card is: each one set by hand, else the rule's. The controls
  * are linked to the main name (owner, 2026-11-27: the main name's pill, controls.ts):
- * unless set by hand they follow the main name in use, set by hand or not, so moving the
+ * unless set by hand they follow the main name in use (CONTROLS_HEIGHT of it), set by hand
+ * or not, so moving the
  * main name moves them too. `follow`: they are following it. The card draws them so,
  * and the debug box, the dialog and a record all say it from here. */
 export function inUse(rules: Record<Item, number>, set: Sizes): Record<Item, number> & { follow: boolean } {
@@ -55,7 +56,7 @@ export function inUse(rules: Record<Item, number>, set: Sizes): Record<Item, num
     main,
     tile: set.tile ?? rules.tile,
     dot: set.dot ?? rules.dot,
-    controls: follow ? Math.round(main * PILL_HEIGHT) : set.controls!,
+    controls: follow ? Math.round(main * CONTROLS_HEIGHT) : set.controls!,
     follow,
   };
 }
@@ -122,7 +123,7 @@ export function debugBox(o: {
   const use = inUse(f.rules, set);
   const controls = use.follow
     ? `controls follow the main name: ${use.controls} px high`
-    : html`controls <b>${use.controls} px</b> high, set by hand (following the main name: ${Math.round(use.main * PILL_HEIGHT)})`;
+    : html`controls <b>${use.controls} px</b> high, set by hand (following the main name: ${Math.round(use.main * CONTROLS_HEIGHT)})`;
   const buttons = html`<div class="debug-buttons">
     <button
       class="debug-fold"
@@ -215,7 +216,7 @@ export function tuneDialog(o: { hass: Hass; select: string; where: Where; rules:
       <span>px</span>
     </div>
     <div class="tune-rule">
-      ${linked ? `Follows the main name: ${Math.round(use.main * PILL_HEIGHT)} px` : `Rule: ${o.rules[item]} px`}
+      ${linked ? `Follows the main name: ${Math.round(use.main * CONTROLS_HEIGHT)} px` : `Rule: ${o.rules[item]} px`}
       <button
         ?disabled=${here[item] === undefined}
         @click=${() => {

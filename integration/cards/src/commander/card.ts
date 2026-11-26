@@ -7,10 +7,10 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
-import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from "../labels.ts";
-import { dot, dotSize, MOTION } from "./motion.ts";
+import { back, family, keepPosition, labelsOf, nameRule, nameSize, useFont } from "../labels.ts";
+import { dot, dotSize } from "./motion.ts";
 import { debugBox, dialogOpen, type Figures, recordOf, reference, toggleDialog, tunedAt, tuneDialog, tuneStyles, whereOf } from "./tune.ts";
-import { PILL_HEIGHT } from "../../../../app/web/src/cameras/controls.ts";
+import { CONTROLS_HEIGHT, controlsName, PILL_HEIGHT } from "../../../../app/web/src/cameras/controls.ts";
 import { controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown, VERSION } from "./common.ts";
@@ -114,17 +114,13 @@ export class CommanderCard extends CommanderTalk {
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
     // While its debug is on, sizes can be set by hand on this device (tune.ts), each where
-    // the card is (in the page, with the whole screen, the main camera full screen). The
-    // names the app draws come in the picture asked for, which is its own (compositor.sized).
+    // the card is (in the page, with the whole screen, the main camera full screen).
     const select = this._config!.entity!;
     const tuning = Boolean(own.debug?.on);
-    const drawnSet = tuning ? tunedAt(select, whereOf(this._screen, false)) : {};
-    const tunedQuery = `${drawnSet.tile ? `&tile=${drawnSet.tile}` : ""}${drawnSet.main ? `&name=${drawnSet.main}` : ""}`;
     // In HA's card picker: drawn at its own size and shrunk, so its gaps and labels keep
     // their proportions (asked for at the picker's size, they'd crowd the cameras out).
     const sized: Size | null = inPicker(this) ? [own.width, own.height, 1] : this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
-    const asked = sized && !editing ? this.pictureUrl(card, sized, tunedQuery) : "";
     const still = editing && sized ? this.stillUrl(card, sized) : "";
     const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     // Where everything is, in either mode (placed.ts), as the compositor has it.
@@ -192,7 +188,6 @@ export class CommanderCard extends CommanderTalk {
           )
         : nothing;
     const whole = "left:0;top:0;width:100%;height:100%";
-    const src = asked && live?.video ? `${asked}&main=video` : asked;
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
@@ -205,38 +200,49 @@ export class CommanderCard extends CommanderTalk {
     // are sized from the one they are shown in, so both are in proportion on any screen.
     const mainPlace: [number, number] = [(mainRect[2] / w) * this._box[0], (mainRect[3] / h) * this._box[1]];
     const screenPlace: [number, number] = [innerWidth, innerHeight];
-    // With a mouse, the main camera's name is one size whatever its place (labels.ts).
+    // With a mouse, the main camera's name is a little smaller, and grows more slowly (labels.ts).
     const desk = matchMedia("(pointer: fine)").matches;
     const ruleName = (place: [number, number]) => nameSize("main", labels.main_scale, Math.min(...place), 1, desk);
     const where = whereOf(this._screen, full);
     const set = tuning ? tunedAt(select, where) : {};
     const nameIn = (place: [number, number]) => set.main ?? ruleName(place);
-    // The controls are the main name's pill (controls.ts), the name in use, unless set by
-    // hand: a height. The debug box and a record say the same link (tune.ts: inUse).
-    const controlsName = (place: [number, number]) => (set.controls ? set.controls / PILL_HEIGHT : nameIn(place));
+    // The controls are the main name's pill (controls.ts), CONTROLS_HEIGHT of the name in
+    // use, unless set by hand: a height. The debug box and a record say the same link
+    // (tune.ts: inUse).
+    const barName = (place: [number, number]) => (set.controls ? set.controls / PILL_HEIGHT : controlsName(nameIn(place)));
     const labelled = (place: [number, number]) =>
       `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
-    // The commander's smallest tile, in CSS px: the tiles' names (drawn in the picture) and
-    // the motion dots are a share of its shorter side, so every tile's are one size.
+    // The commander's smallest tile, in CSS px: the tiles' names (drawn in the picture) are
+    // sized from its shorter side, so every tile's are one size, and the motion dots are
+    // half the names.
     const css = ([, , rw, rh]: Rect): [number, number] => [(rw / w) * this._box[0], (rh / h) * this._box[1]];
     const smallest = [...tiles.map((t) => t.rect), ...(laid.more ? [laid.more.rect] : [])].map(css).sort((a, b) => Math.min(...a) - Math.min(...b))[0] ?? [0, 0];
     const tileSide = Math.min(...smallest);
-    const dotRule = dotSize(this._config!, tileSide);
+    const tileRule = nameSize("tile", labels.tile_scale, tileSide);
+    const dotRule = dotSize(set.tile ?? tileRule);
     const dotPx = set.dot ?? dotRule;
+    // The names the app draws in the picture, at the sizes worked out here (only the card
+    // knows whether its device has a mouse), or set by hand: the picture asked for is its
+    // own (compositor.sized). It is the page's or the whole screen's, never the main
+    // camera's full screen (live video). In HA's card picker, the app's own sizes.
+    const drawnSet = tuning ? tunedAt(select, whereOf(this._screen, false)) : {};
+    const names = inPicker(this) ? "" : `&tile=${drawnSet.tile ?? tileRule}&name=${drawnSet.main ?? ruleName(mainPlace)}`;
+    const asked = sized && !editing ? this.pictureUrl(card, sized, names) : "";
+    const src = asked && live?.video ? `${asked}&main=video` : asked;
     // The debug box's figures (tune.ts): each size as the rules worked it out, and how.
     const place = full ? screenPlace : mainPlace;
     const shorter = Math.round(Math.min(...place));
-    const dotShare = this._config?.motion_share ?? (this._config?.motion_size === undefined ? MOTION.motion_share : "from px");
+    const sum = ([k, p]: [number, number], side: number, pct: number) => `${k} x ${side}^${p} = ${(k * side ** p).toFixed(1)}, at ${pct}%`;
     const figures: Figures = {
       where,
       box: full ? screenPlace : this._box,
       place,
       tile: smallest,
-      rules: { main: ruleName(place), controls: Math.round(ruleName(place) * PILL_HEIGHT), tile: nameSize("tile", labels.tile_share, tileSide), dot: dotRule },
+      rules: { main: ruleName(place), controls: Math.round(ruleName(place) * CONTROLS_HEIGHT), tile: tileRule, dot: dotRule },
       sums: {
-        main: `${desk ? `mouse, ${NAME.main_desk}` : `touch, ${NAME.main_root} x √${shorter} = ${(NAME.main_root * Math.sqrt(shorter)).toFixed(1)} held ${NAME.main_floor} to ${NAME.main_cap}`}, at ${labels.main_scale}%`,
-        tile: `${labels.tile_share}% of ${Math.round(tileSide)} = ${((labels.tile_share * tileSide) / 100).toFixed(1)}, held ${NAME.tile_floor} to ${NAME.tile_cap}`,
-        dot: `${dotShare}% of ${Math.round(tileSide)}`,
+        main: `${desk ? "mouse" : "touch"}, ${sum(nameRule("main", desk), shorter, labels.main_scale)}`,
+        tile: sum(nameRule("tile"), Math.round(tileSide), labels.tile_scale),
+        dot: `half the tile names in use, ${set.tile ?? tileRule}`,
       },
     };
     const debug = tuning
@@ -338,8 +344,8 @@ export class CommanderCard extends CommanderTalk {
           // card's, and the only way to it.
           (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
             ? this._config?.main_controls
-              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, controlsName(mainPlace), [...sound, ...fills], this.lines(main))
-              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, controlsName(mainPlace), fills, this.lines(main))
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, barName(mainPlace), [...sound, ...fills], this.lines(main))
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, barName(mainPlace), fills, this.lines(main))
             : nothing
         }
         ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn(mainPlace)) : nothing}
@@ -358,7 +364,7 @@ export class CommanderCard extends CommanderTalk {
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, controlsName(screenPlace), [...sound, ...fills], this.lines(main))
+              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, barName(screenPlace), [...sound, ...fills], this.lines(main))
             }
             ${this.talkParts(card, whole, nameIn(screenPlace))}
             ${debug}

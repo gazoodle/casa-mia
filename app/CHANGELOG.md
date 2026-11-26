@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026.11.14-b15
+
+- **Camera Commander: the names, the controls and the motion dot are sized by new rules,
+  fitted to sizes set by hand.** The rules come from sizes the owner set with the
+  tuning dialog on a phone, two wall tablets and a Mac, in the page and full screen.
+  The main camera's name grows slowly with its place: about 12 px on a phone and 16 to
+  21 px on a wall tablet. With a mouse it is a little smaller and grows more slowly, 13
+  to 16 px. The tiles' names grow slowly with the smallest tile: about 11 px on a phone
+  or a small tablet, and 16 px on a large commander. Neither has a floor or a cap any
+  more: the old floors were too large on a phone, and a tablet reached the caps.
+- **Camera Commander: Tile name size is now a % of the size worked out for the screen,**
+  as Main camera name size is. 100% is the default, and a share set before is carried
+  across in step (11% becomes 100%).
+- **Camera Commander card: the controls are 1.5 times the main camera's name,** up from
+  1.4, as set by hand on the tablets.
+- **Camera Commander card: the motion dot is half the size of the tiles' names.** Its
+  own Size setting in the card's editor is gone, and a size set there before is no
+  longer used.
+- **Camera Commander card: the names in the picture are drawn at the card's sizes.** The
+  card now tells the app the sizes it works out. The app can't tell a mouse from a touch
+  screen, so it drew a computer's names at a touch screen's size.
+- **Camera Commander card: the first button of the controls is easier to hit.** The bar
+  now stands a button's height in from the frame at each end of its edge, and the end
+  buttons' tap areas reach across that room. On a wall tablet, Full screen sat so close
+  to the top of the frame that a tap meant for it pressed the button below.
+
 ## 2026.11.14-b14
 
 - **Camera Commander card: the debug figures say that the controls follow the main
