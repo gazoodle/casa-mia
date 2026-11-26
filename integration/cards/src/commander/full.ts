@@ -8,7 +8,7 @@
 // the app built it (cameras.py: preset_calls).
 import { css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
-import { alignOf, CHIP, controlsAt, foldPresets, ROOM, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+import { alignOf, controlsAt, foldPresets, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 import type { Card, Preset } from "./common.ts";
 
 /** States a control can't be used in: shown dimmed and said, never a dead button. */
@@ -45,9 +45,10 @@ export type Lines = {
 /** The camera's controls and presets (after the card's own buttons) along their edge of
  * `place`: the full screen, or the main area (Config.main_controls), `size` px. The wide
  * or the tall edge goes by the shape of that place, not the screen's: a main area can be
- * wide on an upright tablet. The buttons are the style guide's chips (pills.css: cm-chip),
- * one size on every device, pressed (cm-on) while their entity is on, and they always
- * keep their names. Where the presets don't fit they go behind one PTZ button
+ * wide on an upright tablet. The buttons have the style guide's chip size, font and shape
+ * (pills.css: cm-chip), one size on every device, in white on black at the camera's
+ * background strength, coloured while their entity is on, and they always keep their
+ * names. Where the presets don't fit they go behind one PTZ button
  * (controls.ts: foldPresets), which opens them out as a second line on the picture's side
  * of the bar (under a bar at the top, left of one on the right). A camera
  * with a zoom always has one Zoom button (owner, 2026-11-27), which opens its stepper the
@@ -84,7 +85,7 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
         <ha-icon icon="mdi:magnify-minus-outline"></ha-icon>
         <span>Out</span>
       </button>
-      <span class="level cm-pill" title="The camera's zoom now${to === null ? "" : ", and the level it is going to"}">
+      <span class="control level cm-chip" title="The camera's zoom now${to === null ? "" : ", and the level it is going to"}">
         ${zoomPct(zoom!, zoom!.value)}%${to === null ? "" : ` → ${zoomPct(zoom!, to)}%`}
       </span>
       <button class="control cm-chip" ?disabled=${from >= zoom!.max} title="Zoom in a step" @click=${() => send(zoomStep(zoom!, from, 1))}>
@@ -154,26 +155,18 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
         ]
       : []),
   ];
-  // Down a side, a line holds as many chips as the place is high, and the rest stand in
-  // another line on the picture's side of it. Made here and not by CSS: a flex column
-  // that wraps does not widen its box, so its second column fell outside the place.
-  const down = edge === "left" || edge === "right";
-  const most = down ? Math.max(1, Math.floor((size[1] - 2 * ROOM.end + ROOM.between) / (CHIP.height + ROOM.between))) : 0;
-  const inLines = (items: unknown[], last: unknown = nothing) => {
-    const per = most || items.length || 1;
-    const count = Math.max(1, Math.ceil(items.length / per));
-    return Array.from({ length: count }, (_, i) => html`<div class="controls-line">${items.slice(i * per, (i + 1) * per)}${i === count - 1 ? last : nothing}</div>`);
-  };
   // A tap that misses a button, between two or just beside one, lands on the group they
   // stand in and does nothing: it was going through to the picture, which opened the
   // camera full screen (owner, 2026-11-27). While a line is opened out, a tap
   // anywhere else in the place puts it away, and does no more than that.
   return html`<div class="controls-area" style=${place}>
     ${opened ? html`<div class="controls-away" @click=${() => lines.show(lines.open as Line)}></div>` : nothing}
-    <div class="controls" style="--cm-chip-align:${alignOf(at)}" data-edge=${edge}>
+    <div class="controls" style="--cm-chip-align:${alignOf(at)};--cm-chip-alpha:${at.opacity}%" data-edge=${edge}>
       <div class="controls-group">
-        ${inLines(chips, lines.failed ? html`<span class="cm-pill cm-filled cm-bad failed">${lines.failed}</span>` : nothing)}
-        ${!opened ? nothing : lines.open === "zoom" ? stepper() : inLines(presets.map(preset))}
+        <div class="controls-line">
+          ${chips}${lines.failed ? html`<span class="cm-pill cm-filled cm-bad failed">${lines.failed}</span>` : nothing}
+        </div>
+        ${!opened ? nothing : lines.open === "zoom" ? stepper() : html`<div class="controls-line">${presets.map(preset)}</div>`}
       </div>
     </div>
   </div>`;
@@ -191,7 +184,8 @@ export const fullStyles = css`
      group is only as big as its buttons and the room round them, and takes the taps that
      miss one. Its lines stand side by side from the edge inwards: the bar itself, then
      the PTZ presets or the zoom's stepper when opened out. The buttons are the style
-     guide's chips (pills.css), and the room is controls.ts ROOM. */
+     guide's chip size, font and shape (pills.css) in the controls' own colours, and the
+     room is controls.ts ROOM. */
   .controls {
     position: absolute;
     display: flex;
@@ -202,7 +196,7 @@ export const fullStyles = css`
     box-sizing: border-box;
     max-width: 100%;
     max-height: 100%;
-    gap: 10px;
+    gap: 5px;
     padding: 7px;
     pointer-events: auto;
   }
@@ -217,28 +211,39 @@ export const fullStyles = css`
     flex-wrap: wrap;
     align-items: center;
     justify-content: var(--cm-chip-align);
-    gap: 10px;
+    gap: 5px;
   }
-  .control {
+  /* The guide's chip size, font and shape, in the controls' colours over a picture:
+     white on black at the camera's background strength (the Cameras page), and the
+     active colour at it while on. */
+  .controls .control.cm-chip {
     position: relative;
+    box-shadow: none;
+    background: rgb(0 0 0 / var(--cm-chip-alpha));
+    color: #fff;
     pointer-events: auto;
     --mdc-icon-size: 14px;
+  }
+  .controls .control.cm-chip.cm-on {
+    background: color-mix(in srgb, var(--state-active-color, var(--primary-color)) var(--cm-chip-alpha), transparent);
+  }
+  .controls .control.cm-chip:disabled {
+    opacity: 0.7;
   }
   /* A chip is 22 px high, less than a finger: its tap area reaches half-way to the next
      chip along the bar, and across the bar to 44 px. */
   .control::after {
     content: "";
     position: absolute;
-    inset: -11px -5px;
+    inset: -11px -2.5px;
   }
   .controls[data-edge="left"] .control::after,
   .controls[data-edge="right"] .control::after {
-    inset: -5px -11px;
+    inset: -2.5px -11px;
   }
-  /* The zoom's level, between its two steps: a pill, which says and is not pressed, on
-     the chips' own background so it reads over a picture. */
+  /* The zoom's level, between its two steps: says, and is not pressed. */
   .controls .level {
-    background: var(--surface);
+    cursor: default;
     font-variant-numeric: tabular-nums;
   }
   /* Why a preset didn't go: wraps, so a long reason stays on a narrow card. */

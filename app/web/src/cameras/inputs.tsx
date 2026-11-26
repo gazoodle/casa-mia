@@ -4,6 +4,7 @@ import ui from "../ui.module.css";
 import edges from "./edges.module.css";
 import { Segmented } from "../ui";
 import { Control, Entities, ThumbRound } from "./common";
+import { Slider } from "../controls";
 import { type ControlsAt, EDGES, controlsAt, foldPresets, previewStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
@@ -146,8 +147,8 @@ const PREVIEW = 0.3;
 const TABLET: Record<"landscape" | "portrait", [number, number]> = { landscape: [1280, 800], portrait: [800, 1280] };
 
 /** How a camera's controls and PTZ presets are shown on a commander's full screen: an edge
- * for a wide screen and one for a tall one, and where along it, each screen previewed to
- * scale over the camera's still. */
+ * for a wide screen and one for a tall one, where along it and how solid the buttons'
+ * background is, each screen previewed to scale over the camera's still. */
 export function ControlsEdges({
   entity,
   controls,
@@ -200,6 +201,8 @@ export function ControlsEdges({
           options={[["start", "Left or top"], ["center", "Centre"], ["end", "Right or bottom"]]}
           onChange={(align) => set({ align })}
         />
+        <span>Background</span>
+        <Slider value={at.opacity} min={0} max={100} step={5} format={(v) => (v ? (v === 100 ? "solid" : `${v}%`) : "clear")} onChange={(opacity) => set({ opacity })} />
       </div>
     </>
   );

@@ -96,16 +96,19 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     `tile_size`, `tile_share`, `main_size`, `main_share` converted in `commanders_of`).
     The numbers are mine, from the records' small-tile and mid-range choices; the owner
     has not seen them.
-  - **Controls** are the style guide's `cm-chip` (`full.ts`), `cm-on` while on, and
-    always keep their names (owner: a name is more to hit than an icon). Only the PTZ
-    presets give way (`foldPresets` in `controls.ts`, from estimated widths); a bar
-    still too long wraps. `CHIP` and `ROOM` in `controls.ts` are the chip and the room
-    round it in numbers, for `foldPresets` and the Cameras page's preview only. Room:
-    10 px between chips (tap areas meet half-way, 44 px across the bar), 22 px at each
-    end of the edge (owner: Full at the top of a wall tablet's frame was missed for the
-    button under it). The card's Full screen button is named Full (owner: not the
-    longest name). `controls_at` is edges and align only; a saved `size` or `opacity`
-    is dropped by `controlsAt`.
+  - **Controls** have the style guide's `cm-chip` size, font and shape (`full.ts`) in
+    their own colours: white on black at the camera's `controls_at.opacity`, the active
+    colour at it while on (owner, b17: "just the size, font and shape"). They always keep
+    their names (owner: a name is more to hit than an icon). Only the PTZ presets give
+    way (`foldPresets` in `controls.ts`, from estimated widths); the bar is one line and
+    the presets or the zoom's stepper one more, as before b16. `CHIP` and `ROOM` in
+    `controls.ts` are the chip and the room round it in numbers, for `foldPresets` and
+    the Cameras page's preview only. Room: 5 px between chips (tap areas meet half-way,
+    44 px across the bar), 22 px at each end of the edge (owner: Full at the top of a
+    wall tablet's frame was missed for the button under it). The card's Full screen
+    button is named Full (owner: not the longest name). A saved `size` is dropped by
+    `controlsAt`. Down a side on a phone, seven chips run past the place's foot: not
+    handled.
   - **The motion dot** is half the tile names (`dotSize`); the editor's Size is gone.
   - **Zoom** (b9; owner: always one Zoom button and a stepper, not a slider): a second
     line (Out, level, In, Reset) as PTZ has. `zoomOf`/`zoomStep`: a tap is a tenth of

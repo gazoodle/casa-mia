@@ -9,22 +9,22 @@ export const EDGES: Edge[] = ["top", "bottom", "left", "right"];
 /** Along its edge: left or top, the middle, right or bottom (as a sections view's badges). */
 export type Align = "start" | "center" | "end";
 
-/** The edge for each shape of screen and where along it; a camera without its own takes
- * these. The buttons are the style guide's chips (pills.css: cm-chip) at the guide's one
- * size on every device, as everywhere else in Casa Mia (owner, 2026-11-26). Builds b8 to
- * b15 gave them a size of their own (px, a share of their place, then the main camera's
- * name by a fitted rule) and a background of their own. None looked right on a phone, a
- * wall tablet and a Mac at once, and the guide's chips do with no sizing at all: a CSS px
- * is already the unit that suits every device. */
-export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align };
+/** The edge for each shape of screen, where along it and how solid the buttons'
+ * background is (%); a camera without its own takes these. The buttons have the style
+ * guide's chip size, font and shape (pills.css: cm-chip), one size on every device, in
+ * white on black at that strength (owner, 2026-11-26). Builds b8 to b15 gave them a size
+ * of their own (px, a share of their place, then the main camera's name by a fitted
+ * rule); none looked right on a phone, a wall tablet and a Mac at once, and the guide's
+ * chip does with no sizing at all: a CSS px already suits every device. */
+export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align; opacity: number };
 /** Down the right edge from the top, either way up (owner, 2026-11-27). */
-export const CONTROLS_AT: ControlsAt = { landscape: "right", portrait: "right", align: "start" };
+export const CONTROLS_AT: ControlsAt = { landscape: "right", portrait: "right", align: "start", opacity: 60 };
 
-/** A camera's own settings, each it lacks at its default. A size or a background saved
- * before 2026.11.14-b16 is left out: neither is used, and both are dropped when the
- * camera is next saved. */
-export function controlsAt(own?: Partial<ControlsAt> & { size?: unknown; opacity?: unknown }): ControlsAt {
-  const { size: _size, opacity: _opacity, ...rest } = own ?? {};
+/** A camera's own settings, each it lacks at its default. A size saved before
+ * 2026.11.14-b10 is left out: it is no longer used, and is dropped when the camera is
+ * next saved. */
+export function controlsAt(own?: Partial<ControlsAt> & { size?: unknown }): ControlsAt {
+  const { size: _size, ...rest } = own ?? {};
   return { ...CONTROLS_AT, ...rest };
 }
 
@@ -42,12 +42,11 @@ export const CHIP = { height: 22, font: 10, pad: 10, gap: 4, icon: 14 };
 /** A letter's width, of the text's size: capitals, spaced as the guide's. An estimate, as
  * nothing is measured: it decides only when the presets fold. */
 const LETTER = 0.72;
-/** Room over a camera, px (full.ts, edges.module.css): between chips, around the bar, and
- * at each end of its edge, where a chip's height keeps the first button clear of the
- * frame, so a finger doesn't miss it for the one below (owner, 2026-11-26). Between
- * chips is more than the guide's rows have: each chip's tap area reaches half-way to the
- * next, and a finger needs the room. */
-export const ROOM = { between: 10, around: 7, end: 22 };
+/** Room over a camera, px (full.ts, edges.module.css): between chips (each one's tap area
+ * reaches half-way to the next), around the bar, and at each end of its edge, where a
+ * chip's height keeps the first button clear of the frame, so a finger doesn't miss it
+ * for the one below (owner, 2026-11-26). */
+export const ROOM = { between: 5, around: 7, end: 22 };
 
 const chipWidth = (name: string) => 2 * CHIP.pad + CHIP.icon + CHIP.gap + name.length * LETTER * CHIP.font;
 
@@ -55,7 +54,7 @@ const chipWidth = (name: string) => 2 * CHIP.pad + CHIP.icon + CHIP.gap + name.l
  * PRESETS_INLINE, else when the chips (`names`: the card's own buttons and the camera's
  * controls, then the presets) don't fit along `edge` of a place w x h px. That is all that
  * gives way: the chips always keep their names, on a phone too, as a name is more to
- * hit than an icon (owner, 2026-11-26). A bar still too long wraps. */
+ * hit than an icon (owner, 2026-11-26). */
 export function foldPresets(place: [number, number], edge: Edge, names: string[], presets: string[]): boolean {
   if (presets.length > PRESETS_INLINE) return true;
   if (!presets.length) return false;
@@ -93,7 +92,7 @@ export function zoomStep(z: Zoom, from: number, by: 1 | -1): number {
 }
 
 /** The chips as CSS custom properties, for the Cameras page's preview of a screen drawn
- * `scale` of its size (edges.module.css). The card draws the guide's own chips. */
+ * `scale` of its size (edges.module.css), as the card draws them (full.ts). */
 export function previewStyle(at: ControlsAt, scale: number): Record<string, string> {
   const px = (n: number) => `${Math.round(n * scale * 100) / 100}px`;
   return {
@@ -106,5 +105,6 @@ export function previewStyle(at: ControlsAt, scale: number): Record<string, stri
     "--cm-chip-around": px(ROOM.around),
     "--cm-chip-end": px(ROOM.end),
     "--cm-chip-align": alignOf(at),
+    "--cm-chip-alpha": `${at.opacity}%`,
   };
 }

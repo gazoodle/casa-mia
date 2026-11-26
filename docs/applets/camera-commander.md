@@ -377,10 +377,10 @@ buttons over the main camera, in one bar with two buttons of its own.
 
 <img src="../screenshots/commander-controls.webp" alt="A commander on a dashboard whose main camera, Entrance, shows a front door. Along the foot of the main camera are three rounded buttons: Full screen, Front door with a padlock icon, and Hall light with a lamp icon. Panels of other cameras run down the left and along the bottom" width="800">
 
-- **The buttons** are Casa Mia's own chips: one small size on every device, in
-  capitals, and always with their names.
+- **The buttons** have Casa Mia's chip size, font and shape: the same on every device,
+  in capitals, and always with their names. They are white on a see-through black.
 - **The camera's controls.** Each button shows the entity's own icon and the name you
-  gave it, and is filled in the theme's colour while the entity is on, open or unlocked. A tap is Home
+  gave it, and is coloured while the entity is on, open or unlocked. A tap is Home
   Assistant's toggle, the same as a tap on the entity's tile on a dashboard: a light
   switches, a lock locks or unlocks, a cover opens or closes. An entity that Home
   Assistant can't find, or that is unavailable, has a dimmed button that says so. The
@@ -402,8 +402,9 @@ buttons over the main camera, in one bar with two buttons of its own.
 - **Where they show.** With **Its controls over the main camera** on, over the main
   camera on the commander. They are always on the main camera's full screen (**A tap on
   the main camera: full screen, with its controls**), whatever that switch says.
-- **Where they go.** The edge they go along and where along it they sit are set for each
-  camera on the Cameras page, under **Controls on a full screen**. There is one edge for a wide space and one for a tall
+- **Where they go.** The edge they go along, where along it they sit and how solid their
+  background is are set for each camera on the Cameras page, under **Controls on a full
+  screen**. There is one edge for a wide space and one for a tall
   one. Over the main camera, wide or tall goes by the shape of the main camera's area,
   not by the screen's.
 - **Sound button.** Off by default. A button to hear the main camera, shown wherever the

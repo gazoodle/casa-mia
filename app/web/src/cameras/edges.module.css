@@ -58,10 +58,14 @@
   padding-block: var(--cm-chip-end);
 }
 
-/* The style guide's chip, as the card draws it over a camera (full.ts), at the preview's
-   scale (controls.ts: previewStyle). */
+/* The style guide's chip size, font and shape, white on black at the camera's background
+   strength, as the card draws it over a camera (full.ts), at the preview's scale
+   (controls.ts: previewStyle). */
 .pill {
   composes: cm-chip from global;
+  box-shadow: none;
+  background: rgb(0 0 0 / var(--cm-chip-alpha));
+  color: #fff;
   gap: 0;
   height: var(--cm-chip-height);
   padding: 0 var(--cm-chip-pad);
@@ -82,7 +86,7 @@
   opacity: 0.8;
 }
 
-/* Where along the edge, under the two screens. */
+/* Where along the edge and the background, under the two screens. */
 .look {
   display: grid;
   grid-template-columns: auto 1fr;

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b17
+
+- **Camera Commander card: the controls keep the chip's size, font and shape, in their
+  own colours again.** They are white on a see-through black, and coloured while on, as
+  before b16, and each camera's **Background** setting on the Cameras page is back. One
+  set before b16 still applies.
+- **Camera Commander card: the controls are closer together,** 5 px apart instead of 10.
+- **Camera Commander card: the PTZ presets open out as they did before b16,** in one line
+  beside the bar. b16 split a long bar down a side into columns, which pushed the
+  presets further out.
+
 ## 2026.11.14-b16
 
 - **Camera Commander card: the controls are the style guide's chips.** The buttons over

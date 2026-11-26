@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { controlsAt, foldPresets, previewStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 
-test("controls have no size or background of their own, and go down the right from the top unless a camera says otherwise", () => {
-  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start" });
-  // a size or a background saved before: dropped
-  assert.deepEqual(controlsAt({ size: 72, opacity: 60, landscape: "bottom" } as never), { landscape: "bottom", portrait: "right", align: "start" });
+test("controls have no size of their own, and go down the right from the top unless a camera says otherwise", () => {
+  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start", opacity: 60 });
+  // a size saved before: dropped; a background kept
+  assert.deepEqual(controlsAt({ size: 72, opacity: 30, landscape: "bottom" } as never), { landscape: "bottom", portrait: "right", align: "start", opacity: 30 });
 });
 
 test("the Cameras page previews the style guide's chip at its screen's scale", () => {
@@ -16,6 +16,7 @@ test("the Cameras page previews the style guide's chip at its screen's scale", (
   assert.equal(look["--cm-chip-font"], "5px");
   assert.equal(look["--cm-chip-end"], "11px");
   assert.equal(previewStyle(controlsAt({ align: "end" }), 1)["--cm-chip-align"], "flex-end");
+  assert.equal(previewStyle(controlsAt({ opacity: 30 }), 1)["--cm-chip-alpha"], "30%");
 });
 
 test("only the presets give way, behind PTZ: the chips always keep their names", () => {
