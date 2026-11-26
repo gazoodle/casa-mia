@@ -6,6 +6,8 @@
 import LABELS from "../../../app/src/casa_mia/labels.json" with { type: "json" };
 
 export const OPTIONS = LABELS.labels;
+/** A name's limits and the main camera's rule (nameSize), for the debug figures too. */
+export const NAME = LABELS.name;
 /** A font's file in the casa_mia component's www/fonts ("standard" has none: it is the
  * compositor's built-in font, and the browser's own sans-serif here). */
 export const FILES: Record<string, string> = LABELS.fonts;

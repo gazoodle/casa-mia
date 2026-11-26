@@ -7,8 +7,8 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
-import { back, family, keepPosition, labelsOf, nameSize, useFont } from "../labels.ts";
-import { dot } from "./motion.ts";
+import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from "../labels.ts";
+import { dot, dotSize, MOTION } from "./motion.ts";
 import { controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown } from "./common.ts";
@@ -196,6 +196,12 @@ export class CommanderCard extends CommanderTalk {
     const nameIn = (place: [number, number]) => nameSize("main", labels.main_scale, Math.min(...place), 1, desk);
     const labelled = (place: [number, number]) =>
       `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
+    // The commander's smallest tile, in CSS px: the tiles' names (drawn in the picture) and
+    // the motion dots are a share of its shorter side, so every tile's are one size.
+    const css = ([, , rw, rh]: Rect): [number, number] => [(rw / w) * this._box[0], (rh / h) * this._box[1]];
+    const smallest = [...tiles.map((t) => t.rect), ...(laid.more ? [laid.more.rect] : [])].map(css).sort((a, b) => Math.min(...a) - Math.min(...b))[0] ?? [0, 0];
+    const tileSide = Math.min(...smallest);
+    const dotPx = dotSize(this._config!, tileSide);
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
     const mark = tiles.find((t) => t.camera === main)?.rect;
     // The cameras there is no room for ("+n more"): motion on one is marked on that tile.
@@ -262,6 +268,12 @@ export class CommanderCard extends CommanderTalk {
               asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
               ${this.viaHa() ? "through Home Assistant" : "direct"}
               ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}
+              <br />main camera ${Math.round(mainPlace[0])} x ${Math.round(mainPlace[1])} px: name ${nameIn(mainPlace)} px
+              (${desk ? `mouse: ${NAME.main_desk} px` : `touch: ${NAME.main_root} x √${Math.round(Math.min(...mainPlace))} = ${(NAME.main_root * Math.sqrt(Math.min(...mainPlace))).toFixed(1)}, held ${NAME.main_floor} to ${NAME.main_cap}`},
+              at ${labels.main_scale}%); controls ${Math.round(nameIn(mainPlace) * 1.4)} px high<br />
+              smallest tile ${Math.round(smallest[0])} x ${Math.round(smallest[1])} px: name ${nameSize("tile", labels.tile_share, tileSide)} px
+              (${labels.tile_share}% = ${((labels.tile_share * tileSide) / 100).toFixed(1)}, held ${NAME.tile_floor} to ${NAME.tile_cap});
+              motion dot ${dotPx} px (${this._config?.motion_share ?? (this._config?.motion_size === undefined ? MOTION.motion_share : "from px")}%)
             </div>`
           : nothing}
         ${tiles.map((t) =>
@@ -281,10 +293,10 @@ export class CommanderCard extends CommanderTalk {
           : nothing}
         ${tiles.map((t) =>
           // on the main camera's own tile too (as well as on the main picture)
-          dot(moving.get(t.camera), at(t.rect), this._config!, () => (t.camera === main ? this.open(card, t.camera) : this.choose(card, t.camera))),
+          dot(moving.get(t.camera), at(t.rect), this._config!, () => (t.camera === main ? this.open(card, t.camera) : this.choose(card, t.camera)), dotPx),
         )}
-        ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined) : nothing}
-        ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
+        ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined, dotPx) : nothing}
+        ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main), dotPx) : nothing}
         ${
           // The Full screen button stands here without the camera's controls too: it is the
           // card's, and the only way to it.

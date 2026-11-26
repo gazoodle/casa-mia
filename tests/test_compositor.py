@@ -469,12 +469,14 @@ def test_debug_overlay_dims_and_marks_the_true_edges():
     ).convert("RGB")
     r, g, b = rgb(pic, (20, 2))  # along the top-left L
     assert r > 200 and g < 60 and b < 60
-    r, g, b = rgb(pic, (200, 20))  # the main camera, white dimmed to ~20%
+    # the main camera, white dimmed to ~20% (beside the figures' box, off the diagonals)
+    r, g, b = rgb(pic, (20, 100))
     assert 30 < r < 80 and abs(r - g) < 10
+    assert max(rgb(pic, (200, 60))) < 60 or rgb(pic, (200, 60))[0] > 200  # the box
     off = Image.open(
         io.BytesIO(commander(cmd, {}, {}, "camera.a", white.getvalue()))
     ).convert("RGB")
-    assert rgb(off, (200, 20))[0] > 200  # off: as it was
+    assert rgb(off, (20, 100))[0] > 200  # off: as it was
 
 
 def test_each_place_is_drawn_from_the_smallest_channel_big_enough():

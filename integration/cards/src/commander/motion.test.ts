@@ -1,7 +1,7 @@
 // Which tiles show a motion dot, and for how long (motion.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Motion } from "./motion.ts";
+import { dotSize, Motion } from "./motion.ts";
 
 const at = (secondsAgo: number) => new Date(Date.now() - secondsAgo * 1000).toISOString();
 const hass = (states: Record<string, [string, number]>) => ({
@@ -27,4 +27,13 @@ test("a dot while the sensor is on, and lingering after", () => {
   assert.equal(m.seen(hass({ "binary_sensor.drive_motion": ["off", 11] }), sensors, config, () => woken++).size, 0);
   assert.equal(m.seen(hass({ "binary_sensor.drive_motion": ["on", 1] }), sensors, { ...config, motion_dot: false }, () => woken++).size, 0);
   assert.equal(woken, 0);
+});
+
+test("the dot is a share of the smallest tile, with no least or most; a size in px is read as one", () => {
+  assert.equal(dotSize({ type: "x" }, 83), 10); // a wall tablet's tile: as it was
+  assert.equal(dotSize({ type: "x" }, 50), 6); // a phone's
+  assert.equal(dotSize({ type: "x" }, 150), 18); // a desktop's large commander
+  assert.equal(dotSize({ type: "x", motion_share: 20 }, 50), 10);
+  assert.equal(dotSize({ type: "x", motion_size: 20 }, 100), 24); // 20 px was 24%
+  assert.equal(dotSize({ type: "x", motion_size: 20, motion_share: 8 }, 100), 8);
 });

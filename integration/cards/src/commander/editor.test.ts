@@ -35,7 +35,7 @@ test("security details follow their switch and motion defaults remain visible", 
   assert.ok(names(value).includes("look_strength"));
   assert.ok(names(value).includes("look_darkness"));
   assert.ok(names(value).includes("motion_dot"));
-  for (const name of ["motion_colour", "motion_size", "motion_pulse", "motion_linger", "motion_corner"])
+  for (const name of ["motion_colour", "motion_share", "motion_pulse", "motion_linger", "motion_corner"])
     assert.ok(!names(value).includes(name), name);
 });
 
@@ -56,7 +56,7 @@ test("switching options off and back on preserves hidden values and other card s
   const config = {
     type: "custom:casa-mia-commander", entity: "select.oak_commander",
     security_look: true, look_tint: [12, 34, 56], look_strength: 4, look_darkness: 42,
-    motion_colour: [65, 43, 21], motion_size: 18, motion_pulse: 2, motion_linger: 25, motion_corner: "bottom-left",
+    motion_colour: [65, 43, 21], motion_share: 18, motion_pulse: 2, motion_linger: 25, motion_corner: "bottom-left",
     away_sharpness: "light", grid_options: { rows: 4 },
   };
   const value = editor(config);
@@ -75,5 +75,5 @@ test("colour selectors have their own compact cell with adjustments in a separat
   assert.deepEqual(controls.filter((form) => form.className === "colour").map((form) => form.schema.map((field: any) => field.name)), [["look_tint"], ["motion_colour"]]);
   assert.equal(controls.filter((form) => form.className === "adjustments").length, 2);
   assert.deepEqual(controls.filter((form) => form.className === "adjustments")[1].schema.map((field: any) => field.name),
-    ["motion_size", "motion_pulse", "motion_linger", "motion_corner"]);
+    ["motion_share", "motion_pulse", "motion_linger", "motion_corner"]);
 });

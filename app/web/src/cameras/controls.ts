@@ -16,8 +16,8 @@ export type Align = "start" | "center" | "end";
  * gave them a size of their own, in px and then as a share of their place, and neither
  * looked right on a phone, a wall tablet and a Mac at once. */
 export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align; opacity: number };
-/** Top right, either way up (owner, 2026-11-27). */
-export const CONTROLS_AT: ControlsAt = { landscape: "top", portrait: "top", align: "end", opacity: 60 };
+/** Down the right edge from the top, either way up (owner, 2026-11-27). */
+export const CONTROLS_AT: ControlsAt = { landscape: "right", portrait: "right", align: "start", opacity: 60 };
 
 /** A camera's own settings, each it lacks at its default. A size saved before
  * 2026.11.14-b10 (a height, a share or one of three names) is left out: it is no longer

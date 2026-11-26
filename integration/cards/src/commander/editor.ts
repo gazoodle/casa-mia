@@ -89,7 +89,7 @@ export class CommanderEditor extends LitElement {
       { name: "leave_after", selector: { number: { min: 0, max: 120, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       { name: "motion_dot", selector: { boolean: {} } },
       { name: "motion_colour", selector: { color_rgb: {} } },
-      { name: "motion_size", selector: { number: { min: 4, max: 40, step: 1, mode: "slider", unit_of_measurement: "px" } } },
+      { name: "motion_share", selector: { number: { min: 4, max: 40, step: 1, mode: "slider", unit_of_measurement: "%" } } },
       { name: "motion_pulse", selector: { number: { min: 0, max: 5, step: 0.1, mode: "slider", unit_of_measurement: "s" } } },
       { name: "motion_linger", selector: { number: { min: 0, max: 300, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       {
@@ -142,7 +142,7 @@ export class CommanderEditor extends LitElement {
       look_darkness: "Darkness",
       motion_dot: "Show motion dot",
       motion_colour: "Colour",
-      motion_size: "Size",
+      motion_share: "Size",
       motion_pulse: "Pulse",
       motion_linger: "Keep after motion",
       motion_corner: "Corner",
@@ -207,7 +207,7 @@ export class CommanderEditor extends LitElement {
         ${form(fields("motion_dot"))}
         ${data.motion_dot ? html`<div class="details">
           ${form(fields("motion_colour"), "colour")}
-          ${form(fields("motion_size", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
+          ${form(fields("motion_share", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
         </div>` : nothing}
       </section>
       <section aria-labelledby="talk-heading">

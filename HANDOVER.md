@@ -100,7 +100,7 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     the pointer, so a drawn (not live) main name uses the touch curve.
   - **Controls** have no size: they are the main name's pill (`controlsStyle(at, name)`,
     1.4 x the name high, its font) at that name's size. `controls_at.size` saved before
-    is dropped by `controlsAt`. Default edge top right (`CONTROLS_AT`). `barFit` decides, from an estimate of the names' widths (nothing is measured), what
+    is dropped by `controlsAt`. Default: down the right edge from the top (`CONTROLS_AT`; owner, 2026-11-27). `barFit` decides, from an estimate of the names' widths (nothing is measured), what
     gives way: presets behind PTZ, then icons alone. The card passes the place's CSS px
     (`mainPlace`, `screenPlace` in `card.ts`). A small pill's tap area is 44 px
     (`.control::after`). `.controls-group` is only as big as the buttons and takes the
@@ -122,7 +122,16 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     `card` attribute; `placed()` then gives the main place. Main place shorter sides:
     phone 206, small tablets 550 to 582, large tablet 628, Mac small 421, Mac big 1034
     to 1062. Per-device tweaks, if wanted, go on top of this (owner's plan).
-  - **b10 not seen** on a device. The docs'
+  - **Debug figures** (b11; owner, 2026-11-27: "get a grip", no more guessing): with a
+    commander's debug on, the card's box says the main place, the name's size and the
+    sum behind it, the controls' height, the smallest tile, its name's size with the raw
+    share before its limits, and the dot's size; the compositor's says the two names'
+    sizes as drawn. Read these before changing any size rule again.
+  - **The motion dot** (b11): `motion_share`, % of the smallest tile's shorter side, no
+    least or most (`dotSize`); `motion_size` (px) is read as px x 1.2.
+  - **The clock** is drawn only by the compositor, beside the main name, so only while
+    the main camera is not live video. It has no settings of its own.
+  - **b10 and b11 not seen** on a device. The docs'
     screenshots (`cameras-controls.webp`, `commander-controls.webp`,
     `commander-names-settings.webp`) show the old look and px sliders.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one

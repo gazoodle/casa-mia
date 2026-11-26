@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.14-b11
+
+- **Camera Commander card: the debug figures say the sizes in use.** With a commander's
+  debug on, the card's box also gives the main camera's place, its name's size and the
+  sum that gave it, the controls' height, the smallest tile, its name's size with the
+  share before its limits were applied, and the motion dot's size. The picture's own
+  debug box gives the two names' sizes as drawn.
+- **Camera Commander card: the motion dot's size is a share.** It was a size in pixels,
+  the same on every screen. It is now a % of the shorter side of the commander's
+  smallest tile (12% at first), with no least or most, and it sits in from its corner in
+  proportion. A size saved in pixels is converted (10 px becomes 12%).
+- **Camera Commander card: controls go down the right edge from the top by default,**
+  wide or tall. b10 put them along the top, at the right.
+
 ## 2026.11.14-b10
 
 - **Camera Commander card: a camera's controls are the main camera's name pill.** They

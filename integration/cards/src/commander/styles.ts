@@ -174,7 +174,9 @@ export const styles = [motionStyles, css`
       background: #000;
       font: 13px/1.4 ui-monospace, monospace;
       text-align: center;
-      white-space: nowrap;
+      /* as wide as its longest line, or the card: its lines wrap on a phone */
+      width: max-content;
+      max-width: calc(100% - 20px);
       pointer-events: none;
     }
     .note {

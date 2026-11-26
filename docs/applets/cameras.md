@@ -68,7 +68,7 @@ places. It is there for a camera that has controls or presets:
 - **Along the edge:** at its start, its middle or its end.
 - **Their size** is not set here. Each button is the size of the main camera's name
   where it is shown, which is set for each commander (**Main camera name size** on the
-  Camera Commander page). The buttons start at the top right, wide or tall.
+  Camera Commander page). The buttons start down the right edge from the top, wide or tall.
 - **When they don't fit:** the PTZ presets go behind the PTZ button first. If there is
   still no room, the names go and the buttons are round icons.
 - **A missed tap:** the area the buttons stand in takes a tap that lands between them or

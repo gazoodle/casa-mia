@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { barFit, controlsAt, controlsStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 
-test("controls have no size of their own, and sit top right unless a camera says otherwise", () => {
-  assert.deepEqual(controlsAt(), { landscape: "top", portrait: "top", align: "end", opacity: 60 });
+test("controls have no size of their own, and go down the right from the top unless a camera says otherwise", () => {
+  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start", opacity: 60 });
   assert.equal("size" in controlsAt({ size: 72 } as never), false); // a size saved before: dropped
   assert.equal(controlsAt({ landscape: "bottom" }).landscape, "bottom");
 });

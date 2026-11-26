@@ -340,7 +340,8 @@ Its options (each left at its default unless you change it):
 - **Security look:** every picture in tinted monochrome, like a control room, with its
   tint, strength and darkness.
 - **Motion dot:** a small dot pulsing on a camera's tile while its motion sensor sees
-  motion, and for a while after; hover it for when. Its colour, size, pulse (0: steady),
+  motion, and for a while after; hover it for when. Its colour, size (a % of the
+  shorter side of the commander's smallest tile, so it is in proportion on every screen), pulse (0: steady),
   how long it stays after the motion, and its corner. A camera whose own motion detection
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use

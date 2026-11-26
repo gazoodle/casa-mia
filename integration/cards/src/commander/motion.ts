@@ -12,11 +12,20 @@ export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export const MOTION = {
   motion_dot: true,
   motion_colour: [255, 59, 48] as [number, number, number],
-  motion_size: 10, // CSS px across
+  motion_share: 12, // across, % of the shorter side of the commander's smallest tile
   motion_pulse: 1.5, // seconds a pulse takes; 0: steady
   motion_linger: 10, // seconds the dot stays once the motion has stopped
   motion_corner: "top-right" as Corner,
 };
+
+/** The dot's size across, px, on a commander whose smallest tile's shorter side is `side`
+ * px: a share of it, with no least or most, so it is in proportion on every screen and
+ * the setting does something on all of them. A size saved in px before 2026.11.14-b11
+ * is read as the share it was of a wall tablet's tile (about 83 px: 10 px is 12%). */
+export function dotSize(config: Config, side: number): number {
+  const share = config.motion_share ?? (config.motion_size === undefined ? MOTION.motion_share : Math.round(config.motion_size * 1.2));
+  return Math.round((share * side) / 10) / 10;
+}
 
 /** A camera's motion to show: since when, and until when once it has stopped. */
 type Seen = { since?: number; until?: number };
@@ -65,18 +74,20 @@ export class Motion {
   }
 }
 
-/** The dot on one tile (`at`: the tile's place, as the card's tap zones); a tap on it is a
- * tap on the tile. */
-export function dot(seen: Seen | undefined, at: string, config: Config, tap: () => void): TemplateResult | typeof nothing {
+/** The dot on one tile (`at`: the tile's place, as the card's tap zones), `size` px across
+ * (dotSize) and as far in from its corner as it is from the tile's edge at 10 px: 6 px;
+ * a tap on it is a tap on the tile. */
+export function dot(seen: Seen | undefined, at: string, config: Config, tap: () => void, size: number): TemplateResult | typeof nothing {
   if (!seen) return nothing;
   const o = { ...MOTION, ...config };
+  const inset = Math.round(size * 6) / 10;
   const [r, g, b] = o.motion_colour;
   const [v, h] = o.motion_corner.split("-");
   return html`<div class="motion-tile" style=${at}>
     <span
       class="motion ${o.motion_pulse > 0 ? "pulse" : ""}"
       title=${tip(seen)}
-      style="${v}:6px;${h}:6px;--cm-motion:rgb(${r},${g},${b});--cm-motion-size:${o.motion_size}px;--cm-motion-pulse:${o.motion_pulse}s"
+      style="${v}:${inset}px;${h}:${inset}px;--cm-motion:rgb(${r},${g},${b});--cm-motion-size:${size}px;--cm-motion-pulse:${o.motion_pulse}s"
       @click=${tap}
     ></span>
   </div>`;

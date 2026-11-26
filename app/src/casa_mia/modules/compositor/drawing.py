@@ -19,7 +19,7 @@ from .common import (
     LAYOUT,
     PANELS,
 )
-from .labels import keep, look, name
+from .labels import Look, keep, look, name
 from .responsive import responsive
 
 _LOGGER = logging.getLogger(__name__)
@@ -624,14 +624,17 @@ def commander(
         canvas.putalpha(mask)
     debug = {**EMPTY_COMMANDER["debug"], **(cmd.get("debug") or {})}
     if debug["on"]:
-        canvas = _debug(canvas, cmd, debug, scale)
+        canvas = _debug(canvas, cmd, debug, scale, seen)
     return encode(canvas, JPEG_QUALITY)
 
 
-def _debug(canvas: Image.Image, cmd: dict, debug: dict, scale: float) -> Image.Image:
+def _debug(
+    canvas: Image.Image, cmd: dict, debug: dict, scale: float, seen: Look
+) -> Image.Image:
     """The debug overlay (see EMPTY_COMMANDER["debug"]): everything dimmed (the clear
     parts stay clear), corner Ls and diagonals to show the picture's true edges, and
-    its ID and draw time 30% down the middle, clear of the corners and the crossing."""
+    its ID, draw time and the names' sizes as drawn 30% down the middle, clear of the
+    corners and the crossing."""
     w, h = canvas.size
     rgb = canvas.convert("RGB").point(lambda v: v * float(debug["dim"]) / 100)
     if canvas.mode == "RGBA":
@@ -654,7 +657,9 @@ def _debug(canvas: Image.Image, cmd: dict, debug: dict, scale: float) -> Image.I
     font = _fonts(scale)[1]
     text = (
         f"{cmd['name']}  {w} x {h}  @{scale:g}x\n"
-        f"drawn {datetime.now().strftime('%H:%M:%S.%f')[:-3]}"
+        f"drawn {datetime.now().strftime('%H:%M:%S.%f')[:-3]}\n"
+        # in the picture's own pixels; the card's figures have them in CSS px
+        f"names: tile {seen.tile_px} px, main {seen.main_px} px"
     )
     at = (w // 2, round(h * 0.3))
     box = draw.multiline_textbbox(at, text, font=font, anchor="mm", align="center")
