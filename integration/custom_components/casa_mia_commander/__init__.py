@@ -30,7 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = coordinator
     if not hass.data.get(f"{DOMAIN}_pictures"):  # once per HA run
         setup_pictures(hass)  # the commanders' pictures, for viewers away from home
-        setup_live(hass)  # the cards' reports on their live video, for the log
+        setup_live(hass)  # the cards' reports (live video, tuning), for the logs
         hass.data[f"{DOMAIN}_pictures"] = True
     off = follow_module(
         hass,

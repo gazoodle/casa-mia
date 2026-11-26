@@ -9,15 +9,16 @@ import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from "../labels.ts";
 import { dot, dotSize, MOTION } from "./motion.ts";
+import { debugBox, dialogOpen, type Figures, recordOf, reference, toggleDialog, tunedAt, tuneDialog, tuneStyles, whereOf } from "./tune.ts";
 import { controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
-import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown } from "./common.ts";
+import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown, VERSION } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 
 export class CommanderCard extends CommanderTalk {
-  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true } };
+  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true } };
   /** The camera heard (its Sound button), "" for none: a camera's own, so another main
    * camera (a tap, Track motion) is never heard without a tap of its own. */
   _sound = "";
@@ -32,6 +33,8 @@ export class CommanderCard extends CommanderTalk {
   /** Why the last preset or zoom didn't go, said with the controls for PTZ_NOTE_MS. */
   _ptzFailed = "";
   private ptzNoteGone = 0;
+  /** What came of the last tuning record (tune.ts): its reference, or why it failed. */
+  _tuneNote = "";
 
   constructor() {
     super();
@@ -53,6 +56,9 @@ export class CommanderCard extends CommanderTalk {
     // switch off, the page hidden or edited), back to the commander, not a black screen.
     const card = this.now().card;
     if (this._full && card && !this.liveMain(card)) this._full = "";
+    // Debug switched off while the sizes dialog is open: closed, and Track motion back on.
+    const select = this._config?.entity ?? "";
+    if (card && !card.layout.debug?.on && dialogOpen(select)) toggleDialog(this.hass!, select, false);
     this.watchFrame();
     this.measure(); // its rows may have been set or cleared (a new config, or layout)
     if (this.streaming && this.editing()) this.done("editing");
@@ -106,11 +112,18 @@ export class CommanderCard extends CommanderTalk {
     const down = editing ? null : pictureDown(this.downSince, this.lastError, Date.now());
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
+    // While its debug is on, sizes can be set by hand on this device (tune.ts), each where
+    // the card is (in the page, with the whole screen, the main camera full screen). The
+    // names the app draws come in the picture asked for, which is its own (compositor.sized).
+    const select = this._config!.entity!;
+    const tuning = Boolean(own.debug?.on);
+    const drawnSet = tuning ? tunedAt(select, whereOf(this._screen, false)) : {};
+    const tunedQuery = `${drawnSet.tile ? `&tile=${drawnSet.tile}` : ""}${drawnSet.main ? `&name=${drawnSet.main}` : ""}`;
     // In HA's card picker: drawn at its own size and shrunk, so its gaps and labels keep
     // their proportions (asked for at the picker's size, they'd crowd the cameras out).
     const sized: Size | null = inPicker(this) ? [own.width, own.height, 1] : this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
-    const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
+    const asked = sized && !editing ? this.pictureUrl(card, sized, tunedQuery) : "";
     const still = editing && sized ? this.stillUrl(card, sized) : "";
     const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     // Where everything is, in either mode (placed.ts), as the compositor has it.
@@ -193,7 +206,12 @@ export class CommanderCard extends CommanderTalk {
     const screenPlace: [number, number] = [innerWidth, innerHeight];
     // With a mouse, the main camera's name is one size whatever its place (labels.ts).
     const desk = matchMedia("(pointer: fine)").matches;
-    const nameIn = (place: [number, number]) => nameSize("main", labels.main_scale, Math.min(...place), 1, desk);
+    const ruleName = (place: [number, number]) => nameSize("main", labels.main_scale, Math.min(...place), 1, desk);
+    const where = whereOf(this._screen, full);
+    const set = tuning ? tunedAt(select, where) : {};
+    const nameIn = (place: [number, number]) => set.main ?? ruleName(place);
+    // The controls are the main name's pill (controls.ts), unless set by hand: a height.
+    const controlsName = (place: [number, number]) => (set.controls ? set.controls / 1.4 : nameIn(place));
     const labelled = (place: [number, number]) =>
       `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn(place)}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     // The commander's smallest tile, in CSS px: the tiles' names (drawn in the picture) and
@@ -201,7 +219,38 @@ export class CommanderCard extends CommanderTalk {
     const css = ([, , rw, rh]: Rect): [number, number] => [(rw / w) * this._box[0], (rh / h) * this._box[1]];
     const smallest = [...tiles.map((t) => t.rect), ...(laid.more ? [laid.more.rect] : [])].map(css).sort((a, b) => Math.min(...a) - Math.min(...b))[0] ?? [0, 0];
     const tileSide = Math.min(...smallest);
-    const dotPx = dotSize(this._config!, tileSide);
+    const dotRule = dotSize(this._config!, tileSide);
+    const dotPx = set.dot ?? dotRule;
+    // The debug box's figures (tune.ts): each size as the rules worked it out, and how.
+    const place = full ? screenPlace : mainPlace;
+    const shorter = Math.round(Math.min(...place));
+    const dotShare = this._config?.motion_share ?? (this._config?.motion_size === undefined ? MOTION.motion_share : "from px");
+    const figures: Figures = {
+      where,
+      box: full ? screenPlace : this._box,
+      place,
+      tile: smallest,
+      rules: { main: ruleName(place), controls: Math.round(ruleName(place) * 1.4), tile: nameSize("tile", labels.tile_share, tileSide), dot: dotRule },
+      sums: {
+        main: `${desk ? `mouse, ${NAME.main_desk}` : `touch, ${NAME.main_root} x √${shorter} = ${(NAME.main_root * Math.sqrt(shorter)).toFixed(1)} held ${NAME.main_floor} to ${NAME.main_cap}`}, at ${labels.main_scale}%`,
+        tile: `${labels.tile_share}% of ${Math.round(tileSide)} = ${((labels.tile_share * tileSide) / 100).toFixed(1)}, held ${NAME.tile_floor} to ${NAME.tile_cap}`,
+        dot: `${dotShare}% of ${Math.round(tileSide)}`,
+      },
+    };
+    const debug = tuning
+      ? debugBox({
+          hass: this.hass!,
+          select,
+          colour: own.debug?.colour ?? "#ffd60a",
+          head: html`${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px; screen ${window.devicePixelRatio}x<br />
+            asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"} ${this.viaHa() ? "through Home Assistant" : "direct"}
+            ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}`,
+          figures,
+          note: this._tuneNote,
+          record: () => this.record(card, figures, card.cameras[main]?.title ?? main, desk),
+          changed: () => this.requestUpdate(),
+        })
+      : nothing;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
     const mark = tiles.find((t) => t.camera === main)?.rect;
     // The cameras there is no room for ("+n more"): motion on one is marked on that tile.
@@ -261,21 +310,6 @@ export class CommanderCard extends CommanderTalk {
           : nothing}
         </div>
         ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
-        ${own.debug?.on
-          ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
-              ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
-              card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
-              asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
-              ${this.viaHa() ? "through Home Assistant" : "direct"}
-              ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}
-              <br />main camera ${Math.round(mainPlace[0])} x ${Math.round(mainPlace[1])} px: name ${nameIn(mainPlace)} px
-              (${desk ? `mouse: ${NAME.main_desk} px` : `touch: ${NAME.main_root} x √${Math.round(Math.min(...mainPlace))} = ${(NAME.main_root * Math.sqrt(Math.min(...mainPlace))).toFixed(1)}, held ${NAME.main_floor} to ${NAME.main_cap}`},
-              at ${labels.main_scale}%); controls ${Math.round(nameIn(mainPlace) * 1.4)} px high<br />
-              smallest tile ${Math.round(smallest[0])} x ${Math.round(smallest[1])} px: name ${nameSize("tile", labels.tile_share, tileSide)} px
-              (${labels.tile_share}% = ${((labels.tile_share * tileSide) / 100).toFixed(1)}, held ${NAME.tile_floor} to ${NAME.tile_cap});
-              motion dot ${dotPx} px (${this._config?.motion_share ?? (this._config?.motion_size === undefined ? MOTION.motion_share : "from px")}%)
-            </div>`
-          : nothing}
         ${tiles.map((t) =>
           t.camera !== main
             ? html`<div class="zone" style=${at(t.rect)} title=${card.cameras[t.camera]?.title ?? t.camera} @click=${() => this.choose(card, t.camera)}></div>`
@@ -302,8 +336,8 @@ export class CommanderCard extends CommanderTalk {
           // card's, and the only way to it.
           (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
             ? this._config?.main_controls
-              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, nameIn(mainPlace), [...sound, ...fills], this.lines(main))
-              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, nameIn(mainPlace), fills, this.lines(main))
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, controlsName(mainPlace), [...sound, ...fills], this.lines(main))
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, controlsName(mainPlace), fills, this.lines(main))
             : nothing
         }
         ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn(mainPlace)) : nothing}
@@ -312,6 +346,7 @@ export class CommanderCard extends CommanderTalk {
           : unfit
             ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit}</span></div>`
             : nothing}
+        ${full ? nothing : debug}
       </div>
       ${full
         ? html`<div class="full" style=${labelled(screenPlace)}>
@@ -321,12 +356,31 @@ export class CommanderCard extends CommanderTalk {
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, nameIn(screenPlace), [...sound, ...fills], this.lines(main))
+              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, controlsName(screenPlace), [...sound, ...fills], this.lines(main))
             }
             ${this.talkParts(card, whole, nameIn(screenPlace))}
+            ${debug}
           </div>`
         : nothing}
+      ${tuning ? tuneDialog({ hass: this.hass!, select, where, rules: figures.rules, changed: () => this.requestUpdate() }) : nothing}
     </ha-card>`;
+  }
+
+  /** Record this device's sizes (the debug box's RECORD): to the app's log, by way of the
+   * integration, which takes it only while the commander's debug is on. Its reference, or
+   * why it failed, stays in the debug box. */
+  private async record(card: Card, figures: Figures, main: string, desk: boolean) {
+    const ref = reference();
+    const select = this._config!.entity!;
+    const picture = new URL(card.picture).pathname.match(/\/g\/(.+)\.mjpg$/)?.[1] ?? "";
+    try {
+      await this.hass!.callWS({ type: "casa_mia_commander/tuning", picture, entry: recordOf({ ref, select, figures, main, version: VERSION, desk }) });
+      this._tuneNote = `Recorded ${ref}`;
+      console.info(`casa-mia: tuning recorded as ${ref}`);
+    } catch (err) {
+      this._tuneNote = `${ref} not recorded: ${(err as { message?: string })?.message ?? String(err)}`;
+      console.warn(`casa-mia: ${this._tuneNote}`);
+    }
   }
 
   /** A tap on a panel camera makes it the main one, on every device showing the commander
@@ -393,5 +447,5 @@ export class CommanderCard extends CommanderTalk {
     }
   }
 
-  static styles = [...styles, PILLS, talkStyles, fullStyles];
+  static styles = [...styles, PILLS, talkStyles, fullStyles, tuneStyles];
 }

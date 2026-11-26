@@ -181,6 +181,8 @@ class Live(Base):
         from the sensors themselves: an older integration's POST .../motion gets 204.)"""
         if path.strip("/") == "motion":
             return 204
+        if path.strip("/") == "tuning":
+            return self._tuning(body)
         if path.strip("/") not in ("main", "commander"):
             return 404
         try:
@@ -211,6 +213,21 @@ class Live(Base):
                 self._write(self.state_path, {"mains": self._mains})
             except OSError as exc:
                 _LOGGER.warning("commander: main camera not kept: %s", exc)
+        return 200
+
+    def _tuning(self, body: bytes) -> int:
+        """The sizes a Camera Commander card was tuned to on one device, and what the
+        rules gave there (the integration's tuning.py, only while that commander's debug
+        is on): one line in the log, under the card's reference, for the owner and the
+        agent to talk about the same entry."""
+        try:
+            entry = json.loads(body or b"{}")
+            ref = str(entry["ref"])
+        except (ValueError, KeyError, TypeError):
+            return 400
+        _LOGGER.info(
+            "commander tuning %s: %s", ref, json.dumps(entry, separators=(",", ":"))
+        )
         return 200
 
     def health(self) -> dict[str, Any]:

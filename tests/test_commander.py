@@ -2,6 +2,7 @@
 
 import io
 import json
+import logging
 import threading
 import types
 import urllib.request
@@ -179,6 +180,18 @@ def test_integration_chooses_the_main_camera(tmp_path):
         assert live.mains == {"": "camera.a_low"}
     finally:
         stop(live, cameras)
+
+
+def test_a_tuning_record_goes_to_the_log_under_its_reference(tmp_path, caplog):
+    cmd = make(tmp_path)
+    entry = b'{"ref": "T-1127-143205-KQZ", "tuned": {"page": {"tile": 13}}}'
+    with caplog.at_level(logging.INFO):
+        assert cmd.control("tuning", entry) == 200
+    line = next(r.message for r in caplog.records if "T-1127-143205-KQZ" in r.message)
+    assert line.startswith("commander tuning T-1127-143205-KQZ: {")
+    assert '"tile":13' in line and "\n" not in line  # one line
+    assert cmd.control("tuning", b'{"no": "ref"}') == 400
+    assert cmd.control("tuning", b"not json") == 400
 
 
 def test_motion_is_the_cards_now(tmp_path):

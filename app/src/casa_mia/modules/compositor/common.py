@@ -167,19 +167,26 @@ def slug(text: str) -> str:
 # (see integration/cards/src/commander.ts), so it lays its taps out for the same canvas.
 MAX_PIXELS = 2560 * 1600
 MIN_SIDE = 64
-Size = tuple[int, int, float]  # width and height in device pixels, and the scale (dpr)
+# Width and height in device pixels, the scale (dpr), and the tile names' and the main
+# camera name's sizes a card is being tuned with (CSS px; 0: the rule's).
+Size = tuple[int, int, float, int, int]
+# The sizes a card may ask names to be drawn at while it is tuned (debug on), CSS px.
+TUNED_MOST = 60
 
 
 def asked_size(query: Any) -> Size | None:
     """The size in a picture's address (?w=&h= in device pixels, dpr: the screen's
-    pixels per CSS pixel); None when there is none, or it is out of bounds."""
+    pixels per CSS pixel; tile= and name=: the names' sizes while the card is tuned);
+    None when there is none, or it is out of bounds."""
     try:
         w, h = int(query["w"]), int(query["h"])
         dpr = float(query.get("dpr", 1))
+        tile, name = int(query.get("tile", 0)), int(query.get("name", 0))
     except (KeyError, ValueError, TypeError):
         return None
     ok = MIN_SIDE <= min(w, h) and w * h <= MAX_PIXELS * 1.1 and 0.5 <= dpr <= 4
-    return (w, h, dpr) if ok else None
+    tuned = all(0 <= n <= TUNED_MOST for n in (tile, name))
+    return (w, h, dpr, tile, name) if ok and tuned else None
 
 
 def viewer(request: web.BaseRequest) -> str | None:
@@ -198,6 +205,8 @@ def view_key(name: str, size: Size | None, live_main: bool = False) -> str:
     """A commander's picture at a size: its own key (its slug alone at its set size),
     marked when its main camera is the card's live video (see `sized`)."""
     key = name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
+    if size is not None and (size[3] or size[4]):  # a card being tuned: its own
+        key += f"~t{size[3]}n{size[4]}"
     return key + LIVE_MAIN if live_main else key
 
 
@@ -206,12 +215,13 @@ def sized(cmd: dict, size: Size | None, live_main: bool = False) -> dict:
     by the scale, so they look the same in CSS pixels on any screen. `live_main`: its
     main camera is played by the card as live video over the picture, so its main area
     is drawn from whatever the cache holds (its channel is not fetched for it) and
-    without its caption (the card draws it)."""
+    without its caption (the card draws it). Names' sizes a card is tuned with are
+    taken only while the commander's debug is on (EMPTY_COMMANDER["debug"])."""
     if size is None and not live_main:
         return cmd
     out = dict(cmd)
     if size is not None:
-        w, h, dpr = size
+        w, h, dpr, tile, name = size
         out |= {
             "width": w,
             "height": h,
@@ -219,6 +229,8 @@ def sized(cmd: dict, size: Size | None, live_main: bool = False) -> dict:
             "margin": round(cmd.get("margin", 0) * dpr),
             "scale": dpr,
         }
+        if (tile or name) and (cmd.get("debug") or {}).get("on"):
+            out["tuned"] = {"tile": tile, "main": name}
     out["main_video"] = live_main
     out["view"] = view_key(slug(cmd["name"]), size, live_main)
     return out

@@ -285,9 +285,11 @@ export class CommanderBase extends LitElement {
     return throughHa(this._config?.route ?? "auto", atHome(location), directOut);
   }
 
-  /** The picture's address, at the size asked for; "" while its token is being asked. */
-  protected pictureUrl(card: Card, [W, H, scale]: Size): string {
-    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}&v=${encodeURIComponent(VERSION)}`;
+  /** The picture's address, at the size asked for; "" while its token is being asked.
+   * `tuned`: the names' sizes set by hand while the card is tuned (tune.ts), as
+   * &tile=&name= (the app takes them only while the commander's debug is on). */
+  protected pictureUrl(card: Card, [W, H, scale]: Size, tuned = ""): string {
+    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}&v=${encodeURIComponent(VERSION)}${tuned}`;
     if (!this.viaHa()) return `${card.picture}?${size}`;
     if (!this._token) {
       this.ask();

@@ -276,6 +276,28 @@ The **Any size** preview shows the names as you change them.
   preview; it isn't saved.
 - **Reset to defaults** puts every one of these back to what it was at first.
 
+### Tuning the sizes on one device
+
+With a commander's **debug** on, every card showing it has a box of figures, in the
+middle of the card or of the main camera's full screen. It says where the card is (in
+the page, with the whole screen, or with the main camera full screen), the main
+camera's place and the smallest tile in px, and for each of the tile names, the main
+camera's name, the controls and the motion dot the size in use and how it was worked
+out.
+
+**EDIT** opens a small dialog you can drag by its title bar. Choose one of the four, and
+set its size with the slider or the number box: the card shows it at once. Each place
+the card can be is set on its own. The sizes are kept only on this device and only
+until the page is refreshed; **Back to the rule** returns one to the worked-out size.
+While the dialog is open the commander's **Track motion** is off, so the main camera
+doesn't change under you. That switch is every device's, and the box says so in red; it
+is turned on again when the dialog is closed.
+
+**RECORD** writes this device's figures, the worked-out sizes and every size set by hand
+to the Casa Mia log, under a reference such as `T-1127-143205-KQZ`, which the box then
+shows. Quote it when you talk about the result. It works only while the commander's debug
+is on.
+
 ## In Home Assistant
 
 The commanders come into Home Assistant through the **Casa Mia Camera Commander**

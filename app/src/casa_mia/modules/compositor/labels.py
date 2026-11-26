@@ -121,6 +121,10 @@ def look(cmd: dict, tile_side: float, main_side: float) -> Look:
     scale = float(cmd.get("scale", 1))
     tile_px = name_px("tile", o["tile_share"], tile_side, scale)
     main_px = name_px("main", o["main_scale"], main_side, scale)
+    # A card being tuned (its debug on, compositor.sized): the sizes it asked for.
+    tuned = cmd.get("tuned") or {}
+    tile_px = round(tuned["tile"] * scale) if tuned.get("tile") else tile_px
+    main_px = round(tuned["main"] * scale) if tuned.get("main") else main_px
     return Look(
         font(o["font"], tile_px),
         font(o["font"], main_px),

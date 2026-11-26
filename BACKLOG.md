@@ -1163,20 +1163,16 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 ## Next: Casa Mia, the public release
 
-- **The HACS catalog submissions (2026-11-20).** Open: Sensor Watch hacs/default#13883,
-  Love it or Loathe it #14085, Dash-Bored #14577 and Tablet Layout #14586 (and ha-dial
-  #14569, not Casa Mia's). Every review Frenck left is answered in the mirrors'
-  2026.11.12 and 2026.11.13 releases, and the owner marked the four ready and
-  re-requested review on 2026-11-25. Dash-Bored's page can still reload itself, but
-  only when switched on in Configure; he asked for it to be dropped, so it may come back.
-  Don't request a review otherwise: HACS's template says that gets a pull request closed.
+- **The HACS catalog submissions (2026-11-20).** Love it or Loathe it (#14085) and Tablet
+  Layout (#14586) were merged on 2026-11-26. Open: Sensor Watch hacs/default#13883,
+  Dash-Bored #14577 and Jukebox #14999 (and ha-dial #14569, not Casa Mia's). Every review
+  Frenck left on Sensor Watch and Dash-Bored is answered in the mirrors' 2026.11.12 and
+  2026.11.13 releases, and the owner re-requested review on 2026-11-25. Dash-Bored's page
+  can still reload itself, but only when switched on in Configure; he asked for it to be
+  dropped, so it may come back. Don't request a review otherwise: HACS's template says
+  that gets a pull request closed.
 - **Jukebox's catalog submission: two likely objections, left until raised** (owner,
-  2026-11-25). **Waiting for a slot:** hacs/default allows an account five open pull
-  requests and the owner has five (2026-11-25), so it can be opened only when one of
-  them is merged or closed. Ready to open: branch `add-casa-mia-jukebox` pushed to
-  `gazoodle/default`, title "Adds new integration [gazoodle/casa-mia-jukebox]", the
-  usual checklist, linking the mirror's latest release and its HACS and hassfest jobs
-  (refresh them first). Frenck rejected both patterns
+  2026-11-25). Opened as hacs/default#14999 on 2026-11-26. Frenck rejected both patterns
   in Dash-Bored (#14577), so they are fixed when he raises them, not before:
   - `art.View` and `phone.Stream` are `requires_auth = False`, guarded by one key per
     start shared by every page, which ends up in history and logs; the art view also

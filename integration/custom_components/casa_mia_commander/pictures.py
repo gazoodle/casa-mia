@@ -42,8 +42,9 @@ PROXY = f"/api/{DOMAIN}"
 TOKEN_LIFE = 24 * 3600  # the card asks again well before, and after any refusal
 TOKENS = f"{DOMAIN}_picture_tokens"  # hass.data: token -> (expires, user's name)
 # Passed on, nothing else is: the card's size, its main camera as its own live video
-# (main=video), its name for the stream (sid, for /done) and its version (v).
-PASSED = ("w", "h", "dpr", "main", "sid", "v")
+# (main=video), its name for the stream (sid, for /done), its version (v), and the
+# names' sizes while it is tuned (tile, name: the app takes them only with debug on).
+PASSED = ("w", "h", "dpr", "main", "sid", "v", "tile", "name")
 
 
 def setup(hass: HomeAssistant) -> None:

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.14-b12
+
+- **Camera Commander card: sizes can be tuned on a device, and recorded.** With a
+  commander's debug on, the card's box of figures has two buttons. **EDIT** opens a small
+  dialog that can be dragged about, where the tile names, the main camera's name, the
+  controls and the motion dot are each set in px and shown at once, on this device only,
+  until the page is refreshed. Each place the card can be (in the page, with the whole
+  screen, the main camera full screen) is set on its own. **RECORD** writes the device's
+  figures, the sizes the rules gave and the sizes set by hand to the Casa Mia log, under
+  a reference shown in the box. The commander's Track motion is off while the dialog is
+  open, and the box says so. The box now also says where the card is, and it is shown
+  on the main camera's full screen too.
+- **Camera Commander: the debug box drawn into the picture is gone.** Live video covered
+  it, so it came and went; the card's box has the figures. The dimming and the corner
+  marks stay.
+
 ## 2026.11.14-b11
 
 - **Camera Commander card: the debug figures say the sizes in use.** With a commander's

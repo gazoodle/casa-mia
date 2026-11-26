@@ -303,7 +303,7 @@ def test_changing_picture_is_drawn_from_what_is_to_hand():
 def test_a_size_asked_for_grows_gap_and_text_by_the_screens_scale():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, asked_size, sized
 
-    assert asked_size({"w": "1280", "h": "800", "dpr": "1.5"}) == (1280, 800, 1.5)
+    assert asked_size({"w": "1280", "h": "800", "dpr": "1.5"}) == (1280, 800, 1.5, 0, 0)
     for nonsense in (
         {},
         {"w": "x", "h": "1"},
@@ -311,7 +311,7 @@ def test_a_size_asked_for_grows_gap_and_text_by_the_screens_scale():
         {"w": "9000", "h": "9000"},
     ):
         assert asked_size(nonsense) is None
-    cmd = sized({**EMPTY_COMMANDER, "gap": 4}, (1280, 800, 1.5))
+    cmd = sized({**EMPTY_COMMANDER, "gap": 4}, (1280, 800, 1.5, 0, 0))
     assert (cmd["width"], cmd["height"], cmd["gap"], cmd["scale"]) == (
         1280,
         800,
@@ -472,7 +472,8 @@ def test_debug_overlay_dims_and_marks_the_true_edges():
     # the main camera, white dimmed to ~20% (beside the figures' box, off the diagonals)
     r, g, b = rgb(pic, (20, 100))
     assert 30 < r < 80 and abs(r - g) < 10
-    assert max(rgb(pic, (200, 60))) < 60 or rgb(pic, (200, 60))[0] > 200  # the box
+    r, g, b = rgb(pic, (200, 60))  # no box of figures: those are the card's alone
+    assert 30 < r < 80 and abs(r - g) < 10
     off = Image.open(
         io.BytesIO(commander(cmd, {}, {}, "camera.a", white.getvalue()))
     ).convert("RGB")

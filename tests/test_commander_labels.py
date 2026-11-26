@@ -232,3 +232,21 @@ def test_the_part_to_keep_must_be_one_of_the_nine():
         }
     )
     assert any("part of the main camera to keep" in p for p in said)
+
+
+def test_a_card_being_tuned_gets_its_names_sizes_only_while_debug_is_on():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, asked_size, sized, view_key
+    from casa_mia.modules.compositor.labels import look
+
+    size = asked_size({"w": "1280", "h": "800", "dpr": "1", "tile": "14", "name": "19"})
+    assert size == (1280, 800, 1.0, 14, 19)
+    assert asked_size({"w": "1280", "h": "800", "tile": "200"}) is None  # out of bounds
+    # its own picture, so a tuned card changes no other device's
+    assert view_key("cams", size).endswith("~t14n19")
+    assert view_key("cams", (1280, 800, 1.0, 0, 0)) == "cams@1280x800x1"
+
+    on = {**EMPTY_COMMANDER, "debug": {**EMPTY_COMMANDER["debug"], "on": True}}
+    drawn = look(sized(on, (1280, 800, 2.0, 14, 19)), 80, 400)
+    assert (drawn.tile_px, drawn.main_px) == (28, 38)  # in the picture's own pixels
+    off = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 14, 19)), 80, 400)
+    assert (off.tile_px, off.main_px) == (22, 26)  # debug off: the rules'

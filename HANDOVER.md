@@ -122,16 +122,23 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     `card` attribute; `placed()` then gives the main place. Main place shorter sides:
     phone 206, small tablets 550 to 582, large tablet 628, Mac small 421, Mac big 1034
     to 1062. Per-device tweaks, if wanted, go on top of this (owner's plan).
-  - **Debug figures** (b11; owner, 2026-11-27: "get a grip", no more guessing): with a
-    commander's debug on, the card's box says the main place, the name's size and the
-    sum behind it, the controls' height, the smallest tile, its name's size with the raw
-    share before its limits, and the dot's size; the compositor's says the two names'
-    sizes as drawn. Read these before changing any size rule again.
+  - **Tuning on a device** (b12; owner, 2026-11-27: "get a grip", no more guessing).
+    With a commander's debug on, the card's box (`tune.ts` `debugBox`, also on the main
+    camera's full screen) gives where the card is, the places and each size with the sum
+    behind it. EDIT opens one draggable dialog (owner chose one with a picker over four)
+    whose px sizes are kept per commander and per where, in memory only. Tile and main
+    names drawn by the app travel as `&tile=&name=` on the picture's URL, so a tuned card
+    gets its own picture (`Size` is 5 long, `view_key` `~t..n..`); `sized` takes them
+    only with debug on. RECORD: ws `casa_mia_commander/tuning` (`live.py`, refused unless
+    debug is on) → POST `/commander/tuning` → one INFO line "commander tuning <ref>:
+    <json>" in the app's log. Read those lines and fit the rules from them; the picture's
+    own debug text is gone (live video hid it). Track motion is turned off while the
+    dialog is open and back on when it closes (or when debug goes off).
   - **The motion dot** (b11): `motion_share`, % of the smallest tile's shorter side, no
     least or most (`dotSize`); `motion_size` (px) is read as px x 1.2.
   - **The clock** is drawn only by the compositor, beside the main name, so only while
     the main camera is not live video. It has no settings of its own.
-  - **b10 and b11 not seen** on a device. The docs'
+  - **b10 to b12 not seen** on a device; the tuning dialog has not been seen at all. The docs'
     screenshots (`cameras-controls.webp`, `commander-controls.webp`,
     `commander-names-settings.webp`) show the old look and px sliders.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one
