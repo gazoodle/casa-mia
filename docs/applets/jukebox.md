@@ -22,7 +22,8 @@ integration makes, and Jukebox, the Sonos app and your dashboards all use that e
 - Sonos S2 speakers. An announcement is played as a clip over the music, which S1
   speakers can't do. An S1 speaker is refused with a result that says so; support for
   S1 is planned.
-- A text-to-speech voice in Home Assistant, if you want messages said. Sounds need none.
+- A text-to-speech engine in Home Assistant, such as Piper or Home Assistant Cloud, if
+  you want messages said. Sounds need none.
 
 ## Installing it
 
@@ -61,7 +62,12 @@ integration is installed too; without it, Jukebox leaves them out.
 1. Go to **Settings → Devices & services → Add integration** and choose **Jukebox**.
 2. Open its **Configure** dialog and fill in:
    - **Rooms:** the speakers an announcement goes to when the action names none.
-   - **Voice:** the text-to-speech voice that says a message.
+   - **Speech engine:** the text-to-speech engine that says a message. After this
+     dialog Jukebox asks for its **Language**, then one of that language's **Voices**.
+     Leave the voice empty to use the engine's own default, the one Assist uses too
+     (for Piper, set in the Piper app's configuration). Choosing one here gives
+     announcements a voice of their own whatever Assist uses. If the engine later loses
+     that voice, an announcement is refused with the reason, and nothing is played.
    - **Chime:** the sound played before each announcement. Jukebox's own chime is
      filled in. Put a web address or a media id there for a different one, or empty the
      box for none.
@@ -131,7 +137,16 @@ Tap a player to open it over the whole screen. There you have:
   playlist's songs before you play it. There, the people who may change playlists can
   drag a song to move it, take one out with the cross, and press **Add** to put
   something on the end: a song or an album from the music library, or a song, an
-  album or a playlist from Spotify. Each heading in Favourites folds its section away. A playlist's tile shows the covers of the first four albums in it.
+  album or a playlist from Spotify. Tapping a song there offers **Move to another
+  playlist…** and **Copy to another playlist…**, and then lists your other playlists,
+  with the one last chosen on that screen first, and a box to name a new playlist
+  instead. The song goes at the end of the playlist you choose; if that playlist has
+  the song already, you are asked first. A moved song is added there before it is taken out here, so if
+  something goes wrong in between it is in both playlists, and Jukebox says so. If
+  someone else has changed the playlist since you opened it and another song is in
+  that place, nothing is changed and you are told. Each heading in Favourites folds
+  its section away. A playlist's tile shows the covers of the first four albums in it,
+  and is drawn again after the playlist has been changed.
 <img src="../screenshots/jukebox-player.webp" alt="Jukebox's big player on a wide screen. On the left the cover of Starman by David Bowie, playing in the den and snug, with the place in the song, shuffle, previous, pause, next and repeat, and the volume. On the right the Queue tab: Add, Edit, Save and Clear, then eight songs, each with a handle to drag it by, its picture, title, artist and album, its length, and a cross to take it out" width="800">
 
 - **Edit…** (on a wide screen only, on the Queue tab and on a playlist's
@@ -141,7 +156,8 @@ Tap a player to open it over the whole screen. There you have:
     cover and its title, artist and album in full, which a row cuts short, and with
     its length, where it is from and its place in the list. Tap the cover to see it
     large. The buttons beside it move the song to the top or the end, take it out,
-    or (in the queue) play from it. **Let go** unchooses it.
+    or (in the queue) play from it. In a playlist, two more move or copy it to
+    another playlist. **Let go** unchooses it.
   - **Adding:** press **+** beside something on the right. With a song chosen you are
     asked whether it goes after that song, before it, or at the end; the song you
     added after is then the chosen one, so several things added one after another
@@ -352,9 +368,31 @@ it as a small round badge. The badge is how you tell a station from a queue.
 - Some stations send the artist and the title the wrong way round, and some send
   "Artist - Title" as the title. Jukebox tries both ways.
 - A show's name or an advert, with no artist, isn't looked up.
-- Each song is looked up once, when a speaker starts playing it. The title and artist
-  of every song your stations play are sent to Spotify as a search from your account.
+- Each song is looked up once, when a speaker starts playing it, with three searches
+  sent together. The title and artist of every song your stations play are sent to
+  Spotify as searches from your account.
 - Without the Spotify integration nothing changes.
+
+### Adding a song on the radio to a playlist
+
+The people who may change playlists (see [Setting it up](#setting-it-up)) have **Add
+to a playlist** under the song's title on the big player while a station plays. It
+lists the Sonos playlists, with the one last chosen on that screen first, and adds the
+song to the end of the one you choose.
+
+- What is added is the song found on Spotify, the one whose cover is shown, so the
+  speakers need Spotify added as a music service in the Sonos app to play it.
+- The song is the one that was playing when you pressed the button, even if the station
+  has moved on by the time you choose a playlist.
+- When there is no song to add, the button is dimmed, and pressing it says why: the
+  station sent no artist and title, Spotify has no song that matches, the song is still
+  being looked for, or the Spotify integration isn't set up.
+- When there is no song to add, pressing the button also looks for it on Spotify once
+  more. If Spotify didn't answer the first time, the song can be added once it has.
+- To start a new playlist with the song, type a name under the list and press **New
+  playlist**. A name that a playlist already has is refused.
+- If the playlist you choose has the song in it already, Jukebox says so and asks
+  before adding it a second time.
 
 ## With Love it or Loathe it
 

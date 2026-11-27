@@ -131,6 +131,9 @@ export function ResponsiveSettings({
             onChange={(edges_tall) => set({ edges_tall })}
           />
         )}
+        <Field label={R.card_place.label} help={R.card_place.help}>
+          <Switch on={r.card_place} label={R.card_place.label} onChange={(card_place) => set({ card_place })} />
+        </Field>
         {choice("cant_fit")}
       </section>
 

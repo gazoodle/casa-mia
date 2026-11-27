@@ -1,17 +1,23 @@
 // The Camera Commander card's CSS.
 import { css } from "lit";
 import { motionStyles } from "./motion.ts";
+import { detectStyles } from "./detect.ts";
 
-export const styles = [motionStyles, css`
+export const styles = [motionStyles, detectStyles, css`
     :host {
       display: block;
       height: 100%;
     }
     /* All of its width; its height from the rule (render). Width set: with only a height,
        aspect-ratio would make the width from it (wider than its space). */
+    /* No transition: Home Assistant's ha-card has "transition: all 0.3s ease-out", which
+       animated every height the rule sets. A card just made (the editor's preview makes a
+       new one at each change of an option) grew from nothing over 0.3 s, and asked for
+       its picture at a size on the way: a squashed commander, stretched as it grew. */
     ha-card {
       position: relative;
       width: 100%;
+      transition: none;
       overflow: hidden;
       background: none;
       border: none;
@@ -56,6 +62,35 @@ export const styles = [motionStyles, css`
       position: absolute;
       box-sizing: border-box;
     }
+    /* The last place, kept clear by the picture for a card of the dashboard's own
+       (place.ts). The card fills it, and what doesn't fit is cut off at its edge. A note
+       there (nothing set, or it can't be drawn) sits in the middle and wraps. */
+    .place {
+      position: absolute;
+      box-sizing: border-box;
+      display: flex;
+      overflow: hidden;
+    }
+    .place > * {
+      flex: 1;
+      min-width: 0;
+    }
+    /* Its cards, each in HA's hui-card: one its Visibility (or the card itself) hides has
+       the hidden attribute, and the first not hidden is the one shown. */
+    .place > hui-card {
+      display: block;
+    }
+    .place > hui-card[hidden],
+    .place > hui-card:not([hidden]) ~ hui-card {
+      display: none !important;
+    }
+    .place > .cm-pill {
+      flex: none;
+      max-width: 100%;
+      margin: auto;
+      white-space: normal;
+      text-align: center;
+    }
     /* The live main camera over the picture (its drawn main area shows until it plays). */
     .live {
       pointer-events: none;
@@ -69,33 +104,59 @@ export const styles = [motionStyles, css`
       align-content: flex-end;
       align-items: flex-end;
       gap: 4px 6px;
-      padding: 0 10px 10px 10px;
+      /* in step with the name: 10 px for a name of 20 */
+      padding: 0 calc(var(--cm-label-size) / 2) calc(var(--cm-label-size) / 2);
       pointer-events: none;
     }
-    /* Its font, size and colours are the commander's labels (labels.ts), set on the box. */
-    .caption span {
+    /* Its font, size and colours are the commander's labels (labels.ts), set on the box:
+       one size on every device (labels.ts: nameSize). A name too long for its place is cut
+       short with …, as the compositor's was (labels.py: fitted). The detection chips are
+       the style guide's (detect.ts), not these. */
+    .caption :is(.title, .lost, .clock) {
+      box-sizing: border-box;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       padding: 2px 6px;
       background: var(--cm-label-back);
       color: var(--cm-label-colour);
       font: var(--cm-label-size) / 1.2 var(--cm-label-font);
     }
+    /* The clock at the right of the foot, as the picture drew it: on the picture itself,
+       or on the bar. */
+    .caption .clock {
+      flex: none;
+      margin-left: auto;
+      background: none;
+    }
     /* A pill: rounded ends, as the style guide's pills have. */
-    .caption.pill span {
+    .caption.pill :is(.title, .lost) {
       padding: 0.1em 0.5em;
       border-radius: 999px;
     }
-    /* A bar: the name across the foot, anything said beside it standing above. */
+    /* A bar: the name and the clock across the foot, anything said beside it standing
+       above. */
     .caption.bar {
       padding: 0;
     }
-    .caption.bar .title {
-      order: 1;
+    .caption.bar .foot {
       flex: 1 0 100%;
-      box-sizing: border-box;
-      padding: 0.35em 10px;
+      display: flex;
+      min-width: 0;
+      background: var(--cm-label-back);
+    }
+    .caption.bar .foot > * {
+      padding: 0.35em 0.5em;
+      background: none;
+    }
+    /* Not grown, so LIVE follows the name; the clock keeps the right (margin-left: auto). */
+    .caption.bar .title {
+      flex: 0 1 auto;
+      min-width: 0;
     }
     .caption.bar .lost {
-      margin-left: 10px;
+      margin-left: 0.5em;
     }
     .caption.none .title {
       display: none;
@@ -105,6 +166,43 @@ export const styles = [motionStyles, css`
       background: rgb(200 30 30 / 0.9);
       color: #fff;
       font-weight: 600;
+    }
+    /* LIVE and the channel's bars (live.ts: caption), side by side in the row or in the
+       bar (not .live: the video's class). In the bar it adds no height of its own. */
+    .caption .playing {
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: 4px;
+    }
+    .caption.bar .foot > .playing {
+      padding-block: 0;
+    }
+    /* The caption's pills and chips (LIVE, the bars, what live is doing, the detections,
+       the closer look's) have the style guide's size and font, but are as tall as the name
+       as a pill (its line, 1.2, and 0.1 em above and below: .caption.pill .title), and in
+       the controls' colours over the picture (full.ts): white on black at the camera's
+       background strength (--cm-chip-alpha, set by the caption from its controls_at), or
+       on their own colour at it (owner, 2026-11-27). Specific enough to beat pills.css,
+       which the card loads after these. */
+    .caption :is(.cm-pill, .cm-chip) {
+      display: inline-flex;
+      align-items: center;
+      box-sizing: border-box;
+      height: calc(var(--cm-label-size) * 1.4);
+      padding-block: 0;
+      box-shadow: none;
+      background: rgb(0 0 0 / var(--cm-chip-alpha));
+      color: #fff;
+    }
+    .caption :is(.cm-pill, .cm-chip):is(.cm-on, .cm-good, .cm-accent, .cm-warn, .cm-bad, .cm-bark):not(.cm-muted) {
+      background: color-mix(in srgb, var(--tone, var(--accent)) var(--cm-chip-alpha), transparent);
+    }
+    /* What the live video is doing (common.ts: liveStatus), LIVE and the bars: taking the
+       pointer for their tooltips, as the detection chips do. */
+    .caption :is(.live-status, .playing > *) {
+      pointer-events: auto;
+      cursor: default;
     }
     /* The picture failing (common.ts: pictureDown): said over the card, top left, wrapping. */
     .down {
@@ -166,7 +264,9 @@ export const styles = [motionStyles, css`
       background: #000;
       font: 13px/1.4 ui-monospace, monospace;
       text-align: center;
-      white-space: nowrap;
+      /* as wide as its longest line, or the card: its lines wrap on a phone */
+      width: max-content;
+      max-width: calc(100% - 20px);
       pointer-events: none;
     }
     .note {

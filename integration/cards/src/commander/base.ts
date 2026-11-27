@@ -1,8 +1,9 @@
 // The Camera Commander card's first layer (see index.ts for how it works): the picture
 // stream, its size and token, and whether the card is in sight.
 import { LitElement } from "lit";
-import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, watchRoom } from "../ha.ts";
-import { Motion } from "./motion.ts";
+import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, screenRatio, watchRoom } from "../ha.ts";
+import { Motion, MOTION } from "./motion.ts";
+import { Detect, type Detection } from "./detect.ts";
 import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, framesAddress, pictureToken, pictureDown, NO_FRAME_MS, throughHa, givesUpDirect } from "./common.ts";
 
 /** Learned once for the page: its pictures through Home Assistant come as frames over a
@@ -52,6 +53,7 @@ export class CommanderBase extends LitElement {
   protected awaited = ""; // the picture whose first frame is awaited, and since when
   protected awaitedSince = 0;
   protected motion = new Motion(); // the dots on tiles seeing motion
+  protected detect = new Detect(); // the chips for what the main camera reports
   protected run = ""; // the app's run the stream comes from (Card.run)
 
   protected debugOn(): boolean {
@@ -69,7 +71,7 @@ export class CommanderBase extends LitElement {
     this._box = [Math.round(width * 10) / 10, Math.round(height * 10) / 10];
     this.measure();
     if (this.debugOn()) this.requestUpdate();
-    const size = askFor(width, height, ratioFor(window.devicePixelRatio || 1, this.viaHa(), this._config?.away_sharpness));
+    const size = askFor(width, height, ratioFor(screenRatio(), this.viaHa(), this._config?.away_sharpness));
     clearTimeout(this.settle);
     if (String(size) === String(this._size)) return;
     if (!this._size) this._size = size; // the first at once; then each once it holds
@@ -102,6 +104,7 @@ export class CommanderBase extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.motion.stop();
+    this.detect.stop();
     document.removeEventListener("visibilitychange", this.visibility);
     window.removeEventListener("location-changed", this.visibility);
     window.removeEventListener("popstate", this.visibility);
@@ -231,9 +234,10 @@ export class CommanderBase extends LitElement {
     return this.preview || inDialog(this);
   }
   /** One still picture at the card's size once it settles, while editing (single pictures,
-   * not a stream for each size the editor tries); "" while its token is being asked. */
+   * not a stream for each size the editor tries), without the main camera's name and clock
+   * (the card draws them); "" while its token is being asked. */
   protected stillUrl(card: Card, [W, H, scale]: Size): string {
-    const still = `${card.picture.replace(".mjpg", ".jpg")}?w=${W}&h=${H}&dpr=${scale}`;
+    const still = `${card.picture.replace(".mjpg", ".jpg")}?w=${W}&h=${H}&dpr=${scale}&main=card`;
     if (!this.viaHa()) return still;
     if (!this._token) {
       this.ask();
@@ -285,9 +289,11 @@ export class CommanderBase extends LitElement {
     return throughHa(this._config?.route ?? "auto", atHome(location), directOut);
   }
 
-  /** The picture's address, at the size asked for; "" while its token is being asked. */
-  protected pictureUrl(card: Card, [W, H, scale]: Size): string {
-    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}&v=${encodeURIComponent(VERSION)}`;
+  /** The picture's address, at the size asked for; "" while its token is being asked.
+   * `tuned`: the names' sizes set by hand while the card is tuned (tune.ts), as
+   * &tile=&name= (the app takes them only while the commander's debug is on). */
+  protected pictureUrl(card: Card, [W, H, scale]: Size, tuned = ""): string {
+    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}&v=${encodeURIComponent(VERSION)}${tuned}`;
     if (!this.viaHa()) return `${card.picture}?${size}`;
     if (!this._token) {
       this.ask();
@@ -339,7 +345,7 @@ export class CommanderBase extends LitElement {
       console.warn("casa-mia: the picture's direct address gave nothing from this page; it comes through Home Assistant until the app restarts");
       directOut = true;
       // Asked for again at Home Assistant's sharpness, as the resize would have (resize).
-      this._size = askFor(this._box[0], this._box[1], ratioFor(window.devicePixelRatio || 1, true, this._config?.away_sharpness));
+      this._size = askFor(this._box[0], this._box[1], ratioFor(screenRatio(), true, this._config?.away_sharpness));
       this.requestUpdate();
       return;
     }
@@ -369,6 +375,26 @@ export class CommanderBase extends LitElement {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
     const card = st?.attributes.card as Card | undefined;
     return { card, main: card ? this.main(card, st!.state) : "" };
+  }
+
+  /** A camera's event entities, as the Main camera select lists them ({entity: its key}). */
+  protected eventsOf(camera: string): Record<string, string> {
+    const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
+    return (st?.attributes.detections as Record<string, Record<string, string>> | undefined)?.[camera] ?? {};
+  }
+
+  /** When those that lost their time in a restart last fired, as the select gives it
+   * ({entity: ISO time}; the integration's fired.py). */
+  protected firedOf(): Record<string, string> {
+    const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
+    return (st?.attributes.fired as Record<string, string> | undefined) ?? {};
+  }
+
+  /** What the main camera's camera has just reported (detect.ts), from its event entities,
+   * for as long as a motion dot lingers. */
+  protected detections(): Detection[] {
+    const linger = { ...MOTION, ...this._config }.motion_linger;
+    return this.detect.seen(this.hass!, this.eventsOf(this.now().main), this.firedOf(), linger, () => this.requestUpdate());
   }
 
   protected main(card: Card, option?: string): string {

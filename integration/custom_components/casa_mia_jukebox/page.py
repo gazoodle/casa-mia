@@ -40,6 +40,7 @@ def setup(hass: HomeAssistant, version: str | None) -> None:
     hass.data[VERSION] = version
     hass.data[FEED] = feed = Feed(hass)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, feed.parties.stop_all)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, feed.undo.stop_all)
     hass.http.register_view(art.View(feed))
     phone.setup(hass, feed)
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={version}")
@@ -139,6 +140,10 @@ def _ws_house(
         vol.Optional("name"): vol.All(str, vol.Length(max=60)),
         vol.Optional("by"): vol.In(tidy.BY),
         vol.Optional("playlist"): str,
+        # The playlist a song of `playlist` is moved to.
+        vol.Optional("into"): str,
+        # Off: a song the playlist holds already isn't added, and the page is told.
+        vol.Optional("again"): bool,
     }
 )
 @websocket_api.async_response

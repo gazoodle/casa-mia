@@ -5,10 +5,12 @@
 // dashboard, and it follows the house by itself. The Now playing card shows the same
 // player in place (`inline`). A phone gets the rooms and favourites as
 // a sheet over the player; a wall tablet gets them beside it.
-import { LitElement, css, html, nothing } from "lit";
+import { LitElement, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
+import { STYLES } from "./big/styles.ts";
 import { EDITOR, edit } from "./editor.ts";
-import { type Favourite, type Group, type House, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
+import { PICK, type Pick, type Sure, type Told, asking, chooser, create, put, sent } from "./pick.ts";
+import { type Favourite, type Group, type House, type Song, PHONE, ask, average, clock, colours, curates, favourites, follow, groupOf, latest, loud, loved, mmss, muted, names, playing, position, queue, reason, shut } from "./common.ts";
 import { Busy, Clock, Split, grips, icon, mosaic, shared, sleeve } from "./parts.ts";
 
 export const BIG = "casa-mia-jukebox-big";
@@ -20,6 +22,10 @@ export const TABS: [Tab, string][] = [
   ["search", "Search"],
 ];
 const REPEAT = { off: "all", all: "one", one: "off" } as const;
+// How long this player offers to put a replaced or cleared queue back, in ms. Jukebox
+// keeps its copy for longer (FOR in undo.py), and the offer shows only while Jukebox
+// says it has one (`group.undo`).
+const UNDO = 15_000;
 /** Where this device keeps which folders of favourites are closed. A convenience only:
  * a browser that won't keep it (a private window) shows them all open. */
 const FOLDED = "casa-mia-jukebox-folded";
@@ -39,7 +45,7 @@ export function open(hass: Hass, room: string, tab?: Tab): void {
 }
 
 export class Big extends LitElement {
-  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _vol: { state: true } };
+  static properties = { room: {}, tab: {}, inline: { type: Boolean, reflect: true }, _house: { state: true }, _why: { state: true }, _favourites: { state: true }, _menu: { state: true }, _confirm: { state: true }, _naming: { state: true }, _partying: { state: true }, _queued: { state: true }, _stamp: { state: true }, _viewing: { state: true }, _adding: { state: true }, _folded: { state: true }, _toast: { state: true }, _undo: { state: true }, _vol: { state: true }, _putting: { state: true }, _tapped: { state: true } };
   hass!: Hass; // for its connection; set once, by open()
   /** A room of the group shown: the player follows the room if its group changes. */
   room = "";
@@ -64,10 +70,18 @@ export class Big extends LitElement {
   /** The folders of favourites that are closed up, remembered on this device. */
   _folded: string[] = remembered();
   _menu?: Favourite;
-  /** Something that can't be undone, asked about again in large letters. */
-  _confirm?: { warn: string; text: string; keep: string; go: string; run: () => void };
+  /** A question to answer before something is done, in the tone of what is at stake
+   * (`Sure`, pick.ts). */
+  _confirm?: Sure;
   /** The sheet that asks what to call the queue as a playlist. */
   _naming = false;
+  /** The sheet that asks which playlist a song goes into (pick.ts). */
+  _putting?: Pick;
+  /** A song of the playlist looked at, tapped: asked whether it is moved or copied. */
+  _tapped?: { at: number; song: Song };
+  /** A playlist was changed since the favourites were fetched: their tiles show its
+   * first songs, so they are fetched again once its songs aren't being looked at. */
+  private _dirty = false;
   /** Drawn in place, in a card, and so with nothing to close. */
   inline = false;
   /** How many songs the speaker's queue holds, once the Queue tab has asked it. Home
@@ -81,6 +95,12 @@ export class Big extends LitElement {
   /** The newest thing put back that has been said, so each is said once. */
   private _said?: string;
   _toast = "";
+  /** What this player did to the queue that can be put back, while it offers to (UNDO).
+   * The offer shows only while Jukebox says it keeps the queue (`group.undo`): it can't
+   * outlive the copy, another message doesn't take it away, and it is still there
+   * after a put-back that failed. */
+  _undo?: string;
+  private _offered?: ReturnType<typeof setTimeout>;
   private _off?: () => void;
   private _fade?: ReturnType<typeof setTimeout>;
   private _sliders = new Map<string, (value: number) => void>();
@@ -112,8 +132,12 @@ export class Big extends LitElement {
       if (last && this._said !== undefined && last.at !== this._said) this._say(last.failed ? last.what : `Put back: ${last.what.replace(/^Someone/, "someone")}`);
       this._said = last?.at ?? "";
     }
-    // Wanted for their own tab, and to list the playlists a queue can be saved over.
-    if ((changed.has("tab") || changed.has("_favourites") || changed.has("_naming")) && (this.tab === "favourites" || this._naming) && this._favourites === undefined) {
+    // Not while its songs are shown: they are changed one at a time, and each change
+    // would fetch every tile again.
+    if (this._dirty && !this._viewing) [this._dirty, this._favourites] = [false, undefined];
+    // Wanted for their own tab, to list the playlists a queue can be saved over, and to
+    // choose one to put a song in.
+    if ((changed.has("tab") || changed.has("_favourites") || changed.has("_naming") || changed.has("_putting")) && (this.tab === "favourites" || this._naming || this._putting) && this._favourites === undefined) {
       favourites(this.hass, this.room).then(
         (found) => (this._favourites = found),
         (err) => (this._favourites = reason(err)),
@@ -137,12 +161,41 @@ export class Big extends LitElement {
     this._fade = setTimeout(() => (this._toast = ""), 3500);
   }
 
+  /** The queue was replaced or cleared, or that was tried: offer it back (`_undo`), for
+   * long enough to read `text` and change one's mind. */
+  private _offer(text: string) {
+    this._undo = text;
+    clearTimeout(this._offered);
+    this._offered = setTimeout(() => (this._undo = undefined), UNDO);
+  }
+
+  private _putBack = async () => {
+    const offered = this._undo ?? "";
+    if (await this._do("queue_back")) {
+      this._undo = undefined;
+      this._say("The queue is back as it was");
+    } else {
+      // It couldn't be, and why has been said: offered again, while it is still kept.
+      this._offer(offered);
+    }
+  };
+
   /** Ask Jukebox for something, and say so on the player if it can't be done. The button
    * that stands for `key` shows that it is waiting until the answer comes. */
   private _do(action: string, data: object = {}, key = action): Promise<boolean> {
+    return this._told(action, data, key).then((told) => !!told);
+  }
+
+  /** As `_do`, for what Jukebox answered: `{}` when it had nothing to say, and none when
+   * it couldn't be done. */
+  private _told(action: string, data: object = {}, key = action): Promise<Told> {
     return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
-      () => (/^(queue_|play_media|stop)/.test(action) && this._stamp++, true),
-      (err) => (this._say(reason(err)), false),
+      (told) => {
+        if (/^(queue_|play_media|stop)/.test(action)) this._stamp++;
+        if (/^playlist_/.test(action)) this._dirty = true;
+        return (told ?? {}) as Told;
+      },
+      (err) => (this._say(reason(err)), undefined),
     );
   }
 
@@ -179,9 +232,12 @@ export class Big extends LitElement {
 
   private async _play(favourite: Favourite, enqueue?: "next" | "add" | "replace") {
     this._menu = this._confirm = undefined;
-    const done = await this._do("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) }, `fav:${favourite.media_content_id}`);
-    const said = { next: "Playing next", add: "Added to the end" } as Record<string, string>;
-    if (!done) return;
+    const told = await this._told("play_media", { media_content_id: favourite.media_content_id, media_content_type: favourite.media_content_type, ...(enqueue ? { enqueue } : {}) }, `fav:${favourite.media_content_id}`);
+    const said = { next: "Playing next", add: "Added to the end", replace: "Playing in place of the queue" } as Record<string, string>;
+    // Offered back whether it worked or not: a queue that couldn't be put back after a
+    // failure is still kept (undo.py).
+    if (enqueue === "replace") this._offer(told ? `Playing in place of the queue: ${favourite.title}` : "The queue is kept, and can be put back");
+    if (!told) return;
     this._say(`${said[enqueue ?? ""] ?? "Playing"}: ${favourite.title}`);
     // Search was opened from the queue, to add to it: back to the queue, to carry on.
     if (this._adding === "queue") [this._adding, this.tab] = [undefined, "queue"];
@@ -258,6 +314,9 @@ export class Big extends LitElement {
         <!-- Love it or Loathe it's own thumbs, where it is installed: its bundle defines the
              element, and it shows nothing where this login can't rate. -->
         ${group.id === PHONE ? nothing : html`<casa-mia-thumbs quiet .hass=${this.hass} .entityId=${group.id}></casa-mia-thumbs>`}
+        ${group.kind === "radio" && curates(house) && group.id !== PHONE
+          ? html`<button class="pill keep ${group.found ? "" : "off"} ${this._busy.on("keep")}" @click=${() => this._keep(group)}>${icon("plus")}Add to a playlist</button>`
+          : nothing}
         ${love ? html`<p class="love ${love.over ? "over" : ""}"><strong>Love it or Loathe it${love.over ? `, at ${clock(group.love!.at)}` : ""}:</strong> ${love.text}</p>` : nothing}
       </div>
       ${at !== null && group.duration
@@ -304,6 +363,15 @@ export class Big extends LitElement {
     if (await this._do("party", { on }, "party")) this._say(on ? "Party on. The queue, the rooms and the volume can only be changed from Jukebox." : "Party off. Other apps can change things again.");
   }
 
+  /** What is said at the foot of the player, and with it the queue offered back. */
+  private _toasted(group: Group) {
+    const back = this._undo !== undefined && !!group.undo;
+    const text = this._toast || (back ? this._undo : "");
+    return html`<div class="toast ${text ? "on" : ""} ${back ? "back" : ""}" role="status">
+      <span>${text}</span>${back ? html`<button class=${this._busy.on("queue_back")} @click=${this._putBack}>Put the queue back</button>` : nothing}
+    </div>`;
+  }
+
   private _songs(group: Group) {
     const songs = this._queued ?? (group.kind === "queue" ? group.queue_size : null);
     return songs ? (songs === 1 ? "The one song in the queue" : `The ${songs} songs in the queue`) : "Whatever is in the queue";
@@ -312,11 +380,14 @@ export class Big extends LitElement {
   /** End the music here and give the rooms back to the quiet ones, after asking. */
   private _stop(house: House, group: Group) {
     const run = async () => (await this._do("stop", {}, "stop")) && !this.inline && this.remove();
-    this._confirm = { warn: "This stops the music here", text: `${this._songs(group)} will go, and ${names(house, group)} will be listed with the quiet rooms again.`, keep: "Keep it", go: "Stop it", run };
+    this._confirm = { warn: "This stops the music here", text: `${this._songs(group)} will go, and ${names(house, group)} will be listed with the quiet rooms again.`, keep: "Keep it", go: "Stop it", run, tone: "caution" };
   }
 
-  private _clear(group: Group) {
-    this._confirm = { warn: "This clears the whole queue", text: `${this._songs(group)} will go, and the music stops.`, keep: "Keep the queue", go: "Clear it", run: () => this._do("queue_clear") };
+  /** Clear the queue without asking: it is offered back. */
+  private async _clear() {
+    const done = await this._do("queue_clear");
+    this._offer(done ? "Cleared the queue" : "The queue is kept, and can be put back");
+    if (done) this._say("Cleared the queue");
   }
 
   private _save = async (e: SubmitEvent) => {
@@ -365,8 +436,57 @@ export class Big extends LitElement {
   /** The editor of a wide screen, for the queue or the playlist looked at. What it
    * changed is asked for again when it is closed. */
   private _edit(playlist?: Favourite) {
-    edit(this.hass, this.room, playlist, () => this._stamp++);
+    edit(this.hass, this.room, playlist, () => ((this._dirty ||= !!playlist), this._stamp++));
   }
+
+  /** The station's song into a playlist: the song as it was found when the button was
+   * pressed, so that one ending meanwhile isn't taken for the next. */
+  private async _keep(group: Group) {
+    const found = group.found;
+    if (!found) {
+      // Why not, and another look for it: a time Spotify didn't answer is otherwise kept.
+      const why = `This song can't be added to a playlist. ${group.unfound ?? "It hasn't been found on Spotify"}.`;
+      const told = await this._told("song_find", {}, "keep");
+      if (told) this._say(told.asking ? `${why} Looking for it again.` : why);
+      return;
+    }
+    const pick = (playlist: Favourite) => {
+      this._putting = undefined;
+      const data = { playlist: playlist.media_content_id, media_content_id: found.uri, name: found.title.slice(0, 60) };
+      const already = { text: `“${found.title}” is in ${playlist.title} already.`, go: "Add it again" };
+      put((d) => this._told("playlist_add", d, "keep"), data, already, (sure) => (this._confirm = sure), () => this._say(`Added to ${playlist.title}: ${found.title}`));
+    };
+    this._putting = { title: "Add to a playlist", text: `“${found.title}” by ${found.by}, from Spotify, goes at the end of the playlist you choose.`, pick };
+  }
+
+  /** A song of the playlist looked at, to the end of another playlist, and out of this
+   * one unless it is copied. */
+  private _send(from: Favourite, at: number, song: Song, copy: boolean) {
+    this._tapped = undefined;
+    const asked = sent(from, at, song, copy);
+    const pick = (playlist: Favourite) => {
+      this._putting = undefined;
+      const done = () => {
+        this._say(asked.said(playlist));
+        this._stamp++; // the songs of this one are asked for again
+      };
+      put((d) => this._told(asked.action, d, `row:${at}`), asked.data(playlist), asked.already(playlist), (sure) => (this._confirm = sure), done);
+    };
+    this._putting = { ...asked.pick, pick };
+  }
+
+  /** A new playlist, named in the chooser: made, and then chosen as one listed would be. */
+  private _new = async (name: string) => {
+    const asked = this._putting;
+    if (!asked) return;
+    try {
+      const made = await this._busy.during("new", create(this.hass, this.room, name));
+      this._dirty = true; // it is among the favourites from now on
+      asked.pick(made);
+    } catch (err) {
+      this._say(reason(err));
+    }
+  };
 
   private _delete(playlist: Favourite) {
     const run = async () => {
@@ -403,7 +523,7 @@ export class Big extends LitElement {
         <button @click=${() => this._add("queue")}>${icon("plus")}Add</button>
         <button class="wide" @click=${() => this._edit()} aria-label="Edit the queue side by side with Search">${icon("drag")}Edit…</button>
         ${curates(this._house) && group.id !== PHONE ? html`<button class=${this._busy.on("queue_save")} ?disabled=${none} @click=${() => (this._naming = true)} aria-label="Save the queue as a playlist">${icon("save")}Save…</button>` : nothing}
-        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear(group)} aria-label="Clear the queue">${icon("trash")}Clear…</button>
+        <button class=${this._busy.on("queue_clear")} ?disabled=${none} @click=${() => this._clear()} aria-label="Clear the queue">${icon("trash")}Clear</button>
       </div>
       <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .do=${this._ask} .stamp=${this._stamp} @jb-queued=${(e: CustomEvent) => (this._queued = e.detail)}></casa-mia-jukebox-queue></div>`;
   }
@@ -440,13 +560,13 @@ export class Big extends LitElement {
       // A playlist's songs, to see what is in it before it is played. The people who
       // may change playlists can move, take out and add; anyone else only looks.
       const host = curates(this._house);
-      return html`${this._head(viewing.title, host ? "Drag a song by its handle to move it, or take it out with the cross." : "The songs in this playlist.")}
+      return html`${this._head(viewing.title, host ? "Drag a song by its handle to move it, or take it out with the cross. Tap one to move or copy it to another playlist." : "The songs in this playlist.")}
         <div class="tools">
           <button @click=${() => (this._viewing = undefined)}>${icon("back")}Favourites</button>
           <button @click=${() => (this._menu = viewing)}>${icon("play")}Play…</button>
           ${host ? html`<button @click=${() => this._add("playlist")}>${icon("plus")}Add</button><button class="wide" @click=${() => this._edit(viewing)} aria-label="Edit the playlist side by side with Search">${icon("drag")}Edit…</button>` : nothing}
         </div>
-        <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp}></casa-mia-jukebox-queue></div>`;
+        <div class="scroll"><casa-mia-jukebox-queue .hass=${this.hass} .group=${group} .playlist=${viewing.media_content_id} .locked=${!host} .do=${this._ask} .stamp=${this._stamp} @jb-song=${(e: CustomEvent) => (this._tapped = e.detail)}></casa-mia-jukebox-queue></div>`;
     }
     return html`${this._head("Favourites", "The stations, playlists and songs saved in Sonos")}
       <div class="scroll">
@@ -470,16 +590,26 @@ export class Big extends LitElement {
   private _sheets(house: House, group: Group) {
     const { _menu: menu, _confirm: sure } = this;
     if (sure)
-      return html`<div class="veil">
-        <div class="sheet" role="alertdialog" aria-label=${sure.warn}>
-          <p class="warn">${sure.warn}</p>
-          <p>${sure.text}</p>
+      return html`<div class="veil">${asking(sure, () => (this._confirm = undefined))}</div>`;
+    if (this._putting) {
+      const shut = () => (this._putting = undefined);
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${chooser(this._favourites, this._putting, shut, this._new)}</div>`;
+    }
+    const [tapped, viewing] = [this._tapped, this._viewing];
+    if (tapped && viewing) {
+      const shut = () => (this._tapped = undefined);
+      return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>
+        <div class="sheet" role="dialog" aria-label=${tapped.song.title || "A song"}>
+          <h4>${tapped.song.title || "A song with no title"}</h4>
+          <p>${[tapped.song.artist, tapped.song.album].filter(Boolean).join(" · ")}</p>
           <div class="acts">
-            <button class="main" @click=${() => (this._confirm = undefined)}>${sure.keep}</button>
-            <button class="danger" @click=${() => ((this._confirm = undefined), sure.run())}>${sure.go}</button>
+            <button class="main" @click=${() => this._send(viewing, tapped.at, tapped.song, false)}>Move to another playlist…</button>
+            <button @click=${() => this._send(viewing, tapped.at, tapped.song, true)}>Copy to another playlist…</button>
+            <button class="sep" @click=${shut}>Cancel</button>
           </div>
         </div>
       </div>`;
+    }
     if (this._partying && group.party) {
       const party = group.party;
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._partying = false)}>
@@ -496,7 +626,7 @@ export class Big extends LitElement {
                 </button>
                 <div class="acts">
                   <button class="main" @click=${() => (this._partying = false)}>Keep the party going</button>
-                  <button class="danger" @click=${() => this._party(false)}>End the party</button>
+                  <button @click=${() => this._party(false)}>End the party</button>
                 </div>`
             : html`<p>${shut(house, group) ? "The music can't be changed from this screen." : "This screen has been let to change the music."} Only the people who run the party can end it.</p>
                 <div class="acts"><button class="main" @click=${() => (this._partying = false)}>Close</button></div>`}
@@ -517,7 +647,6 @@ export class Big extends LitElement {
         </form>
       </div>`;
     if (menu) {
-      const replace = { warn: "This replaces the whole queue", text: `${this._songs(group)} will go, and "${menu.title}" will start now.`, keep: "Keep the queue", go: "Replace it", run: () => void this._play(menu, "replace") };
       return html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && (this._menu = undefined)}>
         <div class="sheet" role="dialog" aria-label=${menu.title}>
           <h4>${menu.title}</h4>
@@ -527,7 +656,7 @@ export class Big extends LitElement {
               ? html`<button class="main" @click=${() => this._play(menu)}>Play now</button>`
               : html`<button class="main" @click=${() => this._play(menu, "next")}>Play next</button>
                   <button @click=${() => this._play(menu, "add")}>Add to the end of the queue</button>
-                  <button class="danger sep" @click=${() => ([this._menu, this._confirm] = [undefined, replace])}>Play now and replace the queue…</button>`}
+                  <button class="sep" @click=${() => this._play(menu, "replace")}>Play now in place of the queue</button>`}
             ${menu.playlist && this._viewing !== menu ? html`<button class="sep" @click=${() => ([this._menu, this._viewing, this.tab] = [undefined, menu, "favourites"])}>See what is in it</button>` : nothing}
             ${menu.playlist && curates(house) ? html`<button class="danger sep" @click=${() => this._delete(menu)}>Delete this playlist…</button>` : nothing}
           </div>
@@ -558,154 +687,9 @@ export class Big extends LitElement {
       ${this._now(house, group)}
       <div class="side ${this.tab ? "up" : ""}">${this._split.grip(width)}${this._tabs(group)}${shown === "queue" ? this._queue(group) : shown === "rooms" ? this._rooms(house, group) : shown === "search" ? this._search(group) : this._favouritesPanel(group)}</div>
       ${this._sheets(house, group)}
-      <div class="toast ${this._toast ? "on" : ""}" role="status">${this._toast}</div>
+      ${this._toasted(group)}
     </div>`;
   }
 
-  static styles = [
-    shared,
-    grips,
-    css`
-      /* The handle that sets the side panel's width: only where the panel is beside the cover. */
-      .side > .grip { display: none; position: absolute; left: -7px; top: 0; bottom: 0; z-index: 3; }
-      /* Its own width decides its layout, not the screen's: it may be over the whole screen,
-         or in a card of any size. */
-      :host { position: fixed; inset: 0; z-index: 1000; container-type: inline-size; font: 14px/1.4 var(--ha-font-family-body, Roboto, system-ui, sans-serif); }
-      .big { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); overflow: clip; background: #111; color: #fff; --muted: rgb(255 255 255 / 66%); --line: rgb(255 255 255 / 14%); --jb-fill: #fff; --jb-glow: #fff; --jb-track: rgb(255 255 255 / 22%); animation: up 0.28s ease-out; }
-      /* Clipped, not hidden: a hidden box can still be scrolled (a tap brings its target into
-         view), and the light behind the player overflows it on purpose. */
-      .big::before { content: ""; position: absolute; inset: -60px; background: var(--pic, conic-gradient(from 200deg at 60% 40%, var(--a), var(--b), var(--a))) center / cover; filter: blur(50px) saturate(1.3); }
-      .big::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(0 0 0 / 30%), rgb(0 0 0 / 72%)); }
-      /* The one column is no wider than the screen. Left to itself it grows to fit a long
-         title, which may not wrap, and the buttons go off the right edge with it. */
-      .big > * { position: relative; z-index: 1; min-width: 0; min-height: 0; }
-      @keyframes up { from { transform: translateY(40px); opacity: 0; } }
-      .now { display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 22px max(14px, env(safe-area-inset-bottom)); }
-      .bar { display: flex; align-items: center; gap: 8px; }
-      .where { flex: 1; min-width: 0; text-align: center; }
-      .pill { display: flex; align-items: center; gap: 5px; flex: none; padding: 8px 12px 8px 9px; border-radius: 999px; background: rgb(255 255 255 / 14%); font-size: 12px; font-weight: 700; }
-      .pill svg { width: 16px; height: 16px; }
-      .pill.on { background: #fff; color: #111; }
-      .where small { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
-      .where b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      /* The artwork is a square that fits the space left for it, whichever way that space is
-         the narrower, and the picture is shown whole inside it, never cropped. */
-      .cover { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; }
-      /* No bigger than Spotify's covers are, so one of those is never stretched. */
-      .cover .art { width: min(100cqw, 100cqh, 640px); border-radius: 18px; box-shadow: 0 20px 50px rgb(0 0 0 / 50%); }
-      .cover .art:has(img) { overflow: visible; background: none; box-shadow: none; }
-      .cover .art:has(img) i { display: none; }
-      .cover .art img { object-fit: contain; border-radius: 18px; filter: drop-shadow(0 16px 30px rgb(0 0 0 / 50%)); }
-      .cover .art img.badge { object-fit: cover; border-radius: 50%; filter: none; }
-      .title { text-align: center; }
-      /* Two lines at most: enough to tell one version of a song from another, and no title
-         can squeeze the artwork. */
-      .title b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 21px; line-height: 1.2; overflow-wrap: anywhere; text-wrap: balance; }
-      .title span { color: var(--muted); }
-      .title casa-mia-thumbs { display: flex; justify-content: center; --secondary-text-color: rgb(255 255 255 / 66%); --secondary-background-color: rgb(255 255 255 / 12%); }
-      .love { margin: 6px 0 0; font-size: 12.5px; line-height: 1.35; color: #fff; overflow-wrap: anywhere; }
-      .love.over { color: var(--muted); }
-      .barred { margin: 0; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / 12%); font-size: 13px; text-align: center; }
-      .switch { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / 8%); text-align: left; }
-      .switch span { flex: 1; min-width: 0; }
-      .switch small { display: block; color: rgb(255 255 255 / 70%); }
-      .switch i { position: relative; flex: none; width: 44px; height: 26px; border-radius: 999px; background: rgb(255 255 255 / 25%); transition: background 0.15s; }
-      .switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: translate 0.15s; }
-      .switch[aria-checked="true"] i { background: #3fae5a; }
-      .switch[aria-checked="true"] i::after { translate: 18px; }
-      .seek { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-      .live { text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
-      .tp { display: flex; align-items: center; justify-content: center; gap: 10px; }
-      .tp .ib svg { width: 30px; height: 30px; }
-      .tp .ib.sm { position: relative; color: var(--muted); }
-      .tp .ib.sm svg { width: 22px; height: 22px; }
-      .tp .ib.sm.on { color: #fff; background: rgb(255 255 255 / 22%); }
-      .tp sup { position: absolute; top: 4px; right: 6px; font-size: 10px; font-weight: 800; }
-      .tp .play { width: 66px; height: 66px; background: #fff; color: #111; }
-      .tp .play:hover:not(:disabled) { background: #fff; transform: scale(1.05); }
-      .tp .play svg { width: 36px; height: 36px; }
-      .gvol { display: flex; align-items: center; gap: 12px; color: var(--muted); }
-      .gvol svg { width: 20px; height: 20px; flex: none; }
-      .gvol output { flex: none; min-width: 2.8em; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
-      .gvol .ib:first-child { margin: 0 -11px; }
-      .gvol .own { flex: 1; font-size: 13px; }
-      .room .mute { justify-self: center; color: var(--muted); }
-      .room .mute svg { width: 20px; height: 20px; }
-      .gvol casa-mia-jukebox-slider, .seek casa-mia-jukebox-slider { color: #fff; }
-      .tabs { display: flex; gap: 6px; }
-      .tabs button { flex: 1; display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; font-size: 11px; font-weight: 700; color: var(--muted); }
-      .tabs svg { width: 22px; height: 22px; }
-      .tabs .up { background: rgb(255 255 255 / 16%); color: #fff; }
-
-      /* The rooms and favourites: a sheet over the player on a phone. */
-      .side { position: absolute; inset: 64px 0 0; z-index: 3; display: none; flex-direction: column; border-radius: 22px 22px 0 0; background: rgb(22 20 18); box-shadow: 0 -10px 40px rgb(0 0 0 / 50%); animation: up 0.24s ease-out; }
-      .side.up { display: flex; }
-      .side .tabs { display: none; padding: 10px 10px 0; }
-      .head { display: flex; align-items: center; gap: 8px; padding: 12px 10px 8px 16px; }
-      .head b { flex: 1; font-size: 16px; }
-      .head small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
-      .tools { display: flex; gap: 8px; padding: 0 12px 8px; }
-      .tools button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 6px; border-radius: 12px; background: rgb(255 255 255 / 10%); font-size: 13px; font-weight: 600; }
-      .tools svg { width: 18px; height: 18px; flex: none; }
-      .tools .go { background: #fff; color: #111; }
-      /* The editor has two lists side by side: only where the screen is wide enough. */
-      .tools .wide { display: none; }
-      @media (min-width: 900px) { .tools .wide { display: flex; } }
-      .fold { display: flex; align-items: center; gap: 4px; width: 100%; min-height: 36px; text-transform: inherit; letter-spacing: inherit; }
-      .fold svg { width: 18px; height: 18px; }
-      .scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 6px max(16px, env(safe-area-inset-bottom)); }
-      .scroll h3 { margin: 16px 10px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-      .empty { padding: 28px 18px; text-align: center; color: var(--muted); overflow-wrap: anywhere; }
-      .room { display: grid; grid-template-columns: 44px minmax(0, 1fr) 34px; gap: 4px 12px; align-items: center; padding: 10px; border-radius: 14px; }
-      .room.in { margin-bottom: 6px; background: rgb(255 255 255 / 9%); }
-      .tick { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); color: var(--muted); }
-      .room.in .tick { background: #fff; border-color: #fff; color: #111; }
-      .room .t b { display: block; }
-      .room .t small { color: var(--muted); }
-      .room casa-mia-jukebox-slider { grid-column: 2; }
-      .room output { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-      .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; padding: 0 10px; }
-      .tiles button { display: grid; gap: 6px; min-width: 0; }
-      .tiles b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-      .veil { position: absolute; inset: 0; z-index: 5; display: grid; place-items: end center; padding: 14px; background: rgb(0 0 0 / 60%); }
-      .sheet { width: min(100%, 440px); padding: 18px; border-radius: 22px; background: #26231f; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); animation: up 0.2s ease-out; }
-      .sheet h4 { margin: 0 0 2px; font-size: 16px; }
-      .sheet p { margin: 0 0 14px; color: rgb(255 255 255 / 70%); overflow-wrap: anywhere; }
-      .sheet input { display: block; width: 100%; margin: 0 0 14px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgb(255 255 255 / 8%); color: #fff; font: inherit; font-size: 16px; }
-      .sheet .lost, .undone .failed { color: #ff9a8f; }
-      .undone { max-height: 34vh; margin: 0 0 14px; padding: 0; overflow: auto; list-style: none; }
-      .undone li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
-      .undone time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
-      .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
-      .acts { display: grid; gap: 8px; }
-      .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; }
-      .acts button:hover { background: rgb(255 255 255 / 18%); }
-      .acts .main { background: #fff; color: #111; }
-      .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
-      .acts .sep { margin-top: 10px; }
-      .sheet .or { margin: 16px 0 8px; }
-      .over { max-height: 32vh; overflow: auto; }
-      .toast { position: absolute; left: 14px; right: 14px; bottom: 18px; z-index: 6; margin: 0 auto; width: fit-content; max-width: calc(100% - 28px); padding: 11px 16px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; box-shadow: 0 10px 30px rgb(0 0 0 / 45%); opacity: 0; transform: translateY(12px); transition: 0.25s; pointer-events: none; }
-      .toast.on { opacity: 1; transform: none; }
-      /* Out of the way of a question's buttons. */
-      .veil ~ .toast { top: max(18px, env(safe-area-inset-top)); bottom: auto; }
-
-      /* A wide screen (a wall tablet): the rooms and favourites sit beside the player. */
-      /* In a dashboard card (the Now playing card): in place, the size the card is given. */
-      :host([inline]) { position: relative; inset: auto; z-index: 0; display: block; height: 100%; min-height: 560px; overflow: hidden; border-radius: var(--ha-card-border-radius, 18px); }
-      :host([inline]) .big { animation: none; }
-
-      @container (min-width: 900px) {
-        .big { grid-template-columns: minmax(0, 1fr) min(var(--side, 460px), 100cqw - 380px); }
-        .side > .grip { display: grid; }
-        .now { padding: 16px 56px 22px; }
-        .now .tabs, .shut { display: none; }
-        .side { position: relative; inset: auto; display: flex; border-radius: 0; border-left: 1px solid var(--line); background: rgb(12 11 10 / 46%); backdrop-filter: blur(24px); box-shadow: none; animation: none; }
-        .side .tabs { display: flex; }
-        .side .tabs .shown { background: rgb(255 255 255 / 16%); color: #fff; }
-        .veil { place-items: center; }
-      }
-    `,
-  ];
+  static styles = [shared, grips, STYLES, PICK];
 }

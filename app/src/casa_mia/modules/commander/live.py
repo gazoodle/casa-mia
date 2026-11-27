@@ -12,6 +12,7 @@ from typing import Any
 
 from ... import swap
 from ...settings import CHANGED_EVENT
+from ..cameras import preset_calls
 from ..compositor import (
     EMPTY_COMMANDER,
     LAYOUT,
@@ -74,9 +75,11 @@ class Live(Base):
         select's `card` attribute): the layout (it lays it out with the same engine, so
         its taps line up), its picture's address, the main camera at start, and each
         camera's title (its select's option) and live page on the dashboard, its
-        channels, smallest first, each with its size where known (the card plays its
-        main camera's as live video, when the compositor's live_main switch is on), and
-        its controls with their edges, where it has them (the card's full screen)."""
+        channels, smallest first, each with its size and its stream's codec where known
+        (the card plays its main camera's as live video, when the compositor's
+        live_main switch is on, leaving out those its device says it can't decode), and
+        its controls and PTZ presets with their edges, where it has them (the card's
+        full screen)."""
         try:
             url_path, base = self._target()
         except BadRequest:  # the LAN address not known yet: no picture until it is
@@ -85,12 +88,15 @@ class Live(Base):
         comp = self.live
         full = self.full()
         cfg = config_from_store(full)
-        # each camera's controls and their edges, for the card's full screen
+        # each camera's controls, their edges, its zoom (a number entity) and its presets
+        # (each as the call that goes to it), for the card's full screen
         own = {
-            e: {k: cam[k] for k in ("controls", "controls_at") if cam.get(k)}
+            e: {k: cam[k] for k in ("controls", "controls_at", "zoom") if cam.get(k)}
+            | ({"presets": calls} if (calls := preset_calls(cam)) else {})
             for e, cam in full["cameras"].items()
         }
         sizes = comp.gather.res if comp else {}
+        codecs = comp.gather.codecs if comp else {}
         keys = (
             "width",
             "height",
@@ -120,7 +126,7 @@ class Live(Base):
                     if url_path
                     else "",
                     "channels": [
-                        [c, *sizes[c]] if c in sizes else [c, 0, 0]
+                        [c, *sizes.get(c, (0, 0)), codecs.get(c, "")]
                         for c in channels(cfg, e).values()
                     ],
                     **own.get(e, {}),
@@ -147,21 +153,38 @@ class Live(Base):
         if now == self._live_was:
             return False
         if self._live_was is not None:
-            _LOGGER.info(
-                "commander: live main camera now %s%s; telling the integration",
-                "on" if now else "off",
-                " (the screenshot swap is on)" if swap.stamp() else "",
+            self._tell(
+                f"live main camera now {'on' if now else 'off'}"
+                + (" (the screenshot swap is on)" if swap.stamp() else "")
             )
-            if token := os.environ.get("SUPERVISOR_TOKEN"):
-                from ..guest_login import fire_event
-
-                fire_event(token, CHANGED_EVENT, {})
         self._live_was = now
         return True
+
+    def check_channels(self) -> bool:
+        """Whether a channel's size or codec has been newly read since last looked
+        (compositor.cache: channel_changes): if so the integration is told now, as for
+        live_main, so a card stops trying a channel its device can't play at once and
+        not at its next poll (30 s)."""
+        now = self.live.gather.channel_changes if self.live else 0
+        if now == self._changes_was:
+            return False
+        if self._changes_was is not None:
+            self._tell("a channel's size or codec newly read")
+        self._changes_was = now
+        return True
+
+    def _tell(self, what: str) -> None:
+        """Tell the integration to ask for the commanders again now (CHANGED_EVENT)."""
+        _LOGGER.info("commander: %s; telling the integration", what)
+        if token := os.environ.get("SUPERVISOR_TOKEN"):
+            from ..guest_login import fire_event
+
+            fire_event(token, CHANGED_EVENT, {})
 
     def _watch_live_main(self) -> None:
         while True:
             self.check_live_main()
+            self.check_channels()
             time.sleep(1)
 
     def commander(self) -> dict[str, Any]:
@@ -177,6 +200,8 @@ class Live(Base):
         from the sensors themselves: an older integration's POST .../motion gets 204.)"""
         if path.strip("/") == "motion":
             return 204
+        if path.strip("/") == "tuning":
+            return self._tuning(body)
         if path.strip("/") not in ("main", "commander"):
             return 404
         try:
@@ -207,6 +232,21 @@ class Live(Base):
                 self._write(self.state_path, {"mains": self._mains})
             except OSError as exc:
                 _LOGGER.warning("commander: main camera not kept: %s", exc)
+        return 200
+
+    def _tuning(self, body: bytes) -> int:
+        """The sizes a Camera Commander card was tuned to on one device, and what the
+        rules gave there (the integration's tuning.py, only while that commander's debug
+        is on): one line in the log, under the card's reference, for the owner and the
+        agent to talk about the same entry."""
+        try:
+            entry = json.loads(body or b"{}")
+            ref = str(entry["ref"])
+        except (ValueError, KeyError, TypeError):
+            return 400
+        _LOGGER.info(
+            "commander tuning %s: %s", ref, json.dumps(entry, separators=(",", ":"))
+        )
         return 200
 
     def health(self) -> dict[str, Any]:

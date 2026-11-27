@@ -43,6 +43,18 @@
   text-align: center;
 }
 
+/* A camera channel's resolution, in a pill or a chip as one line of its text: three
+   rising bars, as many filled as its tier (the cards' pills.ts: tierBars). Every edge is
+   on a whole pixel and left unsmoothed, so the boxes stay sharp. */
+.cm-bars {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  shape-rendering: crispEdges;
+}
+
 .cm-chip {
   display: inline-flex;
   align-items: center;

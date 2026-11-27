@@ -2,6 +2,58 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done.
 
+## Cameras, Camera Commander and the compositor
+
+- **The room before the first camera control only where it touches the screen's edge** (owner, 2026-11-27). The controls keep a chip's height of room (22 px) at each end of their edge (`integration/cards/src/commander/full.ts`, the `padding-inline` and `padding-block` on `.controls-group`, added 2026-11-26) so a finger can reach the first button past a wall tablet's bezel, which gets in the way at the screen's edge. That room is needed only where the bar's end is at or near the screen's edge, most often the top end with the camera full screen (the Full button is usually first). Where there is already a border between the bar's end and the screen's edge, the room is wasted and can go.
+
+- **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:
+  - **Seen on the guest network:** the low channel plays; the medium channel shows a first frame and is lost about 10 seconds later, on a regular cycle; nothing arrives on the high channel. Each loss and return also restarts the card's picture stream (see below), which is what makes the page feel slow.
+  - **Ports that are known, guest network to the box, all TCP:** Home Assistant's own port, the guest sign-in's (8675), the compositor's (8099; optional since 2026.11.6-b4, as the card falls back through Home Assistant) and 18555, the built-in go2rtc's WebRTC port.
+  - **What is not known:** how the video travels. WebRTC prefers UDP, and the built-in go2rtc picks a UDP port per connection, which no firewall rule can name. The likely fault is a UDP path that half works across the two networks, chosen ahead of TCP 18555. To find out: read the connection's chosen candidate pair on the tablet (`RTCPeerConnection.getStats`, which `app/web/src/webrtc.ts` could report with each loss), and whether go2rtc can be told to offer TCP only or a fixed UDP port.
+  - **To do then:** a section in the guide on running a commander from a guest or isolated network, naming the ports; and say on the card why live is lost in terms someone can act on.
+  - **The card makes it worse than it need be:** every change between live and drawn asks for a new picture stream (`&main=video`), so a live video that flaps restarts the tiles every few seconds. The picture could keep drawing the main camera under a live video that is not yet proven steady.
+  - **The better channel is tried hidden:** the card plays a better channel unseen under the one shown and swaps at its first frame. Not shown to be at fault here, but not ruled out on Safari either: measure a channel started hidden against one started in view before relying on it.
+
+- **A commander's less important cameras** (specified 2026-11-26, not built): `docs/design/commander-responsive-layout.md`, "A place for a card, and less important cameras". Up to four cameras marked **Less important** (`lesser`), which the Responsive solver may show sharing one tile when that leaves less of the space empty. The card place, which replaced "Buttons among a commander's cameras" (2026-11-12), is built (2026.11.14-b19). Seen on the test VM (2026-11-27, 26 cameras): the place is one tile, 143 x 79 px on a 1280 x 800 tablet and 123 x 67 px on a phone. HA's clock card fits it. A grid card of four HA button cards needs 165 px of height and shows only its top two buttons; on the phone the buttons also bring HA's card background. So four buttons need either compact buttons of our own or a bigger place: the owner's call.
+
+- **The car's call audio toggling on and off after a doorbell call** (reported 2026-11-06, on a build before 2026.11.2-b12). Talking from the iPhone in the car played the visitor over the car's speakers (iOS puts audio in call mode while the microphone is on, which the car takes as a hands-free call). After hanging up, the car kept starting and stopping a call's audio, over and over. Likely cause, not yet proved: WebKit keeps the page's audio in call mode for a while after the microphone stops, and every live main camera session asks for audio (`recvonly`, though always muted), so each session opened or closed (Track motion changing the main camera, or before b12 the restart on Hang up) switches the car's call audio again. b12 removed the restart; the motion switching remains. **Evidence first:** the box's HA log for the doorbell's commander's WebRTC sessions after a hang-up, and the Main camera select's history against how often the car toggled. **Proposed fix:** the live main camera's sessions ask for no audio (`playWebRTC` adds the audio transceiver only for Talk's session; check whether the admin page's live view plays sound first), so nothing on the page uses audio outside a call.
+- **Camera names as our pills** (asked 2026-10-12). The compositor's labels are plain text on a dark strip, which looks unprofessional. Draw them in the house pill style (`app/web/src/pills.css`, `docs/design/pills-and-chips.html`) into the picture, with the card's live caption to match. A pill per fact: the rung (HIGH, MED, LOW, STATIC) and its time (LIVE LOST 4 MIN AGO, STALE), so two devices showing the same view at different rungs never puzzle. See the ladder in `docs/never-silently-stuck.md`.
+- **Camera stream troubleshooting** (asked 2026-10-11). Stale streams are fixed by hand today (reload UniFi Protect, restart the app). Bring it into Casa Mia:
+  - **A problem summary on the compositor's Home tile** ("3 cameras stale, 1 with no signal", naming them).
+  - **A Try to fix button** there and on the compositor page, lightest first: reload the camera integration (`config_entries` reload), restart the gatherer, restart the compositor. Each says what it does, shows progress, and the summary updates. The restarts need to exist as module actions first. Log each fix and what it found.
+  - Later, perhaps: the light fixes by themselves when streams stay stale, with an off switch.
+- **Docs: camera streams on UniFi Protect, the only camera system tried** (asked 2026-10-11). How a Protect camera's streams reach Casa Mia (RTSP per channel in Protect, the high, medium and low channels HA gives each camera, which Casa Mia uses for what, how they reach go2rtc). Say plainly in the camera guides and README that nothing else is tested, and invite reports (Reolink, ONVIF, generic RTSP, Frigate).
+- **Commander controls as entities; idle mode as the worked example** (asked 2026-10-10). A commander's layout controls as entities on its device (a mode select, a main-panel size, panels on or off), so automations can change the layout. Idle mode: when KS's screensaver starts, the main panel grows to fill the screen but for a thin gap (8 %, or 100 px); back to normal when it's dismissed. Check whether a layout option already gives the look, else a new mode in both engines with a case. See "Templates for card options": ideally one way for a layout to follow a state.
+- **Commander auto-layout** (asked 2026-10-10). Place a commander's cameras for you: fill the edges in order from a chosen start, tiles square. A `layout.json` option, in both engines, with cases.
+- **Which channel is live, and better pictures on offer** (agreed with the owner 2026-11-27; step 1, the stream carried into full screen, is b31; step 2, the channel's letter in the caption and a chip for what live is doing, is b34, the letter replaced by a LIVE pill and bars in b37). Step 3: the cameras, commander and compositor docs recommend RTSP on for all three channels in Protect and the medium and low entities on in HA (check HA's Protect docs for its defaults first); the Cameras page and an HA Repair say which channels of a camera in use are switched off, following the entity registry's events. Not known: whether a channel with RTSP off in Protect is in HA's registry at all, and whether one switched on later reaches a camera already added.
+- **Remove `casa_mia_commander/fired.py` once Home Assistant 2026.12 is the oldest supported** (worked round in 2026.11.14-b35). UniFi Protect's ring, smart detection, motion, package and sound entities came back unknown after a restart, their time lost, because Protect closed its events websocket before its state callbacks and the entities were saved as unavailable. Fixed upstream in core PR #192994 (merged 2026-11-16, issue #192255), in 2026.12.0b0 and not in 2026.11.3. With the fix, each entity keeps its own time and `fired.py` gives the card nothing, so it is harmless until removed: the module, the select's `fired` attribute, the card's `firedOf`, the recorder in the manifest's `after_dependencies`, and `tests_ha/test_commander_fired.py`.
+- **Incidents: a detection's linked events on other cameras** (owner's idea, 2026-11-27). The detections and their clips (`docs/design/commander-detections.md`, built in 2026.11.14-b24 to b33; it took the place of "The card shows the kind" in the item below) show one camera's recordings, one kind at a time. The idea: for a detection, look for other events at a similar time (within a threshold), on the other cameras and of other kinds, and gather them into an incident to review as one, such as a car at the gate followed by a ring at the doorbell. To settle before designing:
+  - **A time for each event.** The clip lists give none that can be read: an item's date and time are in the server's locale, and the spec says never to parse them. Event entities' recorded history has the times but no `event_id`, so it can't lead to a clip. Not known: whether the Protect integration's own event objects (with their start and end) can be reached from inside Home Assistant, and whether a Protect event id carries its time.
+  - **The threshold:** a window round one event, or events chained while each starts within some seconds of the last one ending; and whether across a console's cameras or only a commander's.
+  - **What review means:** an incident's clips in time order across cameras, played one after another or side by side, and whether an incident can be kept (marked as reviewed, saved or shared).
+  - **What it costs:** the dialog already lists the all-cameras folder for the same kind and day (its truncation check), which may hold the other cameras' events at no extra fetch, if each item says which camera it is from (not known).
+- **Cameras: every detection a camera has, and choosing the main camera by them** (asked 2026-10-09). Cameras know one motion sensor each today. UniFi Protect's also offer person, vehicle, animal, package, plate, face; sounds (baby cry, barking, glass break, smoke and CO alarms); and states such as is dark, mostly each with its own detection switch.
+  - **Gather them in discovery:** per camera, every detection sensor paired with its switch, by kind (Protect's translation keys where present, else device class and name); a small table of known kinds; generic, not one integration.
+  - **Show them on the Cameras page:** which detections, which are off, and live in its preview.
+  - **Later, choose the main camera by them:** per commander, which kinds count, a priority, and hold, go back and pause times per kind.
+  - **The card shows the kind:** the detection's icon (a person, a car, a paw) in the tile's corner, pulsing; the tooltip says what and when.
+  - **Open:** cameras with plain motion keep today's behaviour; several kinds at once; whether alarms (smoke, CO, glass) should raise more than a tile.
+- **Camera compositor: optional off-box engine** (asked 2026-10-09). The same composition code on a separate machine, so the expensive work doesn't compete with HA; the on-box engine stays.
+  - One engine implementation in both, no fork. Configuration and controls stay in Casa Mia, with an engine endpoint; the remote engine reaches cameras over the network, not HA's localhost go2rtc.
+  - The Commander card works the same from home or away. Authenticated control and media; engine health shown in Casa Mia.
+  - Explore a low-latency composite video stream through go2rtc on capable hardware; verify decode, compose and encode acceleration rather than assume it.
+  - Benchmark small HA boxes against dedicated hosts (cameras, viewers, freshness, latency, bandwidth, CPU/GPU).
+- **Rename the Commander card's Security look** (asked 2026-10-09). Perhaps **Surveillance mode**; agree the name first. Labels, docs and changelog wording only; keep the option keys.
+- **The Commander card in a Tablet Layout's edit mode should behave like a Picture Glance card** (asked 2026-10-09; tried before and given up). In edit mode it visibly grows into its size and asks the compositor for a new picture at each step (over 20 sizes for one image). Ask for a new size only outside edit mode; in it, scale the picture it has. **2026-11-27: the growing has a cause, fixed in 2026.11.14-b32.** Home Assistant's `ha-card` has `transition: all 0.3s ease-out`, which animated each height the card set, and the 20 sizes were its frames (HANDOVER, Lessons learned). Measured in the card editor's preview and on a Panel view; a Tablet Layout's edit mode was not measured, so check it there before removing this item.
+- **Slow through Nabu Casa: cut the bandwidth** (first step in 2026.10.3-b31: through HA the card caps its pixel ratio, `away_sharpness`). Still to measure away. Measured 2026-10-06: a device away held two streams at once through HA (about 2.2 Mbit/s together, at dpr 2); the box was busy but not choking; HTTP/1.1's six connections per site are shared with HA's own UI. First get the HA log's "picture … ended" lines (kbit/s, % waiting) from a session away (INFO: set `custom_components.casa_mia: info`), and compare responsiveness with each idea: dpr 1 or lower JPEG quality through HA; one stream per device through HA; a slower rate away; single `.jpg` frames instead of a held stream; fetching small tiles less often. Longer term, send only what changes: our own block updates on a canvas, or H.264 through go2rtc/WebRTC. Automatic step-down lacks a signal (an MJPEG `<img>` reports no frames in Safari), so fixed levels first.
+- **Commander text sizes.** The text a commander draws is fixed (16, 20 and 40 px in `_fonts`, and `SMALL_BAR`), only grown by density. A size for the tile labels and one for the main camera's, in CSS px, per commander: layout options in `layout.json`, shown by the admin page and card editors, drawn by the compositor.
+- **Camera visibility in a commander.** v1: each camera may name an HA binary sensor; while it's off the camera is left out (the layout closes up, tap zones follow, the main camera moves on). An input to both layout engines, with a case; the compositor reads the sensors through HA and redraws on a change, the card reads `hass.states`. Unavailable shows the camera (fail open); log each hide and show. Later: HA conditions or a template. A user or screen condition differs per viewer, so per-viewer hiding needs a picture per hidden set.
+- **Who sees which commander** (issue #4): visibility on each commander's whole view, by form factor, platform or user; the phone needs a single-page navigator. The Portrait screens and Phones settings were kept for this.
+- **A small outer border on the Commander card**, so its picture's edges never land on the screen's last pixels. The card rounds its size to 8 device px, and a WebView can be bigger than its screen: on a wall tablet (density 170) the page was 1342 × 801 device px on a 1340 × 800 screen, cutting the debug overlay's corners. Worth raising with KS's author, with those figures.
+- **Frames over the WebSocket have no lease** (2026.11.5-b3; the fix itself was seen working by the owner on 2026-11-11). In Safari over https the Commander's picture comes as frames over a WebSocket. A socket that stays open and sends nothing leaves a frozen picture with nothing said, as the `<img>` stream does. The compositor sends a frame again at its keep-alive, so the card could count a picture as current only while frames arrive, and say how long ago the last one came.
+- **Hardware video decoding for the compositor's streams** (considered 2026-10-07). Since b52 keyframes-only cut decoding about 16x, so measure first (the compositor page's CPU column). The owner's N150 has Quick Sync; PyAV's wheel has the QSV decoders; missing are `/dev/dri` (`video: true`) and Intel's driver (30–60 MB). **Constraint:** one image for every HA box (amd64 and aarch64), so no Intel-only packages for everyone. Options: amd64-only drivers, install on demand when an Intel GPU is found, or HA's go2rtc/ffmpeg doing it. Decode on the GPU when present, software otherwise, and say which on the page.
+- **Compositor follow-ups:** move `gen_dashboard.py`, `discover_entities.py` and their tests from `tablet-provision/composite-test` into `tools/`; a "Camera compositor" device in the integration (state, groups, streams); verify the Supervisor proxy carries the camera stills and the HLS warm-up websocket before cutting the tablets over from the Mac.
+
 ## Stock (an idea, not started)
 
 The owner's idea, 2026-11-23: a spare wall tablet in a store room scans wine, beer, other
@@ -43,6 +95,24 @@ The owner's idea, 2026-11-20: one place for both of the owners to manage the hou
 across Sonos, Spotify and the local library, in place of Music Assistant. The name is final
 (owner, 2026-11-20).
 
+- **A song into a playlist: what is left** (after 2026.11.14-b7). The Favourites tab
+  shows "Fetching…" while the tiles are fetched again after a playlist change, where it
+  could keep the old tiles until the new ones come. The editor's chooser fetches every
+  tile's covers to list the names. A song the house has as a file is still added from
+  Spotify. A new playlist is made before its song is put in, so if that fails an
+  empty playlist is left (the reason is said). None of b4 to b7's playlist work has
+  been tried on a real speaker: do that first.
+- **Every playlist change put back, once the playlists are copied** (owner, 2026-11-26).
+  The owner is to ask for Jukebox to copy all the Sonos playlists into the integration's
+  data, so that Home Assistant's backups hold them. With that copy, deleting a playlist,
+  saving the queue over one and taking out repeated songs can be put back from the toast,
+  as a replaced or cleared queue is since 2026.11.14-b8 (`undo.py`), and their red
+  questions can go: red is for what can't be got back (the `Sure` tones in
+  `integration/cards/src/jukebox/pick.ts`). Not yet tried on a real speaker: putting a
+  queue back, its copy kept as "Jukebox undo copy (room)".
+- **Restoring the playlists from a backup** (owner, 2026-11-26: later, after the copy
+  above). Offer to put a playlist back from the copy in the integration's data, after
+  it was deleted or changed in Sonos, or after a restore of Home Assistant.
 - **Jukebox adds no media players** (owner, 2026-11-20). Each room stays the single
   entity that Home Assistant's Sonos integration makes. Jukebox's card, its services and
   the Sonos app all drive that one entity. Why: Music Assistant wraps each speaker in a
@@ -393,17 +463,33 @@ the Gazette's own work is parked below it.
   - Step 3: the bands drawn as zones on the scale, in all five eras' `meter`.
   - Step 4: stand-in meters on the test VM, a picture for the guide, and the guide saying
     the card is in daily use in the author's house once it is on the live dashboards.
-- **The Console's cards, made clear for someone building their own dashboard** (owner,
-  2026-11-20: the gauges and controls "are currently there but a bit confusing to use").
-  Revisit all of Dash-Bored's Home Assistant cards so that it is clear which card to pick
-  and what each one will draw: the part cards (`dash-bored-console-instrument`, `-room`,
-  `-lamps` in `console/cards.ts`), the meter panel and their editors. The owner expects
-  this to mean taking out the way a control picks its own form from its entity, so the
-  user chooses the control and then the entity it shows, not the other way round. Why:
-  the entity-first way suits generating a whole dashboard automatically, but someone
-  putting one card on a page of their own can't tell what they will get. Agree the new
-  shape with the owner before building it, and keep the automatic choice wherever a
-  family draws the whole house.
+- **A design session: the Console's pieces, for building your own dashboard** (owner,
+  2026-11-25; a big one, to be designed with the owner before anything is built). Clean up
+  Dash-Bored's controls so that anyone can put together a styled house board of their own
+  from the basic pieces. It takes in the earlier item on the Console's cards (owner,
+  2026-11-20: the gauges and controls "are currently there but a bit confusing to use";
+  the part cards `dash-bored-console-instrument`, `-room` and `-lamps` in
+  `console/cards.ts`, the meter panel and their editors). What the owner asked for:
+  - **Individual controls**, each one a card of its own. The user chooses the control and
+    then the entity it shows, not the other way round, so it is clear what a card will
+    draw. The automatic choice of control from an entity stays wherever a family draws
+    the whole house.
+  - **Panels that are just a list of entities**, laid out automatically, or in an order
+    the user sets.
+  - **Each era's pieces separate**, so a board can be built in one era's style.
+  - **Offered as suggestions when an entity is chosen** in Home Assistant's card picker,
+    and **put in categories** so they are easy to find.
+  - **A clock for every era**, built as a specialisation of one clock, because the owner
+    wants many clock designs: styled after fine chronographs, station clocks and flap
+    digit clocks (like the departure board's style), and more. The one clock exists since
+    2026.11.14-b23: Casa Mia Clock (`integration/cards/src/clock/`), which since b25 is
+    HA's own clock scaled to fill its place. Each design of ours becomes another
+    `clock_style` of it, drawn by us beside HA's digital and analogue.
+  - **More knobs and colours**: everything someone would need to style their own board
+    from the basic controls.
+  Open for the session: the cards' names and categories, what a panel's ordering looks
+  like in its editor, how a clock design is described, and how much of the existing part
+  cards is kept or replaced.
 - **Every family gets every capability** (owner, 2026-11-17; the rule is in HANDOVER and
   the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
   lists each of these in its `OWED`, and fails when a family starts to show something
@@ -891,6 +977,16 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **Review the algorithm** (owner, 2026-10-27: "OK for now"): after living with it, check whether time at each level is right, or whether escalating by count or by how far out earns a place.
   - **Acknowledging:** decided against (2026-11-22). Snooze, above, has an end.
   - **The Escalation handler blueprint and the remedy tools** (`docs/never-silently-stuck.md`), on the events it sends.
+- **Custom actions per sensor** (asked 2026-11-27; needs design before any building). A
+  mechanism that lets a watched sensor offer actions of the user's own. The use cases:
+  the internet speed is reported as low, so its row gives a button to run the check
+  again; the gates have been open for too long, so its row gives a close action. The
+  actions **must be defined by the user**, per sensor or per group, because Sensor Watch
+  can't know what they will want to do. How they are defined needs designing too. To
+  settle in the design: where an action is set (a watch, a group, a profile) and which
+  wins; whether it is offered at every level or only at some; where its button shows
+  (the page, the card, the gauge, a notification); and how it sits with the remedy tools
+  under Escalation above and the snooze button for Heads Up.
 - **Watch a template** (asked 2026-10-11): some faults show only between sensors (a downstream meter's voltage differing from the upstream one). A **+ From a template** choice in the Watch dialog creates an HA template helper (through "Entities Casa Mia makes") and opens the bands editor on it. A real entity, so it has history.
 - **Dependencies** (asked 2026-10-11): a record names an upstream sensor and counts only while that one is nominal, so a supply drop raises one alert, not one per meter. Think through chains, what the summary shows for a suppressed sensor, and loops. The owner's ESPHome generator knows each meter's upstream link and could produce the difference sensors and dependencies; Sensor Watch takes them as they come.
 - **Groups, what's left** (built in b15–b21): members suggested from history (a new member waits for a few days of it, shown as pending), availability-only groups (design with Availability rules), and watching an attribute (one entity can since 2026.10.8-b23; groups watch states only).
@@ -944,6 +1040,8 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 - **Firmware server: mirror fewer APKs.** Each KS release ships four APKs of about 120 MB (about 1.4 GB on disk with two older releases kept). Check which file KS's Custom repository updater fetches from `releases.json`, then mirror only that (`ABI_SUFFIXES`), with the download size and progress counting only it. Separately, confirm `backup_exclude: firmware/*` keeps the APKs out of backups (a partial backup of this app should be a few MB).
 
 ## Tablet Layout and the Lovelace cards
+
+- **One dialog for the cards** (owner, 2026-11-27). The cards hand-roll seven `<dialog>`s (the Camera Commander's recordings; Dash-Bored's clipping, aurora sheet, shell and three recorders), each with its own size rules, so each relearns the safe areas, phones and landscape: the recordings dialog took b27, b30, b33 and b35 to get right. Make one, as `ui.module.css` and `confirm.tsx` are for the admin UI, and move the seven onto it. Home Assistant's own (`ha-adaptive-dialog`, a dialog on a wide screen and a sheet on a phone) was turned down for now: the owner finds it ugly, and it is HA's internal element (loaded lazily, and replaced more than once), not an API for cards. Consider it again later.
 
 - **Heating Flow in the README's cards** (guide `docs/heating-flow.md` written 2026-11-03). Needs the card's maturity level in `app/src/casa_mia/maturity.json` first, since each entry carries its badge.
 - **`cm-refresh.js` after a reconnect** (seen reading the code, 2026-11-02; not reproduced). It listens on `conn.socket`, which is replaced when the websocket reconnects, so a page open through an HA restart may stop reloading on a saved dashboard. Check, then use `conn.subscribeEvents`, which survives a reconnect.
@@ -1082,54 +1180,6 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 - **A doorbell that answers itself** (asked 2026-11-03). When nobody answers the doorbell, Casa Mia does: speech to text on the caller, a local AI (inference on the house's own hardware, no cloud) deciding what to say and do, and text to speech back through the doorbell. It helps callers in place of the family: tells a delivery driver where to leave a parcel and opens the gates for them, takes a message, says nobody's in. Open: which doorbells give two-way audio to HA (UniFi Protect's talkback, others), the speech engines and the model and where they run, what the AI may do (open the gates? only for a delivery it can check against an expected order?), how it hands over to the family (a notification with the live conversation, take over by voice), and how every call is logged with its transcript. Shares the audio plumbing with "FONA voice calls into the voice assistant" and the gate action with `casa_mia.check_plate`.
 - **KNX BMS machine** (`knx-bms`): the RPi-to-KNX machine giving BMS programming control over the bus. First job: bring the Hue lights into BMS land. Open: where its code lives, RPi or app, how Hue is reached, how it relates to the `knx` module.
 
-## Cameras, Camera Commander and the compositor
-
-- **PTZ presets on the commander's main camera** (asked 2026-11-12; the owner: "we need to do this"). A camera's PTZ presets show only on its page on the camera dashboard (`auto_dashboards/dashboard.py`: `preset_entries`, `preset_action`). The Camera Commander card shows none, over the main camera or on its full screen, so a PTZ camera can't be moved from a commander.
-  - **The design (owner):** one button in the bar with the others (the camera's controls, Sound, Full screen; `integration/cards/src/commander/full.ts`: `controlsBar`), which opens a drop-down or menu of the camera's presets. A tap on a preset performs the camera's PTZ action with that preset, as its page's tile does.
-  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`). Since 2026.11.9-b11 the app builds each preset as a call for pages (`cameras.py` `for_pages`, fed by `casa_mia/cameras/subscribe`, which Dash-Bored uses): give the card the same list. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
-  - **To settle when built:** whether it is a card option like the Sound button or always shown with the controls; and the menu, which is new chrome on the card (none of its buttons opens one today) and must stay inside the card to be seen while the commander is full screen.
-
-- **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:
-  - **Seen on the guest network:** the low channel plays; the medium channel shows a first frame and is lost about 10 seconds later, on a regular cycle; nothing arrives on the high channel. Each loss and return also restarts the card's picture stream (see below), which is what makes the page feel slow.
-  - **Ports that are known, guest network to the box, all TCP:** Home Assistant's own port, the guest sign-in's (8675), the compositor's (8099; optional since 2026.11.6-b4, as the card falls back through Home Assistant) and 18555, the built-in go2rtc's WebRTC port.
-  - **What is not known:** how the video travels. WebRTC prefers UDP, and the built-in go2rtc picks a UDP port per connection, which no firewall rule can name. The likely fault is a UDP path that half works across the two networks, chosen ahead of TCP 18555. To find out: read the connection's chosen candidate pair on the tablet (`RTCPeerConnection.getStats`, which `app/web/src/webrtc.ts` could report with each loss), and whether go2rtc can be told to offer TCP only or a fixed UDP port.
-  - **To do then:** a section in the guide on running a commander from a guest or isolated network, naming the ports; and say on the card why live is lost in terms someone can act on.
-  - **The card makes it worse than it need be:** every change between live and drawn asks for a new picture stream (`&main=video`), so a live video that flaps restarts the tiles every few seconds. The picture could keep drawing the main camera under a live video that is not yet proven steady.
-  - **The better channel is tried hidden:** the card plays a better channel unseen under the one shown and swaps at its first frame. Not shown to be at fault here, but not ruled out on Safari either: measure a channel started hidden against one started in view before relying on it.
-
-- **Buttons among a commander's cameras** (asked 2026-11-12). A commander's camera list may also hold buttons (Help, More), chosen the way cameras are and counted in its 32, drawn by the compositor as tiles of their own (an icon and a name) and laid out with the cameras by both layout engines (`tests/layout_cases.json`). A tap on one runs its action (navigate, more-info, toggle) instead of making it the main camera. Track motion and the Main camera select skip them. It lets a full-screen commander (a kiosk tablet) still reach the rest of Home Assistant. Open: where a button's action is set (its own small list on the Cameras page, or on the commander's page), and how the card's tap tells a button tile from a camera's.
-
-- **The car's call audio toggling on and off after a doorbell call** (reported 2026-11-06, on a build before 2026.11.2-b12). Talking from the iPhone in the car played the visitor over the car's speakers (iOS puts audio in call mode while the microphone is on, which the car takes as a hands-free call). After hanging up, the car kept starting and stopping a call's audio, over and over. Likely cause, not yet proved: WebKit keeps the page's audio in call mode for a while after the microphone stops, and every live main camera session asks for audio (`recvonly`, though always muted), so each session opened or closed (Track motion changing the main camera, or before b12 the restart on Hang up) switches the car's call audio again. b12 removed the restart; the motion switching remains. **Evidence first:** the box's HA log for the doorbell's commander's WebRTC sessions after a hang-up, and the Main camera select's history against how often the car toggled. **Proposed fix:** the live main camera's sessions ask for no audio (`playWebRTC` adds the audio transceiver only for Talk's session; check whether the admin page's live view plays sound first), so nothing on the page uses audio outside a call.
-- **Camera names as our pills** (asked 2026-10-12). The compositor's labels are plain text on a dark strip, which looks unprofessional. Draw them in the house pill style (`app/web/src/pills.css`, `docs/design/pills-and-chips.html`) into the picture, with the card's live caption to match. A pill per fact: the rung (HIGH, MED, LOW, STATIC) and its time (LIVE LOST 4 MIN AGO, STALE), so two devices showing the same view at different rungs never puzzle. See the ladder in `docs/never-silently-stuck.md`.
-- **Camera stream troubleshooting** (asked 2026-10-11). Stale streams are fixed by hand today (reload UniFi Protect, restart the app). Bring it into Casa Mia:
-  - **A problem summary on the compositor's Home tile** ("3 cameras stale, 1 with no signal", naming them).
-  - **A Try to fix button** there and on the compositor page, lightest first: reload the camera integration (`config_entries` reload), restart the gatherer, restart the compositor. Each says what it does, shows progress, and the summary updates. The restarts need to exist as module actions first. Log each fix and what it found.
-  - Later, perhaps: the light fixes by themselves when streams stay stale, with an off switch.
-- **Docs: camera streams on UniFi Protect, the only camera system tried** (asked 2026-10-11). How a Protect camera's streams reach Casa Mia (RTSP per channel in Protect, the high, medium and low channels HA gives each camera, which Casa Mia uses for what, how they reach go2rtc). Say plainly in the camera guides and README that nothing else is tested, and invite reports (Reolink, ONVIF, generic RTSP, Frigate).
-- **Commander controls as entities; idle mode as the worked example** (asked 2026-10-10). A commander's layout controls as entities on its device (a mode select, a main-panel size, panels on or off), so automations can change the layout. Idle mode: when KS's screensaver starts, the main panel grows to fill the screen but for a thin gap (8 %, or 100 px); back to normal when it's dismissed. Check whether a layout option already gives the look, else a new mode in both engines with a case. See "Templates for card options": ideally one way for a layout to follow a state.
-- **Commander auto-layout** (asked 2026-10-10). Place a commander's cameras for you: fill the edges in order from a chosen start, tiles square. A `layout.json` option, in both engines, with cases.
-- **Cameras: every detection a camera has, and choosing the main camera by them** (asked 2026-10-09). Cameras know one motion sensor each today. UniFi Protect's also offer person, vehicle, animal, package, plate, face; sounds (baby cry, barking, glass break, smoke and CO alarms); and states such as is dark, mostly each with its own detection switch.
-  - **Gather them in discovery:** per camera, every detection sensor paired with its switch, by kind (Protect's translation keys where present, else device class and name); a small table of known kinds; generic, not one integration.
-  - **Show them on the Cameras page:** which detections, which are off, and live in its preview.
-  - **Later, choose the main camera by them:** per commander, which kinds count, a priority, and hold, go back and pause times per kind.
-  - **The card shows the kind:** the detection's icon (a person, a car, a paw) in the tile's corner, pulsing; the tooltip says what and when.
-  - **Open:** cameras with plain motion keep today's behaviour; several kinds at once; whether alarms (smoke, CO, glass) should raise more than a tile.
-- **Camera compositor: optional off-box engine** (asked 2026-10-09). The same composition code on a separate machine, so the expensive work doesn't compete with HA; the on-box engine stays.
-  - One engine implementation in both, no fork. Configuration and controls stay in Casa Mia, with an engine endpoint; the remote engine reaches cameras over the network, not HA's localhost go2rtc.
-  - The Commander card works the same from home or away. Authenticated control and media; engine health shown in Casa Mia.
-  - Explore a low-latency composite video stream through go2rtc on capable hardware; verify decode, compose and encode acceleration rather than assume it.
-  - Benchmark small HA boxes against dedicated hosts (cameras, viewers, freshness, latency, bandwidth, CPU/GPU).
-- **Rename the Commander card's Security look** (asked 2026-10-09). Perhaps **Surveillance mode**; agree the name first. Labels, docs and changelog wording only; keep the option keys.
-- **The Commander card in a Tablet Layout's edit mode should behave like a Picture Glance card** (asked 2026-10-09; tried before and given up). In edit mode it visibly grows into its size and asks the compositor for a new picture at each step (over 20 sizes for one image). Ask for a new size only outside edit mode; in it, scale the picture it has.
-- **Slow through Nabu Casa: cut the bandwidth** (first step in 2026.10.3-b31: through HA the card caps its pixel ratio, `away_sharpness`). Still to measure away. Measured 2026-10-06: a device away held two streams at once through HA (about 2.2 Mbit/s together, at dpr 2); the box was busy but not choking; HTTP/1.1's six connections per site are shared with HA's own UI. First get the HA log's "picture … ended" lines (kbit/s, % waiting) from a session away (INFO: set `custom_components.casa_mia: info`), and compare responsiveness with each idea: dpr 1 or lower JPEG quality through HA; one stream per device through HA; a slower rate away; single `.jpg` frames instead of a held stream; fetching small tiles less often. Longer term, send only what changes: our own block updates on a canvas, or H.264 through go2rtc/WebRTC. Automatic step-down lacks a signal (an MJPEG `<img>` reports no frames in Safari), so fixed levels first.
-- **Commander text sizes.** The text a commander draws is fixed (16, 20 and 40 px in `_fonts`, and `SMALL_BAR`), only grown by density. A size for the tile labels and one for the main camera's, in CSS px, per commander: layout options in `layout.json`, shown by the admin page and card editors, drawn by the compositor.
-- **Camera visibility in a commander.** v1: each camera may name an HA binary sensor; while it's off the camera is left out (the layout closes up, tap zones follow, the main camera moves on). An input to both layout engines, with a case; the compositor reads the sensors through HA and redraws on a change, the card reads `hass.states`. Unavailable shows the camera (fail open); log each hide and show. Later: HA conditions or a template. A user or screen condition differs per viewer, so per-viewer hiding needs a picture per hidden set.
-- **Who sees which commander** (issue #4): visibility on each commander's whole view, by form factor, platform or user; the phone needs a single-page navigator. The Portrait screens and Phones settings were kept for this.
-- **A small outer border on the Commander card**, so its picture's edges never land on the screen's last pixels. The card rounds its size to 8 device px, and a WebView can be bigger than its screen: on a wall tablet (density 170) the page was 1342 × 801 device px on a 1340 × 800 screen, cutting the debug overlay's corners. Worth raising with KS's author, with those figures.
-- **Frames over the WebSocket have no lease** (2026.11.5-b3; the fix itself was seen working by the owner on 2026-11-11). In Safari over https the Commander's picture comes as frames over a WebSocket. A socket that stays open and sends nothing leaves a frozen picture with nothing said, as the `<img>` stream does. The compositor sends a frame again at its keep-alive, so the card could count a picture as current only while frames arrive, and say how long ago the last one came.
-- **Hardware video decoding for the compositor's streams** (considered 2026-10-07). Since b52 keyframes-only cut decoding about 16x, so measure first (the compositor page's CPU column). The owner's N150 has Quick Sync; PyAV's wheel has the QSV decoders; missing are `/dev/dri` (`video: true`) and Intel's driver (30–60 MB). **Constraint:** one image for every HA box (amd64 and aarch64), so no Intel-only packages for everyone. Options: amd64-only drivers, install on demand when an Intel GPU is found, or HA's go2rtc/ffmpeg doing it. Decode on the GPU when present, software otherwise, and say which on the page.
-- **Compositor follow-ups:** move `gen_dashboard.py`, `discover_entities.py` and their tests from `tablet-provision/composite-test` into `tools/`; a "Camera compositor" device in the integration (state, groups, streams); verify the Supervisor proxy carries the camera stills and the HLS warm-up websocket before cutting the tablets over from the Mac.
-
 ## Safe by construction (RULE FIVE)
 
 - **Logs that say whether it worked** (asked 2026-10-12). The compositor logs "reading its stream" and "stream no longer read", but not whether a frame came. Every stream read logs its outcome (first frame after how long, frames received, or why none: refused, timed out, closed), and each channel going up or down (a camera that flaps every few minutes). RULE TWO's other half: log every result.
@@ -1137,12 +1187,27 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 ## Next: Casa Mia, the public release
 
-- **The HACS catalog submissions (2026-11-20).** Open: Sensor Watch hacs/default#13883,
-  Love it or Loathe it #14085, Dash-Bored #14577 and Tablet Layout #14586 (and ha-dial
-  #14569, not Casa Mia's). Frenck put #13883 and #14085 in draft asking for their own
-  repository in `documentation` and `issue_tracker`; 2026.11.9 published that, checked
-  at each tag and in each release's ZIP, and the owner marks them ready for review.
-  Don't request a review otherwise: HACS's template says that gets a pull request closed.
+- **The HACS catalog submissions (2026-11-20).** Love it or Loathe it (#14085) and Tablet
+  Layout (#14586) were merged on 2026-11-26. Open: Sensor Watch hacs/default#13883,
+  Dash-Bored #14577 and Jukebox #14999 (and ha-dial #14569, not Casa Mia's). Every review
+  Frenck left on Sensor Watch and Dash-Bored is answered in the mirrors' 2026.11.12 and
+  2026.11.13 releases, and the owner re-requested review on 2026-11-25. Dash-Bored's page
+  can still reload itself, but only when switched on in Configure; he asked for it to be
+  dropped, so it may come back. Don't request a review otherwise: HACS's template says
+  that gets a pull request closed.
+- **Jukebox's catalog submission: two likely objections, left until raised** (owner,
+  2026-11-25). Opened as hacs/default#14999 on 2026-11-26. Frenck rejected both patterns
+  in Dash-Bored (#14577), so they are fixed when he raises them, not before:
+  - `art.View` and `phone.Stream` are `requires_auth = False`, guarded by one key per
+    start shared by every page, which ends up in history and logs; the art view also
+    fetches from Spotify's picture servers. Fix as Dash-Bored's photos: addresses signed
+    for each connection's login (`async_sign_path` with `refresh_token_id`).
+  - `find._seek` searches through Home Assistant's Spotify integration's own client
+    (`runtime_data.coordinator.client._get`), another integration's internals. Fix:
+    search with Jukebox's own Spotify sign-in (the one the phone player uses) against
+    Spotify's public Web API, so search needs that sign-in.
+  - Lesser: `upnp.py` asks the speakers directly over UPnP for what Home Assistant's
+    Sonos integration doesn't expose.
 
 Decided (2026-10-02): **ship everything.** Every module is off until enabled; no private edition: the house runs the public release like everyone else. House-specific values go to configuration (the alarm's entity ids, the compositor's cameras, the house photo). FONA's hardware is published with its sketch ("FONA Arduino firmware into the repo"). The costs: security reports (guest login hands out HA sessions), docs and support for other setups.
 

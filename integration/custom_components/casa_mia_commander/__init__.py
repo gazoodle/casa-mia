@@ -14,6 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
 from .commanders import async_prune_commander_devices, commander_device
 from .const import DOMAIN, MODULE
+from .fired import FIRED, Fired
 from .live import setup as setup_live
 from .motion import commanders, tracker
 from .pictures import setup as setup_pictures
@@ -30,7 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = coordinator
     if not hass.data.get(f"{DOMAIN}_pictures"):  # once per HA run
         setup_pictures(hass)  # the commanders' pictures, for viewers away from home
-        setup_live(hass)  # the cards' reports on their live video, for the log
+        setup_live(hass)  # the cards' reports (live video, tuning), for the logs
         hass.data[f"{DOMAIN}_pictures"] = True
     off = follow_module(
         hass,
@@ -51,6 +52,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         registry.async_remove_device(found.id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if not off:
+        # When each camera's event entity last fired, kept across restarts (fired.py),
+        # before the trackers say which entities to watch.
+
+        @callback
+        def found() -> None:  # new times: each commander's select says them
+            for one in coordinator.motion.values():
+                for show in one.found:
+                    show()
+
+        fired = hass.data[FIRED] = await Fired(hass, found).load()
+
         # Track motion, a tracker per commander, while the app has the commanders on.
 
         @callback
@@ -66,6 +78,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             for one in coordinator.motion.values():
                 one.unload()
             coordinator.motion.clear()
+            fired.unload()
+            hass.data.pop(FIRED, None)
 
         follow_commanders()
         entry.async_on_unload(coordinator.async_add_listener(follow_commanders))

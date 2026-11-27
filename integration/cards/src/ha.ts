@@ -39,6 +39,49 @@ export async function haForm(): Promise<void> {
   await customElements.whenDefined("ha-form");
 }
 
+/** HA's editors for a card inside a card: its card picker, its card editor and its
+ * Visibility editor. HA defines them with its conditional card's editor, so one is drawn
+ * out of sight with a config, then removed. The card HA makes is defined only later (its
+ * module loads lazily), so its class is asked for by name: until 2026.11.14-b21 its
+ * element's constructor was asked, which was still HTMLElement, and the wait for the
+ * editors never ended. Rejects, saying which are missing, after EDITORS_MS. */
+export const CARD_EDITORS = ["hui-card-picker", "hui-card-element-editor", "hui-card-visibility-editor"];
+const EDITORS_MS = 15_000;
+let editorsLoading: Promise<void> | null = null;
+
+export function haCardEditors(hass: Hass): Promise<void> {
+  if (CARD_EDITORS.every((tag) => customElements.get(tag))) return Promise.resolve();
+  editorsLoading ??= loadCardEditors(hass).finally(() => (editorsLoading = null));
+  return editorsLoading;
+}
+
+async function loadCardEditors(hass: Hass): Promise<void> {
+  const helpers = await (window as any).loadCardHelpers();
+  helpers.createCardElement({ type: "conditional", conditions: [], card: { type: "button" } });
+  await customElements.whenDefined("hui-conditional-card");
+  const editor = await (customElements.get("hui-conditional-card") as any).getConfigElement();
+  editor.hass = hass;
+  editor.lovelace = { views: [] }; // a dashboard's config, as HA gives its card editors
+  editor.setConfig({ type: "conditional", conditions: [], card: { type: "button" } });
+  editor.style.display = "none";
+  // Inside <home-assistant>, as HA's dialogs are: its editors take localize and the
+  // formatters from there (Lit context), and outside it each draw throws.
+  (document.querySelector("home-assistant")?.shadowRoot ?? document.body).append(editor);
+  try {
+    let gone = 0;
+    const late = new Promise<never>((_, fail) => {
+      gone = window.setTimeout(() => {
+        const missing = CARD_EDITORS.filter((tag) => !customElements.get(tag));
+        fail(new Error(`Home Assistant's card editors didn't load (${missing.join(", ")} missing)`));
+      }, EDITORS_MS);
+    });
+    await Promise.race([Promise.all(CARD_EDITORS.map((tag) => customElements.whenDefined(tag))), late]);
+    clearTimeout(gone);
+  } finally {
+    editor.remove();
+  }
+}
+
 /** HA's Sections view class. HA loads it only when a Sections view is first shown, so a
  * hidden hui-view showing an empty one makes it load. */
 export async function sectionsView(): Promise<CustomElementConstructor> {
@@ -244,14 +287,39 @@ export function ratioFor(dpr: number, viaHa: boolean, sharpness: Sharpness = "ba
   return viaHa ? Math.min(dpr, SHARPNESS[sharpness] ?? SHARPNESS.balanced) : dpr;
 }
 
+/** A kiosk's page zoom, 1 for none. A page zoomed k times in a window that fills the
+ * screen has a window the screen's shape, k times smaller both ways, and its
+ * devicePixelRatio leaves the zoom out (2026-11-26: a wall tablet's kiosk at 1.6x, a
+ * 2410 x 1506 screen, a 1506 x 941 window, 1.0625 either way). A computer's window
+ * smaller than its screen is another shape, so it is 1. So is a kiosk that keeps a
+ * status bar: there the browser's full screen still drops the zoom (card.ts: toScreen). */
+export function pageZoom(
+  screen: { width: number; height: number } = window.screen,
+  win: { innerWidth: number; innerHeight: number } = window,
+): number {
+  const across = screen.width / win.innerWidth;
+  const down = screen.height / win.innerHeight;
+  return across > 1.01 && Math.abs(across - down) < across / 100 ? Math.round(across * 100) / 100 : 1;
+}
+
+/** Device pixels to a CSS px: the screen's pixel ratio, and a kiosk's page zoom, which
+ * the ratio leaves out (pageZoom). A picture asked for at the ratio alone is stretched
+ * by the zoom, and soft. */
+export const screenRatio = (): number => (window.devicePixelRatio || 1) * pageZoom();
+
+/** One of a camera's channels, as the app sends it (commander/live.py): its entity, its
+ * size (0 x 0 not known), and its stream's codec, FFmpeg's name ("hevc", "h264"), once
+ * the app has read it. */
+export type Channel = [entity: string, width: number, height: number, codec?: string];
+
 /** The channel a live main camera plays (the compositor's ladder, compositor.choose):
  * going up its channels, smallest first ([entity, width, height]; 0 x 0 not known), the
  * first at least the place's size (device pixels), so the video is only made smaller;
  * none: the largest known; none known: the last. `whole`: fitted inside the place (one
  * side reaching it is enough), else filling it (both). */
-export function liveChannel(channels: [string, number, number][], place: [number, number], whole: boolean): string | undefined {
+export function liveChannel(channels: Channel[], place: [number, number], whole: boolean): string | undefined {
   const known = channels.filter(([, w, h]) => w > 0 && h > 0);
-  const enough = ([, w, h]: [string, number, number]) => (whole ? w >= place[0] || h >= place[1] : w >= place[0] && h >= place[1]);
+  const enough = ([, w, h]: Channel) => (whole ? w >= place[0] || h >= place[1] : w >= place[0] && h >= place[1]);
   return (known.find(enough) ?? known[known.length - 1] ?? channels[channels.length - 1])?.[0];
 }
 

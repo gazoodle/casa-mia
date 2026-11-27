@@ -176,6 +176,11 @@ var o = {
 			],
 			help: "What a main camera does when its shape is not its place's. Crop to fill and Show whole never move a tile when the main camera changes; Fit the layout to it can."
 		},
+		card_place: {
+			label: "Keep the last place for a card",
+			default: !1,
+			help: "The last place, in the picture's corner, is left clear, and a Camera Commander card draws a card of its own there (a clock, or a grid of buttons): the card's Card in the last place. Never given up for a camera."
+		},
 		cant_fit: {
 			label: "When the limits can't all be met",
 			default: "find",

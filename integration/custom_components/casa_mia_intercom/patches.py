@@ -21,9 +21,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# The HA release whose internals these were written against (read from HA's source on
-# 2026-11-05).
-PATCHES = Patches(DOMAIN, "2026.11.0")
+# Written against HA 2026.11.0's source (2026-11-05); the releases checked since are
+# patching.CHECKED, and the files read are tools/check_patches.py's.
+PATCHES = Patches(DOMAIN)
 
 
 def install(hass: HomeAssistant) -> None:

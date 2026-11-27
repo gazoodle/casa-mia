@@ -36,6 +36,24 @@ export function goodbye(
   return a.goodbye_url || `http://${hostname}:${a.guest_port ?? 8675}/bye`;
 }
 
+/** The endpoints' Access switches, by entity registry (hass.entities, which Home Assistant
+ * replaces when the registry changes): found once, not by a pass over every state. */
+const access = new WeakMap<object, string[]>();
+
+/** Whether this page's user is a guest: one a guest-login endpoint signs visitors in as
+ * (its Access switch names them, as goodbye reads it). Never an administrator. Until Home
+ * Assistant has sent its user and entities, yes, so what a guest mustn't see (a camera's
+ * recordings) stays hidden until it is known. */
+export function isGuest(hass: { states: { [id: string]: { attributes?: { [key: string]: any } } }; entities?: { [id: string]: { platform?: string } }; user?: { id: string; is_admin?: boolean } }): boolean {
+  const me = hass.user;
+  if (me?.is_admin) return false;
+  const entities = hass.entities;
+  if (!me || !entities) return true;
+  let ids = access.get(entities);
+  if (!ids) access.set(entities, (ids = Object.keys(entities).filter((id) => id.startsWith("switch.") && entities[id].platform === "casa_mia_guest_login")));
+  return ids.some((id) => hass.states[id]?.attributes?.guest_user_id === me.id);
+}
+
 /** Look every second, in a page of Home Assistant's. */
 export function watchForGoodbye(): void {
   const seen = new Map<string, boolean>();

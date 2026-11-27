@@ -165,13 +165,17 @@ def _frames(
 
 def first_frame(url: str) -> tuple[Image.Image | None, str, float]:
     """One frame of a stream (its first keyframe), at its own size, or None and why
-    not; and the CPU it took (s). Blocking, for at most about OPEN_TIMEOUT +
-    FRAME_TIMEOUT seconds."""
+    not; and the CPU it took (s). The codec it came in (FFmpeg's name: "hevc", "h264")
+    is in the picture's `info["codec"]`: a card asks its device whether it can play a
+    channel of that codec and size (commander/live.py). Blocking, for at most about
+    OPEN_TIMEOUT + FRAME_TIMEOUT seconds."""
     started = time.thread_time()
     try:
         with _open(url) as c:
             for frame in _frames(c):
-                return frame.to_image(), "", time.thread_time() - started
+                image = frame.to_image()
+                image.info["codec"] = c.streams.video[0].codec_context.name
+                return image, "", time.thread_time() - started
     except (FFmpegError, OSError, IndexError, TimeoutError) as exc:
         return None, str(exc) or type(exc).__name__, time.thread_time() - started
     return None, "the stream ended before a frame", time.thread_time() - started
@@ -197,6 +201,7 @@ class Reader:
         self.at = 0.0  # when the newest frame came
         self.frames = 0
         self.error: str | None = None
+        self.codec = ""  # FFmpeg's name for its video's codec, once open ("hevc")
         self.keyframes_only = True  # as last decided
         self.gop_s: float | None = None  # its keyframe interval, s (smoothed)
         self.cpu_s = 0.0  # its thread's CPU: reading and decoding
@@ -223,6 +228,7 @@ class Reader:
     def _run(self) -> None:
         try:
             with _open(self.url) as c:
+                self.codec = c.streams.video[0].codec_context.name
                 for frame in _frames(c, self._stop, self._keys, self._seen):
                     self.frame, self.at = frame, time.monotonic()
                     self.frames += 1

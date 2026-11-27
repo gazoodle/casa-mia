@@ -6,6 +6,8 @@
 import LABELS from "../../../app/src/casa_mia/labels.json" with { type: "json" };
 
 export const OPTIONS = LABELS.labels;
+/** The names' sizes, CSS px (nameSize), for the debug figures too. */
+export const NAME = LABELS.name;
 /** A font's file in the casa_mia component's www/fonts ("standard" has none: it is the
  * compositor's built-in font, and the browser's own sans-serif here). */
 export const FILES: Record<string, string> = LABELS.fonts;
@@ -14,8 +16,10 @@ export type Style = "bar" | "pill" | "none";
 export type Place = "top-left" | "top-centre" | "top-right" | "bottom-left" | "bottom-centre" | "bottom-right";
 export type Labels = {
   font: string;
-  tile_size: number;
-  main_size: number;
+  /** The tiles' names, % of their size (nameSize). */
+  tile_scale: number;
+  /** The main camera's name, % of its size (nameSize). */
+  main_scale: number;
   colour: string;
   tint: string;
   opacity: number;
@@ -34,6 +38,16 @@ export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) 
 /** A commander's labels, each setting it lacks at its default (one saved before there
  * were any has none). */
 export const labelsOf = (own?: Partial<Labels> | null): Labels => ({ ...DEFAULTS, ...own });
+
+/** A name's height in px (`scale` of them to a CSS px): `setting` % of its one size
+ * (labels.json: name), the same on every device, as the style guide's pills and chips are
+ * (owner, 2026-11-26). It was a share of its place and then a fitted rule from
+ * 2026.11.14-b8 to b15; the rules fitted to sizes set by hand came out close to a constant,
+ * and a fixed size in CSS px is what suits a phone, a tablet and a computer alike. The
+ * compositor's is the same sum (labels.py: name_px). */
+export function nameSize(which: "tile" | "main", setting: number, scale = 1): number {
+  return Math.floor(((NAME[which] * setting) / 100) * scale + 0.5);
+}
 
 const face = (font: string) => `Casa Mia ${font}`;
 
@@ -62,10 +76,11 @@ export function useFont(font: string, url: (file: string) => string): void {
 const EDGE = 10;
 
 /** How far up from the main camera's foot chips at `place` sit, px: clear of its name
- * when that is a bar across the foot, or a pill in the same corner. */
-export function footOf(l: Labels, place: Place): number {
-  if (l.main_style === "bar") return Math.round(l.main_size * 1.9) + 6;
-  if (l.main_style === "pill" && place === "bottom-left") return EDGE + Math.round(l.main_size * 1.2) + 4 + 6;
+ * (`px` high: nameSize of its place) when that is a bar across the foot, or a pill in
+ * the same corner. */
+export function footOf(l: Labels, place: Place, px: number): number {
+  if (l.main_style === "bar") return Math.round(px * 1.9) + 6;
+  if (l.main_style === "pill" && place === "bottom-left") return EDGE + Math.round(px * 1.2) + 4 + 6;
   return EDGE;
 }
 

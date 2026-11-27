@@ -81,3 +81,42 @@ test("this device is a room of the house, but not on the house's own screens", (
   assert.equal(phone.speaker(), "media_player.den");
   assert.equal(phone.within({ ...house, me: "screen" }).rooms[PHONE], undefined);
 });
+
+test("this device's queue is put back as it was: its songs, its place in the song, and a station that was on", async () => {
+  const started: [string, number][] = [];
+  // A stand-in for the players, which need a browser: what was started, and from where.
+  (phone as any)._sound = { on: "", unlock() {}, stop() {}, spotify: async (uri: string, from: number) => void started.push([uri, Math.floor(from)]) };
+  const station: Track = { ...song("radio"), live: true };
+  const lists: Record<string, Track[]> = { one: [a, b], two: [c], radio: [station] };
+  const hass = { connection: { sendMessagePromise: async (asked: any) => ({ songs: lists[asked.media_content_id], left_out: 0 }) } };
+  const house: House = { groups: [], rooms: { "media_player.den": { name: "Den", volume: 30, muted: false, available: true } }, me: "other" };
+  const group = () => phone.within(house).groups.find((g) => g.id === PHONE)!;
+  const play = (id: string, enqueue?: string) => phone.do(hass, "play_media", { media_content_id: id, media_content_type: "playlist", ...(enqueue ? { enqueue } : {}) });
+  const at = (playing: boolean, position: number) => ((phone as any)._told = { playing, position, duration: 200, at: Date.now() });
+
+  // Replaced 30 seconds into a song: back at that song and that place, playing.
+  await play("one");
+  at(true, 30);
+  await play("two", "replace");
+  assert.deepEqual([group().title, group().undo], ["c", true]);
+  await phone.do(hass, "queue_back");
+  assert.deepEqual([group().title, group().queue_size, group().undo, started.at(-1)], ["a", 2, false, [a.uri, 30]]);
+  // Only once.
+  await assert.rejects(phone.do(hass, "queue_back"), /any more/);
+
+  // Cleared while paused: back, still paused, and play carries on from where it was.
+  at(false, 12);
+  await phone.do(hass, "queue_clear");
+  assert.equal(group().queue_size, 0);
+  const before = started.length;
+  await phone.do(hass, "queue_back");
+  assert.deepEqual([group().queue_size, group().state, group().position, started.length], [2, "paused", 12, before]);
+
+  // Replaced while a station was on: the station is back, not a song of the queue.
+  await play("radio");
+  at(true, 0);
+  await play("two", "replace");
+  assert.equal(group().kind, "queue");
+  await phone.do(hass, "queue_back");
+  assert.deepEqual([group().kind, group().channel, group().queue_size, started.at(-1)], ["radio", "radio", 2, [station.uri, 0]]);
+});

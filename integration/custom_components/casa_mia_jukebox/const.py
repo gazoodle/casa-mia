@@ -11,6 +11,10 @@ INSTALLED_EVENT = "casa_mia_components_installed"
 
 CONF_PLAYERS = "players"
 CONF_TTS = "tts"
+# The engine's language and voice for announcements. Without them the engine uses its own
+# default, which Assist shares (a Piper app's, a Home Assistant Cloud account's).
+CONF_LANGUAGE = "language"
+CONF_VOICE = "voice"
 CONF_CHIME = "chime"
 CONF_QUIET = "quiet"
 CONF_SIDEBAR = "sidebar"

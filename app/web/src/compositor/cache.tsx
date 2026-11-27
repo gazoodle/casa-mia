@@ -73,6 +73,10 @@ export type View = "tiles" | "list";
 
 export type Sort = "name" | "age";
 
+/** A camera's channels in the order they are listed: smallest first, not by the alphabet
+ * (which gave high, low, medium). */
+const TIERS = ["low", "medium", "high"];
+
 export function CacheArea({
   items,
   cache,
@@ -91,7 +95,7 @@ export function CacheArea({
   const [view, setView] = useKept<View>("cm.cache.view", "tiles");
   const [sort, setSort] = useKept<Sort>("cm.cache.sort", "name");
   const sorted = [...items].sort((a, b) =>
-    sort === "age" ? (a.age ?? Infinity) - (b.age ?? Infinity) : a.name.localeCompare(b.name) || a.sub.localeCompare(b.sub),
+    sort === "age" ? (a.age ?? Infinity) - (b.age ?? Infinity) : a.name.localeCompare(b.name) || TIERS.indexOf(a.sub) - TIERS.indexOf(b.sub) || a.sub.localeCompare(b.sub),
   );
   const ageNote = (i: Item) => (i.age == null ? "" : `${seconds(i.age)} old`);
   const ageStyle = (i: Item) => (i.age != null && i.age > stale ? { color: "var(--warn)" } : undefined);

@@ -97,6 +97,10 @@ class FakeHA:
         self.boards: dict[str, dict | None] = {"dashboard-cams": {"views": ["old"]}}
         self.sent = []
         self.registry: list[dict] = []  # the entity registry: the commanders' entities
+        self.states: list[dict] = [
+            {"entity_id": f"camera.{n}", "attributes": {"access_token": f"t-{n}"}}
+            for n in ("a_low", "a_med")
+        ]
 
     def call(self, *commands):
         out = []
@@ -115,15 +119,7 @@ class FakeHA:
             elif c["type"] == "config/entity_registry/list":
                 out.append(self.registry)
             elif c["type"] == "get_states":
-                out.append(
-                    [
-                        {
-                            "entity_id": f"camera.{n}",
-                            "attributes": {"access_token": f"t-{n}"},
-                        }
-                        for n in ("a_low", "a_med")
-                    ]
-                )
+                out.append(self.states)
             elif c["type"] == "lovelace/config/save":
                 self.boards[c["url_path"]] = c["config"]
                 out.append(None)

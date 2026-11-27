@@ -146,6 +146,17 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
   npm run dev`. The same tool builds Sensor Watch's page (`src/sensor-watch/`, entry
   `panel.tsx`) into `casa_mia_sensor_watch/www/` as a Home Assistant panel; it talks to
   HA's websocket, so `npm run dev` can't show it.
+- **Sizes are fixed CSS px, never worked out** (owner, 2026-11-26). A pill, a chip or
+  a name is one size on every device: the style guide's, or one number in a settings
+  file. Never a share of its place, a curve, or one size for touch and another for a
+  mouse; when a size looks wrong, change the number. Apply "does this need to exist?"
+  to the design before the code. Why: in 2026.11.14 b8 to b15 the Camera Commander's
+  names and controls went through a share of the picture, clamps, a square root, a
+  mouse case, a tuning tool and fitted curves, while KNX Pi's copy of `pills.css` looked
+  right on a phone, two tablets and a Mac with no sizing code at all. **The one exception:
+  a clock** (Casa Mia Clock) fills its place, scaled whole as a camera picture is (owner,
+  2026-11-27: "fill the space" clocks). It is Home Assistant's own clock, drawn at HA's
+  fixed sizes and scaled by one transform; any chips beside it keep the fixed sizes.
 - **Pills, chips and chrome:** one source each, never hand-rolled. Pills and chips:
   `app/web/src/pills.css` (global `cm-` classes, coloured by `--tone`), adopted by the cards
   through `integration/cards/src/pills.ts`. Chrome (buttons, dialogs, menus, selects,

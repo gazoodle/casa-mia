@@ -1,11 +1,15 @@
 // The Camera Commander's types, constants and helpers, shared by the card and its editor.
-import { type Fit, type Hass, heightFor, liveChannel, type Sharpness, type State } from "../ha.ts";
+import { type CardConfig, type Channel, type Fit, type Hass, heightFor, liveChannel, type Sharpness, type State } from "../ha.ts";
 import { pyRound } from "../layout.ts";
 import type { Commander } from "../placed.ts";
 import type { Labels } from "../labels.ts";
 import type { Corner } from "./motion.ts";
 import type { Duplex } from "./talk-rules.ts";
 import type { Control, ControlsAt } from "../../../../app/web/src/cameras/controls.ts";
+
+/** One of a camera's PTZ presets, as the app sends it: the name shown and the call that
+ * goes to it (cameras.py: preset_calls). */
+export type Preset = { name: string; action: string; data: Record<string, unknown> };
 
 export type Route = "auto" | "direct" | "ha";
 export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "full" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
@@ -16,11 +20,11 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   look_tint?: [number, number, number];
   look_strength?: number;
   look_darkness?: number;
-  /** Motion on a tile: a dot, its colour, size (px), pulse (s; 0 steady), how long it
-   * stays after the motion (s) and its corner (motion.ts: MOTION). */
+  /** Motion on a tile: a dot, its colour, pulse (s; 0 steady), how long it stays after
+   * the motion (s) and its corner (motion.ts: MOTION). Its size is half the tiles' names
+   * (motion.ts: dotSize). */
   motion_dot?: boolean;
   motion_colour?: [number, number, number];
-  motion_size?: number;
   motion_pulse?: number;
   motion_linger?: number;
   motion_corner?: Corner;
@@ -34,14 +38,21 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   talk_button?: boolean;
   /** full: the voice goes out from the answer; half: only while Hold to talk is held (talk-rules.ts). */
   duplex?: Duplex;
+  /** The cards in the commander's last place, where it keeps one (place.ts): any Lovelace
+   * cards, the first showing filling the place, so alerts before a clock. */
+  cards?: CardConfig[];
+  /** b19's one card there: read as a list of one (place.ts: cardsOf), until the editor
+   * saves the list. */
+  card?: CardConfig;
 };
 export type Card = {
   picture: string;
   layout: Commander & { labels?: Partial<Labels>; main_keep?: string; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
-  /** Each camera: its title, live page, channels smallest first, with their sizes, and
-   * its controls with the edge they go along on a full screen (card.ts: full screen). */
-  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; controls_at?: Partial<ControlsAt> }>;
+  /** Each camera: its title, live page, channels smallest first, with their sizes and
+   * codecs, and its controls, PTZ presets and zoom (a number entity) with the edge they
+   * go along on a full screen (card.ts: full screen). */
+  cameras: Record<string, { title: string; live: string; channels?: Channel[]; controls?: Control[]; presets?: Preset[]; zoom?: string; controls_at?: Partial<ControlsAt> }>;
   /** The compositor's Live main camera switch. */
   live_main?: boolean;
   /** This run of the app: when it changes, the app restarted and the stream with it. */
@@ -89,19 +100,58 @@ export function liveMark(old: LiveMark | undefined, why: string, lostAt: number,
 
 /** A camera's channels in the order to try them live: the one that fits its place best
  * (ha.ts: liveChannel), then the smaller ones, largest first, then the larger ones. */
-export function liveOrder(channels: [string, number, number][], place: [number, number], whole: boolean): string[] {
+export function liveOrder(channels: Channel[], place: [number, number], whole: boolean): string[] {
   const names = channels.map(([name]) => name);
   const fit = names.indexOf(liveChannel(channels, place, whole) ?? "");
   return [...names.slice(0, fit + 1).reverse(), ...names.slice(fit + 1)];
 }
 
+/** The channels a device is to try (live.ts asks it): leaving out those it says it can't
+ * decode smoothly. The wall tablets' decoder stops at 2560 x 1440, so a 4K or 2688 x 1512
+ * channel never put a frame on screen there, and trying it stalled the channel already
+ * shown as well (owner, 2026-11-27: "if a device really cannot handle Hi then it ought to
+ * never try"). One not yet answered for, or with no codec known, is kept. If none would
+ * be left, all are kept: the ladder then tries them and says why each fails. */
+export function playable(channels: Channel[], decodes: (channel: Channel) => boolean | undefined): Channel[] {
+  const left = channels.filter((channel) => decodes(channel) !== false);
+  return left.length ? left : channels;
+}
+
 /** Which channels get a <video> now: `shown` is the best one putting frames on screen;
  * `tried` is the best one not marked bad that would be better than it, played unseen
- * until its first frame. So a working picture is never taken down to try a better one. */
-export function livePlan(order: string[], live: (channel: string) => boolean, bad: (channel: string) => boolean): { shown?: string; tried?: string } {
+ * until its first frame. So a working picture is never taken down to try a better one.
+ * `missed`: the best channel better than the one shown that is marked bad, for the
+ * caption to say (liveStatus); with none shown, the caption says live is lost instead. */
+export type LivePlan = { shown?: string; tried?: string; missed?: string };
+export function livePlan(order: string[], live: (channel: string) => boolean, bad: (channel: string) => boolean): LivePlan {
   const shown = order.find(live);
   const better = shown === undefined ? order : order.slice(0, order.indexOf(shown));
-  return { shown, tried: better.find((channel) => !bad(channel)) };
+  return { shown, tried: better.find((channel) => !bad(channel)), missed: shown === undefined ? undefined : better.find(bad) };
+}
+
+/** A channel's tier where its entity names it, as UniFi Protect's do
+ * (camera.gate_high_resolution_channel: "High"), else "". The caption draws it as bars
+ * (pills.ts: tierBars); the app reads the same names (cameras.py: CHANNEL). */
+export function channelTier(entity: string): string {
+  const tier = /_(high|medium|low)_resolution_channel$/.exec(entity)?.[1] ?? "";
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+/** What the caption's chip says of the live channels (live.ts: caption): the first one
+ * starting with nothing shown yet; a better one starting unseen; or, with none starting,
+ * a better one that failed, with why and when it is tried again. Null while the best
+ * there is plays. The channel is its tier, drawn as bars before the words, else the
+ * words say "Larger": the channels are tried in order of size (owner, 2026-11-27:
+ * "you're left wondering what is going on"). */
+export function liveStatus(plan: LivePlan, mark: (channel: string) => LiveMark | undefined, now: number): { tier: string; text: string; tone: "muted" | "warn"; tip: string } | null {
+  const { shown, tried, missed } = plan;
+  const larger = (channel: string, text: string) => (channelTier(channel) ? text : `Larger ${text}`);
+
+  if (tried && !shown) return { tier: channelTier(tried), text: "Starting", tone: "muted", tip: "The live video is starting" };
+  if (tried) return { tier: channelTier(tried), text: larger(tried, "coming"), tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" };
+  const m = missed ? mark(missed) : undefined;
+  if (missed && m) return { tier: channelTier(missed), text: larger(missed, "failed"), tone: "warn", tip: `${m.why}; tried again in ${ago(m.until - now)}` };
+  return null;
 }
 
 /** A while, as people say it: "12 s", "4 min", "2 h 5 min". */

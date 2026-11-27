@@ -65,15 +65,18 @@ class Speaker:
                 f"<res>file:///saved#{id}</res></container>"
                 for id, (name, _songs) in self.saved.items()
             )
+            total = len(self.saved)
         else:
             items = "".join(
                 f'<item id="Q:0/{n}"><res>{uri}</res></item>'
                 for n, uri in enumerate(self.queue, 1)
             )
+            total = len(self.queue)
         didl = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"
         dc = "http://purl.org/dc/elements/1.1/"
         return {
-            "Result": f'<DIDL-Lite xmlns="{didl}" xmlns:dc="{dc}">{items}</DIDL-Lite>'
+            "Result": f'<DIDL-Lite xmlns="{didl}" xmlns:dc="{dc}">{items}</DIDL-Lite>',
+            "TotalMatches": total,
         }
 
     def SaveQueue(self, said):

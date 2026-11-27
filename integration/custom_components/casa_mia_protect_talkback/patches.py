@@ -33,9 +33,10 @@ _LOGGER = logging.getLogger(__name__)
 
 TALK_SCRIPT = str(Path(__file__).parent / "talk.py")
 RESTART_DEADLINE = 20.0  # seconds for HA's watchdog to bring go2rtc back
-# The HA release whose internals these were written against (read from HA's source on
-# 2026-11-05; the go2rtc config patch passed test T1 on it).
-PATCHES = Patches(DOMAIN, "2026.11.0")
+# Written against HA 2026.11.0's source (2026-11-05; the go2rtc config patch passed test
+# T1 on it). The releases checked since are patching.CHECKED, and the files read are
+# tools/check_patches.py's.
+PATCHES = Patches(DOMAIN)
 
 # entry id -> {normalised MAC: (secrets file, Protect camera id)}
 _targets: dict[str, dict[str, tuple[str, str]]] = {}

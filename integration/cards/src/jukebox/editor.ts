@@ -8,7 +8,8 @@
 // Everything is asked of Jukebox.
 import { LitElement, css, html, nothing } from "lit";
 import { type Hass } from "../ha.ts";
-import { type Favourite, type House, type Song, ask, curates, follow, groupOf, mmss, names, reason } from "./common.ts";
+import { type Favourite, type House, type Song, ask, curates, favourites, follow, groupOf, mmss, names, reason } from "./common.ts";
+import { PICK, type Pick, type Sure, asking, chooser, create, put, sent } from "./pick.ts";
 import { type Queue } from "./queue.ts";
 import { Busy, EDGE, Split, art, grips, icon, shared } from "./parts.ts";
 
@@ -19,7 +20,6 @@ const SORTS: [by: string, label: string, said: string][] = [
   ["artist", "By artist, then album", "artist"],
   ["album", "By album, in the album's own order", "album"],
 ];
-type Sure = { warn: string; text: string; keep: string; go: string; run: () => void };
 
 /** Open the editor over everything, for the queue of the group `room` is in or, given
  * one, for a Sonos playlist. `done` is called when it is closed. */
@@ -29,7 +29,7 @@ export function edit(hass: Hass, room: string, playlist: Favourite | undefined, 
 }
 
 export class Editor extends LitElement {
-  static properties = { room: {}, playlist: { attribute: false }, _house: { state: true }, _why: { state: true }, _lift: { state: true }, _mark: { state: true }, _songs: { state: true }, _total: { state: true }, _sel: { state: true }, _stamp: { state: true }, _toast: { state: true }, _menu: { state: true }, _sorting: { state: true }, _confirm: { state: true }, _unsort: { state: true }, _zoom: { state: true } };
+  static properties = { room: {}, playlist: { attribute: false }, _house: { state: true }, _why: { state: true }, _lift: { state: true }, _mark: { state: true }, _songs: { state: true }, _total: { state: true }, _sel: { state: true }, _stamp: { state: true }, _toast: { state: true }, _menu: { state: true }, _sorting: { state: true }, _confirm: { state: true }, _unsort: { state: true }, _zoom: { state: true }, _putting: { state: true }, _lists: { state: true } };
   hass!: Hass;
   room = "";
   /** The Sonos playlist being put together; none for the queue. */
@@ -56,6 +56,10 @@ export class Editor extends LitElement {
   _unsort = false;
   /** The chosen song's cover, shown as large as the screen allows. */
   _zoom = false;
+  /** The sheet that asks which playlist the chosen song moves to (pick.ts), and the
+   * favourites it lists: fetched each time it opens, a string when they couldn't be. */
+  _putting?: Pick;
+  _lists?: Favourite[] | string;
   /** Something is being added above or straight after the chosen song, which is to stay
    * chosen: how many songs there were, to tell how many came. */
   private _adding?: { total: number; over: boolean };
@@ -89,7 +93,7 @@ export class Editor extends LitElement {
     if (e.key !== "Escape") return;
     e.stopImmediatePropagation(); // the player under this one stays
     // What is up over the editor goes first; then the editor.
-    if (this._zoom || this._menu || this._sorting || this._confirm) [this._zoom, this._menu, this._sorting, this._confirm] = [false, undefined, false, undefined];
+    if (this._zoom || this._menu || this._sorting || this._confirm || this._putting) [this._zoom, this._menu, this._sorting, this._confirm, this._putting] = [false, undefined, false, undefined, undefined];
     else this.remove();
   };
 
@@ -108,7 +112,8 @@ export class Editor extends LitElement {
   private _run(action: string, data: Record<string, unknown> = {}, key = action): Promise<Record<string, unknown> | undefined> {
     return this._busy.during(key, ask(this.hass, action, this.room, data)).then(
       (told) => {
-        this._moved(action, data);
+        // Nothing was done to a song that the other playlist holds already.
+        if (!(told as { already?: boolean } | null)?.already) this._moved(action, data);
         this._stamp++;
         return (told ?? {}) as Record<string, unknown>;
       },
@@ -126,7 +131,7 @@ export class Editor extends LitElement {
     const sel = this._sel;
     if (sel === undefined) return;
     const [from, to] = [Number(data.value) - 1, Number(data.to) - 1];
-    if (/_remove$/.test(action)) this._sel = from === sel ? undefined : from < sel ? sel - 1 : sel;
+    if (/_(remove|send)$/.test(action)) this._sel = from === sel ? undefined : from < sel ? sel - 1 : sel;
     else if (/_move$/.test(action)) this._sel = from === sel ? to : from < sel && to >= sel ? sel - 1 : from > sel && to <= sel ? sel + 1 : sel;
     else if (/sort$|dedupe$|clear$/.test(action)) this._sel = undefined;
   }
@@ -169,6 +174,34 @@ export class Editor extends LitElement {
     const sel = this._sel!;
     if (to - 1 !== sel) this._run(this.playlist ? "playlist_move" : "queue_move", { ...this._which(), value: sel + 1, to });
   }
+
+  /** The chosen song, to the end of another playlist, and out of this one unless it is
+   * copied. */
+  private _send(sel: number, song: Song, copy: boolean) {
+    const from = this.playlist!;
+    const asked = sent(from, sel, song, copy);
+    const pick = (playlist: Favourite) => {
+      this._putting = undefined;
+      put((d) => this._run(asked.action, d as Record<string, unknown>), asked.data(playlist), asked.already(playlist), (sure) => (this._confirm = sure), () => this._say(asked.said(playlist)));
+    };
+    this._lists = undefined;
+    favourites(this.hass, this.room).then(
+      (found) => (this._lists = found),
+      (err) => (this._lists = reason(err)),
+    );
+    this._putting = { ...asked.pick, pick };
+  }
+
+  /** A new playlist, named in the chooser: made, and then chosen as one listed would be. */
+  private _new = async (name: string) => {
+    const asked = this._putting;
+    if (!asked) return;
+    try {
+      asked.pick(await this._busy.during("new", create(this.hass, this.room, name)));
+    } catch (err) {
+      this._say(reason(err));
+    }
+  };
 
   private _which() {
     return this.playlist ? { playlist: this.playlist.media_content_id } : {};
@@ -264,6 +297,10 @@ export class Editor extends LitElement {
           <button ?disabled=${sel === 0} @click=${() => this._move(1)}>To the top</button>
           <button ?disabled=${sel >= total - 1} @click=${() => this._move(total)}>To the end</button>
           <button @click=${() => this._run(this.playlist ? "playlist_remove" : "queue_remove", { ...this._which(), value: sel + 1 })}>${icon("close")}Take out</button>
+          ${this.playlist
+            ? html`<button class=${this._busy.on("playlist_send")} @click=${() => this._send(sel, song, false)}>Move to another playlist…</button>
+                <button class=${this._busy.on("playlist_copy")} @click=${() => this._send(sel, song, true)}>Copy to another playlist…</button>`
+            : nothing}
           <button @click=${() => (this._sel = undefined)}>Let go</button>
         </div>
       </div>
@@ -275,14 +312,7 @@ export class Editor extends LitElement {
     const veil = (inside: unknown, shut: () => void) => html`<div class="veil" @click=${(e: Event) => e.target === e.currentTarget && shut()}>${inside}</div>`;
     if (sure)
       return veil(
-        html`<div class="sheet" role="alertdialog" aria-label=${sure.warn}>
-          <p class="warn">${sure.warn}</p>
-          <p>${sure.text}</p>
-          <div class="acts">
-            <button class="main" @click=${() => (this._confirm = undefined)}>${sure.keep}</button>
-            <button class="danger" @click=${() => ((this._confirm = undefined), sure.run())}>${sure.go}</button>
-          </div>
-        </div>`,
+        asking(sure, () => (this._confirm = undefined)),
         () => (this._confirm = undefined),
       );
     if (menu && song && this._sel !== undefined) {
@@ -300,6 +330,10 @@ export class Editor extends LitElement {
         </div>`,
         () => (this._menu = undefined),
       );
+    }
+    if (this._putting) {
+      const shut = () => (this._putting = undefined);
+      return veil(chooser(this._lists, this._putting, shut, this._new), shut);
     }
     if (this._sorting)
       return veil(
@@ -403,15 +437,14 @@ export class Editor extends LitElement {
       .sheet { width: min(100%, 440px); padding: 18px; border-radius: 22px; background: #26231f; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
       .sheet h4 { margin: 0 0 2px; font-size: 16px; overflow-wrap: anywhere; }
       .sheet p { margin: 0 0 14px; color: rgb(255 255 255 / 70%); overflow-wrap: anywhere; }
-      .sheet .warn { margin: 0 0 10px; color: #ff6b5e; font-size: 30px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
       .sheet .acts { display: grid; gap: 8px; }
       .sheet .acts button { padding: 14px; border-radius: 14px; background: rgb(255 255 255 / 10%); font-size: 15px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
       .sheet .acts .main { background: #fff; color: #111; }
-      .sheet .acts .danger { background: none; border: 1px solid #ff6b5e; color: #ff6b5e; }
       .sheet .acts .sep { margin-top: 10px; }
       .large { width: min(84vw, 84vh); }
       .large .art { border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / 60%); }
       .toast { position: fixed; left: 50%; bottom: 26px; z-index: 8; transform: translateX(-50%); max-width: min(90vw, 520px); padding: 12px 18px; border-radius: 14px; background: #fff; color: #111; font-weight: 600; overflow-wrap: anywhere; }
     `,
+    PICK,
   ];
 }

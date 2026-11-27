@@ -27,6 +27,31 @@ FONTS = COMPONENTS / "casa_mia" / "www" / "fonts"
 Colour = tuple[int, int, int, int]
 
 KEEP: dict[str, Any] = LABELS["picture"]["main_keep"]  # the part of a cropped main kept
+NAME: dict[str, Any] = LABELS["name"]  # the names' sizes, CSS px
+
+
+def name_px(which: str, setting: float, scale: float = 1) -> int:
+    """A name's height, in the picture's own pixels (`scale` of them to a CSS px):
+    `setting` % of its one size (labels.json: name; "tile" or "main"), the same on every
+    device, as the style guide's pills and chips are (owner, 2026-11-26). From
+    2026.11.14-b8 to b15 it was a share of its place and then a fitted rule; the rules
+    fitted to sizes set by hand came out close to a constant. The card's is the same sum
+    (integration/cards/src/labels.ts: nameSize)."""
+    return int(NAME[which] * setting / 100 * scale + 0.5)
+
+
+@functools.lru_cache(maxsize=1024)
+def fitted(text: str, font: Any, room: int) -> str:
+    """`text` as it fits in `room` px: whole, or cut short with … at its end, or
+    nothing when not even two letters and the … fit. Kept, as the same names are drawn
+    in the same tiles every couple of seconds."""
+    if font.getlength(text) <= room:
+        return text
+    for end in range(len(text) - 1, 1, -1):
+        short = text[:end].rstrip() + "…"
+        if font.getlength(short) <= room:
+            return short
+    return ""
 
 
 def keep(cmd: dict) -> tuple[float, float]:
@@ -78,11 +103,22 @@ class Look(NamedTuple):
 
 
 def look(cmd: dict) -> Look:
-    """A commander's labels, each setting it lacks at its default, sized for its scale
-    (a screen's device pixels to a CSS pixel, for a picture drawn at a size asked for)."""
+    """A commander's labels, each setting it lacks at its default, sized for the picture
+    being drawn, in its own pixels."""
     o = {**DEFAULTS, **(cmd.get("labels") or {})}
     scale = float(cmd.get("scale", 1))
-    tile_px, main_px = round(o["tile_size"] * scale), round(o["main_size"] * scale)
+    # A card being tuned (its debug on, compositor.sized): the sizes it asked for, CSS px.
+    tuned = cmd.get("tuned") or {}
+    tile_px = (
+        round(tuned["tile"] * scale)
+        if tuned.get("tile")
+        else name_px("tile", o["tile_scale"], scale)
+    )
+    main_px = (
+        round(tuned["main"] * scale)
+        if tuned.get("main")
+        else name_px("main", o["main_scale"], scale)
+    )
     return Look(
         font(o["font"], tile_px),
         font(o["font"], main_px),
@@ -110,16 +146,23 @@ def name(
     """A camera's name, vertically centred on `at`, in a style: on a bar (the rectangle
     `bar`), its left end at `at`; in a pill with rounded ends, as wide as the name and
     `inset` in from the bar's left; or none (not drawn at all). `px` is the name's size:
-    a pill's padding is in step with it, wide enough that its curve clears the text."""
+    a pill's padding is in step with it, wide enough that its curve clears the text.
+    A name too long for the bar's width is cut short (`fitted`), never drawn over the
+    next tile; one with no room at all is left out, and so is its pill."""
     if style == "none":
         return
+    pad, half = round(px * 0.5), round(px * 0.7)
+    # as far in from the right as from the left
+    left = at[0] if style == "bar" else bar[0] + inset + pad
+    text = fitted(text, font, bar[2] - left - (left - bar[0]))
     if style == "bar":
         draw.rectangle(bar, fill=seen.back)
+    elif not text:
+        return
     else:
         # Its height is the size's, not the text's: a name with no tails ("Mill") would
         # otherwise get a shorter pill than one with ("Piggery").
-        pad, half = round(px * 0.5), round(px * 0.7)
-        at = (bar[0] + inset + pad, at[1])
+        at = (left, at[1])
         box = draw.textbbox(at, text, font=font, anchor="lm")
         ends = (box[0] - pad, at[1] - half, box[2] + pad, at[1] + half)
         draw.rounded_rectangle(ends, radius=half, fill=seen.back)

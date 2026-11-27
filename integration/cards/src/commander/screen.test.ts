@@ -2,13 +2,13 @@
 // the webkit names of an iPad before iPadOS 16.4.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { barRoom, canFill, canPlayFull, fill, filling, playFull } from "./screen.ts";
+import { barRoom, canFill, fill, filling } from "./screen.ts";
 
-test("offered only where the page may take the screen", () => {
+test("the browser is asked only where the page may take the screen", () => {
   assert.equal(canFill({ fullscreenEnabled: true }), true);
   assert.equal(canFill({ webkitFullscreenEnabled: true }), true);
   assert.equal(canFill({ fullscreenEnabled: false, webkitFullscreenEnabled: true }), false); // a frame not allowed it
-  assert.equal(canFill({}), false); // Safari on an iPhone
+  assert.equal(canFill({}), false); // Safari on an iPhone, the Home Assistant app on iOS
 });
 
 test("something has the screen under either name", () => {
@@ -47,24 +47,4 @@ test("room is left for an iPad's status bar, and for nothing else", () => {
   assert.match(barRoom({ userAgent: "Mozilla/5.0 (iPad; CPU OS 15_8 like Mac OS X)", maxTouchPoints: 5 }), /24px/);
   assert.doesNotMatch(barRoom({ userAgent: mac, maxTouchPoints: 0 }), /24px/); // a Mac
   assert.doesNotMatch(barRoom({ userAgent: "Mozilla/5.0 (Linux; Android 15)", maxTouchPoints: 5 }), /24px/);
-});
-
-test("a phone plays the video in its own player, and starts it again afterwards", (t) => {
-  t.mock.timers.enable({ apis: ["setTimeout"] });
-  const calls: string[] = [];
-  let closed = () => undefined as void;
-  const video = {
-    webkitSupportsFullscreen: true,
-    webkitEnterFullscreen: () => void calls.push("enter"),
-    play: () => (calls.push("play"), Promise.resolve()),
-    addEventListener: (name: string, heard: () => void) => (calls.push(name), (closed = heard)),
-  };
-  assert.equal(canPlayFull(video), true);
-  assert.equal(canPlayFull({ ...video, webkitSupportsFullscreen: false }), false); // not begun yet
-
-  playFull(video);
-  assert.deepEqual(calls, ["webkitendfullscreen", "enter"]);
-  closed(); // the phone's player closes, leaving the video paused
-  t.mock.timers.tick(500);
-  assert.deepEqual(calls, ["webkitendfullscreen", "enter", "play"]);
 });

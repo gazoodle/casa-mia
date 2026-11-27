@@ -2,7 +2,7 @@
 // docs/design/pills-and-chips.html), for the cards: HA's theme colours under the token
 // names it uses, set on the pills and chips themselves so nothing leaks into other cards.
 // Kept out of ha.ts: the card tests run under plain Node, which can't import CSS.
-import { unsafeCSS } from "lit";
+import { html, nothing, unsafeCSS } from "lit";
 import SHARED from "../../../app/web/src/pills.css?inline";
 
 const TOKENS = `.cm-pill, .cm-chip {
@@ -22,3 +22,16 @@ const TOKENS = `.cm-pill, .cm-chip {
 export const PILLS_TEXT = TOKENS + SHARED;
 /** For a Lit element's styles. */
 export const PILLS = unsafeCSS(PILLS_TEXT);
+
+/** How many of the bars a tier fills (commander/common.ts: channelTier). */
+const FILLED: Record<string, number> = { Low: 1, Medium: 2, High: 3 };
+
+/** A camera channel's resolution (pills.css: .cm-bars): three bars 4 px wide, 2 px apart,
+ * 6, 11 and 16 px tall, as many filled as its tier and the rest a 1 px outline (the inner
+ * box cut out, so no stroke falls between pixels). Nothing for a channel without a tier. */
+export function tierBars(tier: string) {
+  const filled = FILLED[tier];
+  if (!filled) return nothing;
+  const d = [10, 5, 0].map((y, i) => `M${i * 6} ${y}h4v${16 - y}h-4z${i < filled ? "" : `M${i * 6 + 1} ${y + 1}h2v${14 - y}h-2z`}`).join("");
+  return html`<svg class="cm-bars" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d=${d}></path></svg>`;
+}

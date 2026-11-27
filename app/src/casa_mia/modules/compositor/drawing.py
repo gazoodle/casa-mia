@@ -348,6 +348,9 @@ class Placed(NamedTuple):
     # whether the camera is shown whole in it (else cropped to fill).
     tiles: list[tuple[str, str, Rect, bool]]
     more: tuple[Rect, int] | None  # the "+n more" tile, and the cameras it stands for
+    # The place kept for a card (Responsive: its card_place). Nothing is drawn there:
+    # the Camera Commander card draws a card of its own over it.
+    card: Rect | None
     gave: list[str]  # the limits that gave way (Responsive: see `responsive`)
 
 
@@ -366,6 +369,7 @@ def placed(cmd: dict, main: str | None = None) -> Placed:
                 for p in PANELS
                 for e, rect in zip(cmd[p]["cameras"], rects[p], strict=True)
             ],
+            None,
             None,
             [],
         )
@@ -387,6 +391,7 @@ def placed(cmd: dict, main: str | None = None) -> Placed:
         "crop" if laid["main_how"] == "cover" else "fit",
         [("tiles", e, tuple(r), False) for e, r in zip(cameras, laid["tiles"])],
         (tuple(laid["more"]), laid["dropped"]) if laid["more"] else None,
+        tuple(laid["card"]) if laid["card"] else None,
         laid["gave"],
     )
 
@@ -453,17 +458,19 @@ def commander(
     shown the moment the main camera is switched, from stills already to hand: blurred,
     with "Changing to <camera>" over it, until the sharp one is ready. `stale`: the
     cameras whose tile picture is old (marked Stale); `main_stale`: the main picture is."""
-    size, main_rect, main_fit, places, more, _ = placed(cmd, main)
+    size, main_rect, main_fit, places, more, _, _ = placed(cmd, main)
     # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
     scale = float(cmd.get("scale", 1))
-    seen = look(cmd)  # its labels' font, colours and style (labels.py)
+    # Its labels' font, colours and style (labels.py), sized for this picture.
+    seen = look(cmd)
     small, font, big = seen.small, seen.font, seen.big
 
     def u(n: float) -> int:
         return round(n * scale)
 
-    # A tile's name bar: 22 px for a name of 16, and in step with it.
+    # A tile's name bar: 22 px for a name of 16, and in step with it; its name 6 px in.
     bar = round(seen.tile_px * SMALL_BAR / 16)
+    tile_in = round(seen.tile_px * 6 / 16)
     # Drawn solid, so the name bars and labels shade the picture under them; the gaps
     # are cut out at the end. (Drawn on a transparent canvas, a see-through bar would
     # replace the picture under it, and the dashboard's background would show through.)
@@ -495,13 +502,13 @@ def commander(
         name(
             draw,
             swap.out(str(titles.get(entity) or entity)),
-            (x + u(6), y + h - bar // 2),
+            (x + tile_in, y + h - bar // 2),
             small,
             seen,
             seen.tile_style,
             (x, y + h - bar, x + w, y + h),
             seen.tile_px,
-            u(2),
+            tile_in // 3,
         )
         if raw and entity in stale:
             _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
@@ -574,26 +581,35 @@ def commander(
                 anchor="mm",
             )
         live = bool(cmd.get("main_video"))  # the card's live video plays over it
+        by_card = live or bool(cmd.get("card_caption"))  # the card draws name and clock
         if main_image and main_stale and not live:
             _stale_mark(draw, (px + pw - u(10), py + u(22)), font, scale)
         # Its name's row: 18 px up from the foot for a name of 20, and in step with it.
         up = round(seen.main_px * 0.9)
         foot = py + ph - up
-        if not live:  # (the card draws a live main camera's caption)
+        main_in = round(seen.main_px / 2)  # 10 px in for a name of 20
+        if not by_card:
+            clock = datetime.now().strftime("%H:%M:%S")
+            # the name stops short of the clock, which keeps the right of the foot
+            taken = round(font.getlength(clock)) + main_in
             name(
                 draw,
                 label,
-                (px + u(10), foot),
+                (px + main_in, foot),
                 font,
                 seen,
                 seen.main_style,
-                (px, foot - up, px + pw, py + ph),
+                (px, foot - up, px + pw - taken, py + ph),
                 seen.main_px,
-                u(6),
+                round(seen.main_px * 0.3),
             )
+            if seen.main_style == "bar":  # the bar itself runs on under the clock
+                draw.rectangle(
+                    (px + pw - taken, foot - up, px + pw, py + ph), fill=seen.back
+                )
             draw.text(
-                (px + pw - u(10), foot),
-                datetime.now().strftime("%H:%M:%S"),
+                (px + pw - main_in, foot),
+                clock,
                 fill=seen.colour,
                 font=font,
                 anchor="rm",
@@ -611,14 +627,15 @@ def commander(
         canvas.putalpha(mask)
     debug = {**EMPTY_COMMANDER["debug"], **(cmd.get("debug") or {})}
     if debug["on"]:
-        canvas = _debug(canvas, cmd, debug, scale)
+        canvas = _debug(canvas, debug, scale)
     return encode(canvas, JPEG_QUALITY)
 
 
-def _debug(canvas: Image.Image, cmd: dict, debug: dict, scale: float) -> Image.Image:
+def _debug(canvas: Image.Image, debug: dict, scale: float) -> Image.Image:
     """The debug overlay (see EMPTY_COMMANDER["debug"]): everything dimmed (the clear
-    parts stay clear), corner Ls and diagonals to show the picture's true edges, and
-    its ID and draw time 30% down the middle, clear of the corners and the crossing."""
+    parts stay clear), and corner Ls and diagonals to show the picture's true edges.
+    Its figures are the card's own debug box alone (owner, 2026-11-27): a second box
+    drawn in the picture was covered by live video, so it came and went."""
     w, h = canvas.size
     rgb = canvas.convert("RGB").point(lambda v: v * float(debug["dim"]) / 100)
     if canvas.mode == "RGBA":
@@ -638,18 +655,6 @@ def _debug(canvas: Image.Image, cmd: dict, debug: dict, scale: float) -> Image.I
         draw.line((cx, cy, cx, cy + dy * arm), fill=colour, width=lw)
     draw.line((0, 0, w - 1, h - 1), fill=colour, width=lw)
     draw.line((w - 1, 0, 0, h - 1), fill=colour, width=lw)
-    font = _fonts(scale)[1]
-    text = (
-        f"{cmd['name']}  {w} x {h}  @{scale:g}x\n"
-        f"drawn {datetime.now().strftime('%H:%M:%S.%f')[:-3]}"
-    )
-    at = (w // 2, round(h * 0.3))
-    box = draw.multiline_textbbox(at, text, font=font, anchor="mm", align="center")
-    pad = round(10 * scale)
-    draw.rectangle(
-        (box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad), fill=(0, 0, 0)
-    )
-    draw.multiline_text(at, text, fill=colour, font=font, anchor="mm", align="center")
     return canvas
 
 

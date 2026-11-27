@@ -31,6 +31,12 @@ MAIN_SHAPE: Shape = (16, 9)
 # Show whole: a main camera that would lose no more than this (per mille) is cropped
 # instead, so one in a block of nearly its own shape gets no hairline bars.
 WHOLE_OVER = 50
+# The main camera's block may be this much (per mille) further from its shape than a tile
+# may be from the tile shape. A cell that is too tall is shortened to exactly the tile's
+# limit, and the gaps then put a block of such cells a fraction over it: without this,
+# every grid of them was thrown away, and a space taller than the cameras' shape got a
+# grid with smaller tiles and more of it empty (2026.11.14-b8: 11 of 275 cases).
+BLOCK_OVER = 5
 # The most cells along a side. The smallest tile stops the search long before, except
 # when that limit has been given up.
 MOST_LINES = 24
@@ -82,9 +88,12 @@ def _best(
     least: int,
     most: int,
     edges: tuple[str, ...],
+    kept: int,
 ) -> tuple[int, ...] | None:
     """The best grid for a space w x h: (columns, rows, the block's columns and rows, its
-    column and row, a cell's width and height), or None when the limits allow none."""
+    column and row, a cell's width and height), or None when the limits allow none.
+    `kept` cells are kept back from the tiles (the place for a card): they take a cell
+    each and count as showing something, so a grid is not marked down for them."""
     biggest = _whole(w, h, main)  # the main camera's limits are shares of this
     found: tuple[tuple[int, ...], tuple[int, ...]] | None = None
 
@@ -114,8 +123,8 @@ def _best(
                     continue
                 for mr in range(2, rows + 1):
                     top = _before(rows - mr, "top", "bottom", edges)
-                    room = cols * rows - mc * mr  # cells for tiles
-                    if top is None or not room:
+                    room = cols * rows - mc * mr - kept  # cells for tiles
+                    if top is None or room < 1:
                         continue
                     bw, bh = mc * cw + (mc - 1) * gap, mr * ch + (mr - 1) * gap
                     # The block is held as near the main camera's shape as a cell is to
@@ -125,7 +134,7 @@ def _best(
                     lost = _lost(bw, bh, main)
                     shown = bw * bh
                     if (
-                        lost > max(loss * 10, WHOLE_OVER)
+                        lost > max(loss * 10 + BLOCK_OVER, WHOLE_OVER)
                         or shown * 100 < least * biggest
                     ):
                         continue
@@ -133,7 +142,7 @@ def _best(
                     # Cameras that don't fit go into "+n more", which takes a cell.
                     dropped = 0 if room >= tiles else tiles - (room - 1)
                     used = min(tiles, room)
-                    unused = w * h - used * cw * ch - shown
+                    unused = w * h - (used + kept) * cw * ch - shown
                     # The cost, in millionths of the space: what shows no camera; half
                     # of what cropping loses; and nine tenths of the main camera's room
                     # beyond its most. So room beyond its most is worth almost nothing
@@ -195,7 +204,8 @@ def responsive(
     """A commander of `cameras` cameras laid out in width x height: the main camera's
     place and how it is put there (cover: cropped to fill; contain: whole), each tile's
     place in the cameras' order, the "+n more" tile's place and how many cameras it
-    stands for, and which limits gave way (`gave`). The main camera keeps its own tile,
+    stands for, the place kept for a card (`card`: the last cell, with the option on),
+    and which limits gave way (`gave`). The main camera keeps its own tile,
     so nothing moves when it changes. `main_shape` is the main camera's own shape, and
     `scale` grows the smallest tile as it grows the gap (a CSS pixel in device pixels)."""
     o = {**DEFAULTS, **(options or {})}
@@ -207,6 +217,7 @@ def responsive(
     main = own if o["main_other"] == "follow" else MAIN_SHAPE
     tiles = cameras if cameras > 1 else 0  # one camera needs no tile of itself
     tile_min = max(1, round(o["tile_min"] * scale))
+    kept = 1 if o["card_place"] else 0
 
     def solve(edges: tuple[str, ...], least: int, tile_min: int) -> tuple | None:
         return _best(
@@ -221,6 +232,7 @@ def responsive(
             least,
             int(o["main_most"]),
             edges,
+            kept,
         )
 
     # The limits as set; then, to find something that fits, they give way in a fixed
@@ -255,6 +267,7 @@ def responsive(
             "main_how": how,
             "tiles": [],
             "more": None,
+            "card": None,  # no cells, so no last one
             "dropped": tiles,
             "gave": [*gave, "main_alone"] if tiles else [],
             "grid": [1, 1, 1, 1],
@@ -268,6 +281,9 @@ def responsive(
         [x0 + c * (cw + gap), y0 + r * (ch + gap), cw, ch]
         for c, r in _cells(grid, edges)
     ]
+    # The card's place is the last cell, whatever the cameras need: "+n more" is the
+    # cell before it.
+    card = places.pop() if kept else None
     dropped = 0 if len(places) >= tiles else tiles - (len(places) - 1)
     shown = tiles - dropped
 
@@ -280,6 +296,7 @@ def responsive(
         "main_how": "contain" if whole else "cover",
         "tiles": places[:shown],
         "more": places[shown] if dropped else None,
+        "card": card,
         "dropped": dropped,
         "gave": gave,
         "grid": [cols, rows, mc, mr],

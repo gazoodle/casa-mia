@@ -40,6 +40,7 @@ def test_reads_a_stream_at_its_own_size(tmp_path):
     url = h264_file(tmp_path / "s.ts")
     first, _, cpu = streams.first_frame(url)
     assert first is not None and first.size == (64, 48)
+    assert first.info["codec"] == "h264"  # for a card to ask its device about
     none, why, _ = streams.first_frame(str(tmp_path / "none.ts"))
     assert none is None and why
     assert cpu > 0  # the CPU it took, measured
@@ -52,7 +53,7 @@ def test_reads_a_stream_at_its_own_size(tmp_path):
         time.sleep(0.01)
     got = keys.image()
     assert got and got[0].size == (64, 48) and keys.frames == 1 and keys.keyframes_only
-    assert every.frames == 5 and not every.keyframes_only
+    assert every.frames == 5 and not every.keyframes_only and every.codec == "h264"
     assert keys.error == "the stream ended" and keys.cpu_s > 0 and keys.convert_s > 0
 
 
@@ -142,6 +143,7 @@ class StubReader:
         self.at = time.monotonic()
         self.cpu_s = self.convert_s = 0.0
         self.keyframes_only, self.gop_s = True, 1.0
+        self.codec = "hevc"
 
     def image(self):
         return self.frame, time.monotonic()
@@ -267,7 +269,7 @@ class Chatty:
     """A stream that sends packets for ever (audio, say) but never a video frame."""
 
     def __init__(self):
-        codec = type("Codec", (), {"skip_frame": "DEFAULT"})()
+        codec = type("Codec", (), {"skip_frame": "DEFAULT", "name": "h264"})()
         self.video = type("Video", (), {"thread_count": 0, "codec_context": codec})()
         self.streams = type("Streams", (), {"video": [self.video]})()
 

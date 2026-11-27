@@ -38,7 +38,7 @@ export type Cameras = Record<string, Camera>;
 
 export type HACamera = { entity: string; name: string; device_id: string | null; medium?: string; high?: string; zoom?: string };
 
-export type HAEntity = { entity: string; name: string; state?: string };
+export type HAEntity = { entity: string; name: string; state?: string; device_class?: string };
 
 /** What the Cameras page asks Home Assistant for. */
 export type HA = {

@@ -244,7 +244,7 @@ function menu() {
     <div class="acts">
       <button class="main" data-do="add" data-id="${x.id}" data-w="next">Play next</button>
       <button data-do="add" data-id="${x.id}" data-w="end">Add to the end of the queue</button>
-      <button class="danger sep" data-do="add" data-id="${x.id}" data-w="replace">Play now and replace the queue…</button>
+      <button class="sep" data-do="add" data-id="${x.id}" data-w="replace">Play now in place of the queue</button>
     </div></div></div>`;
 }
 
@@ -374,12 +374,8 @@ const DO = {
   add(d) {
     const g = group(), x = song[d.id] ?? PLAYLISTS.find((p) => p.id === d.id);
     state.menu = null;
-    if (d.w !== "replace" || !g.queue.length) return add(g, x, d.w);
-    state.dialog = {
-      warn: "This replaces the whole queue",
-      text: `The ${g.queue.length} songs in the queue will go, and "${esc(x.title)}" will start now.`,
-      no: "Keep the queue", yes: "Replace it", act: () => add(g, x, "replace"),
-    };
+    // Not asked about: the real player keeps the queue and offers to put it back.
+    add(g, x, d.w);
   },
   station(d) {
     const g = group(), st = STATIONS.find((s) => s.id === d.id);

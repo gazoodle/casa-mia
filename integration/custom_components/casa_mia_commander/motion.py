@@ -6,10 +6,13 @@ after all motion stops it goes back to the camera chosen by hand (0: it stays); 
 choice by hand (a tap, or an automation) pauses tracking for `pause` seconds; cameras left
 out of it (the commander's `motion_ignore`) never take over, nor hold it back. Whatever
 the switch, the Camera Commander card marks a tile while its camera sees motion, from the
-sensors found here (the commander's select's `motion` attribute).
+sensors found here (the commander's select's `motion` attribute), and shows what each
+camera detects from its event entities (`detections`, found by detections.py).
 
 A camera's motion sensor is a binary_sensor of device class motion on its device, else
-one named after it (binary_sensor.<camera, less its channel>_motion)."""
+one named after it (binary_sensor.<camera, less its channel>_motion). Both are looked
+for again at each report from the app and whenever Home Assistant's entity registry
+changes an event entity or a binary sensor, so a new one is found at once."""
 
 from __future__ import annotations
 
@@ -25,6 +28,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
 from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
+from .detections import event_entities, on_device
+from .fired import FIRED
 
 _LOGGER = logging.getLogger(__name__)
 CHANNEL = re.compile(r"_(high|medium|low)_resolution_channel$")
@@ -68,17 +73,10 @@ def motion_sensors(hass: HomeAssistant, cameras: list[str]) -> dict[str, str]:
 
     out: dict[str, str] = {}
     for cam in cameras:
-        entry = registry.async_get(cam)
         found = sorted(
             e.entity_id
-            for e in (
-                er.async_entries_for_device(registry, entry.device_id)
-                if entry and entry.device_id
-                else []
-            )
-            if e.domain == "binary_sensor"
-            and not e.disabled_by
-            and is_motion(e.entity_id)
+            for e in on_device(registry, cam)
+            if e.domain == "binary_sensor" and is_motion(e.entity_id)
         )
         named = f"binary_sensor.{CHANNEL.sub('', cam.split('.', 1)[1])}_motion"
         if not found and hass.states.get(named) and is_motion(named):
@@ -97,6 +95,8 @@ class MotionTracker:
         self.cid = cid  # its commander's id
         self.enabled = False  # the Track motion switch
         self.sensors: dict[str, str] = {}  # sensor -> camera
+        # camera -> {event entity: its translation key}
+        self.detections: dict[str, dict[str, str]] = {}
         self.moving: set[str] = set()  # cameras seeing motion now
         self.main: str | None = None  # the camera shown as main, as last switched
         self.by_hand: str | None = None  # the camera last chosen by hand
@@ -106,8 +106,24 @@ class MotionTracker:
         self.shown: list[
             Callable[[str], None]
         ] = []  # the select: show a switch at once
+        self.found: list[
+            Callable[[], None]
+        ] = []  # the select: show new sensors or detections at once
         self._unsub: CALLBACK_TYPE | None = None
         self._timers: dict[str, CALLBACK_TYPE] = {}
+
+        @callback
+        def relevant(data: er.EventEntityRegistryUpdatedData) -> bool:
+            return data["entity_id"].split(".")[0] in ("event", "binary_sensor")
+
+        @callback  # on HA's loop: a plain function would run in a worker thread
+        def changed(_event: Event[er.EventEntityRegistryUpdatedData]) -> None:
+            self.refresh()
+
+        # Pushed by Home Assistant: Protect adopting a camera, an entity enabled.
+        self._unsub_registry = hass.bus.async_listen(
+            er.EVENT_ENTITY_REGISTRY_UPDATED, changed, event_filter=relevant
+        )
 
     # -- what the app says about the commander
 
@@ -131,14 +147,44 @@ class MotionTracker:
 
     @callback
     def refresh(self) -> None:
-        """Each report from the app: follow the commander's cameras' motion sensors."""
+        """Each report from the app and each change to the registry: follow the
+        commander's cameras' motion sensors, and find their event entities."""
         by_title = {t: e for e, t in (self._commander().get("cameras") or {}).items()}
         if self.main is None:
             self.main = by_title.get(self._commander().get("main") or "")
         cameras = list(by_title.values())
         sensors = motion_sensors(self.hass, cameras)
-        if sensors == self.sensors:
+        detections = event_entities(self.hass, cameras)
+        if sensors == self.sensors and detections == self.detections:
             return
+
+        if detections != self.detections:
+            self.detections = detections
+            _LOGGER.info(
+                "detections (%s): %s",
+                self._who,
+                "; ".join(
+                    f"{self._title(c)}: {', '.join(found)}"
+                    for c, found in detections.items()
+                )
+                or "no event entities",
+            )
+            # Every commander's event entities have their fires recorded (fired.py).
+            if fired := self.hass.data.get(FIRED):
+                fired.watch(
+                    entity
+                    for one in self.coordinator.motion.values()
+                    for found in one.detections.values()
+                    for entity in found
+                )
+        if sensors != self.sensors:
+            self._follow(sensors)
+        for show in self.found:
+            show()
+
+    @callback
+    def _follow(self, sensors: dict[str, str]) -> None:
+        """Watch these motion sensors in place of the last ones."""
         if self._unsub:
             self._unsub()
         self.sensors = sensors
@@ -285,6 +331,7 @@ class MotionTracker:
 
     @callback
     def unload(self) -> None:
+        self._unsub_registry()
         if self._unsub:
             self._unsub()
         for cancel in self._timers.values():

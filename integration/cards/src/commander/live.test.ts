@@ -3,7 +3,8 @@
 // can stay in, and no failure that stops the tries for good.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, pictureDown } from "./common.ts";
+import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, channelTier, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus, pictureDown, playable } from "./common.ts";
+import type { Channel } from "../ha.ts";
 
 const now = 10_000_000;
 
@@ -42,6 +43,15 @@ test("a failed channel's mark lapses, later for each failure in a row, up to the
 
 const channels: [string, number, number][] = [["low", 640, 360], ["medium", 1280, 720], ["high", 2560, 1440]];
 
+test("a device tries only the channels it says it can decode, and all when it would try none", () => {
+  const camera: Channel[] = [["low", 640, 360, "hevc"], ["medium", 1280, 720, "hevc"], ["high", 3840, 2160, "hevc"]];
+  const tablet = ([, w]: Channel) => w <= 2560; // its H.265 decoder's largest
+  assert.deepEqual(playable(camera, tablet).map(([c]) => c), ["low", "medium"]);
+  assert.deepEqual(playable(camera, () => undefined), camera); // not answered yet: as before
+  assert.deepEqual(playable(camera, ([c]) => (c === "high" ? undefined : false)).map(([c]) => c), ["high"]);
+  assert.deepEqual(playable(camera, () => false), camera); // none: the ladder tries and says why
+});
+
 test("the order to try channels: the one that fits, then down the sizes, then up", () => {
   assert.deepEqual(liveOrder(channels, [1200, 600], false), ["medium", "low", "high"]);
   assert.deepEqual(liveOrder(channels, [600, 300], false), ["low", "medium", "high"]);
@@ -52,13 +62,37 @@ test("the order to try channels: the one that fits, then down the sizes, then up
 test("the plan: the best channel with frames is shown, a better one is tried unseen", () => {
   const order = ["medium", "low", "high"];
   const plan = (live: string[], bad: string[]) => livePlan(order, (c) => live.includes(c), (c) => bad.includes(c));
-  assert.deepEqual(plan([], []), { shown: undefined, tried: "medium" }); // the start
-  assert.deepEqual(plan(["medium"], []), { shown: "medium", tried: undefined });
-  assert.deepEqual(plan([], ["medium"]), { shown: undefined, tried: "low" }); // down the sizes
-  assert.deepEqual(plan(["low"], ["medium"]), { shown: "low", tried: undefined });
-  assert.deepEqual(plan(["low"], []), { shown: "low", tried: "medium" }); // its mark lapsed: tried under the one shown
-  assert.deepEqual(plan(["medium", "low"], []), { shown: "medium", tried: undefined }); // and it took over
-  assert.deepEqual(plan([], order), { shown: undefined, tried: undefined }); // all bad: the drawn picture
+  assert.deepEqual(plan([], []), { shown: undefined, tried: "medium", missed: undefined }); // the start
+  assert.deepEqual(plan(["medium"], []), { shown: "medium", tried: undefined, missed: undefined });
+  assert.deepEqual(plan([], ["medium"]), { shown: undefined, tried: "low", missed: undefined }); // down the sizes
+  assert.deepEqual(plan(["low"], ["medium"]), { shown: "low", tried: undefined, missed: "medium" }); // said by the caption
+  assert.deepEqual(plan(["low"], []), { shown: "low", tried: "medium", missed: undefined }); // its mark lapsed: tried under the one shown
+  assert.deepEqual(plan(["medium", "low"], []), { shown: "medium", tried: undefined, missed: undefined }); // and it took over
+  assert.deepEqual(plan([], order), { shown: undefined, tried: undefined, missed: undefined }); // all bad: the drawn picture
+});
+
+test("a channel's tier is read from Protect's entity name, and nothing from another camera's", () => {
+  assert.equal(channelTier("camera.gate_high_resolution_channel"), "High");
+  assert.equal(channelTier("camera.gate_medium_resolution_channel"), "Medium");
+  assert.equal(channelTier("camera.gate_low_resolution_channel"), "Low");
+  assert.equal(channelTier("camera.gate_high_resolution_channel_insecure"), ""); // not one the card plays
+  assert.equal(channelTier("camera.driveway"), "");
+});
+
+test("the caption's chip: starting, a better channel coming, a better one failed, or nothing", () => {
+  const H = "camera.gate_high_resolution_channel";
+  const M = "camera.gate_medium_resolution_channel";
+  const failed = { since: now - 60_000, until: now + 120_000, fails: 2, why: "no video arrived" };
+  const marks = (c: string) => (c === H ? failed : undefined);
+  const said = (plan: Parameters<typeof liveStatus>[0]) => liveStatus(plan, marks, now);
+
+  assert.deepEqual(said({ tried: M }), { tier: "Medium", text: "Starting", tone: "muted", tip: "The live video is starting" }); // nothing shown yet
+  assert.deepEqual(said({ tried: "camera.driveway" }), { tier: "", text: "Starting", tone: "muted", tip: "The live video is starting" });
+  assert.deepEqual(said({ shown: M, tried: H }), { tier: "High", text: "coming", tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" });
+  assert.deepEqual(said({ shown: M, missed: H }), { tier: "High", text: "failed", tone: "warn", tip: "no video arrived; tried again in 2 min" });
+  assert.equal(said({ shown: "camera.a", tried: "camera.b" })?.text, "Larger coming"); // not Protect's: no tier
+  assert.equal(said({ shown: H }), null); // the best there is
+  assert.equal(said({}), null); // nothing at all: the caption says live is lost
 });
 
 test("frames over a WebSocket: only for a stream through Home Assistant, on the page's host", () => {

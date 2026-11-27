@@ -42,36 +42,51 @@
   position: absolute;
   display: flex;
   flex-wrap: wrap;
-  justify-content: var(--cm-pill-align);
-  gap: calc(var(--cm-pill-height) * 0.2);
-  padding: calc(var(--cm-pill-height) * 0.3);
+  justify-content: var(--cm-chip-align);
+  gap: var(--cm-chip-between);
+  padding: var(--cm-chip-around);
 }
 
+/* A chip's height of room at each end of the edge, clear of the frame (controls.ts: ROOM). */
+.top.screenControls,
+.bottom.screenControls {
+  padding-inline: var(--cm-chip-end);
+}
+
+.left.screenControls,
+.right.screenControls {
+  padding-block: var(--cm-chip-end);
+}
+
+/* The style guide's chip size, font and shape, white on black at the camera's background
+   strength, as the card draws it over a camera (full.ts), at the preview's scale
+   (controls.ts: previewStyle). */
 .pill {
-  display: flex;
-  align-items: center;
-  height: var(--cm-pill-height);
-  padding: 0 calc(var(--cm-pill-height) * 0.32);
-  border-radius: calc(var(--cm-pill-height) / 2);
-  background: rgb(0 0 0 / var(--cm-pill-alpha));
+  composes: cm-chip from global;
+  box-shadow: none;
+  background: rgb(0 0 0 / var(--cm-chip-alpha));
   color: #fff;
-  font-size: calc(var(--cm-pill-height) * 0.29);
-  white-space: nowrap;
+  gap: 0;
+  height: var(--cm-chip-height);
+  padding: 0 var(--cm-chip-pad);
+  font-size: var(--cm-chip-font);
+  line-height: 1;
+  cursor: default;
 }
 
 /* Where the card draws the entity's icon (the page has no icons of its own). */
 .pill::before {
   content: "";
   flex: none;
-  width: calc(var(--cm-pill-height) * 0.43);
-  height: calc(var(--cm-pill-height) * 0.43);
-  margin-right: calc(var(--cm-pill-height) * 0.14);
+  width: var(--cm-chip-icon);
+  height: var(--cm-chip-icon);
+  margin-right: var(--cm-chip-gap);
   border-radius: 50%;
   background: currentColor;
   opacity: 0.8;
 }
 
-/* The pills' size, place along the edge and background, under the two screens. */
+/* Where along the edge and the background, under the two screens. */
 .look {
   display: grid;
   grid-template-columns: auto 1fr;

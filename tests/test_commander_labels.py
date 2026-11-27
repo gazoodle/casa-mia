@@ -73,7 +73,7 @@ def test_a_pill_is_only_as_wide_as_the_name():
 
 
 def test_a_pill_has_rounded_ends():
-    c = labelled(main_style="pill", main_size=40)
+    c = labelled(main_style="pill", main_scale=200)
     pic, (x, y, _, h) = picture(c, CAMS[1]), placed(c, CAMS[1]).main
     # the pill's rows, and where it starts on each: further in at its top than half-way
     rows = [
@@ -100,11 +100,82 @@ def test_the_main_cameras_name_takes_its_own_style():
     assert not green(picture(c, CAMS[1]), (x + w // 2, y + h - 3))
 
 
+def test_a_card_that_draws_the_caption_gets_no_main_name_bar_or_clock():
+    # ?main=card (or main=video): the card draws the main camera's name, its detection
+    # chips beside it, and the clock, so the picture leaves them all out. Drawn twice,
+    # they never lined up: Pillow and a browser set text differently.
+    from casa_mia.modules.compositor import asked_size, view_key
+
+    card, video, plain = (
+        asked_size({"w": "1280", "h": "800", **main})
+        for main in ({"main": "card"}, {"main": "video"}, {})
+    )
+    assert card and card[5] and view_key("cams", card).endswith("~c")
+    assert video and video[5] and plain and not plain[5]
+
+    c = labelled(main_style="bar", colour="#ff00ff")  # magenta text on a green bar
+    x, y, w, h = placed(c, CAMS[1]).main
+    foot = [(x + dx, y + h - dy) for dx in range(0, w, 3) for dy in range(1, 40, 2)]
+
+    def magenta(xy: tuple[int, int], pic) -> bool:
+        r, g, b, _ = rgba(pic, xy)
+        return r > 180 and g < 90 and b > 180
+
+    def drawn(pic) -> bool:
+        return any(green(pic, xy) or magenta(xy, pic) for xy in foot)
+
+    assert drawn(picture(c, CAMS[1]))
+    assert not drawn(picture({**c, "card_caption": True}, CAMS[1]))
+
+
 def test_a_bigger_name_has_a_taller_bar():
-    c = labelled(tile_size=32)
+    c = labelled(tile_scale=200)
     pic, (x, row, w, _) = picture(c, CAMS[1]), tile_foot(c)
-    assert green(pic, (x + w - 3, row - 36))  # 44 px of bar for a name of 32
-    assert not green(picture(labelled(), CAMS[1]), (x + w - 3, row - 36))
+    px = L.name_px("tile", 200)
+    high = px * 22 // 16 - 8  # near the top of its bar: 22 px of bar for a name of 16
+    assert px > 20 and green(pic, (x + w - 3, row - high))
+    assert not green(picture(labelled(), CAMS[1]), (x + w - 3, row - high))
+
+
+def test_a_name_is_one_size_on_every_device_a_percentage_of_it_by_the_setting():
+    # as the cards' test has them (labels.test.ts)
+    assert L.name_px("tile", 100) == 11 and L.name_px("main", 100) == 14
+    assert L.name_px("main", 50) == 7  # % of its size
+    assert L.name_px("tile", 200) == 22
+    assert L.name_px("main", 100, scale=2) == 28  # in the picture's own pixels
+    assert L.name_px("tile", 100, scale=1.0625) == 12
+
+
+def test_a_name_too_long_for_its_tile_is_cut_short_not_drawn_over_the_next():
+    font = L.font("sans", 16)
+    assert L.fitted("Gate", font, 200) == "Gate"
+    short = L.fitted("The far end of the long drive", font, 100)
+    assert short.endswith("…") and font.getlength(short) <= 100
+    assert L.fitted("The far end of the long drive", font, 12) == ""  # no room at all
+
+
+def test_a_size_saved_before_is_read_as_the_scale_it_was():
+    from casa_mia.modules.compositor.common import commanders_of
+
+    old = {"labels": {"tile_size": 16, "main_size": 20, "font": "sans"}}
+    (c,) = commanders_of({"commanders": [old]})
+    assert c["labels"] == {"font": "sans", "tile_scale": 100, "main_scale": 100}
+    # a tile share of b8 to b14 (11% was the default) wins over a size in px, and one
+    # out of range is held within it
+    kept = {"labels": {"tile_size": 40, "tile_share": 9, "main_size": 60}}
+    (c,) = commanders_of({"commanders": [kept]})
+    assert c["labels"] == {"tile_scale": 80, "main_scale": 200}
+    (c,) = commanders_of({"commanders": [{"labels": {"tile_share": 25}}]})
+    assert c["labels"] == {"tile_scale": 200}
+    # a scale already set is kept
+    (c,) = commanders_of(
+        {"commanders": [{"labels": {"tile_share": 9, "tile_scale": 150}}]}
+    )
+    assert c["labels"] == {"tile_scale": 150}
+    # the main camera's share of b8 and b9: the default is 100%, and in step from it
+    for share, scale in ((4, 100), (4.0, 100), (5, 125), (2, 50)):
+        (c,) = commanders_of({"commanders": [{"labels": {"main_share": share}}]})
+        assert c["labels"] == {"main_scale": scale}
 
 
 def test_the_background_is_see_through_at_its_opacity():
@@ -127,7 +198,9 @@ def test_what_is_wrong_with_labels_is_said():
 
     assert wrong() == []
     assert any("font is not one" in p for p in wrong(font="comic"))
-    assert any("tile name size must be 8-40" in p for p in wrong(tile_size=4))
+    assert any("tile name size must be 50-200" in p for p in wrong(tile_scale=20))
+    assert wrong(main_share=4.5) == []  # a share takes halves
+    assert any("nudge across must be" in p for p in wrong(talk_status_x=1.5))
     assert any("text colour must be like" in p for p in wrong(colour="white"))
     assert any("call status at is not one" in p for p in wrong(talk_status="middle"))
     assert any(
@@ -186,3 +259,21 @@ def test_the_part_to_keep_must_be_one_of_the_nine():
         }
     )
     assert any("part of the main camera to keep" in p for p in said)
+
+
+def test_a_card_being_tuned_gets_its_names_sizes_only_while_debug_is_on():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, asked_size, sized, view_key
+    from casa_mia.modules.compositor.labels import look
+
+    size = asked_size({"w": "1280", "h": "800", "dpr": "1", "tile": "14", "name": "19"})
+    assert size == (1280, 800, 1.0, 14, 19, False)
+    assert asked_size({"w": "1280", "h": "800", "tile": "200"}) is None  # out of bounds
+    # its own picture, so a tuned card changes no other device's
+    assert view_key("cams", size).endswith("~t14n19")
+    assert view_key("cams", (1280, 800, 1.0, 0, 0, False)) == "cams@1280x800x1"
+
+    on = {**EMPTY_COMMANDER, "debug": {**EMPTY_COMMANDER["debug"], "on": True}}
+    drawn = look(sized(on, (1280, 800, 2.0, 14, 19, False)))
+    assert (drawn.tile_px, drawn.main_px) == (28, 38)  # in the picture's own pixels
+    off = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 14, 19, False)))
+    assert (off.tile_px, off.main_px) == (22, 28)  # debug off: the commander's own

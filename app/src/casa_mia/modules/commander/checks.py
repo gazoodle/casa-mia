@@ -35,7 +35,9 @@ def _labels(the: str, cmd: dict) -> list[str]:
         value = labels.get(key, o["default"])
         label = re.sub(r", (px|%)$", "", o["label"]).lower()  # (less its unit)
         if "min" in o:
-            ok = isinstance(value, int) and not isinstance(value, bool)
+            # whole numbers, or halves too where the option has a step
+            ok = isinstance(value, (int, float) if "step" in o else int)
+            ok = ok and not isinstance(value, bool)
             if not ok or not o["min"] <= value <= o["max"]:
                 out.append(f"{the}'s labels: {label} must be {o['min']}-{o['max']}.")
         elif "options" in o:
@@ -75,6 +77,8 @@ def _responsive(the: str, cmd: dict, cams: dict) -> list[str]:
                 out.append(f"{the}'s {label} must be {o['min']}-{o['max']}.")
         elif "options" in o and value not in [v for v, _ in o["options"]]:
             out.append(f"{the}'s {label} is not one of the choices.")
+        elif isinstance(o["default"], bool) and not isinstance(value, bool):
+            out.append(f"{the}'s {label} must be on or off.")
     for key in ("edges", "edges_tall"):
         edges = r.get(key, RESPONSIVE[key]["default"])
         if edges is None and key == "edges_tall":
