@@ -9,7 +9,8 @@ import { labelsOf } from "../labels.ts";
 import { playHLS, playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, liveBy, liveLapsed, liveMark, liveOrder, livePlan } from "./common.ts";
 import { CommanderBase } from "./base.ts";
-import { detectionChips } from "./detect.ts";
+import { type CaptionPress, detectionChips, pressable } from "./detect.ts";
+import { FOLDERS } from "./clips.ts";
 
 /** One channel playing (or starting) in its <video>: when it started, and when it last put
  * a frame on screen (0: none yet). */
@@ -35,9 +36,12 @@ if (LIVE_BY !== "webrtc")
 
 export class CommanderLive extends CommanderBase {
   // liveOn is state: Talk is offered while the main camera is wanted live (talk.ts).
-  static properties = { ...CommanderBase.properties, liveOn: { state: true } };
+  static properties = { ...CommanderBase.properties, liveOn: { state: true }, _clips: { state: true } };
   /** The main camera wanted live ("" when none is), whether or not its video plays. */
   protected liveOn = "";
+  /** The camera whose recordings are open (clips-dialog.ts), as it was pressed: another
+   * main camera meanwhile (a tap elsewhere, Track motion) leaves the dialog as it is. */
+  protected _clips: { camera: string; name: string } | null = null;
   protected sessions = new Map<string, Session>(); // by channel
   protected bad = new Map<string, LiveMark>(); // the channels that failed, by channel
   protected markedFor = ""; // the main camera the marks belong to
@@ -216,12 +220,17 @@ export class CommanderLive extends CommanderBase {
    * come; a chip for each thing its camera has just reported (detect.ts); with no frames
    * and a channel failed, in red how long live has been lost and why; and the clock while
    * the main camera isn't live video, as the picture drew it. Drawn over the tap zones,
-   * so its chips take the pointer; the rest of it lets taps through. */
+   * so its chips take the pointer, and its name where it opens the camera's recordings;
+   * the rest of it lets taps through. `tap` is the main picture's own. */
   // Over HLS it says it is behind: "live" alone would claim more than is shown.
-  protected caption(title: string, place: string, live: LiveNow | null) {
-    const style = labelsOf(this.now().card?.layout.labels).main_style;
-    const name = html`<span class="title">${title}${live?.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}</span>`;
-    const chips = detectionChips(this.detections());
+  protected caption(title: string, place: string, live: LiveNow | null, tap: () => void) {
+    const { card, main } = this.now();
+    const style = labelsOf(card?.layout.labels).main_style;
+    const opens = FOLDERS.offered(this.hass!, main, () => this.requestUpdate());
+    const press: CaptionPress = { press: opens ? () => (this._clips = { camera: main, name: title }) : tap, opens };
+    const said = `${title}${live?.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}`;
+    const name = opens ? pressable("title", "Its recordings", said, press) : html`<span class="title">${said}</span>`;
+    const chips = detectionChips(this.detections(), press);
     const lost = live?.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing;
     const clock = live?.video ? nothing : html`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
     // A bar runs along the whole foot, the name at its left and the clock at its right,
@@ -229,5 +238,19 @@ export class CommanderLive extends CommanderBase {
     return style === "bar"
       ? html`<div class="caption bar" style=${place}>${chips}${lost}<div class="foot">${name}${clock}</div></div>`
       : html`<div class="caption ${style}" style=${place}>${name}${chips}${lost}${clock}</div>`;
+  }
+
+  /** The recordings dialog while one is open (card.ts draws it beside the tuning dialog). */
+  protected clipsDialog() {
+    const c = this._clips;
+    return c
+      ? html`<casa-mia-commander-clips
+          .hass=${this.hass}
+          .camera=${c.camera}
+          .name=${c.name}
+          .doorbell=${Object.values(this.eventsOf(c.camera)).includes("doorbell")}
+          @closed=${() => (this._clips = null)}
+        ></casa-mia-commander-clips>`
+      : nothing;
   }
 }

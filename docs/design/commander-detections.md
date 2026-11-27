@@ -169,6 +169,14 @@ from `card.ts` and `full.ts` where the main camera's caption is drawn.
 
 ## Step 3: the clips dialog
 
+**Built in 2026.11.14-b27.** Two things the plan didn't say, decided in building it: the
+name and chips are offered only for a camera whose entity is `unifiprotect`'s (so a house
+without Protect never browses its media library), and until the folders are known, or
+while the lookup has failed, they are offered, the dialog saying the failure and looking
+again. For a camera with no folder, a chip passes its press to the main picture's tap, as
+the motion dot does. Thumbnails are signed for a day (`auth/sign_path` gives 30 s
+unless asked), as Home Assistant signs a resolved clip, so lazily loaded ones still load.
+
 New files `integration/cards/src/commander/clips.ts` (the fetching, pure but for
 `hass.callWS`, with `clips.test.ts` against a mocked `callWS`) and `clips-dialog.ts` (a
 Lit element holding the `<dialog>`).

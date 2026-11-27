@@ -356,7 +356,7 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${laid.more ? html`<div class="zone" style="${at(laid.more.rect)};cursor:default" title="${laid.more.count} more cameras"></div>` : nothing}
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
-        ${mainRect[2] > 0 && !full ? this.caption(card.cameras[main]?.title ?? main, at(mainRect), live) : nothing /* over the zones: its chips take the pointer */}
+        ${mainRect[2] > 0 && !full ? this.caption(card.cameras[main]?.title ?? main, at(mainRect), live, () => this.open(card, main)) : nothing /* over the zones: its chips take the pointer */}
         ${laid.card
           ? html`<div class="place" style=${at(laid.card)}>
               ${this.place.failed
@@ -403,7 +403,7 @@ export class CommanderCard extends CommanderTalk {
         ? html`<div class="full" style=${labelled}>
             <div class="seen" style="filter:${this.look()}">${videos(`${whole};object-fit:contain`)}</div>
             <div class="zone" style=${whole} title="Back" @click=${() => (this._full = "")}></div>
-            ${live ? this.caption(card.cameras[main].title, whole, live) : nothing}
+            ${live ? this.caption(card.cameras[main].title, whole, live, () => (this._full = "")) : nothing}
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
@@ -413,7 +413,7 @@ export class CommanderCard extends CommanderTalk {
             ${debug}
           </div>`
         : nothing}
-      ${tuning ? tuneDialog({ hass: this.hass!, select, where, rules: figures.rules, changed: () => this.requestUpdate() }) : nothing}
+      ${tuning ? tuneDialog({ hass: this.hass!, select, where, rules: figures.rules, changed: () => this.requestUpdate() }) : nothing}${this.clipsDialog()}
     </ha-card>`;
   }
 

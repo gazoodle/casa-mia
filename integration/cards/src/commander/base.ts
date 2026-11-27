@@ -377,12 +377,16 @@ export class CommanderBase extends LitElement {
     return { card, main: card ? this.main(card, st!.state) : "" };
   }
 
-  /** What the main camera's camera has just reported (detect.ts), from its event entities
-   * as the Main camera select lists them, for as long as a motion dot lingers. */
-  protected detections(): Detection[] {
+  /** A camera's event entities, as the Main camera select lists them ({entity: its key}). */
+  protected eventsOf(camera: string): Record<string, string> {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
-    const found = (st?.attributes.detections as Record<string, Record<string, string>> | undefined)?.[this.now().main] ?? {};
-    return this.detect.seen(this.hass!, found, { ...MOTION, ...this._config }.motion_linger, () => this.requestUpdate());
+    return (st?.attributes.detections as Record<string, Record<string, string>> | undefined)?.[camera] ?? {};
+  }
+
+  /** What the main camera's camera has just reported (detect.ts), from its event entities,
+   * for as long as a motion dot lingers. */
+  protected detections(): Detection[] {
+    return this.detect.seen(this.hass!, this.eventsOf(this.now().main), { ...MOTION, ...this._config }.motion_linger, () => this.requestUpdate());
   }
 
   protected main(card: Card, option?: string): string {

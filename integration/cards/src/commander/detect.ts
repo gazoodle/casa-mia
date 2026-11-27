@@ -99,25 +99,43 @@ const tip = (d: Detection) => {
   return `${label}${d.text === label ? "" : ` ${d.text}`} at ${clock(d.since)}`;
 };
 
+/** A press on a part of the main camera's caption. Where the camera has recordings
+ * (clips.ts), it `opens` them, as a button; else it is the main picture's own tap, as the
+ * motion dot's is, so a chip over the picture never swallows one. */
+export type CaptionPress = { press: () => void; opens: boolean };
+
+/** A part of the caption that takes a press: the name, a chip. Enter or Space presses one
+ * that opens the recordings. */
+export function pressable(cls: string, title: string, inner: unknown, { press, opens }: CaptionPress): TemplateResult {
+  const key = (e: KeyboardEvent) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    press();
+  };
+  return html`<span class="${cls} ${opens ? "press" : ""}" title=${title} role=${opens ? "button" : nothing} tabindex=${opens ? "0" : nothing}
+    @click=${press} @keydown=${opens ? key : nothing}>${inner}</span>`;
+}
+
 /** The chips (pills.css: cm-chip, in their kind's tone), for the main camera's caption. */
-export function detectionChips(list: Detection[]): TemplateResult | typeof nothing {
+export function detectionChips(list: Detection[], press: CaptionPress): TemplateResult | typeof nothing {
   if (!list.length) return nothing;
   const rest = list.slice(MOST);
   return html`${list.slice(0, MOST).map((d) => {
     const k = kindOf(d.kind);
-    return html`<span class="detection cm-chip cm-on cm-${k.tone}" title=${tip(d)}>
-      <ha-icon icon=${k.icon}></ha-icon>
-      <span>${d.text}</span>
-    </span>`;
-  })}${rest.length ? html`<span class="detection cm-chip cm-on cm-muted" title=${rest.map(tip).join("\n")}>+${rest.length}</span>` : nothing}`;
+    return pressable(`detection cm-chip cm-on cm-${k.tone}`, tip(d), html`<ha-icon icon=${k.icon}></ha-icon><span>${d.text}</span>`, press);
+  })}${rest.length ? pressable("detection cm-chip cm-on cm-muted", rest.map(tip).join("\n"), `+${rest.length}`, press) : nothing}`;
 }
 
 export const detectStyles = css`
   /* The caption lets taps through to the main camera; its chips take the pointer, for
-     their tooltips (and, in step 3, their press). */
+     their tooltips and their press, and so does its name where it opens the recordings. */
   .detection {
     --mdc-icon-size: 14px;
     pointer-events: auto;
     cursor: default;
+  }
+  .caption .press {
+    pointer-events: auto;
+    cursor: pointer;
   }
 `;

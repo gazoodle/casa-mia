@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.14-b27
+
+- **Camera Commander card: a press on the main camera's name, or on a detection chip,
+  opens its recordings** in UniFi Protect: a picture of each, newest first, a day at a
+  time (Detections, Doorbell, Sounds or Motion, and Earlier for the day before), each clip
+  playing above the list. On a day busier than Protect's integration lists (its "max
+  media" option), the dialog says the list may be incomplete. Where a browser can't play a
+  clip from Home Assistant's address, the card fetches it whole and plays it from there.
+- **Camera Commander card: for a camera without recordings, a press on a detection chip
+  is a press on the main camera,** as one on the motion dot is. In b24 a chip took the
+  press and did nothing.
+
 ## 2026.11.14-b26
 
 - **Camera Commander card editor: changing a card in the last place no longer jumps to

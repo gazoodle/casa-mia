@@ -128,8 +128,12 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   chips (`commander/detect.ts`) in the main camera's caption (`live.ts`), which the card
   now always draws, over the tap zones; the picture is asked with `?main=card` and leaves
   the main name and clock out, and the card's clock is `caption-clock.ts` (owner's
-  decision, in the spec). Seen in Chromium only, with a stand-in caption. Neither step
-  seen on the box. Next: step 3, the clips dialog.
+  decision, in the spec). The owner saw a chip on the box (2026-11-27). Step 3 in b27:
+  the recordings dialog (`clips.ts` fetching, `clips-dialog.ts` the element), opened by
+  the name or a chip where `FOLDERS.offered` (a Protect camera whose device has a folder,
+  looked up once per page load); otherwise a chip passes the main tap on. Seen in
+  Chromium only, against a stand-in library with a WebM clip (Playwright's Chromium has
+  no H.264); not on the box, and Safari, the iOS app and the tablets are not known.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the
   app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up

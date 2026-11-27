@@ -396,6 +396,23 @@ The card draws the main camera's name itself, and the clock beside it while the 
 camera isn't playing live, so the chips have a name to sit beside. The commander's
 picture leaves both out for the card.
 
+### Its recordings
+
+For a UniFi Protect camera, a press on the main camera's name, or on one of its chips,
+opens its recordings: a picture of each, newest first, starting with today. The chips
+along the top choose what is listed: **Detections** (people, vehicles, animals and
+packages), **Doorbell** (its rings, for a doorbell), **Sounds** or **Motion**. **Earlier**
+adds the day before, under its own date. Press a picture to play its clip above the list.
+**Close**, a press outside the dialog, or Escape closes it and stops the clip. Anyone who
+can see the card can open them.
+
+They are the recordings Home Assistant's UniFi Protect integration lists in its media
+library (Media in the sidebar). For each day it lists at most its **max media** option's
+number of events (1,000 unless you changed it) across all of the console's cameras, so
+on a busy day the list can be incomplete, and the dialog says so when it is. For a camera
+without recordings there, a press on its name or a chip does what a press on the main
+camera does.
+
 ### Cards in the last place
 
 A Responsive commander can keep its last place, in the corner of the picture, clear of
@@ -681,5 +698,13 @@ duplex: full     # or half; only for button: answer
   entities report. In Developer tools, States, the commander's Main camera select has a
   `detections` attribute that lists each camera's event entities; a camera missing from
   it has none on its device (in UniFi Protect, check its smart detections are on).
+- **A press on the main camera's name opens nothing:** its recordings are offered only for
+  a UniFi Protect camera that Protect's media library has a folder for (Media in Home
+  Assistant's sidebar, then UniFi Protect). The card looks once each time the page loads,
+  so for a camera added since, reload the page.
+- **A clip doesn't play:** the dialog says why, and the browser's console has a
+  `casa-mia:` line for each step. When a browser can't play a clip from Home Assistant's
+  address, the card fetches the whole clip first, saying how much has arrived, and plays
+  it from there.
 - **The log** has a line for every save (`commander: saved N commanders (changed: …)`)
   and every main camera chosen (`commander '…': main camera … (from Home Assistant)`).
