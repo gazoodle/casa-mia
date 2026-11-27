@@ -53,10 +53,12 @@ PLAYLISTS = frozenset(
 
 
 class Who(NamedTuple):
-    """Whoever asked for something: their name for the log, and their part."""
+    """Whoever asked for something: their name for the log, their part, and whether
+    they are one of Home Assistant's administrators."""
 
     name: str
     role: str
+    admin: bool = False
 
     def __str__(self) -> str:
         return self.name
@@ -68,7 +70,7 @@ def who(hass: HomeAssistant, user: User | None) -> Who:
         return Who("An automation", HOST)
     name = user.name or "someone"
     if user.is_admin:
-        return Who(name, HOST)
+        return Who(name, HOST, admin=True)
     for entry in hass.config_entries.async_entries(DOMAIN):
         if user.id in entry.options.get(CONF_HOSTS, []):
             return Who(name, HOST)

@@ -58,6 +58,7 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
     hass_ws_client,
     sent,  # noqa: F811
     monkeypatch,
+    aioclient_mock,
     caplog,
 ):
     caplog.set_level("INFO")
@@ -73,7 +74,7 @@ async def test_a_stations_song_gets_its_cover_from_spotify_beside_the_stations_o
         }
         return {"tracks": {"items": [song | {"album": album}]}}
 
-    a_spotify(hass, monkeypatch, search)
+    await a_spotify(hass, monkeypatch, aioclient_mock, search)
     # This station sends the song's two names the wrong way round.
     station = {
         "group_members": [KITCHEN, GARDEN],
@@ -134,6 +135,7 @@ async def test_a_song_spotify_didnt_answer_for_is_looked_for_again_when_asked(
     hass_ws_client,
     sent,  # noqa: F811
     monkeypatch,
+    aioclient_mock,
 ):
     asked = []
 
@@ -150,7 +152,7 @@ async def test_a_song_spotify_didnt_answer_for_is_looked_for_again_when_asked(
         }
         return {"tracks": {"items": [song | {"album": album}]}}
 
-    a_spotify(hass, monkeypatch, search)
+    await a_spotify(hass, monkeypatch, aioclient_mock, search)
     station = {
         "group_members": [KITCHEN, GARDEN],
         "media_channel": "Harbour FM",
@@ -258,7 +260,9 @@ def a_record(name, artists, uri, by, kind, date):
 
 async def test_a_song_with_a_guest_artist_is_found_past_the_karaoke_versions_of_it(
     hass,
+    sent,  # noqa: F811  (Jukebox, whose sign-in searches Spotify)
     monkeypatch,
+    aioclient_mock,
     caplog,
 ):
     caplog.set_level("INFO")
@@ -279,7 +283,9 @@ async def test_a_song_with_a_guest_artist_is_found_past_the_karaoke_versions_of_
     hits = a_record(song, pair, "hits", "Various Artists", "compilation", "2016-06-01")
     remix = a_record(f"{song} - Extended Mix", pair, "remix", pair[0], "single", "2016")
     own = a_record(song, pair, "own", pair[0], "single", "2016-04-29")
-    a_spotify(hass, monkeypatch, a_catalogue(*karaoke, hits, remix, own))
+    await a_spotify(
+        hass, monkeypatch, aioclient_mock, a_catalogue(*karaoke, hits, remix, own)
+    )
     covers = Covers(hass, lambda: None)
 
     async def found(artist, title):
