@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b31
+
+- **Camera Commander card: the main camera's full screen opens with its live picture
+  straight away.** Opening or leaving it started the stream again from nothing, which
+  could leave the screen black for 5 to 10 seconds. The playing stream now carries on,
+  and a better channel for the new size is made ready behind it, as the card already did
+  in the page.
+- **Home Assistant's log says when a card's live video starts, and how long its first
+  frame took** ("Live video started … first frame 1.4 s after it was asked for"). A
+  channel that comes back after failing says it too.
+
 ## 2026.11.14-b30
 
 - **Camera Commander card: guests can't open a camera's recordings.** For a user a Guest

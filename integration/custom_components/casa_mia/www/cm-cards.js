@@ -3215,13 +3215,17 @@ var ta = class extends xi {
 		let { card: e, main: t } = this.now(), n = e && this.liveMain(e) ? t : "";
 		n !== this.liveOn && (this.liveOn = n), n && n !== this.markedFor && (this.bad.clear(), this.markedFor = n);
 		let r = new Map([...this.renderRoot.querySelectorAll("video.live")].map((e) => [e.dataset.entity ?? "", e]));
-		for (let [e, t] of this.sessions) r.get(e) !== t.video && this.endSession(e);
+		for (let [e, t] of this.sessions) {
+			let n = r.get(e);
+			n !== t.video && (n && t.frameAt && t.video.srcObject ? t.move(n) : this.endSession(e));
+		}
 		for (let [e, t] of r) this.sessions.has(e) || this.startSession(e, t);
 	}
 	startSession(e, t) {
 		let n = {
 			video: t,
 			stop: () => void 0,
+			move: () => void 0,
 			from: Date.now(),
 			frameAt: 0
 		};
@@ -3232,19 +3236,24 @@ var ta = class extends xi {
 		if (!t.requestVideoFrameCallback) return i("this browser can't tell whether its video is playing");
 		let a = () => {
 			let t = !n.frameAt;
-			n.frameAt = Date.now(), t && this.liveBack(e);
+			n.frameAt = Date.now(), t && this.liveBack(e, n.frameAt - n.from);
 		}, o = 0, s = () => {
-			t.cancelVideoFrameCallback(o), o = t.requestVideoFrameCallback(c);
+			n.video.cancelVideoFrameCallback(o), o = n.video.requestVideoFrameCallback(c);
 		}, c = () => {
 			r() && (a(), s());
+		}, l = () => {
+			r() && (s(), !n.frameAt && n.video.videoWidth > 0 && a());
+		}, u = (e) => {
+			e.onloadeddata = e.onresize = e.onplaying = l, s();
 		};
-		s(), t.onloadeddata = t.onresize = t.onplaying = () => {
-			r() && (s(), !n.frameAt && t.videoWidth > 0 && a());
-		}, (ea === "hls" ? oi : ai)(this.hass.connection, e, t, i).then((e) => r() ? n.stop = e : e(), (e) => i(e?.message ?? JSON.stringify(e)));
+		n.move = (e) => {
+			let t = n.video;
+			t.cancelVideoFrameCallback(o), t.onloadeddata = t.onresize = t.onplaying = null, e.srcObject = t.srcObject, t.srcObject = null, n.video = e, u(e);
+		}, u(t), (ea === "hls" ? oi : ai)(this.hass.connection, e, t, i).then((e) => r() ? n.stop = e : e(), (e) => i(e?.message ?? JSON.stringify(e)));
 	}
 	endSession(e) {
 		let t = this.sessions.get(e);
-		t && (this.sessions.delete(e), t.video.onloadeddata = t.video.onresize = t.video.onplaying = null, t.stop());
+		t && (this.sessions.delete(e), t.video.onloadeddata = t.video.onresize = t.video.onplaying = null, t.stop(), t.video.srcObject && (t.video.srcObject = null));
 	}
 	endAll() {
 		for (let e of [...this.sessions.keys()]) this.endSession(e);
@@ -3253,9 +3262,9 @@ var ta = class extends xi {
 		let n = t.replace(/\.$/, ""), r = this.sessions.get(e), i = Date.now(), a = Mr(this.bad.get(e), n, r?.frameAt || r?.from || i, i);
 		this.bad.set(e, a), this.endSession(e), this.report(e, "lost", `${n}; this device plays ${ea === "hls" ? "HLS, having no WebRTC" : $i()}; next try in ${Fr(a.until - i)}`, a.fails), this.requestUpdate();
 	}
-	liveBack(e) {
-		let t = this.bad.get(e);
-		t && (this.bad.delete(e), this.report(e, "back", `after ${Fr(Date.now() - t.since)} and ${t.fails} failed ${t.fails === 1 ? "try" : "tries"}`, t.fails)), this.requestUpdate();
+	liveBack(e, t) {
+		let n = `first frame ${(t / 1e3).toFixed(1)} s after it was asked for`, r = this.bad.get(e);
+		r ? (this.bad.delete(e), this.report(e, "back", `after ${Fr(Date.now() - r.since)} and ${r.fails} failed ${r.fails === 1 ? "try" : "tries"}; ${n}`, r.fails)) : this.report(e, "started", n, 0), this.requestUpdate();
 	}
 	report(e, t, n, r) {
 		console.info(`casa-mia: live ${e} ${t}: ${n}`), this.hass?.callWS({

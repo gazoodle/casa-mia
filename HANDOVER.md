@@ -143,9 +143,16 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   `_full`'s `.seen`, writing its transform directly; the card redraws only when the chip's
   text changes. The maths is `src/zoom.ts`, shared with Dash-Bored's photograph. The
   enlargement is a lease (`CLOSER_MS`, 60 s), and `asked` scales the place given to
-  `liveNow`, so a larger channel is chosen. "Zoom" stays the lens's word. Still to be tried
-  on devices: a pinch in Safari on an iPhone, the wheel on a trackpad, and an old tablet
-  decoding the largest channel.
+  `liveNow`, so a larger channel is chosen. "Zoom" stays the lens's word. The owner tried
+  it on 2026-11-27: a pinch in Safari on an iPhone and the wheel on a trackpad work, and an
+  old tablet with the largest channel seems fine.
+- **A live stream belongs to its channel, not its `<video>`** (b31, `live.ts:
+  followLive`). The main area and the full screen draw their own `<video>`s, so opening
+  full screen used to end the playing stream and start one from nothing: 5 to 10 s of
+  black on the box. A WebRTC session with frames now moves its `MediaStream` to the new
+  element (`Session.move`), so `livePlan` keeps it shown while a better channel starts
+  hidden. HLS still starts afresh. Every first frame is in HA's log with how long it took
+  (`live_report` "started").
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the
   app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up

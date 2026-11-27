@@ -13,9 +13,9 @@ import { type CaptionPress, detectionChips, latest, latestChip, pressable } from
 import { FOLDERS, type Shelf, shelfOf, whenSaid } from "./clips.ts";
 import { isGuest } from "../guest-goodbye.ts";
 
-/** One channel playing (or starting) in its <video>: when it started, and when it last put
- * a frame on screen (0: none yet). */
-type Session = { video: HTMLVideoElement; stop: () => void; from: number; frameAt: number };
+/** One channel playing (or starting) in its <video>: when it started, when it last put a
+ * frame on screen (0: none yet), and how to move its stream to another <video>. */
+type Session = { video: HTMLVideoElement; stop: () => void; move: (to: HTMLVideoElement) => void; from: number; frameAt: number };
 
 /** The main area now: the channels with a <video>, the one shown, the mark to say when
  * none is, and whether the picture leaves the main area to the video (&main=video). */
@@ -129,12 +129,22 @@ export class CommanderLive extends CommanderBase {
     }
 
     const videos = new Map([...this.renderRoot.querySelectorAll<HTMLVideoElement>("video.live")].map((v) => [v.dataset.entity ?? "", v]));
-    for (const [channel, s] of this.sessions) if (videos.get(channel) !== s.video) this.endSession(channel);
+    for (const [channel, s] of this.sessions) {
+      const video = videos.get(channel);
+      if (video === s.video) continue;
+      // Its channel drawn in another <video> (the main area to the camera's full screen,
+      // and back): a stream with frames moves to it, so the picture carries on while a
+      // better channel gets ready (common.ts: livePlan). Ending it here cost a new start
+      // from nothing, 5 to 10 s of black on the box (owner, 2026-11-27). One not yet
+      // showing frames, or HLS's (an address, not a stream), starts afresh there.
+      if (video && s.frameAt && s.video.srcObject) s.move(video);
+      else this.endSession(channel);
+    }
     for (const [channel, video] of videos) if (!this.sessions.has(channel)) this.startSession(channel, video);
   }
 
   private startSession(channel: string, video: HTMLVideoElement) {
-    const s: Session = { video, stop: () => undefined, from: Date.now(), frameAt: 0 };
+    const s: Session = { video, stop: () => undefined, move: () => undefined, from: Date.now(), frameAt: 0 };
     this.sessions.set(channel, s);
     const current = () => this.sessions.get(channel) === s;
     const failed = (why: string) => {
@@ -146,28 +156,43 @@ export class CommanderLive extends CommanderBase {
     const seen = () => {
       const first = !s.frameAt;
       s.frameAt = Date.now();
-      if (first) this.liveBack(channel);
+      if (first) this.liveBack(channel, s.frameAt - s.from);
     };
-    let asked = 0; // the one frame callback waited for
+    let asked = 0; // the one frame callback waited for, on the session's <video> now
     const ask = () => {
-      video.cancelVideoFrameCallback(asked);
-      asked = video.requestVideoFrameCallback(frame);
+      s.video.cancelVideoFrameCallback(asked);
+      asked = s.video.requestVideoFrameCallback(frame);
     };
     const frame = () => {
       if (!current()) return;
       seen();
       ask();
     };
-    ask();
     // A video not yet seen (opacity 0) may be given no frame callback, so its first proof
     // is also a decoded picture's size. Only the first: after it, frames alone renew.
     // And asked again: Safari drops a callback asked for before an HLS stream has loaded
     // (seen 2026-11-11), and with it every renewal after the first.
-    video.onloadeddata = video.onresize = video.onplaying = () => {
+    const loaded = () => {
       if (!current()) return;
       ask();
-      if (!s.frameAt && video.videoWidth > 0) seen();
+      if (!s.frameAt && s.video.videoWidth > 0) seen();
     };
+    const watch = (v: HTMLVideoElement) => {
+      v.onloadeddata = v.onresize = v.onplaying = loaded;
+      ask();
+    };
+    // The stream, and the watch on it, to another <video>. The connection decodes it, not
+    // the element, so the next frame shows at once: nothing is asked of the camera again.
+    s.move = (to) => {
+      const from = s.video;
+      from.cancelVideoFrameCallback(asked);
+      from.onloadeddata = from.onresize = from.onplaying = null;
+      to.srcObject = from.srcObject;
+      from.srcObject = null;
+      s.video = to;
+      watch(to);
+    };
+    watch(video);
 
     (LIVE_BY === "hls" ? playHLS : playWebRTC)(this.hass!.connection, channel, video, failed).then(
       (stop) => (current() ? (s.stop = stop) : stop()),
@@ -181,6 +206,8 @@ export class CommanderLive extends CommanderBase {
     this.sessions.delete(channel);
     s.video.onloadeddata = s.video.onresize = s.video.onplaying = null;
     s.stop();
+    // playWebRTC's close clears the <video> it was given; a moved stream's is another one.
+    if (s.video.srcObject) s.video.srcObject = null;
   }
   private endAll() {
     for (const channel of [...this.sessions.keys()]) this.endSession(channel);
@@ -198,19 +225,21 @@ export class CommanderLive extends CommanderBase {
     this.report(channel, "lost", `${why}; this device plays ${LIVE_BY === "hls" ? "HLS, having no WebRTC" : plays()}; next try in ${ago(mark.until - now)}`, mark.fails);
     this.requestUpdate();
   }
-  /** A channel's first frame: shown at once, and its mark, if it had one, is gone. */
-  private liveBack(channel: string) {
+  /** A channel's first frame, `took` ms after its session started: shown at once, said
+   * with how long it took (to measure a start), and its mark, if it had one, is gone. */
+  private liveBack(channel: string, took: number) {
+    const first = `first frame ${(took / 1000).toFixed(1)} s after it was asked for`;
     const mark = this.bad.get(channel);
     if (mark) {
       this.bad.delete(channel);
-      this.report(channel, "back", `after ${ago(Date.now() - mark.since)} and ${mark.fails} failed ${mark.fails === 1 ? "try" : "tries"}`, mark.fails);
-    }
+      this.report(channel, "back", `after ${ago(Date.now() - mark.since)} and ${mark.fails} failed ${mark.fails === 1 ? "try" : "tries"}; ${first}`, mark.fails);
+    } else this.report(channel, "started", first, 0);
     this.requestUpdate();
   }
   /** Said in Home Assistant's log (RULE TWO), where a wall tablet's trouble can be read
    * from anywhere; its own console is seen by nobody. An integration from before this
    * command refuses it (HA not restarted since the update), which changes nothing here. */
-  private report(channel: string, what: "lost" | "back", why: string, fails: number) {
+  private report(channel: string, what: "started" | "lost" | "back", why: string, fails: number) {
     console.info(`casa-mia: live ${channel} ${what}: ${why}`);
     this.hass
       ?.callWS({ type: "casa_mia_commander/live_report", commander: this._config?.entity ?? "", channel, what, why, fails })

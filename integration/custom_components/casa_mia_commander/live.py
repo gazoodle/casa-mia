@@ -90,17 +90,18 @@ async def _ws_tuning(
         vol.Required("type"): f"{DOMAIN}/live_report",
         vol.Required("commander"): TEXT,
         vol.Required("channel"): TEXT,
-        vol.Required("what"): vol.In(["lost", "back"]),
+        vol.Required("what"): vol.In(["started", "lost", "back"]),
         vol.Required("why"): TEXT,
-        vol.Required("fails"): vol.All(int, vol.Range(min=1)),
+        vol.Required("fails"): vol.All(int, vol.Range(min=0)),  # 0: started
     }
 )
 @callback
 def _ws_live_report(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:
-    """A channel's live video was lost on a card, or came back. The first loss is a
-    warning; the tries that fail after it are the same fault, so they are info."""
+    """A channel's live video started on a card (with how long its first frame took),
+    was lost, or came back. The first loss is a warning; the tries that fail after it
+    are the same fault, so they are info."""
     first = msg["what"] == "lost" and msg["fails"] == 1
     _LOGGER.log(
         logging.WARNING if first else logging.INFO,
