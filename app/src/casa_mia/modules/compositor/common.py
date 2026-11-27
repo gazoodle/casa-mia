@@ -167,16 +167,19 @@ def slug(text: str) -> str:
 # (see integration/cards/src/commander.ts), so it lays its taps out for the same canvas.
 MAX_PIXELS = 2560 * 1600
 MIN_SIDE = 64
-# Width and height in device pixels, the scale (dpr), and the tile names' and the main
-# camera name's sizes a card is being tuned with (CSS px; 0: the commander's own).
-Size = tuple[int, int, float, int, int]
+# Width and height in device pixels, the scale (dpr), the tile names' and the main
+# camera name's sizes a card is being tuned with (CSS px; 0: the commander's own), and
+# whether the card draws the main camera's name and the clock itself (?main=card, or
+# ?main=video), so the picture leaves them out.
+Size = tuple[int, int, float, int, int, bool]
 # The sizes a card may ask names to be drawn at while it is tuned (debug on), CSS px.
 TUNED_MOST = 60
 
 
 def asked_size(query: Any) -> Size | None:
     """The size in a picture's address (?w=&h= in device pixels, dpr: the screen's
-    pixels per CSS pixel; tile= and name=: the names' sizes while the card is tuned);
+    pixels per CSS pixel; tile= and name=: the names' sizes while the card is tuned;
+    main=card or main=video: the card draws the main camera's name and the clock);
     None when there is none, or it is out of bounds."""
     try:
         w, h = int(query["w"]), int(query["h"])
@@ -186,7 +189,8 @@ def asked_size(query: Any) -> Size | None:
         return None
     ok = MIN_SIDE <= min(w, h) and w * h <= MAX_PIXELS * 1.1 and 0.5 <= dpr <= 4
     tuned = all(0 <= n <= TUNED_MOST for n in (tile, name))
-    return (w, h, dpr, tile, name) if ok and tuned else None
+    caption = query.get("main") in ("card", "video")
+    return (w, h, dpr, tile, name, caption) if ok and tuned else None
 
 
 def viewer(request: web.BaseRequest) -> str | None:
@@ -199,14 +203,20 @@ def viewer(request: web.BaseRequest) -> str | None:
 
 
 LIVE_MAIN = "~live"  # a picture's key: its main camera left to the card's live video
+CARD_CAPTION = (
+    "~c"  # a picture's key: its main camera's name and clock left to the card
+)
 
 
 def view_key(name: str, size: Size | None, live_main: bool = False) -> str:
     """A commander's picture at a size: its own key (its slug alone at its set size),
-    marked when its main camera is the card's live video (see `sized`)."""
+    marked when the card draws the main camera's caption, and when its main camera is
+    the card's live video (see `sized`)."""
     key = name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
     if size is not None and (size[3] or size[4]):  # a card being tuned: its own
         key += f"~t{size[3]}n{size[4]}"
+    if size is not None and size[5]:
+        key += CARD_CAPTION
     return key + LIVE_MAIN if live_main else key
 
 
@@ -214,20 +224,23 @@ def sized(cmd: dict, size: Size | None, live_main: bool = False) -> dict:
     """The commander drawn at a size asked for: that canvas, its gap, text and bars grown
     by the scale, so they look the same in CSS pixels on any screen. `live_main`: its
     main camera is played by the card as live video over the picture, so its main area
-    is drawn from whatever the cache holds (its channel is not fetched for it) and
-    without its caption (the card draws it). Names' sizes a card is tuned with are
-    taken only while the commander's debug is on (EMPTY_COMMANDER["debug"])."""
+    is drawn from whatever the cache holds (its channel is not fetched for it). Then, or
+    when the size says so (`card_caption`), the main camera's name and the clock are
+    left out: the card draws them, with its detection chips beside the name.
+    Names' sizes a card is tuned with are taken only while the commander's debug is on
+    (EMPTY_COMMANDER["debug"])."""
     if size is None and not live_main:
         return cmd
     out = dict(cmd)
     if size is not None:
-        w, h, dpr, tile, name = size
+        w, h, dpr, tile, name, caption = size
         out |= {
             "width": w,
             "height": h,
             "gap": round(cmd["gap"] * dpr),
             "margin": round(cmd.get("margin", 0) * dpr),
             "scale": dpr,
+            "card_caption": caption,
         }
         if (tile or name) and (cmd.get("debug") or {}).get("on"):
             out["tuned"] = {"tile": tile, "main": name}

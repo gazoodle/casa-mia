@@ -9,6 +9,7 @@ import { labelsOf } from "../labels.ts";
 import { playHLS, playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, liveBy, liveLapsed, liveMark, liveOrder, livePlan } from "./common.ts";
 import { CommanderBase } from "./base.ts";
+import { detectionChips } from "./detect.ts";
 
 /** One channel playing (or starting) in its <video>: when it started, and when it last put
  * a frame on screen (0: none yet). */
@@ -210,13 +211,23 @@ export class CommanderLive extends CommanderBase {
       .catch(() => undefined);
   }
 
-  /** The live main camera's caption: its title with "(live)" while a channel's frames
-   * come; with none, and a channel failed, in red how long live has been lost and why. */
+  /** The main camera's caption, live or not (the picture is asked for without its name
+   * and clock: card.ts, ?main=card): its title, with "(live)" while a channel's frames
+   * come; a chip for each thing its camera has just reported (detect.ts); with no frames
+   * and a channel failed, in red how long live has been lost and why; and the clock while
+   * the main camera isn't live video, as the picture drew it. Drawn over the tap zones,
+   * so its chips take the pointer; the rest of it lets taps through. */
   // Over HLS it says it is behind: "live" alone would claim more than is shown.
-  protected caption(title: string, place: string, live: LiveNow) {
-    return html`<div class="caption ${labelsOf(this.now().card?.layout.labels).main_style}" style=${place}>
-      <span class="title">${title}${live.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}</span>
-      ${live.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing}
-    </div>`;
+  protected caption(title: string, place: string, live: LiveNow | null) {
+    const style = labelsOf(this.now().card?.layout.labels).main_style;
+    const name = html`<span class="title">${title}${live?.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}</span>`;
+    const chips = detectionChips(this.detections());
+    const lost = live?.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing;
+    const clock = live?.video ? nothing : html`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
+    // A bar runs along the whole foot, the name at its left and the clock at its right,
+    // with the chips standing above it; otherwise the chips follow the name.
+    return style === "bar"
+      ? html`<div class="caption bar" style=${place}>${chips}${lost}<div class="foot">${name}${clock}</div></div>`
+      : html`<div class="caption ${style}" style=${place}>${name}${chips}${lost}${clock}</div>`;
   }
 }

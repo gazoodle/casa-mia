@@ -100,6 +100,34 @@ def test_the_main_cameras_name_takes_its_own_style():
     assert not green(picture(c, CAMS[1]), (x + w // 2, y + h - 3))
 
 
+def test_a_card_that_draws_the_caption_gets_no_main_name_bar_or_clock():
+    # ?main=card (or main=video): the card draws the main camera's name, its detection
+    # chips beside it, and the clock, so the picture leaves them all out. Drawn twice,
+    # they never lined up: Pillow and a browser set text differently.
+    from casa_mia.modules.compositor import asked_size, view_key
+
+    card, video, plain = (
+        asked_size({"w": "1280", "h": "800", **main})
+        for main in ({"main": "card"}, {"main": "video"}, {})
+    )
+    assert card and card[5] and view_key("cams", card).endswith("~c")
+    assert video and video[5] and plain and not plain[5]
+
+    c = labelled(main_style="bar", colour="#ff00ff")  # magenta text on a green bar
+    x, y, w, h = placed(c, CAMS[1]).main
+    foot = [(x + dx, y + h - dy) for dx in range(0, w, 3) for dy in range(1, 40, 2)]
+
+    def magenta(xy: tuple[int, int], pic) -> bool:
+        r, g, b, _ = rgba(pic, xy)
+        return r > 180 and g < 90 and b > 180
+
+    def drawn(pic) -> bool:
+        return any(green(pic, xy) or magenta(xy, pic) for xy in foot)
+
+    assert drawn(picture(c, CAMS[1]))
+    assert not drawn(picture({**c, "card_caption": True}, CAMS[1]))
+
+
 def test_a_bigger_name_has_a_taller_bar():
     c = labelled(tile_scale=200)
     pic, (x, row, w, _) = picture(c, CAMS[1]), tile_foot(c)
@@ -238,14 +266,14 @@ def test_a_card_being_tuned_gets_its_names_sizes_only_while_debug_is_on():
     from casa_mia.modules.compositor.labels import look
 
     size = asked_size({"w": "1280", "h": "800", "dpr": "1", "tile": "14", "name": "19"})
-    assert size == (1280, 800, 1.0, 14, 19)
+    assert size == (1280, 800, 1.0, 14, 19, False)
     assert asked_size({"w": "1280", "h": "800", "tile": "200"}) is None  # out of bounds
     # its own picture, so a tuned card changes no other device's
     assert view_key("cams", size).endswith("~t14n19")
-    assert view_key("cams", (1280, 800, 1.0, 0, 0)) == "cams@1280x800x1"
+    assert view_key("cams", (1280, 800, 1.0, 0, 0, False)) == "cams@1280x800x1"
 
     on = {**EMPTY_COMMANDER, "debug": {**EMPTY_COMMANDER["debug"], "on": True}}
-    drawn = look(sized(on, (1280, 800, 2.0, 14, 19)))
+    drawn = look(sized(on, (1280, 800, 2.0, 14, 19, False)))
     assert (drawn.tile_px, drawn.main_px) == (28, 38)  # in the picture's own pixels
-    off = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 14, 19)))
+    off = look(sized(EMPTY_COMMANDER, (1280, 800, 2.0, 14, 19, False)))
     assert (off.tile_px, off.main_px) == (22, 28)  # debug off: the commander's own

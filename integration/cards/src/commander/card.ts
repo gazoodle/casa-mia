@@ -263,7 +263,9 @@ export class CommanderCard extends CommanderTalk {
     const drawnSet = tuning ? tunedAt(select, whereOf(this._screen, false)) : {};
     const tunedQuery = `${drawnSet.tile ? `&tile=${drawnSet.tile}` : ""}${drawnSet.main ? `&name=${drawnSet.main}` : ""}`;
     const asked = sized && !editing ? this.pictureUrl(card, sized, tunedQuery) : "";
-    const src = asked && live?.video ? `${asked}&main=video` : asked;
+    // The card draws the main camera's name and clock (live.ts: caption), and with live
+    // video it plays the main camera too.
+    const src = asked && `${asked}&main=${live?.video ? "video" : "card"}`;
     // The debug box's figures (tune.ts): each size as the settings give it, and how.
     const place = full ? screenPlace : mainPlace;
     const fixed = (which: "tile" | "main", pct: number) => `${NAME[which]} px at ${pct}%`;
@@ -343,10 +345,7 @@ export class CommanderCard extends CommanderTalk {
             )
           : nothing}
         ${live && !full
-          ? html`${videos(
-                `${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)}` : ""}`,
-              )}
-              ${this.caption(card.cameras[main]?.title ?? main, at(mainRect), live)}`
+          ? videos(`${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)}` : ""}`)
           : nothing}
         </div>
         ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
@@ -357,6 +356,7 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${laid.more ? html`<div class="zone" style="${at(laid.more.rect)};cursor:default" title="${laid.more.count} more cameras"></div>` : nothing}
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
+        ${mainRect[2] > 0 && !full ? this.caption(card.cameras[main]?.title ?? main, at(mainRect), live) : nothing /* over the zones: its chips take the pointer */}
         ${laid.card
           ? html`<div class="place" style=${at(laid.card)}>
               ${this.place.failed
@@ -402,8 +402,8 @@ export class CommanderCard extends CommanderTalk {
       ${full
         ? html`<div class="full" style=${labelled}>
             <div class="seen" style="filter:${this.look()}">${videos(`${whole};object-fit:contain`)}</div>
-            ${live ? this.caption(card.cameras[main].title, whole, live) : nothing}
             <div class="zone" style=${whole} title="Back" @click=${() => (this._full = "")}></div>
+            ${live ? this.caption(card.cameras[main].title, whole, live) : nothing}
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round

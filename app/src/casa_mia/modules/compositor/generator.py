@@ -631,6 +631,7 @@ class Generator:
         def picture(key: str, at: float) -> dict[str, Any]:
             live_main = key.endswith(LIVE_MAIN)
             name, _, size = key.removesuffix(LIVE_MAIN).partition("@")
+            size = size.split("~")[0]  # less a tuned card's ~t..n.. and the card's ~c
             cmd = self.cfg.named(name) or {}
             w, h, scale = (
                 size.split("x") if size else (cmd.get("width"), cmd.get("height"), 1)

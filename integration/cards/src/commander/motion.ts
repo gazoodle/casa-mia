@@ -27,7 +27,24 @@ export const dotSize = (tileName: number): number => Math.round(tileName * 5) / 
 /** A camera's motion to show: since when, and until when once it has stopped. */
 type Seen = { since?: number; until?: number };
 
-const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+/** A time of day as a tooltip says it (here and detect.ts). */
+export const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+/** One timer that redraws a card when something it shows for a while is due to go (a
+ * lingering dot here, a detection chip in detect.ts). Set again at each redraw. */
+export class Wake {
+  private timer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Call `again` at `when` (ms) in place of any time set before; never, for Infinity. */
+  at(when: number, again: () => void) {
+    clearTimeout(this.timer);
+    if (when < Infinity) this.timer = setTimeout(again, when - Date.now() + 50);
+  }
+
+  stop() {
+    clearTimeout(this.timer);
+  }
+}
 
 const tip = ({ since, until }: Seen) =>
   until === undefined
@@ -40,13 +57,13 @@ const tip = ({ since, until }: Seen) =>
  * that lingers can still say it), and when the next lingering dot is due to go. */
 export class Motion {
   private began = new Map<string, number>(); // sensor -> when it last turned on
-  private timer: ReturnType<typeof setTimeout> | undefined;
+  private wake = new Wake();
 
   /** Each camera's motion to show now; `again` is called when a lingering dot is due to go. */
   seen(hass: Hass, sensors: Record<string, string>, config: Config, again: () => void): Map<string, Seen> {
     const o = { ...MOTION, ...config };
     const out = new Map<string, Seen>();
-    clearTimeout(this.timer);
+    this.wake.stop();
     if (!o.motion_dot) return out;
     const now = Date.now();
     let next = Infinity;
@@ -62,12 +79,12 @@ export class Motion {
         next = Math.min(next, changed + o.motion_linger * 1000);
       }
     }
-    if (next < Infinity) this.timer = setTimeout(again, next - now + 50);
+    this.wake.at(next, again);
     return out;
   }
 
   stop() {
-    clearTimeout(this.timer);
+    this.wake.stop();
   }
 }
 

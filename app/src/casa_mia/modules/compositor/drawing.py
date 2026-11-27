@@ -581,13 +581,14 @@ def commander(
                 anchor="mm",
             )
         live = bool(cmd.get("main_video"))  # the card's live video plays over it
+        by_card = live or bool(cmd.get("card_caption"))  # the card draws name and clock
         if main_image and main_stale and not live:
             _stale_mark(draw, (px + pw - u(10), py + u(22)), font, scale)
         # Its name's row: 18 px up from the foot for a name of 20, and in step with it.
         up = round(seen.main_px * 0.9)
         foot = py + ph - up
         main_in = round(seen.main_px / 2)  # 10 px in for a name of 20
-        if not live:  # (the card draws a live main camera's caption)
+        if not by_card:
             clock = datetime.now().strftime("%H:%M:%S")
             # the name stops short of the clock, which keeps the right of the foot
             taken = round(font.getlength(clock)) + main_in

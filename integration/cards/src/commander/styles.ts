@@ -1,8 +1,9 @@
 // The Camera Commander card's CSS.
 import { css } from "lit";
 import { motionStyles } from "./motion.ts";
+import { detectStyles } from "./detect.ts";
 
-export const styles = [motionStyles, css`
+export const styles = [motionStyles, detectStyles, css`
     :host {
       display: block;
       height: 100%;
@@ -103,9 +104,10 @@ export const styles = [motionStyles, css`
       pointer-events: none;
     }
     /* Its font, size and colours are the commander's labels (labels.ts), set on the box:
-       the size is a share of the main camera's place (labels.ts: nameSize). A name too
-       long for its place is cut short with …, as the compositor's is (labels.py: fitted). */
-    .caption span {
+       one size on every device (labels.ts: nameSize). A name too long for its place is cut
+       short with …, as the compositor's was (labels.py: fitted). The detection chips are
+       the style guide's (detect.ts), not these. */
+    .caption :is(.title, .lost, .clock) {
       box-sizing: border-box;
       max-width: 100%;
       overflow: hidden;
@@ -116,20 +118,36 @@ export const styles = [motionStyles, css`
       color: var(--cm-label-colour);
       font: var(--cm-label-size) / 1.2 var(--cm-label-font);
     }
+    /* The clock at the right of the foot, as the picture drew it: on the picture itself,
+       or on the bar. */
+    .caption .clock {
+      flex: none;
+      margin-left: auto;
+      background: none;
+    }
     /* A pill: rounded ends, as the style guide's pills have. */
-    .caption.pill span {
+    .caption.pill :is(.title, .lost) {
       padding: 0.1em 0.5em;
       border-radius: 999px;
     }
-    /* A bar: the name across the foot, anything said beside it standing above. */
+    /* A bar: the name and the clock across the foot, anything said beside it standing
+       above. */
     .caption.bar {
       padding: 0;
     }
-    .caption.bar .title {
-      order: 1;
+    .caption.bar .foot {
       flex: 1 0 100%;
-      box-sizing: border-box;
+      display: flex;
+      min-width: 0;
+      background: var(--cm-label-back);
+    }
+    .caption.bar .foot > * {
       padding: 0.35em 0.5em;
+      background: none;
+    }
+    .caption.bar .title {
+      flex: 1 1 auto;
+      min-width: 0;
     }
     .caption.bar .lost {
       margin-left: 0.5em;

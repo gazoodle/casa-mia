@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.11.14-b24
+
+- **Camera Commander card: what the main camera reports shows beside its name.** A chip
+  for a person, a vehicle (its number plate when the camera read one), an animal, a
+  package, a doorbell ring or a sound such as a smoke alarm or glass breaking, for as long
+  as the motion dot stays after motion, newest first, at most three and then +n. Hover a
+  chip for what it was and when. They come from the event entities on the camera's device,
+  which UniFi Protect makes, and any other integration's work too.
+- **Camera Commander card: the card always draws the main camera's name, and the clock
+  while the main camera isn't live,** so the chips have a name to sit beside. The
+  commander's picture leaves both out for the card, as it already did while the main
+  camera played live. When live video was lost, the name was drawn twice, once by the
+  picture and once by the card; now it is drawn once.
+- **Camera Commander card: under the Security look, the main camera's name keeps its own
+  colours,** as the controls and the motion dot do.
+- **Camera Commander: the compositor's status no longer fails while a card is being
+  tuned** (its debug on, with sizes set by hand).
+
 ## 2026.11.14-b23
 
 - **New card: Casa Mia Clock.** The time, digital or analogue, made as big as the space it

@@ -303,7 +303,14 @@ def test_changing_picture_is_drawn_from_what_is_to_hand():
 def test_a_size_asked_for_grows_gap_and_text_by_the_screens_scale():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, asked_size, sized
 
-    assert asked_size({"w": "1280", "h": "800", "dpr": "1.5"}) == (1280, 800, 1.5, 0, 0)
+    assert asked_size({"w": "1280", "h": "800", "dpr": "1.5"}) == (
+        1280,
+        800,
+        1.5,
+        0,
+        0,
+        False,
+    )
     for nonsense in (
         {},
         {"w": "x", "h": "1"},
@@ -311,7 +318,7 @@ def test_a_size_asked_for_grows_gap_and_text_by_the_screens_scale():
         {"w": "9000", "h": "9000"},
     ):
         assert asked_size(nonsense) is None
-    cmd = sized({**EMPTY_COMMANDER, "gap": 4}, (1280, 800, 1.5, 0, 0))
+    cmd = sized({**EMPTY_COMMANDER, "gap": 4}, (1280, 800, 1.5, 0, 0, False))
     assert (cmd["width"], cmd["height"], cmd["gap"], cmd["scale"]) == (
         1280,
         800,

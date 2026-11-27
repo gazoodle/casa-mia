@@ -123,8 +123,12 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   `docs/design/commander-detections.md`, built a step at a time, stopping after each).
   Step 1 in b22: the Main camera select's `detections` (`casa_mia_commander/detections.py`),
   found by the motion tracker's `refresh`, which since b22 also runs on the entity
-  registry's events, so a new motion sensor is found at once too. Not seen on the box.
-  Next: step 2, the chip.
+  registry's events, so a new motion sensor is found at once too. Step 2 in b24: the
+  chips (`commander/detect.ts`) in the main camera's caption (`live.ts`), which the card
+  now always draws, over the tap zones; the picture is asked with `?main=card` and leaves
+  the main name and clock out, and the card's clock is `caption-clock.ts` (owner's
+  decision, in the spec). Seen in Chromium only, with a stand-in caption. Neither step
+  seen on the box. Next: step 3, the clips dialog.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the
   app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up
@@ -168,8 +172,9 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     line (Out, level, In, Reset) as PTZ has. `zoomOf`/`zoomStep`: a tap is a tenth of
     the range; a level asked for is a lease (`ZOOM_PENDING_MS`). **Not seen** with a
     real zoom entity.
-  - **The clock** is drawn only by the compositor, beside the main name, so only while
-    the main camera is not live video. It has no settings of its own.
+  - **The clock** is drawn beside the main name only while the main camera is not live
+    video: by the card since b24 (`caption-clock.ts`), by the compositor for anything
+    that doesn't ask `?main=card`. It has no settings of its own.
   - **Tuning on a device** (b12 to b14, kept): with a commander's debug on, the card's
     box (`tune.ts` `debugBox`) gives where the card is, the places and each size; EDIT
     opens one draggable dialog for the tile names, the main name and the dot, kept per

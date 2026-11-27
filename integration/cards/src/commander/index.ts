@@ -7,9 +7,12 @@
 // settings).
 // The Security look (security_look, with its tint, strength and darkness: monochrome,
 // tinted, a CSS filter) is the card's own option: one layer holds what it covers, the
-// picture, the live main camera and its caption, and carries the filter, so anything new in
-// it is tinted from its first frame. Over it, the tap zones and the highlight, in their own
-// colours.
+// picture and the live main camera, and carries the filter, so anything new in it is tinted
+// from its first frame. Over it, in their own colours: the tap zones, the highlight, and
+// the main camera's caption (live.ts): its name, a chip for each thing its camera has just
+// reported (detect.ts), and the clock while it isn't live video. The card always draws the
+// caption, and asks for the picture without the main camera's name and clock (?main=card):
+// two names drawn one over the other never lined up (2026.11.14-b24).
 // Being edited (the dashboard in edit mode, the card editor), it shows one still picture at
 // the commander's own size, hatched, and no stream or live video: edit mode resizes it at
 // every step, and each size would be a new stream from the compositor.
@@ -26,8 +29,8 @@
 // switch is on), the main camera plays as live video over the picture, through Home
 // Assistant's WebRTC as its own camera cards play it: the tablet decodes it (the box draws
 // the picture without it, ?main=video), at full frame rate. The channel is the smallest at
-// least the main area's size in device pixels (fewer away from home, as the picture). The
-// card draws its caption. A channel that shows no frame within LIVE_WAIT_MS, stops, or
+// least the main area's size in device pixels (fewer away from home, as the picture).
+// A channel that shows no frame within LIVE_WAIT_MS, stops, or
 // fails is marked bad for a while and the next one is played (down the sizes, then up);
 // with none left the drawn picture shows, with "Live lost … ago" and why. A marked channel
 // is tried again under whatever shows, later after each failure in a row, and each loss
@@ -46,11 +49,13 @@
 import { CardsEditor } from "../cards-editor.ts";
 import { define, register } from "../ha.ts";
 import { CommanderCard } from "./card.ts";
+import { CaptionClock } from "./caption-clock.ts";
 import { CommanderEditor } from "./editor.ts";
 
 export { VERSION } from "./common.ts";
 
 define("casa-mia-commander", CommanderCard);
+define("casa-mia-commander-clock", CaptionClock);
 define("casa-mia-commander-editor", CommanderEditor);
 define("casa-mia-cards-editor", CardsEditor);
 register("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Commander page's commanders: tap a camera to make it the main one.");

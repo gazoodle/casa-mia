@@ -84,7 +84,7 @@ def test_cameras_there_is_no_room_for_are_in_more():
 
 def test_at_a_size_asked_for_the_smallest_tile_grows_with_the_scale():
     # twice the pixels: the same grid, every place twice the size (to a pixel's rounding)
-    one, two = placed(cmd()), placed(sized(cmd(), (2200, 1120, 2.0, 0, 0)))
+    one, two = placed(cmd()), placed(sized(cmd(), (2200, 1120, 2.0, 0, 0, False)))
     assert len(one.tiles) == len(two.tiles)
     for (_, _, a, _), (_, _, b, _) in zip(one.tiles, two.tiles):
         assert all(abs(2 * p - q) <= 4 for p, q in zip(a, b))

@@ -2,7 +2,8 @@
 // stream, its size and token, and whether the card is in sight.
 import { LitElement } from "lit";
 import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, screenRatio, watchRoom } from "../ha.ts";
-import { Motion } from "./motion.ts";
+import { Motion, MOTION } from "./motion.ts";
+import { Detect, type Detection } from "./detect.ts";
 import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, framesAddress, pictureToken, pictureDown, NO_FRAME_MS, throughHa, givesUpDirect } from "./common.ts";
 
 /** Learned once for the page: its pictures through Home Assistant come as frames over a
@@ -52,6 +53,7 @@ export class CommanderBase extends LitElement {
   protected awaited = ""; // the picture whose first frame is awaited, and since when
   protected awaitedSince = 0;
   protected motion = new Motion(); // the dots on tiles seeing motion
+  protected detect = new Detect(); // the chips for what the main camera reports
   protected run = ""; // the app's run the stream comes from (Card.run)
 
   protected debugOn(): boolean {
@@ -102,6 +104,7 @@ export class CommanderBase extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.motion.stop();
+    this.detect.stop();
     document.removeEventListener("visibilitychange", this.visibility);
     window.removeEventListener("location-changed", this.visibility);
     window.removeEventListener("popstate", this.visibility);
@@ -231,9 +234,10 @@ export class CommanderBase extends LitElement {
     return this.preview || inDialog(this);
   }
   /** One still picture at the card's size once it settles, while editing (single pictures,
-   * not a stream for each size the editor tries); "" while its token is being asked. */
+   * not a stream for each size the editor tries), without the main camera's name and clock
+   * (the card draws them); "" while its token is being asked. */
   protected stillUrl(card: Card, [W, H, scale]: Size): string {
-    const still = `${card.picture.replace(".mjpg", ".jpg")}?w=${W}&h=${H}&dpr=${scale}`;
+    const still = `${card.picture.replace(".mjpg", ".jpg")}?w=${W}&h=${H}&dpr=${scale}&main=card`;
     if (!this.viaHa()) return still;
     if (!this._token) {
       this.ask();
@@ -371,6 +375,14 @@ export class CommanderBase extends LitElement {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
     const card = st?.attributes.card as Card | undefined;
     return { card, main: card ? this.main(card, st!.state) : "" };
+  }
+
+  /** What the main camera's camera has just reported (detect.ts), from its event entities
+   * as the Main camera select lists them, for as long as a motion dot lingers. */
+  protected detections(): Detection[] {
+    const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
+    const found = (st?.attributes.detections as Record<string, Record<string, string>> | undefined)?.[this.now().main] ?? {};
+    return this.detect.seen(this.hass!, found, { ...MOTION, ...this._config }.motion_linger, () => this.requestUpdate());
   }
 
   protected main(card: Card, option?: string): string {

@@ -129,6 +129,15 @@ current on registry changes, and do the same; don't add a second mechanism).
 
 ## Step 2: the detection chip
 
+**Built in 2026.11.14-b24, with one change (owner, 2026-11-27):** the card's name could
+not cover the picture's exactly (Pillow and a browser set text differently, and two
+backgrounds at 55% show where they differ), so the picture leaves the main camera's name
+and clock out when the card asks (`?main=card`, read by `asked_size` as `Size[5]`; `main`
+was already passed by the integration's proxy), and the card always draws the name, with
+the clock (`caption-clock.ts`) while the main camera isn't live video. The caption is now
+drawn over the tap zones and outside the Security look's filter, so its chips take the
+pointer. It also ended the name drawn twice while live was lost.
+
 New file `integration/cards/src/commander/detect.ts` (pure, with `detect.test.ts`), used
 from `card.ts` and `full.ts` where the main camera's caption is drawn.
 

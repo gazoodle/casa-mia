@@ -369,13 +369,32 @@ Its options (each left at its default unless you change it):
   tint, strength and darkness.
 - **Motion dot:** a small dot pulsing on a camera's tile while its motion sensor sees
   motion, and for a while after; hover it for when. Its colour, pulse (0: steady), how
-  long it stays after the motion, and its corner. It is half the size of the tiles'
+  long it stays after the motion (a detection chip stays as long, see below), and its
+  corner. It is half the size of the tiles'
   names, so it is in proportion on every screen (the commander's **Tile name size**). A camera whose own motion detection
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
   your own buttons.
 - **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
   you answer, or half duplex, where it goes out only while you hold a button (see below).
+
+### What the main camera reports
+
+When the main camera reports something, the card shows a chip beside its name: a person,
+a vehicle (its number plate, when the camera read one), an animal, a package, a face, a
+doorbell ring, or a sound such as a smoke alarm, glass breaking or a dog barking. A chip
+stays for as long as the motion dot does after motion (10 seconds unless you changed it),
+newest first, and at most three are shown, then **+1** and so on. Hover a chip for what
+it was and when.
+
+The chips come from the event entities Home Assistant has on the camera's device. UniFi
+Protect makes these for its cameras and doorbells, and any other integration that makes
+event entities on a camera's device works too. Motion has no chip, as the motion dot
+already shows it.
+
+The card draws the main camera's name itself, and the clock beside it while the main
+camera isn't playing live, so the chips have a name to sit beside. The commander's
+picture leaves both out for the card.
 
 ### Cards in the last place
 
@@ -658,5 +677,9 @@ duplex: full     # or half; only for button: answer
   with "its page on the camera dashboard" chosen; choose more-info in its editor.
 - **No motion dot on a camera:** check its motion detection on the [Cameras](cameras.md)
   page.
+- **No chips when the camera sees someone:** the card shows what the camera's event
+  entities report. In Developer tools, States, the commander's Main camera select has a
+  `detections` attribute that lists each camera's event entities; a camera missing from
+  it has none on its device (in UniFi Protect, check its smart detections are on).
 - **The log** has a line for every save (`commander: saved N commanders (changed: …)`)
   and every main camera chosen (`commander '…': main camera … (from Home Assistant)`).
