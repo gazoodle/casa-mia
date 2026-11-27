@@ -1,6 +1,7 @@
 {
   "domain": "casa_mia_commander",
   "name": "Casa Mia Camera Commander",
+  "after_dependencies": ["recorder"],
   "codeowners": [],
   "config_flow": true,
   "dependencies": ["casa_mia", "http"],
@@ -9,5 +10,5 @@
   "iot_class": "local_polling",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2026.11.14-b31"
+  "version": "2026.11.14-b35"
 }

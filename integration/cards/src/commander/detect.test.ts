@@ -97,15 +97,15 @@ test("the card is redrawn when the oldest chip is due to go, and not after stop"
     const d = new Detect();
     let woken = 0;
     const ring = hass({ "event.gate_ring": [3, { event_type: "ring", event_id: "e12" }] });
-    assert.equal(d.seen(ring, GATE, 10, () => woken++).length, 1);
+    assert.equal(d.seen(ring, GATE, {}, 10, () => woken++).length, 1);
     mock.timers.tick(6999); // 7 s left of its 10
     assert.equal(woken, 0);
     mock.timers.tick(100);
     assert.equal(woken, 1);
-    assert.equal(d.seen(ring, GATE, 10, () => woken++).length, 0); // gone: no timer
+    assert.equal(d.seen(ring, GATE, {}, 10, () => woken++).length, 0); // gone: no timer
 
     const person = hass({ "event.gate_object": [0, { event_type: "person", event_id: "e13" }] });
-    d.seen(person, GATE, 10, () => woken++);
+    d.seen(person, GATE, {}, 10, () => woken++);
     d.stop();
     mock.timers.tick(20000);
     assert.equal(woken, 1);
@@ -120,7 +120,23 @@ test("the latest detection, however long ago, with motion left out; none, null",
     "event.gate_ring": [86400 * 3, { event_type: "ring", event_id: "e15" }],
     "event.gate_motion": [5, { event_type: "motion", event_id: "e16" }],
   });
-  assert.deepEqual(latest(states, GATE), { kind: "person", text: "Person", since: NOW - 3600_000 });
-  assert.equal(latest(hass({ "event.gate_motion": [5, { event_type: "motion", event_id: "e17" }] }), GATE), null);
-  assert.equal(latest(hass({}), {}), null);
+  assert.deepEqual(latest(states, GATE, {}), { kind: "person", text: "Person", since: NOW - 3600_000 });
+  assert.equal(latest(hass({ "event.gate_motion": [5, { event_type: "motion", event_id: "e17" }] }), GATE, {}), null);
+  assert.equal(latest(hass({}), {}, {}), null);
+});
+
+test("an entity that lost its time in a restart takes it from fired, else is left out", () => {
+  // As on a box after a restart: the person's entity is unknown, its event kept; the
+  // vehicle's kept its time, a day old.
+  const states = hass({
+    "event.gate_object": [0, { event_type: "person", event_id: "e18" }],
+    "event.gate_vehicle": [86400, { event_type: "detected", event_id: "e19" }],
+  });
+  states.states["event.gate_object"].state = "unknown";
+  assert.deepEqual(latest(states, GATE, {}), { kind: "vehicle", text: "Vehicle", since: NOW - 86400_000 });
+  assert.deepEqual(latest(states, GATE, { "event.gate_object": at(600) }), { kind: "person", text: "Person", since: NOW - 600_000 });
+  // An entity with its own time keeps it, whatever fired says.
+  assert.equal(latest(states, GATE, { "event.gate_vehicle": at(5) })?.since, NOW - 86400_000);
+  // Lost a moment before a restart: still a chip now.
+  assert.equal(detected(states, GATE, 10, NOW, { "event.gate_object": at(3) }).length, 1);
 });

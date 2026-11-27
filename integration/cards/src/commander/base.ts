@@ -383,10 +383,18 @@ export class CommanderBase extends LitElement {
     return (st?.attributes.detections as Record<string, Record<string, string>> | undefined)?.[camera] ?? {};
   }
 
+  /** When those that lost their time in a restart last fired, as the select gives it
+   * ({entity: ISO time}; the integration's fired.py). */
+  protected firedOf(): Record<string, string> {
+    const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
+    return (st?.attributes.fired as Record<string, string> | undefined) ?? {};
+  }
+
   /** What the main camera's camera has just reported (detect.ts), from its event entities,
    * for as long as a motion dot lingers. */
   protected detections(): Detection[] {
-    return this.detect.seen(this.hass!, this.eventsOf(this.now().main), { ...MOTION, ...this._config }.motion_linger, () => this.requestUpdate());
+    const linger = { ...MOTION, ...this._config }.motion_linger;
+    return this.detect.seen(this.hass!, this.eventsOf(this.now().main), this.firedOf(), linger, () => this.requestUpdate());
   }
 
   protected main(card: Card, option?: string): string {

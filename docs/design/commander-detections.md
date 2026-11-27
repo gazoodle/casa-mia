@@ -245,16 +245,33 @@ kept; the truncation callout; no folder, no press.
   the event entities' pushed states, so nothing is fetched. A count ("14 today") was
   turned down: it needs a list fetched per camera, and is cut short on a busy day. Every
   chip opens the dialog on its kind (`KINDS` `shelf`).
-- **The dialog keeps one size**, the screen's width less 16 px each side, up to 1280 px.
-  The preview is at the camera's shape (the card's `shapeOf`, as `--shape`), so its
-  picture fills it. Landscape and at least 700 px wide: the list (412 px) on the left,
-  the preview on the right at its column's width, and the preview sets the dialog's
-  height, up to the screen's (the list is size-contained, so its days add nothing).
-  Otherwise the dialog fills the screen's height too, the preview (at most 480 px tall,
-  narrower and centred beyond that) above the list. (2026.11.14-b33: at the screen's
-  height, a big monitor showed the picture between tall black bands; owner, 2026-11-27.)
-  The preview starts on the newest clip's picture, played at a press. Tiles or rows,
-  kept in this device's `localStorage`.
+- **A restart loses Protect's times (found on the box 2026-11-27, fixed in b35).** Home
+  Assistant restores an event entity's time from the state it saved as it stopped.
+  Protect's entities fed by its events websocket (ring, smart detection, motion, package,
+  sound) go unavailable first, as that websocket closes, so they come back unknown with
+  their event kept and no time; the vehicle, NFC and fingerprint entities keep theirs.
+  The chip then named a day-old vehicle over people seen since. The integration's
+  `fired.py` records each fire (time, event id, type) in HA's storage, and the select's
+  `fired` attribute gives the card the time of each entity whose state has none, where its
+  restored event is the one recorded (by event id; by type for a record from the
+  recorder, which keeps no event id). An entity with no record is looked up once in the
+  recorder. Fixed upstream in Home Assistant 2026.12.0 (core PR #192994: Protect closed
+  its websocket before its state callbacks); `fired.py` goes once that is the oldest
+  supported (backlog).
+- **The dialog keeps one size**, the room: the screen less 16 px each side and clear of
+  an iPhone's status bar, home bar and notch (`env(safe-area-inset-*)`; b35, where its
+  header sat under the clock), up to 1280 px. The preview is at the camera's shape (the
+  card's `shapeOf`, as `--shape`), so its picture fills it (Protect's thumbnail is a
+  square crop, so the still before Play has bands at its sides). Landscape and at least
+  700 px wide: the list (412 px) on the left, the preview on the right at its column's
+  width, anchored to the top, and the dialog's height worked out from its width and
+  shape, plus 150 px for the header and the lines under the picture, up to the room's.
+  (b33: at the screen's height, a big monitor showed the picture between tall black
+  bands; a height taken from its contents instead left it one header high on a Mac, not
+  reproduced in Chromium or WebKit.) Otherwise the dialog fills the room's height too,
+  the preview (at most 480 px tall, narrower and centred beyond that) above the list.
+  The preview starts on the newest clip's picture, played at a press. Tiles (96 px,
+  three across a phone) or rows, kept in this device's `localStorage`.
 - **The list fetches by itself** (owner: "that's what happens when we use things live"),
   reversing "no scrolling that fetches by itself": the day before whenever the end of
   the list is within 300 px of view, one day at a time, until `EMPTY_STOP` (7) empty days

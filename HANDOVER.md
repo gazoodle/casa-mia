@@ -135,9 +135,14 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   owner used it (spec, "After use on the box"): not for guests (`isGuest`), a latest
   chip while nothing is current, and the dialog one size filling the screen, list beside
   the preview in landscape, tiles or rows (`clips-styles.ts`), fetching on at the list's
-  end until 7 empty days. Seen in Chromium only, against a stand-in library with a WebM
-  clip (Playwright's Chromium has no H.264); not on the box, and Safari, the iOS app and
-  the tablets are not known.
+  end until 7 empty days. b33 and b35: the preview at the camera's shape, the dialog's
+  landscape height worked out from its width and that shape, clear of an iPhone's safe
+  areas, tiles 96 px. b35: `casa_mia_commander/fired.py` gives the card the times
+  Protect's entities lose in a restart (fixed upstream in HA 2026.12; remove then,
+  BACKLOG). Dialog sizes were checked in Playwright's Chromium and WebKit against a
+  stand-in page, which missed both the phone's status bar and the b33 collapse on the
+  owner's Mac (never reproduced): check a dialog on a phone in the iOS app before calling
+  it done. Seven hand-rolled card dialogs: BACKLOG, "One dialog for the cards".
 - **A closer look at the full screen** (b29, `docs/design/commander-zoom.md`):
   `commander/closer.ts` (`Closer`, on the card) enlarges the `.closer` element inside
   `_full`'s `.seen`, writing its transform directly; the card redraws only when the chip's

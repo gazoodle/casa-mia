@@ -5,14 +5,27 @@
 import { css } from "lit";
 
 export const clipsStyles = css`
-  /* The screen less a margin, up to a cap, and that size from the moment it opens: it
-     never grows as days come. The cap is the same both ways, so a portrait tablet is
-     filled as a landscape one is. In landscape the preview sets its height (below).
-     vh first, for a browser without dvh. */
+  /* The room: the screen less a margin, up to a cap, and that size from the moment it
+     opens, so it never grows as days come. The cap is the same both ways, so a portrait
+     tablet is filled as a landscape one is. The screen is the part clear of an iPhone's
+     status bar, home bar and notch: the iOS app's page runs under them, and a dialog from
+     the screen's top put its header (Close, the kinds) under the clock (2026.11.14-b35).
+     dvh where the browser has it. In landscape its height is the preview's (below). */
   dialog {
-    width: min(1280px, calc(100vw - 32px));
-    height: min(1280px, calc(100vh - 32px));
-    height: min(1280px, calc(100dvh - 32px));
+    --top: env(safe-area-inset-top, 0px);
+    --bottom: env(safe-area-inset-bottom, 0px);
+    --left: env(safe-area-inset-left, 0px);
+    --right: env(safe-area-inset-right, 0px);
+    --screen-h: 100vh;
+    --room-w: min(1280px, calc(100vw - 32px - var(--left) - var(--right)));
+    --room-h: min(1280px, calc(var(--screen-h) - 32px - var(--top) - var(--bottom)));
+    /* The body's padding and gap, and the list's width beside the preview. */
+    --pad: 16px;
+    --gap: 12px;
+    --list: 412px;
+    inset: var(--top) var(--right) var(--bottom) var(--left);
+    width: var(--room-w);
+    height: var(--room-h);
     max-width: none;
     max-height: none;
     padding: 0;
@@ -22,6 +35,11 @@ export const clipsStyles = css`
     color: var(--primary-text-color, #212121);
     font: 14px / 1.4 var(--ha-font-family-body, Roboto, sans-serif);
   }
+  @supports (height: 100dvh) {
+    dialog {
+      --screen-h: 100dvh;
+    }
+  }
   dialog::backdrop {
     background: rgb(0 0 0 / 0.6);
   }
@@ -29,10 +47,10 @@ export const clipsStyles = css`
   .body {
     display: grid;
     grid-template: "head" auto "preview" auto "list" minmax(0, 1fr) / minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--gap);
     box-sizing: border-box;
     height: 100%;
-    padding: 16px;
+    padding: var(--pad);
   }
   header {
     grid-area: head;
@@ -111,23 +129,21 @@ export const clipsStyles = css`
     font-weight: 500;
   }
   /* Landscape, wide enough: the list on the left, the preview on the right at the column's
-     width, anchored to its top. The preview sets the dialog's height, up to the screen's
-     less a margin, and the list scrolls in that height: its size is contained, so its days
-     add nothing. (At the screen's height a big monitor showed the picture between tall
-     black bands, owner 2026-11-27.) On a screen too short for it, the box is shorter and
-     the picture fitted in it. */
+     width, anchored to its top. The dialog is as tall as that preview, at the camera's
+     shape, with 150px for the header, the lines under the picture and the padding; up to
+     the room. At the room's height a big monitor showed the picture between tall black
+     bands (owner, 2026-11-27); a height taken from its contents instead (b33) left it one
+     header high on a Mac. On a screen too short for it, or under a header on two lines,
+     the box is shorter and the picture fitted in it. */
   @media (orientation: landscape) and (min-width: 700px) {
-    /* Not auto: a modal dialog is held at every edge of the screen, so auto stretches it. */
     dialog {
-      height: fit-content;
+      height: min(
+        var(--room-h),
+        calc((var(--room-w) - var(--list) - var(--gap) - 2 * var(--pad)) / var(--shape) + 150px)
+      );
     }
     .body {
-      grid-template: "head head" auto "list preview" minmax(0, 1fr) / 412px minmax(0, 1fr);
-      max-height: min(1280px, calc(100vh - 32px));
-      max-height: min(1280px, calc(100dvh - 32px));
-    }
-    .list {
-      contain: size;
+      grid-template: "head head" auto "list preview" minmax(0, 1fr) / var(--list) minmax(0, 1fr);
     }
     .stage {
       width: 100%;
@@ -150,10 +166,11 @@ export const clipsStyles = css`
     font-size: 14px;
     font-weight: 500;
   }
+  /* 96px, so three fit across a phone. */
   .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 120px);
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, 96px);
+    gap: 8px;
     margin-bottom: 16px;
   }
   .rows {
@@ -179,7 +196,7 @@ export const clipsStyles = css`
     display: flex;
     flex-direction: column;
     gap: 2px;
-    width: 120px;
+    width: 96px;
   }
   .rows .item {
     display: grid;
@@ -198,8 +215,8 @@ export const clipsStyles = css`
     background: var(--secondary-background-color, #e5e5e5);
   }
   .tiles .thumb {
-    width: 120px;
-    height: 120px;
+    width: 96px;
+    height: 96px;
   }
   .rows .thumb {
     width: 48px;

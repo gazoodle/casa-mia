@@ -14,6 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
 from .commanders import CommanderEntity, add_commander_entities, unique_id
+from .fired import FIRED
 from .motion import tracker
 
 
@@ -34,11 +35,12 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
     (Casa Mia's www/cm-cards.js) draws the commander from: layout, picture, cameras (see the app's
     commander.Live._card); `motion` each camera's motion sensor, which the card watches to
     mark its tile; `detections` each camera's event entities and their translation keys
-    (detections.py), which the card watches for its detection chips. Kept out of the
-    recorder: they only matter now."""
+    (detections.py), which the card watches for its detection chips; `fired` the time
+    each of those last fired, where its state lost it in a restart (fired.py). Kept out
+    of the recorder: they only matter now."""
 
     _attr_translation_key = "commander_main"
-    _unrecorded_attributes = frozenset({"card", "motion", "detections"})
+    _unrecorded_attributes = frozenset({"card", "motion", "detections", "fired"})
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
@@ -75,10 +77,13 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         found = tracker(self.coordinator, self.cid)
+        fired = self.hass.data.get(FIRED)
+        events = (e for entities in found.detections.values() for e in entities)
         return {
             "card": self.commander.get("card"),
             "motion": {camera: sensor for sensor, camera in found.sensors.items()},
             "detections": found.detections,
+            "fired": fired.lost(events) if fired else {},
         }
 
     @property

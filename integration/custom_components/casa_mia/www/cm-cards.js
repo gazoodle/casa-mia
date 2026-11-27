@@ -2769,22 +2769,22 @@ var ui = {
 	label: e.replace(/_/g, " "),
 	tone: "muted"
 }, fi = (e, t) => typeof e[t] == "string" ? e[t] : "";
-function pi(e, t, n, r) {
-	let i = /* @__PURE__ */ new Map();
-	for (let [a, o] of Object.entries(t)) {
-		let t = e.states[a], s = Date.parse(t?.state ?? "");
-		if (!t || Number.isNaN(s) || r - s >= n * 1e3) continue;
-		let c = t.attributes, l = fi(c, "event_type"), u = l === "detected" && o ? o : l;
-		if (!u || u === "motion") continue;
-		let d = fi(c, "license_plate"), f = {
-			kind: u,
-			text: d || fi(c, "full_name") || di(u).label,
-			since: s,
-			plate: !!d
-		}, p = c.event_id === void 0 || c.event_id === null || c.event_id === "" ? a : String(c.event_id), m = i.get(p);
-		(!m || f.plate && !m.plate) && i.set(p, f);
+function pi(e, t, n, r, i = {}) {
+	let a = /* @__PURE__ */ new Map();
+	for (let [o, s] of Object.entries(t)) {
+		let t = e.states[o], c = Date.parse(t?.state ?? ""), l = Number.isNaN(c) ? Date.parse(i[o] ?? "") : c;
+		if (!t || Number.isNaN(l) || r - l >= n * 1e3) continue;
+		let u = t.attributes, d = fi(u, "event_type"), f = d === "detected" && s ? s : d;
+		if (!f || f === "motion") continue;
+		let p = fi(u, "license_plate"), m = {
+			kind: f,
+			text: p || fi(u, "full_name") || di(f).label,
+			since: l,
+			plate: !!p
+		}, h = u.event_id === void 0 || u.event_id === null || u.event_id === "" ? o : String(u.event_id), g = a.get(h);
+		(!g || m.plate && !g.plate) && a.set(h, m);
 	}
-	return [...i.values()].sort((e, t) => t.since - e.since).map(({ kind: e, text: t, since: n }) => ({
+	return [...a.values()].sort((e, t) => t.since - e.since).map(({ kind: e, text: t, since: n }) => ({
 		kind: e,
 		text: t,
 		since: n
@@ -2794,9 +2794,9 @@ var mi = class {
 	constructor() {
 		this.wake = new jn();
 	}
-	seen(e, t, n, r) {
-		let i = pi(e, t, n, Date.now());
-		return this.wake.at(Math.min(...i.map((e) => e.since + n * 1e3)), r), i;
+	seen(e, t, n, r, i) {
+		let a = pi(e, t, r, Date.now(), n);
+		return this.wake.at(Math.min(...a.map((e) => e.since + r * 1e3)), i), a;
 	}
 	stop() {
 		this.wake.stop();
@@ -2804,7 +2804,7 @@ var mi = class {
 }, hi = (e) => {
 	let t = di(e.kind).label;
 	return `${t}${e.text === t ? "" : ` ${e.text}`} at ${An(e.since)}`;
-}, gi = (e, t) => pi(e, t, Infinity, Date.now())[0] ?? null;
+}, gi = (e, t, n) => pi(e, t, Infinity, Date.now(), n)[0] ?? null;
 function _i(e, t, n, { press: r, opens: i }, a) {
 	return z`<span class="${e} ${i ? "press" : ""}" title=${t} role=${i ? "button" : B} tabindex=${i ? "0" : B}
     @click=${() => r(a)} @keydown=${i ? (e) => {
@@ -2983,11 +2983,15 @@ var bi = o`
 	eventsOf(e) {
 		return (this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes.detections?.[e] ?? {};
 	}
+	firedOf() {
+		return (this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes.fired ?? {};
+	}
 	detections() {
-		return this.detect.seen(this.hass, this.eventsOf(this.now().main), {
+		let e = {
 			...On,
 			...this._config
-		}.motion_linger, () => this.requestUpdate());
+		}.motion_linger;
+		return this.detect.seen(this.hass, this.eventsOf(this.now().main), this.firedOf(), e, () => this.requestUpdate());
 	}
 	main(e, t) {
 		if (this._full && e.cameras[this._full]) return this._full;
@@ -3312,7 +3316,7 @@ var ia = class extends wi {
 		}, u = n?.shown ? Ir(n.shown) : "", d = u ? a?.cameras[o]?.channels?.find(([e]) => e === n?.shown) : void 0, f = z`${e}${u ? z` <span title="${u}${d?.[1] ? `, ${d[1]} × ${d[2]}` : ""}">${u[0]}</span>` : B}${n?.shown ? ra === "hls" ? " (live, some seconds behind)" : " (live)" : ""}`, p = n?.status, m = p ? _i(`live-status cm-chip cm-${p.tone}`, p.tip, p.text, {
 			press: r,
 			opens: !1
-		}) : B, h = c ? _i("title", "Its recordings", f, l) : z`<span class="title">${f}</span>`, g = this.detections(), _ = c && !g.length ? gi(this.hass, this.eventsOf(o)) : null, v = g.length ? vi(g, l) : c ? yi(_, _ ? Ii(_.since, this.hass?.config?.time_zone, Date.now()) : "", l) : B, y = n?.lost ? z`<span class="lost">Live lost ${Rr(Date.now() - n.lost.since)} ago: ${n.lost.why}</span>` : B, b = n?.video ? B : z`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
+		}) : B, h = c ? _i("title", "Its recordings", f, l) : z`<span class="title">${f}</span>`, g = this.detections(), _ = c && !g.length ? gi(this.hass, this.eventsOf(o), this.firedOf()) : null, v = g.length ? vi(g, l) : c ? yi(_, _ ? Ii(_.since, this.hass?.config?.time_zone, Date.now()) : "", l) : B, y = n?.lost ? z`<span class="lost">Live lost ${Rr(Date.now() - n.lost.since)} ago: ${n.lost.why}</span>` : B, b = n?.video ? B : z`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
 		return s === "bar" ? z`<div class="caption bar" style=${t}>${m}${v}${i}${y}<div class="foot">${h}${b}</div></div>` : z`<div class="caption ${s}" style=${t}>${h}${m}${v}${i}${y}${b}</div>`;
 	}
 	clipsDialog() {
@@ -4271,14 +4275,27 @@ var Va = class extends Ta {
 		return Ha(this.zone).format(/* @__PURE__ */ new Date());
 	}
 }, Wa = o`
-  /* The screen less a margin, up to a cap, and that size from the moment it opens: it
-     never grows as days come. The cap is the same both ways, so a portrait tablet is
-     filled as a landscape one is. In landscape the preview sets its height (below).
-     vh first, for a browser without dvh. */
+  /* The room: the screen less a margin, up to a cap, and that size from the moment it
+     opens, so it never grows as days come. The cap is the same both ways, so a portrait
+     tablet is filled as a landscape one is. The screen is the part clear of an iPhone's
+     status bar, home bar and notch: the iOS app's page runs under them, and a dialog from
+     the screen's top put its header (Close, the kinds) under the clock (2026.11.14-b35).
+     dvh where the browser has it. In landscape its height is the preview's (below). */
   dialog {
-    width: min(1280px, calc(100vw - 32px));
-    height: min(1280px, calc(100vh - 32px));
-    height: min(1280px, calc(100dvh - 32px));
+    --top: env(safe-area-inset-top, 0px);
+    --bottom: env(safe-area-inset-bottom, 0px);
+    --left: env(safe-area-inset-left, 0px);
+    --right: env(safe-area-inset-right, 0px);
+    --screen-h: 100vh;
+    --room-w: min(1280px, calc(100vw - 32px - var(--left) - var(--right)));
+    --room-h: min(1280px, calc(var(--screen-h) - 32px - var(--top) - var(--bottom)));
+    /* The body's padding and gap, and the list's width beside the preview. */
+    --pad: 16px;
+    --gap: 12px;
+    --list: 412px;
+    inset: var(--top) var(--right) var(--bottom) var(--left);
+    width: var(--room-w);
+    height: var(--room-h);
     max-width: none;
     max-height: none;
     padding: 0;
@@ -4288,6 +4305,11 @@ var Va = class extends Ta {
     color: var(--primary-text-color, #212121);
     font: 14px / 1.4 var(--ha-font-family-body, Roboto, sans-serif);
   }
+  @supports (height: 100dvh) {
+    dialog {
+      --screen-h: 100dvh;
+    }
+  }
   dialog::backdrop {
     background: rgb(0 0 0 / 0.6);
   }
@@ -4295,10 +4317,10 @@ var Va = class extends Ta {
   .body {
     display: grid;
     grid-template: "head" auto "preview" auto "list" minmax(0, 1fr) / minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--gap);
     box-sizing: border-box;
     height: 100%;
-    padding: 16px;
+    padding: var(--pad);
   }
   header {
     grid-area: head;
@@ -4377,23 +4399,21 @@ var Va = class extends Ta {
     font-weight: 500;
   }
   /* Landscape, wide enough: the list on the left, the preview on the right at the column's
-     width, anchored to its top. The preview sets the dialog's height, up to the screen's
-     less a margin, and the list scrolls in that height: its size is contained, so its days
-     add nothing. (At the screen's height a big monitor showed the picture between tall
-     black bands, owner 2026-11-27.) On a screen too short for it, the box is shorter and
-     the picture fitted in it. */
+     width, anchored to its top. The dialog is as tall as that preview, at the camera's
+     shape, with 150px for the header, the lines under the picture and the padding; up to
+     the room. At the room's height a big monitor showed the picture between tall black
+     bands (owner, 2026-11-27); a height taken from its contents instead (b33) left it one
+     header high on a Mac. On a screen too short for it, or under a header on two lines,
+     the box is shorter and the picture fitted in it. */
   @media (orientation: landscape) and (min-width: 700px) {
-    /* Not auto: a modal dialog is held at every edge of the screen, so auto stretches it. */
     dialog {
-      height: fit-content;
+      height: min(
+        var(--room-h),
+        calc((var(--room-w) - var(--list) - var(--gap) - 2 * var(--pad)) / var(--shape) + 150px)
+      );
     }
     .body {
-      grid-template: "head head" auto "list preview" minmax(0, 1fr) / 412px minmax(0, 1fr);
-      max-height: min(1280px, calc(100vh - 32px));
-      max-height: min(1280px, calc(100dvh - 32px));
-    }
-    .list {
-      contain: size;
+      grid-template: "head head" auto "list preview" minmax(0, 1fr) / var(--list) minmax(0, 1fr);
     }
     .stage {
       width: 100%;
@@ -4416,10 +4436,11 @@ var Va = class extends Ta {
     font-size: 14px;
     font-weight: 500;
   }
+  /* 96px, so three fit across a phone. */
   .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 120px);
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, 96px);
+    gap: 8px;
     margin-bottom: 16px;
   }
   .rows {
@@ -4445,7 +4466,7 @@ var Va = class extends Ta {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    width: 120px;
+    width: 96px;
   }
   .rows .item {
     display: grid;
@@ -4464,8 +4485,8 @@ var Va = class extends Ta {
     background: var(--secondary-background-color, #e5e5e5);
   }
   .tiles .thumb {
-    width: 120px;
-    height: 120px;
+    width: 96px;
+    height: 96px;
   }
   .rows .thumb {
     width: 48px;

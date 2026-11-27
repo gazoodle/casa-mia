@@ -54,12 +54,15 @@ const text = (a: Record<string, unknown>, key: string): string => (typeof a[key]
  * newest first. A chip says its kind, or the plate where there is one, or the name a
  * fingerprint or an NFC card gave. Protect reports one vehicle on two entities (the object
  * and the vehicle, with its plate) under one `event_id`: that is one detection, and the
- * one with the plate wins. */
-export function detected(hass: Hass, entities: Record<string, string>, linger: number, now: number): Detection[] {
+ * one with the plate wins. An entity whose state lost its time in a restart (unknown, its
+ * event kept) takes it from `fired` (the Main camera select's, the integration's
+ * fired.py). */
+export function detected(hass: Hass, entities: Record<string, string>, linger: number, now: number, fired: Record<string, string> = {}): Detection[] {
   const byEvent = new Map<string, Detection & { plate: boolean }>();
   for (const [entity, key] of Object.entries(entities)) {
     const st = hass.states[entity];
-    const since = Date.parse(st?.state ?? "");
+    const own = Date.parse(st?.state ?? "");
+    const since = Number.isNaN(own) ? Date.parse(fired[entity] ?? "") : own;
     if (!st || Number.isNaN(since) || now - since >= linger * 1000) continue;
 
     const a = st.attributes;
@@ -81,8 +84,8 @@ export function detected(hass: Hass, entities: Record<string, string>, linger: n
 export class Detect {
   private wake = new Wake();
 
-  seen(hass: Hass, entities: Record<string, string>, linger: number, again: () => void): Detection[] {
-    const out = detected(hass, entities, linger, Date.now());
+  seen(hass: Hass, entities: Record<string, string>, fired: Record<string, string>, linger: number, again: () => void): Detection[] {
+    const out = detected(hass, entities, linger, Date.now(), fired);
     this.wake.at(Math.min(...out.map((d) => d.since + linger * 1000)), again);
     return out;
   }
@@ -103,7 +106,8 @@ const tip = (d: Detection) => {
 
 /** The camera's latest detection, however long ago (motion left out), or null: for the
  * chip that says there are recordings to see while none is current. */
-export const latest = (hass: Hass, entities: Record<string, string>): Detection | null => detected(hass, entities, Infinity, Date.now())[0] ?? null;
+export const latest = (hass: Hass, entities: Record<string, string>, fired: Record<string, string>): Detection | null =>
+  detected(hass, entities, Infinity, Date.now(), fired)[0] ?? null;
 
 /** A press on a part of the main camera's caption. Where the camera has recordings
  * (clips.ts), it `opens` them, as a button, on the pressed chip's kind; else it is the

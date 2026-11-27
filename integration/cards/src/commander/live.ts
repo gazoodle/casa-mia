@@ -279,7 +279,7 @@ export class CommanderLive extends CommanderBase {
     const status = s ? pressable(`live-status cm-chip cm-${s.tone}`, s.tip, s.text, { press: tap, opens: false }) : nothing;
     const name = opens ? pressable("title", "Its recordings", said, press) : html`<span class="title">${said}</span>`;
     const now = this.detections();
-    const last = opens && !now.length ? latest(this.hass!, this.eventsOf(main)) : null;
+    const last = opens && !now.length ? latest(this.hass!, this.eventsOf(main), this.firedOf()) : null;
     const chips = now.length
       ? detectionChips(now, press)
       : opens

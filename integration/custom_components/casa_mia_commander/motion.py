@@ -29,6 +29,7 @@ from homeassistant.helpers.event import async_call_later, async_track_state_chan
 
 from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
 from .detections import event_entities, on_device
+from .fired import FIRED
 
 _LOGGER = logging.getLogger(__name__)
 CHANNEL = re.compile(r"_(high|medium|low)_resolution_channel$")
@@ -168,6 +169,14 @@ class MotionTracker:
                 )
                 or "no event entities",
             )
+            # Every commander's event entities have their fires recorded (fired.py).
+            if fired := self.hass.data.get(FIRED):
+                fired.watch(
+                    entity
+                    for one in self.coordinator.motion.values()
+                    for found in one.detections.values()
+                    for entity in found
+                )
         if sensors != self.sensors:
             self._follow(sensors)
         for show in self.found:

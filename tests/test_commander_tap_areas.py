@@ -94,6 +94,7 @@ window.captionMisses = (style, camera, who, quiet) => {
     now: () => ({ card: { layout: { labels: { main_style: style } } }, main: camera }),
     detections: () => (quiet ? [] : found),
     eventsOf: () => ({}),
+    firedOf: () => ({}),
     requestUpdate() {},
     set _clips(open) { fired.push(`recordings of ${open.camera} on ${open.shelf}`); },
   };

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026.11.14-b35
+
+- **Camera Commander card: the latest detection's chip names the right one after a
+  restart.** After Home Assistant restarted, UniFi Protect's ring, smart detection, motion,
+  package and sound entities came back as unknown: their kind was restored but not their
+  time, so the chip named an older detection from an entity that kept its time (a vehicle
+  from the day before, over people seen since). The Camera Commander integration now
+  keeps the time each of a commander's event entities last fired, in Home Assistant's
+  storage, and gives it to the card for an entity that has lost it. An entity it has no
+  record of yet is looked up once in the recorder, so this works from the first restart.
+  Home Assistant 2026.12 fixes the cause in UniFi Protect itself.
+- **Camera Commander card: the recordings dialog on a phone and on a Mac.** On a phone it
+  now stays clear of the status bar and the home bar, where its Close and kind chips were
+  hard to press, and its tiles are 96 px so three fit across. On a landscape screen it is
+  as tall as its picture again, worked out from its width and the camera's shape: in b33
+  it took its height from its contents, which left it one header high on a Mac.
+
 ## 2026.11.14-b34
 
 - **Camera Commander card: the main camera's name says which channel is playing,** H, M

@@ -4,12 +4,12 @@
     "version": "2026.11.14-b21"
   },
   "casa_mia": {
-    "digest": "3c1c5a13e390af94c6e047528edc2d64ca1644476e820f544157f8aebbdce71c",
-    "version": "2026.11.14-b34"
+    "digest": "81842b4fc80cb5a7ae8b808e1beb6df5c28bb32d42f19bcc02f15e3079a73975",
+    "version": "2026.11.14-b35"
   },
   "casa_mia_commander": {
-    "digest": "7182c7d44adef21052bdf9893353708604468ab9bb3f21114d2211ef71452fe3",
-    "version": "2026.11.14-b31"
+    "digest": "83b4d58a512b7285073c4d4cfa127e6a62b0ea84e968db2048f11556a8c6c503",
+    "version": "2026.11.14-b35"
   },
   "casa_mia_dash_bored": {
     "digest": "0a7c4d46348b3c836ce3a575b9b6bb2d16611c48158de38ec074122ee4647e4c",
