@@ -86,11 +86,11 @@ test("the caption's chip: starting, a better channel coming, a better one failed
   const marks = (c: string) => (c === H ? failed : undefined);
   const said = (plan: Parameters<typeof liveStatus>[0]) => liveStatus(plan, marks, now);
 
-  assert.equal(said({ tried: M })?.text, "Starting M"); // nothing shown yet
-  assert.equal(said({ tried: "camera.driveway" })?.text, "Starting");
-  assert.deepEqual(said({ shown: M, tried: H }), { text: "H coming", tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" });
-  assert.deepEqual(said({ shown: M, missed: H }), { text: "H failed", tone: "warn", tip: "no video arrived; tried again in 2 min" });
-  assert.equal(said({ shown: "camera.a", tried: "camera.b" })?.text, "Larger coming"); // not Protect's: no letter
+  assert.deepEqual(said({ tried: M }), { tier: "Medium", text: "Starting", tone: "muted", tip: "The live video is starting" }); // nothing shown yet
+  assert.deepEqual(said({ tried: "camera.driveway" }), { tier: "", text: "Starting", tone: "muted", tip: "The live video is starting" });
+  assert.deepEqual(said({ shown: M, tried: H }), { tier: "High", text: "coming", tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" });
+  assert.deepEqual(said({ shown: M, missed: H }), { tier: "High", text: "failed", tone: "warn", tip: "no video arrived; tried again in 2 min" });
+  assert.equal(said({ shown: "camera.a", tried: "camera.b" })?.text, "Larger coming"); // not Protect's: no tier
   assert.equal(said({ shown: H }), null); // the best there is
   assert.equal(said({}), null); // nothing at all: the caption says live is lost
 });

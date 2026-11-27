@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.14-b37
+
+- **Camera Commander card: older browsers that misreport what they can decode no longer
+  try a channel they can't play.** The card now asks the browser twice, once for live
+  video and once for a video file, and leaves a channel out if either answer is no.
+  Android WebView 140 says yes to H.265 at any size for live video, even on a tablet
+  whose decoder stops at 2560 x 1440, so b36's check let it try a 4K high channel; asked
+  about a file, it gives the right answer. WebView 157 gives the right answer both ways.
+- **Camera Commander card: the main camera's name is just its name.** While live video
+  arrives, a green LIVE pill follows it (DELAYED in grey over HLS), and beside it three
+  rising bars show the UniFi Protect channel playing: one filled for low, two for
+  medium, three for high, its size on hover. They replace b34's letter and "(live)". The
+  chip saying what live is doing shows the same bars, as "Starting", "coming" or
+  "failed". Both are the style guide's pills (`pills.css`: `cm-solid`, `cm-bars`), with
+  the card's surface behind them so they read on any picture.
+
 ## 2026.11.14-b36
 
 - **Camera Commander card: a device no longer tries a channel it says it can't play.**

@@ -1,11 +1,11 @@
 {
   "casa-mia-tablet-layout": {
-    "digest": "94cf0c71597514606fe765291fa69ad3e50e418842d393bda702c8dbd5c65474",
-    "version": "2026.11.14-b21"
+    "digest": "4409b4a4fdecca05962f822fafd02501726bc4aea5616b51488f029dabc69959",
+    "version": "2026.11.14-b37"
   },
   "casa_mia": {
-    "digest": "a015b17f3e52666430c52fd0d6e868aead5da41e618e6d0e8698089b85ff6963",
-    "version": "2026.11.14-b36"
+    "digest": "aeba800694a7a4b66e89e276a7613c947693de2f66675d4113bf453b3b82995b",
+    "version": "2026.11.14-b37"
   },
   "casa_mia_commander": {
     "digest": "83b4d58a512b7285073c4d4cfa127e6a62b0ea84e968db2048f11556a8c6c503",
@@ -36,7 +36,7 @@
     "version": "2026.11.14-b20"
   },
   "casa_mia_sensor_watch": {
-    "digest": "44d93dec7aeedc5de88a002d1022056436a29cf74629cb73f148223aab7d0a73",
-    "version": "2026.11.14-b19"
+    "digest": "3a6bfb3706f498b5dacd181f1f848105808cfed889e5a68d2af7808e56125c81",
+    "version": "2026.11.14-b37"
   }
 }

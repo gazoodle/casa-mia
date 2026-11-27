@@ -158,6 +158,12 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   element (`Session.move`), so `livePlan` keeps it shown while a better channel starts
   hidden. HLS still starts afresh. Every first frame is in HA's log with how long it took
   (`live_report` "started").
+- **The caption says live with pills, not words** (b37, owner's design, 2026-11-27): the
+  name alone, then a LIVE pill (DELAYED over HLS) and the channel as rising bars
+  (`pills.ts: tierBars`, `.cm-bars` in `pills.css`; cheatsheet `cam-live`, `cam-tier`),
+  both `.cm-pill.cm-solid` so they read on the picture. The wrapper is `.playing`, as
+  `.live` is the `<video>`'s class. The bars are whole-pixel paths with `crispEdges`
+  (outlines are the inner box cut out, never a stroke), seen sharp at 1, 1.0625 and 2.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the
   app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up
@@ -1990,6 +1996,17 @@ CLAUDE.md has them all. What trips agents here:
     so a tablet's log buffer holds about 20 s. Kiosk Satellite's Remote API: `POST
     /api/login {password}` gives a bearer token, then `POST /api/commands/evalJs
     {code}` (port 2324 over `adb forward`).
+  - **The large wall tablet is another model** (2026-11-27, b37): a Lenovo Idea Tab Plus
+    (`TB361FU`, Android 16, MediaTek MT8755) with the same 2560 x 1440 H.265 limit. It
+    came with WebView 140, whose `decodingInfo({type: "webrtc"})` says yes at any size
+    (even 7680 x 4320), so b36's card tried its 4K high channels there. Asked with
+    `type: "file"`, 140 answers right, so the card now asks both ways and a no from
+    either leaves the channel out. 157 was then installed there the same way as on the
+    others. For H.264 both questions say yes at every size on 157 (a software decoder,
+    not seen playing at 4K). Android 15 and later blank Developer options in the VNC
+    view until `disable_screen_share_protections_for_apps_and_notifications` is 1 and
+    droidVNC-NG is restarted (`docs/run-the-house-from-your-desk.md`);
+    `provision-tablet.sh` sets it since 2026-11-27.
   - **Not fixed:** the Cameras live view (`LiveView.tsx`) now names an unplayable format,
     but has no timeout and no MJPEG fallback.
   - **Open:** whether a stalled WebRTC stream can fool the lease (`requestVideoFrameCallback`

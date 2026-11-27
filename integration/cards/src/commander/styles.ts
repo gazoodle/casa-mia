@@ -150,8 +150,9 @@ export const styles = [motionStyles, detectStyles, css`
       padding: 0.35em 0.5em;
       background: none;
     }
+    /* Not grown, so LIVE follows the name; the clock keeps the right (margin-left: auto). */
     .caption.bar .title {
-      flex: 1 1 auto;
+      flex: 0 1 auto;
       min-width: 0;
     }
     .caption.bar .lost {
@@ -166,9 +167,17 @@ export const styles = [motionStyles, detectStyles, css`
       color: #fff;
       font-weight: 600;
     }
-    /* What the live video is doing (common.ts: liveStatus): the style guide's chip, taking
-       the pointer for its tooltip, as the detection chips do. */
-    .caption .live-status {
+    /* LIVE and the channel's bars (live.ts: caption): the style guide's pills, side by
+       side at their own size, in the row or in the bar (not .live: the video's class). */
+    .caption .playing {
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: 4px;
+    }
+    /* What the live video is doing (common.ts: liveStatus), LIVE and the bars: taking the
+       pointer for their tooltips, as the detection chips do. */
+    .caption :is(.live-status, .playing > *) {
       pointer-events: auto;
       cursor: default;
     }

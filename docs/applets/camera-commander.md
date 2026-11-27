@@ -368,12 +368,14 @@ Its options (each left at its default unless you change it):
   Full to Data saver, hidden when **Always direct** is selected.
 - **Main camera as live video:** the main camera plays as live video over the picture
   (Home Assistant's WebRTC, decoded by the tablet), when the compositor's **Live main
-  camera** switch is on. Its title says **(live)** while video is arriving, after the
-  letter of the UniFi Protect channel playing: **H**, **M** or **L** for high, medium or
-  low (its size shows when you point at it). A chip beside the title says **Starting M**
-  while the video starts, **H coming** while a sharper channel gets ready behind the one
-  shown, and **H failed** when that channel wouldn't play, with the reason and when it is
-  tried again when you point at it. When a channel
+  camera** switch is on. While video is arriving, a green **LIVE** pill follows the
+  camera's name (**DELAYED** in grey on a device that plays it over HLS, some seconds
+  behind), and beside it three rising bars show which UniFi Protect channel is playing:
+  one bar filled for low, two for medium, all three for high (its size shows when you
+  point at it). A chip after them shows the channel's bars with **Starting** while the
+  video starts, **coming** while a sharper channel gets ready behind the one shown, and
+  **failed** when that channel wouldn't play, with the reason and when it is tried again
+  when you point at it. When a channel
   of the camera won't play, the card plays another of its channels, and when none plays
   it shows the drawn picture and says **Live lost … ago** with the reason, and tries
   again by itself (see Troubleshooting).
@@ -723,8 +725,8 @@ duplex: full     # or half; only for button: answer
   `adb install -r`. Otherwise set the camera to H.264 (in UniFi Protect,
   the camera's encoding setting: Standard is H.264, Enhanced is H.265), or leave it: the
   drawn picture is the same camera.
-- **A tablet plays the medium channel (M) on full screen, not the high one:** the tablet
-  says it can't decode the high channel smoothly, so the card doesn't try it. Many
+- **A tablet plays the medium channel (two bars) on full screen, not the high one:** the
+  tablet says it can't decode the high channel smoothly, so the card doesn't try it. Many
   tablets decode H.265 only up to 2560 x 1440, and a 4K or 2688 x 1512 high channel is
   larger. Trying it anyway never showed a frame there, and stopped the channel already
   on screen too. The browser's console has a `casa-mia:` line for each size it rules

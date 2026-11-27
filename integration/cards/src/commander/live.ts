@@ -13,6 +13,7 @@ import { CommanderBase } from "./base.ts";
 import { type CaptionPress, detectionChips, latest, latestChip, pressable } from "./detect.ts";
 import { FOLDERS, type Shelf, shelfOf, whenSaid } from "./clips.ts";
 import { isGuest } from "../guest-goodbye.ts";
+import { tierBars } from "../pills.ts";
 
 /** One channel playing (or starting) in its <video>: when it started, when it last put a
  * frame on screen (0: none yet), and how to move its stream to another <video>. */
@@ -37,25 +38,42 @@ export const LIVE_BY = liveBy();
 if (LIVE_BY !== "webrtc")
   console.info(`casa-mia: this device has no WebRTC, so ${LIVE_BY ? "live main cameras play as HLS, some seconds behind" : "main cameras are drawn, not live"}, and Talk is not offered`);
 
-/** What this device says of decoding a codec at a size over WebRTC (MediaCapabilities):
- * true when smoothly, false when not, undefined while asked or when it can't answer.
- * Asked once for the page per codec and size: the answer is the device's own. */
+/** What this device says of decoding a codec at a size (MediaCapabilities): true when
+ * smoothly, false when not, undefined while asked or when it can't answer. Asked once for
+ * the page per codec and size: the answer is the device's own.
+ *
+ * Asked two ways, over WebRTC and as a file, and false if either says no: Android WebView
+ * 140 says yes over WebRTC at any size (even 7680 x 4320, on a tablet whose decoder stops
+ * at 2560 x 1440), while as a file it knows the limit; 157 knows it both ways. */
 const DECODES = new Map<string, boolean | undefined>();
-const MIME: Record<string, string> = { hevc: "video/H265", h264: "video/H264", av1: "video/AV1", vp9: "video/VP9", vp8: "video/VP8" };
+/** Each codec as WebRTC names it, and as a file, at a level every camera's size fits. */
+const MIME: Record<string, [webrtc: string, file: string]> = {
+  hevc: ["video/H265", 'video/mp4; codecs="hvc1.1.6.L153.B0"'],
+  h264: ["video/H264", 'video/mp4; codecs="avc1.640033"'],
+  av1: ["video/AV1", 'video/mp4; codecs="av01.0.13M.08"'],
+  vp9: ["video/VP9", 'video/webm; codecs="vp09.00.51.08"'],
+  vp8: ["video/VP8", 'video/webm; codecs="vp8"'],
+};
 function decodes([, w, h, codec]: Channel, answered: () => void): boolean | undefined {
   const mime = MIME[codec ?? ""];
   if (LIVE_BY !== "webrtc" || !mime || !w || !h || !navigator.mediaCapabilities) return undefined;
-  const key = `${mime.slice(6)} at ${w} x ${h}`;
+  const key = `${mime[0].slice(6)} at ${w} x ${h}`;
+
   if (!DECODES.has(key)) {
     DECODES.set(key, undefined);
-    navigator.mediaCapabilities.decodingInfo({ type: "webrtc", video: { contentType: mime, width: w, height: h, bitrate: 4_000_000, framerate: 30 } }).then(
-      ({ supported, smooth }) => {
-        DECODES.set(key, supported && smooth);
-        if (!(supported && smooth)) console.info(`casa-mia: this device says it can't decode ${key} ${supported ? "smoothly " : ""}over WebRTC, so its channels that size aren't tried`);
-        answered();
-      },
-      (err) => console.info(`casa-mia: this device can't say whether it decodes ${key} (${err?.message ?? err}); its channels that size are tried`),
-    );
+    const ask = (type: "webrtc" | "file", contentType: string) =>
+      navigator.mediaCapabilities.decodingInfo({ type, video: { contentType, width: w, height: h, bitrate: 4_000_000, framerate: 30 } }).then(
+        ({ supported, smooth }) => supported && smooth,
+        (err) => void console.info(`casa-mia: this device can't say whether it decodes ${key} ${type === "file" ? "as a file" : "over WebRTC"} (${err?.message ?? err})`),
+      );
+
+    // A question it can't answer is not a no; with neither answered, its channels are tried.
+    void Promise.all([ask("webrtc", mime[0]), ask("file", mime[1])]).then(([rtc, file]) => {
+      const can = rtc === false || file === false ? false : (rtc ?? file);
+      DECODES.set(key, can);
+      if (can === false) console.info(`casa-mia: this device says it can't decode ${key} smoothly ${rtc === false ? "over WebRTC" : "as a file"}, so its channels that size aren't tried`);
+      answered();
+    });
   }
   return DECODES.get(key);
 }
@@ -280,8 +298,9 @@ export class CommanderLive extends CommanderBase {
   }
 
   /** The main camera's caption, live or not (the picture is asked for without its name
-   * and clock: card.ts, ?main=card): its title, with the letter of the channel playing
-   * (H, M or L, Protect's only) and "(live)" while its frames come; a chip while live is
+   * and clock: card.ts, ?main=card): its name alone; while its frames come a LIVE pill
+   * and the channel playing as bars (Protect's only, its tier and size on hover; owner,
+   * 2026-11-27); a chip while live is
    * starting, a better channel is coming or one has failed (common.ts: liveStatus); a
    * chip for each thing its camera has just reported (detect.ts); with no frames
    * and a channel failed, in red how long live has been lost and why; and the clock while
@@ -292,22 +311,32 @@ export class CommanderLive extends CommanderBase {
    * nothing is current, a chip says its latest detection and when, so it is seen there is
    * something to watch. A guest is never offered the recordings (owner, 2026-11-27): the
    * card's limit only, as Home Assistant's own Media browser serves any signed-in user. */
-  // Over HLS it says it is behind: "live" alone would claim more than is shown.
   protected caption(title: string, place: string, live: LiveNow | null, tap: () => void, more: unknown = nothing) {
     const { card, main } = this.now();
     const style = labelsOf(card?.layout.labels).main_style;
     const opens = !isGuest(this.hass!) && FOLDERS.offered(this.hass!, main, () => this.requestUpdate());
     const press: CaptionPress = { press: opens ? (kind) => (this._clips = { camera: main, name: title, shelf: shelfOf(kind ?? "") }) : tap, opens };
-    // The channel playing, by its letter (common.ts: channelTier), its tier and size on hover.
-    const tier = live?.shown ? channelTier(live.shown) : "";
-    const size = tier ? card?.cameras[main]?.channels?.find(([channel]) => channel === live?.shown) : undefined;
-    const letter = tier ? html` <span title="${tier}${size?.[1] ? `, ${size[1]} × ${size[2]}` : ""}">${tier[0]}</span>` : nothing;
-    const said = html`${title}${letter}${live?.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}`;
-    // What the live video is doing where it isn't simply playing its best. A press on it
-    // is the main picture's own, as on a chip of a camera without recordings.
+    // A press on LIVE, the bars or the status chip is the main picture's own, as on a chip
+    // of a camera without recordings: they take the pointer only for their tooltips.
+    const shown = { press: tap, opens: false };
+
+    // While its frames come: LIVE, or over HLS "Delayed", as "live" alone would claim more
+    // than is shown; then the channel playing as bars, its tier and size on hover.
+    let playing: unknown = nothing;
+    if (live?.shown) {
+      const hls = LIVE_BY === "hls";
+      const tone = hls ? "cm-muted" : "cm-good";
+      const tier = channelTier(live.shown);
+      const size = tier ? card?.cameras[main]?.channels?.find(([channel]) => channel === live.shown) : undefined;
+      playing = html`<span class="playing">${pressable(`cm-pill cm-solid ${tone}`, hls ? "Live over HLS, some seconds behind" : "Live video", hls ? "Delayed" : "Live", shown)}${
+        tier ? pressable(`cm-pill cm-solid ${tone}`, `${tier}${size?.[1] ? `, ${size[1]} × ${size[2]}` : ""}`, tierBars(tier), shown) : nothing
+      }</span>`;
+    }
+
+    // What the live video is doing where it isn't simply playing its best.
     const s = live?.status;
-    const status = s ? pressable(`live-status cm-chip cm-${s.tone}`, s.tip, s.text, { press: tap, opens: false }) : nothing;
-    const name = opens ? pressable("title", "Its recordings", said, press) : html`<span class="title">${said}</span>`;
+    const status = s ? pressable(`live-status cm-chip cm-${s.tone}`, s.tip, html`${tierBars(s.tier)}${s.text}`, shown) : nothing;
+    const name = opens ? pressable("title", "Its recordings", title, press) : html`<span class="title">${title}</span>`;
     const now = this.detections();
     const last = opens && !now.length ? latest(this.hass!, this.eventsOf(main), this.firedOf()) : null;
     const chips = now.length
@@ -317,11 +346,11 @@ export class CommanderLive extends CommanderBase {
         : nothing;
     const lost = live?.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing;
     const clock = live?.video ? nothing : html`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
-    // A bar runs along the whole foot, the name at its left and the clock at its right,
-    // with the chips standing above it; otherwise the chips follow the name.
+    // A bar runs along the whole foot, the name and LIVE at its left and the clock at its
+    // right, with the chips standing above it; otherwise LIVE and the chips follow the name.
     return style === "bar"
-      ? html`<div class="caption bar" style=${place}>${status}${chips}${more}${lost}<div class="foot">${name}${clock}</div></div>`
-      : html`<div class="caption ${style}" style=${place}>${name}${status}${chips}${more}${lost}${clock}</div>`;
+      ? html`<div class="caption bar" style=${place}>${status}${chips}${more}${lost}<div class="foot">${name}${playing}${clock}</div></div>`
+      : html`<div class="caption ${style}" style=${place}>${name}${playing}${status}${chips}${more}${lost}${clock}</div>`;
   }
 
   /** The recordings dialog while one is open (card.ts draws it beside the tuning dialog). */

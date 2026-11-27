@@ -130,8 +130,8 @@ export function livePlan(order: string[], live: (channel: string) => boolean, ba
 }
 
 /** A channel's tier where its entity names it, as UniFi Protect's do
- * (camera.gate_high_resolution_channel: "High"), else "". The caption shows its letter
- * after the camera's name (live.ts); the app reads the same names (cameras.py: CHANNEL). */
+ * (camera.gate_high_resolution_channel: "High"), else "". The caption draws it as bars
+ * (pills.ts: tierBars); the app reads the same names (cameras.py: CHANNEL). */
 export function channelTier(entity: string): string {
   const tier = /_(high|medium|low)_resolution_channel$/.exec(entity)?.[1] ?? "";
   return tier.charAt(0).toUpperCase() + tier.slice(1);
@@ -140,15 +140,17 @@ export function channelTier(entity: string): string {
 /** What the caption's chip says of the live channels (live.ts: caption): the first one
  * starting with nothing shown yet; a better one starting unseen; or, with none starting,
  * a better one that failed, with why and when it is tried again. Null while the best
- * there is plays. A channel is named by its tier's letter, else "Larger": the channels
- * are tried in order of size (owner, 2026-11-27: "you're left wondering what is going on"). */
-export function liveStatus(plan: LivePlan, mark: (channel: string) => LiveMark | undefined, now: number): { text: string; tone: "muted" | "warn"; tip: string } | null {
-  const letter = (channel: string) => channelTier(channel).charAt(0);
+ * there is plays. The channel is its tier, drawn as bars before the words, else the
+ * words say "Larger": the channels are tried in order of size (owner, 2026-11-27:
+ * "you're left wondering what is going on"). */
+export function liveStatus(plan: LivePlan, mark: (channel: string) => LiveMark | undefined, now: number): { tier: string; text: string; tone: "muted" | "warn"; tip: string } | null {
   const { shown, tried, missed } = plan;
-  if (tried && !shown) return { text: `Starting ${letter(tried)}`.trim(), tone: "muted", tip: "The live video is starting" };
-  if (tried) return { text: `${letter(tried) || "Larger"} coming`, tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" };
+  const larger = (channel: string, text: string) => (channelTier(channel) ? text : `Larger ${text}`);
+
+  if (tried && !shown) return { tier: channelTier(tried), text: "Starting", tone: "muted", tip: "The live video is starting" };
+  if (tried) return { tier: channelTier(tried), text: larger(tried, "coming"), tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" };
   const m = missed ? mark(missed) : undefined;
-  if (missed && m) return { text: `${letter(missed) || "Larger"} failed`, tone: "warn", tip: `${m.why}; tried again in ${ago(m.until - now)}` };
+  if (missed && m) return { tier: channelTier(missed), text: larger(missed, "failed"), tone: "warn", tip: `${m.why}; tried again in ${ago(m.until - now)}` };
   return null;
 }
 
