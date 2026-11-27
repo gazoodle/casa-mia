@@ -166,6 +166,12 @@ export const styles = [motionStyles, detectStyles, css`
       color: #fff;
       font-weight: 600;
     }
+    /* What the live video is doing (common.ts: liveStatus): the style guide's chip, taking
+       the pointer for its tooltip, as the detection chips do. */
+    .caption .live-status {
+      pointer-events: auto;
+      cursor: default;
+    }
     /* The picture failing (common.ts: pictureDown): said over the card, top left, wrapping. */
     .down {
       position: absolute;

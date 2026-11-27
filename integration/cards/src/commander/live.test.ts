@@ -3,7 +3,7 @@
 // can stay in, and no failure that stops the tries for good.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, pictureDown } from "./common.ts";
+import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, channelTier, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus, pictureDown } from "./common.ts";
 
 const now = 10_000_000;
 
@@ -52,13 +52,37 @@ test("the order to try channels: the one that fits, then down the sizes, then up
 test("the plan: the best channel with frames is shown, a better one is tried unseen", () => {
   const order = ["medium", "low", "high"];
   const plan = (live: string[], bad: string[]) => livePlan(order, (c) => live.includes(c), (c) => bad.includes(c));
-  assert.deepEqual(plan([], []), { shown: undefined, tried: "medium" }); // the start
-  assert.deepEqual(plan(["medium"], []), { shown: "medium", tried: undefined });
-  assert.deepEqual(plan([], ["medium"]), { shown: undefined, tried: "low" }); // down the sizes
-  assert.deepEqual(plan(["low"], ["medium"]), { shown: "low", tried: undefined });
-  assert.deepEqual(plan(["low"], []), { shown: "low", tried: "medium" }); // its mark lapsed: tried under the one shown
-  assert.deepEqual(plan(["medium", "low"], []), { shown: "medium", tried: undefined }); // and it took over
-  assert.deepEqual(plan([], order), { shown: undefined, tried: undefined }); // all bad: the drawn picture
+  assert.deepEqual(plan([], []), { shown: undefined, tried: "medium", missed: undefined }); // the start
+  assert.deepEqual(plan(["medium"], []), { shown: "medium", tried: undefined, missed: undefined });
+  assert.deepEqual(plan([], ["medium"]), { shown: undefined, tried: "low", missed: undefined }); // down the sizes
+  assert.deepEqual(plan(["low"], ["medium"]), { shown: "low", tried: undefined, missed: "medium" }); // said by the caption
+  assert.deepEqual(plan(["low"], []), { shown: "low", tried: "medium", missed: undefined }); // its mark lapsed: tried under the one shown
+  assert.deepEqual(plan(["medium", "low"], []), { shown: "medium", tried: undefined, missed: undefined }); // and it took over
+  assert.deepEqual(plan([], order), { shown: undefined, tried: undefined, missed: undefined }); // all bad: the drawn picture
+});
+
+test("a channel's tier is read from Protect's entity name, and nothing from another camera's", () => {
+  assert.equal(channelTier("camera.gate_high_resolution_channel"), "High");
+  assert.equal(channelTier("camera.gate_medium_resolution_channel"), "Medium");
+  assert.equal(channelTier("camera.gate_low_resolution_channel"), "Low");
+  assert.equal(channelTier("camera.gate_high_resolution_channel_insecure"), ""); // not one the card plays
+  assert.equal(channelTier("camera.driveway"), "");
+});
+
+test("the caption's chip: starting, a better channel coming, a better one failed, or nothing", () => {
+  const H = "camera.gate_high_resolution_channel";
+  const M = "camera.gate_medium_resolution_channel";
+  const failed = { since: now - 60_000, until: now + 120_000, fails: 2, why: "no video arrived" };
+  const marks = (c: string) => (c === H ? failed : undefined);
+  const said = (plan: Parameters<typeof liveStatus>[0]) => liveStatus(plan, marks, now);
+
+  assert.equal(said({ tried: M })?.text, "Starting M"); // nothing shown yet
+  assert.equal(said({ tried: "camera.driveway" })?.text, "Starting");
+  assert.deepEqual(said({ shown: M, tried: H }), { text: "H coming", tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" });
+  assert.deepEqual(said({ shown: M, missed: H }), { text: "H failed", tone: "warn", tip: "no video arrived; tried again in 2 min" });
+  assert.equal(said({ shown: "camera.a", tried: "camera.b" })?.text, "Larger coming"); // not Protect's: no letter
+  assert.equal(said({ shown: H }), null); // the best there is
+  assert.equal(said({}), null); // nothing at all: the caption says live is lost
 });
 
 test("frames over a WebSocket: only for a stream through Home Assistant, on the page's host", () => {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.14-b34
+
+- **Camera Commander card: the main camera's name says which channel is playing,** H, M
+  or L for a UniFi Protect camera's high, medium or low channel, before "(live)" ("Gate
+  H (live)"), with its size when you point at it. A chip beside it says what the live
+  video is doing when it isn't simply playing its best: "Starting M", "H coming" while a
+  sharper channel gets ready behind the one shown, or "H failed", with the reason and
+  when it is tried again. Until now a failed sharper channel was said only in Home
+  Assistant's log.
+
 ## 2026.11.14-b33
 
 - **Camera Commander card: the recordings dialog fits its picture.** On a big monitor the

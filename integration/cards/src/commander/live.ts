@@ -7,7 +7,7 @@ import { html, nothing } from "lit";
 import { type Rect } from "../layout.ts";
 import { labelsOf } from "../labels.ts";
 import { playHLS, playWebRTC } from "../../../../app/web/src/webrtc.ts";
-import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, liveBy, liveLapsed, liveMark, liveOrder, livePlan } from "./common.ts";
+import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, channelTier, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus } from "./common.ts";
 import { CommanderBase } from "./base.ts";
 import { type CaptionPress, detectionChips, latest, latestChip, pressable } from "./detect.ts";
 import { FOLDERS, type Shelf, shelfOf, whenSaid } from "./clips.ts";
@@ -18,8 +18,9 @@ import { isGuest } from "../guest-goodbye.ts";
 type Session = { video: HTMLVideoElement; stop: () => void; move: (to: HTMLVideoElement) => void; from: number; frameAt: number };
 
 /** The main area now: the channels with a <video>, the one shown, the mark to say when
- * none is, and whether the picture leaves the main area to the video (&main=video). */
-export type LiveNow = { videos: string[]; shown?: string; lost?: LiveMark; video: boolean };
+ * none is, whether the picture leaves the main area to the video (&main=video), and what
+ * the caption's chip says of it (common.ts: liveStatus). */
+export type LiveNow = { videos: string[]; shown?: string; lost?: LiveMark; video: boolean; status: ReturnType<typeof liveStatus> };
 
 /** The video this device plays over WebRTC, for the log: a channel in another codec never
  * puts a frame on screen here, whatever the camera and go2rtc do. */
@@ -106,13 +107,15 @@ export class CommanderLive extends CommanderBase {
       const s = this.sessions.get(channel);
       return Boolean(s?.frameAt) && this.lapsed(s!, now) === null;
     };
-    const { shown, tried } = livePlan(order, live, (channel) => (this.bad.get(channel)?.until ?? 0) > now);
+    const plan = livePlan(order, live, (channel) => (this.bad.get(channel)?.until ?? 0) > now);
+    const { shown, tried } = plan;
 
     // Nothing shown: the first try of all leaves the main area to the video, as a start
     // that works needs no drawn main camera; after a failure the drawn picture stays
     // until a frame comes, so the tries go on under it.
     const lost = shown ? undefined : order.map((channel) => this.bad.get(channel)).find(Boolean);
-    return { videos: [shown, tried].filter((c): c is string => c !== undefined), shown, lost, video: Boolean(shown || (tried && !lost)) };
+    const status = liveStatus(plan, (channel) => this.bad.get(channel), now);
+    return { videos: [shown, tried].filter((c): c is string => c !== undefined), shown, lost, video: Boolean(shown || (tried && !lost)), status };
   }
 
   /** Match the sessions to the <video>s drawn (card.ts draws liveNow's). It only watches:
@@ -247,8 +250,10 @@ export class CommanderLive extends CommanderBase {
   }
 
   /** The main camera's caption, live or not (the picture is asked for without its name
-   * and clock: card.ts, ?main=card): its title, with "(live)" while a channel's frames
-   * come; a chip for each thing its camera has just reported (detect.ts); with no frames
+   * and clock: card.ts, ?main=card): its title, with the letter of the channel playing
+   * (H, M or L, Protect's only) and "(live)" while its frames come; a chip while live is
+   * starting, a better channel is coming or one has failed (common.ts: liveStatus); a
+   * chip for each thing its camera has just reported (detect.ts); with no frames
    * and a channel failed, in red how long live has been lost and why; and the clock while
    * the main camera isn't live video, as the picture drew it. Drawn over the tap zones,
    * so its chips take the pointer, and its name where it opens the camera's recordings;
@@ -263,7 +268,15 @@ export class CommanderLive extends CommanderBase {
     const style = labelsOf(card?.layout.labels).main_style;
     const opens = !isGuest(this.hass!) && FOLDERS.offered(this.hass!, main, () => this.requestUpdate());
     const press: CaptionPress = { press: opens ? (kind) => (this._clips = { camera: main, name: title, shelf: shelfOf(kind ?? "") }) : tap, opens };
-    const said = `${title}${live?.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}`;
+    // The channel playing, by its letter (common.ts: channelTier), its tier and size on hover.
+    const tier = live?.shown ? channelTier(live.shown) : "";
+    const size = tier ? card?.cameras[main]?.channels?.find(([channel]) => channel === live?.shown) : undefined;
+    const letter = tier ? html` <span title="${tier}${size?.[1] ? `, ${size[1]} × ${size[2]}` : ""}">${tier[0]}</span>` : nothing;
+    const said = html`${title}${letter}${live?.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}`;
+    // What the live video is doing where it isn't simply playing its best. A press on it
+    // is the main picture's own, as on a chip of a camera without recordings.
+    const s = live?.status;
+    const status = s ? pressable(`live-status cm-chip cm-${s.tone}`, s.tip, s.text, { press: tap, opens: false }) : nothing;
     const name = opens ? pressable("title", "Its recordings", said, press) : html`<span class="title">${said}</span>`;
     const now = this.detections();
     const last = opens && !now.length ? latest(this.hass!, this.eventsOf(main)) : null;
@@ -277,8 +290,8 @@ export class CommanderLive extends CommanderBase {
     // A bar runs along the whole foot, the name at its left and the clock at its right,
     // with the chips standing above it; otherwise the chips follow the name.
     return style === "bar"
-      ? html`<div class="caption bar" style=${place}>${chips}${more}${lost}<div class="foot">${name}${clock}</div></div>`
-      : html`<div class="caption ${style}" style=${place}>${name}${chips}${more}${lost}${clock}</div>`;
+      ? html`<div class="caption bar" style=${place}>${status}${chips}${more}${lost}<div class="foot">${name}${clock}</div></div>`
+      : html`<div class="caption ${style}" style=${place}>${name}${status}${chips}${more}${lost}${clock}</div>`;
   }
 
   /** The recordings dialog while one is open (card.ts draws it beside the tuning dialog). */

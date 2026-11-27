@@ -108,11 +108,37 @@ export function liveOrder(channels: [string, number, number][], place: [number, 
 
 /** Which channels get a <video> now: `shown` is the best one putting frames on screen;
  * `tried` is the best one not marked bad that would be better than it, played unseen
- * until its first frame. So a working picture is never taken down to try a better one. */
-export function livePlan(order: string[], live: (channel: string) => boolean, bad: (channel: string) => boolean): { shown?: string; tried?: string } {
+ * until its first frame. So a working picture is never taken down to try a better one.
+ * `missed`: the best channel better than the one shown that is marked bad, for the
+ * caption to say (liveStatus); with none shown, the caption says live is lost instead. */
+export type LivePlan = { shown?: string; tried?: string; missed?: string };
+export function livePlan(order: string[], live: (channel: string) => boolean, bad: (channel: string) => boolean): LivePlan {
   const shown = order.find(live);
   const better = shown === undefined ? order : order.slice(0, order.indexOf(shown));
-  return { shown, tried: better.find((channel) => !bad(channel)) };
+  return { shown, tried: better.find((channel) => !bad(channel)), missed: shown === undefined ? undefined : better.find(bad) };
+}
+
+/** A channel's tier where its entity names it, as UniFi Protect's do
+ * (camera.gate_high_resolution_channel: "High"), else "". The caption shows its letter
+ * after the camera's name (live.ts); the app reads the same names (cameras.py: CHANNEL). */
+export function channelTier(entity: string): string {
+  const tier = /_(high|medium|low)_resolution_channel$/.exec(entity)?.[1] ?? "";
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+/** What the caption's chip says of the live channels (live.ts: caption): the first one
+ * starting with nothing shown yet; a better one starting unseen; or, with none starting,
+ * a better one that failed, with why and when it is tried again. Null while the best
+ * there is plays. A channel is named by its tier's letter, else "Larger": the channels
+ * are tried in order of size (owner, 2026-11-27: "you're left wondering what is going on"). */
+export function liveStatus(plan: LivePlan, mark: (channel: string) => LiveMark | undefined, now: number): { text: string; tone: "muted" | "warn"; tip: string } | null {
+  const letter = (channel: string) => channelTier(channel).charAt(0);
+  const { shown, tried, missed } = plan;
+  if (tried && !shown) return { text: `Starting ${letter(tried)}`.trim(), tone: "muted", tip: "The live video is starting" };
+  if (tried) return { text: `${letter(tried) || "Larger"} coming`, tone: "muted", tip: "A sharper channel is starting unseen: the picture changes to it at its first frame" };
+  const m = missed ? mark(missed) : undefined;
+  if (missed && m) return { text: `${letter(missed) || "Larger"} failed`, tone: "warn", tip: `${m.why}; tried again in ${ago(m.until - now)}` };
+  return null;
 }
 
 /** A while, as people say it: "12 s", "4 min", "2 h 5 min". */
