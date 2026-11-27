@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.14-b21
+
+- **Camera Commander card: Last place holds a list of cards, with a proper editor.** The
+  first card that is showing fills the place, so an alert can go first and a clock last:
+  the clock shows whenever the alert is hidden by its Visibility conditions, or hides
+  itself. The editor shows the cards as chips in their order, adds one with Home
+  Assistant's card picker, moves and removes them, and edits each with Home Assistant's
+  own card editor and Visibility editor. It replaces b19's YAML box, and a card set there
+  is kept as the first in the list. The section shows the editor only when the commander
+  chosen keeps its last place, and otherwise says where to switch that on.
+- **Over layer editor: Home Assistant's card picker and card editor load the way Home
+  Assistant 2026.11 needs,** and the editor says so if they haven't loaded within 15
+  seconds, where before it could wait for them without a word.
+
 ## 2026.11.14-b20
 
 - **Casa Mia Intercom and Casa Mia Protect Talkback: checked against Home Assistant

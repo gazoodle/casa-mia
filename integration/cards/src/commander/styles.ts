@@ -69,6 +69,15 @@ export const styles = [motionStyles, css`
       flex: 1;
       min-width: 0;
     }
+    /* Its cards, each in HA's hui-card: one its Visibility (or the card itself) hides has
+       the hidden attribute, and the first not hidden is the one shown. */
+    .place > hui-card {
+      display: block;
+    }
+    .place > hui-card[hidden],
+    .place > hui-card:not([hidden]) ~ hui-card {
+      display: none !important;
+    }
     .place > .cm-pill {
       flex: none;
       max-width: 100%;

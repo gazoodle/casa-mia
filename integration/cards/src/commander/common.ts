@@ -38,8 +38,11 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   talk_button?: boolean;
   /** full: the voice goes out from the answer; half: only while Hold to talk is held (talk-rules.ts). */
   duplex?: Duplex;
-  /** The card in the commander's last place, where it keeps one (place.ts): any Lovelace
-   * card, a clock or a grid of buttons. */
+  /** The cards in the commander's last place, where it keeps one (place.ts): any Lovelace
+   * cards, the first showing filling the place, so alerts before a clock. */
+  cards?: CardConfig[];
+  /** b19's one card there: read as a list of one (place.ts: cardsOf), until the editor
+   * saves the list. */
   card?: CardConfig;
 };
 export type Card = {

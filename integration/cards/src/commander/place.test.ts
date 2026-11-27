@@ -1,54 +1,77 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PlaceCard } from "./place.ts";
+import { cardsOf, PlaceCards, type Wrapper } from "./place.ts";
 
 const hass = { states: {}, callService: async () => undefined };
-const tick = () => new Promise((done) => setTimeout(done));
 
-test("a card is made once for its config, given the states, and made again when it changes", async () => {
+function wrapper(defined = true) {
   const made: any[] = [];
-  let changes = 0;
-  const helpers = async () => ({ createCardElement: (config: any) => (made.push({ config }), made.at(-1)) });
-  const place = new PlaceCard(() => changes++, helpers);
+  let define = () => undefined as void;
+  const w: Wrapper & { made: any[]; define(): void } = {
+    made,
+    defined: () => defined,
+    whenDefined: () => new Promise((done) => (define = () => ((defined = true), done(undefined)))),
+    make: (config) => (made.push({ config }), made.at(-1)),
+    define: () => define(),
+  };
+  return w;
+}
 
-  assert.equal(place.element({ type: "clock" }, hass), undefined); // not made yet
-  await tick();
-  assert.equal(changes, 1);
-  const first = place.element({ type: "clock" }, hass);
-  assert.equal(first, made[0]);
-  assert.equal(first!.hass, hass);
-  place.element({ type: "clock" }, hass);
-  assert.equal(made.length, 1); // kept
-
-  place.element({ type: "grid", cards: [] }, hass);
-  await tick();
-  assert.equal(place.element({ type: "grid", cards: [] }, hass), made[1]);
-  assert.equal(place.element(undefined, hass), undefined); // taken out of the config
-  await tick();
-  assert.equal(made.length, 2);
+test("the list, b19's single card as a list of one, and no card being typed", () => {
+  assert.deepEqual(cardsOf(undefined), []);
+  assert.deepEqual(cardsOf({ card: { type: "clock" } }), [{ type: "clock" }]);
+  assert.deepEqual(cardsOf({ cards: [{ type: "clock" }], card: { type: "button" } }), [{ type: "clock" }]); // the list wins
+  assert.deepEqual(cardsOf({ cards: [{ type: "" }, { type: "clock" }] }), [{ type: "clock" }]);
 });
 
-test("helpers that won't load are said, not hidden, and a new config tries again", async () => {
-  let changes = 0;
-  let fail = true;
-  const helpers = async () => {
-    if (fail) throw new Error("no helpers");
-    return { createCardElement: (config: any) => ({ config }) as any };
-  };
-  const error = console.error;
-  console.error = () => undefined; // it is logged, which is checked by `failed` being set
-  try {
-    const place = new PlaceCard(() => changes++, helpers);
-    place.element({ type: "clock" }, hass);
-    await tick();
-    assert.equal(place.failed, "no helpers");
-    assert.equal(changes, 1);
+test("each card is made once, kept while its config is unchanged, and given the states", () => {
+  const w = wrapper();
+  const place = new PlaceCards(() => undefined, w);
+  const [alerts, clock] = place.elements([{ type: "alerts" }, { type: "clock" }], hass, false);
+  assert.equal(w.made.length, 2);
+  assert.equal(alerts.hass, hass);
+  assert.equal(clock.preview, false);
 
-    fail = false;
-    place.element({ type: "clock", time_format: "24" }, hass);
-    await tick();
-    assert.equal(place.failed, "");
-    assert.ok(place.element({ type: "clock", time_format: "24" }, hass));
+  // one edited: only it is made again; the order is the list's
+  const again = place.elements([{ type: "clock" }, { type: "alerts", title: "Now" }], hass, true);
+  assert.equal(again[0], clock);
+  assert.notEqual(again[1], alerts);
+  assert.equal(w.made.length, 3);
+  assert.equal(again[0].preview, true);
+
+  // the same config twice: an element each
+  const twice = place.elements([{ type: "clock" }, { type: "clock" }], hass, false);
+  assert.notEqual(twice[0], twice[1]);
+  assert.deepEqual(place.elements([], hass, false), []);
+});
+
+test("a page without hui-card yet waits for it, then draws", async () => {
+  const w = wrapper(false);
+  let changes = 0;
+  const place = new PlaceCards(() => changes++, w);
+  assert.deepEqual(place.elements([{ type: "clock" }], hass, false), []);
+  place.elements([{ type: "clock" }], hass, false); // asked again while waiting: one wait
+  w.define();
+  await new Promise((done) => setTimeout(done));
+  assert.equal(changes, 1);
+  assert.equal(place.elements([{ type: "clock" }], hass, false).length, 1);
+  assert.equal(place.failed, "");
+});
+
+test("a page where hui-card never comes says so", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const error = console.error;
+  console.error = () => undefined; // it is logged; `failed` is what is checked
+  try {
+    let changes = 0;
+    const place = new PlaceCards(() => changes++, wrapper(false));
+    place.elements([{ type: "clock" }], hass, false);
+    t.mock.timers.tick(10_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.match(place.failed, /hui-card/);
+    assert.equal(changes, 1);
   } finally {
     console.error = error;
   }

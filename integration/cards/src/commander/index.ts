@@ -43,6 +43,7 @@
 // The parts: common.ts (types, constants, helpers); the card in layers, base.ts (the picture
 // stream) → live.ts (the live main camera) → talk.ts (talking to a doorbell) → card.ts
 // (drawing it, its taps), with styles.ts; editor.ts (its editor).
+import { CardsEditor } from "../cards-editor.ts";
 import { define, register } from "../ha.ts";
 import { CommanderCard } from "./card.ts";
 import { CommanderEditor } from "./editor.ts";
@@ -51,4 +52,5 @@ export { VERSION } from "./common.ts";
 
 define("casa-mia-commander", CommanderCard);
 define("casa-mia-commander-editor", CommanderEditor);
+define("casa-mia-cards-editor", CardsEditor);
 register("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Commander page's commanders: tap a camera to make it the main one.");

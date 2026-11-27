@@ -48,15 +48,34 @@ test("security details follow their switch and motion defaults remain visible", 
     assert.ok(!names(value).includes(name), name);
 });
 
-test("the card in the last place is offered, and says when the commander keeps no place for it", () => {
-  const helper = (value: CommanderEditor) => helperOf(value, "card");
-  const none = editor({ entity: "select.oak_commander" });
-  assert.ok(names(none).includes("card"));
-  assert.match(helper(none), /keeps no place/);
+/** Every template under one, in order, for finding a part by its markup. */
+function templates(template: any): any[] {
+  if (!template?.strings) return Array.isArray(template) ? template.flatMap(templates) : [];
+  return [template, ...template.values.flatMap(templates)];
+}
+const keepsPlace = (value: CommanderEditor) =>
+  (value.hass!.states["select.oak_commander"] = { state: "", attributes: { card: { layout: { mode: "responsive", responsive: { card_place: true } } } } });
 
-  const keeps = editor({ entity: "select.oak_commander" });
-  keeps.hass!.states["select.oak_commander"] = { state: "", attributes: { card: { layout: { mode: "responsive", responsive: { card_place: true } } } } };
-  assert.match(helper(keeps), /last place, in the picture's corner/);
+test("the last place's cards are edited only where the commander keeps the place", () => {
+  const none = editor({ entity: "select.oak_commander", card: { type: "clock" } });
+  const text = templates(none.render()).map((t) => t.strings.join("")).join("");
+  assert.match(text, /keeps no last place/);
+  assert.doesNotMatch(text, /casa-mia-cards-editor/);
+  assert.ok(!names(none).includes("card"), "no YAML field any more");
+
+  const keeps = editor({ entity: "select.oak_commander", card: { type: "clock" } });
+  keepsPlace(keeps);
+  const list = templates(keeps.render()).find((t) => t.strings.join("").includes("<casa-mia-cards-editor"));
+  assert.ok(list);
+  assert.deepEqual(list.values[2], [{ type: "clock" }]); // b19's one card, as a list of one
+
+  // the list is saved as `cards`, and b19's `card` goes
+  list.values.at(-1)(new CustomEvent("value-changed", { detail: { value: [{ type: "alerts" }, { type: "clock" }] } }));
+  assert.deepEqual(keeps._config!.cards, [{ type: "alerts" }, { type: "clock" }]);
+  assert.equal(keeps._config!.card, undefined);
+  const again = templates(keeps.render()).find((t) => t.strings.join("").includes("<casa-mia-cards-editor"));
+  again.values.at(-1)(new CustomEvent("value-changed", { detail: { value: [] } }));
+  assert.ok(!("cards" in keeps._config!), "an empty list is no option");
 });
 
 test("only a forced direct route hides sharpness; talking mode stays with custom buttons", () => {

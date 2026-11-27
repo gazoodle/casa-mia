@@ -39,6 +39,49 @@ export async function haForm(): Promise<void> {
   await customElements.whenDefined("ha-form");
 }
 
+/** HA's editors for a card inside a card: its card picker, its card editor and its
+ * Visibility editor. HA defines them with its conditional card's editor, so one is drawn
+ * out of sight with a config, then removed. The card HA makes is defined only later (its
+ * module loads lazily), so its class is asked for by name: until 2026.11.14-b21 its
+ * element's constructor was asked, which was still HTMLElement, and the wait for the
+ * editors never ended. Rejects, saying which are missing, after EDITORS_MS. */
+export const CARD_EDITORS = ["hui-card-picker", "hui-card-element-editor", "hui-card-visibility-editor"];
+const EDITORS_MS = 15_000;
+let editorsLoading: Promise<void> | null = null;
+
+export function haCardEditors(hass: Hass): Promise<void> {
+  if (CARD_EDITORS.every((tag) => customElements.get(tag))) return Promise.resolve();
+  editorsLoading ??= loadCardEditors(hass).finally(() => (editorsLoading = null));
+  return editorsLoading;
+}
+
+async function loadCardEditors(hass: Hass): Promise<void> {
+  const helpers = await (window as any).loadCardHelpers();
+  helpers.createCardElement({ type: "conditional", conditions: [], card: { type: "button" } });
+  await customElements.whenDefined("hui-conditional-card");
+  const editor = await (customElements.get("hui-conditional-card") as any).getConfigElement();
+  editor.hass = hass;
+  editor.lovelace = { views: [] }; // a dashboard's config, as HA gives its card editors
+  editor.setConfig({ type: "conditional", conditions: [], card: { type: "button" } });
+  editor.style.display = "none";
+  // Inside <home-assistant>, as HA's dialogs are: its editors take localize and the
+  // formatters from there (Lit context), and outside it each draw throws.
+  (document.querySelector("home-assistant")?.shadowRoot ?? document.body).append(editor);
+  try {
+    let gone = 0;
+    const late = new Promise<never>((_, fail) => {
+      gone = window.setTimeout(() => {
+        const missing = CARD_EDITORS.filter((tag) => !customElements.get(tag));
+        fail(new Error(`Home Assistant's card editors didn't load (${missing.join(", ")} missing)`));
+      }, EDITORS_MS);
+    });
+    await Promise.race([Promise.all(CARD_EDITORS.map((tag) => customElements.whenDefined(tag))), late]);
+    clearTimeout(gone);
+  } finally {
+    editor.remove();
+  }
+}
+
 /** HA's Sections view class. HA loads it only when a Sections view is first shown, so a
  * hidden hui-view showing an empty one makes it load. */
 export async function sectionsView(): Promise<CustomElementConstructor> {

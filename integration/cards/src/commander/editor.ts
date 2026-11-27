@@ -1,7 +1,8 @@
 // The Camera Commander card's editor.
 import { LitElement, css, html, nothing } from "lit";
-import { fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
+import { type CardConfig, fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
 import { type Config, LEAVE_AFTER, commanders } from "./common.ts";
+import { cardsOf } from "./place.ts";
 import { MOTION } from "./motion.ts";
 import { DUPLEX_CHOICES } from "./talk-rules.ts";
 
@@ -31,8 +32,10 @@ export function withoutDefaults(config: Config): Config {
 }
 
 export class CommanderEditor extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true } };
+  static properties = { hass: { attribute: false }, lovelace: { attribute: false }, _config: { state: true } };
   hass?: Hass;
+  /** The dashboard, which HA's card picker and card editor need (cards-editor.ts). */
+  lovelace?: unknown;
   _config?: Config;
 
   setConfig(config: Config) {
@@ -122,7 +125,6 @@ export class CommanderEditor extends LitElement {
       { name: "main_controls", selector: { boolean: {} } },
       { name: "sound_button", selector: { boolean: {} } },
       { name: "screen_button", selector: { boolean: {} } },
-      { name: "card", selector: { object: {} } },
     ];
     const labels: Record<string, string> = {
       entity: "Commander",
@@ -145,7 +147,6 @@ export class CommanderEditor extends LitElement {
       motion_pulse: "Pulse",
       motion_linger: "Keep after motion",
       motion_corner: "Corner",
-      card: "Card in the last place",
     };
     // Whether the commander chosen keeps its last place for a card (its Responsive
     // layout's switch, on the Camera Commander page), as its entity says.
@@ -183,8 +184,6 @@ export class CommanderEditor extends LitElement {
             ? "Seconds each pulse takes; 0: a steady dot."
             : s.name === "motion_linger"
             ? "Seconds the dot stays once the motion has stopped, so a short one is not missed. 0: it goes at once."
-            : s.name === "card"
-            ? `Any card, as YAML: a clock (type: clock), or a grid card of buttons. ${keeps ? "It is drawn in this commander's last place, in the picture's corner." : "This commander keeps no place for it yet: switch on Keep the last place for a card on the Camera Commander page (Responsive layout)."}`
             : s.name === "leave_after"
             ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once."
             : undefined}
@@ -222,7 +221,7 @@ export class CommanderEditor extends LitElement {
       </section>
       <section aria-labelledby="place-heading">
         <h3 id="place-heading">Last place</h3>
-        ${form(fields("card"))}
+        ${this._config.entity ? this.place(keeps) : html`<p class="note">Choose a commander first.</p>`}
       </section>
       <section>
         ${form([{
@@ -233,6 +232,33 @@ export class CommanderEditor extends LitElement {
       </section>`;
   }
 
+  /** The cards in the commander's last place, where the commander keeps one. Otherwise
+   * where to switch it on; the cards set are kept in the config either way. */
+  private place(keeps: boolean) {
+    if (!keeps)
+      return html`<p class="note">
+        This commander keeps no last place. To put cards there, switch on <strong>Keep the last place for a card</strong> for it on
+        the Camera Commander page (its Responsive layout).
+      </p>`;
+    return html`<p class="note">
+        Cards in the corner of the picture. The first one showing fills the place, so put alerts before a clock: each card's
+        Visibility decides when it shows, and a card with nothing to show hides itself.
+      </p>
+      <casa-mia-cards-editor
+        .hass=${this.hass}
+        .lovelace=${this.lovelace}
+        .cards=${cardsOf(this._config)}
+        @value-changed=${(ev: CustomEvent) => {
+          ev.stopPropagation();
+          // The list replaces b19's single card; an empty list is no option at all.
+          const { card: _single, cards: _list, ...rest } = this._config!;
+          const cards = ev.detail.value as CardConfig[];
+          this._config = withoutDefaults({ ...rest, ...(cards.length ? { cards } : {}) } as Config);
+          fire(this, "config-changed", { config: this._config });
+        }}
+      ></casa-mia-cards-editor>`;
+  }
+
   static styles = css`
     :host { display: block; }
     section { padding: 16px 0; }
@@ -241,5 +267,6 @@ export class CommanderEditor extends LitElement {
     .details { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 16px; }
     .colour { flex: 0 0 96px; width: 96px; }
     .adjustments { flex: 1 1 220px; min-width: 0; }
+    .note { margin: 0 0 12px; color: var(--secondary-text-color); }
   `;
 }

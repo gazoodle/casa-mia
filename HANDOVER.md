@@ -100,6 +100,16 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   own (a clock) go in the same way later.
   - **Seen on the test VM (2026-11-27):** it works; HA's clock card fits the place and a
     grid of four HA button cards is cut off at half its height (figures in BACKLOG).
+  - **A list since b21** (`cards`; b19's `card` read as a list of one, `place.ts:
+    cardsOf`): each in HA's `hui-card`, which sets `hidden` by its Visibility or the card's
+    own wish, and one CSS rule shows the first not hidden. Edited by
+    `cards-editor.ts` (`casa-mia-cards-editor`, any list of cards), with HA's card picker,
+    card editor and `hui-card-visibility-editor`, loaded by `ha.ts: haCardEditors`. Three
+    traps found on the VM (HA 2026.11.1): the conditional card HA makes is defined later,
+    so ask `customElements.get("hui-conditional-card")`, not its element's constructor;
+    HA's editors take localize and formatters by Lit context, so anything drawing them
+    must be inside `<home-assistant>`; and `hui-card-element-editor` takes `value` by its
+    own setter, so draw it only once defined, or its config is lost.
   - **Next:** less important cameras (BACKLOG, same spec): the solver run twice.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the

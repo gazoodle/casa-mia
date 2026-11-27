@@ -1,7 +1,7 @@
 // The Over layer's editor: its options (ha-form), then its one card, picked and edited with
 // Home Assistant's own card picker and card editor, as its conditional card's editor does.
 import { LitElement, css, html, nothing } from "lit";
-import { fire, type Hass, haForm, withoutDefaults } from "../ha.ts";
+import { fire, type Hass, haCardEditors, haForm, withoutDefaults } from "../ha.ts";
 import { type Config, DEFAULTS, anchorFor } from "./common.ts";
 import { PILLS } from "../pills.ts";
 
@@ -74,21 +74,16 @@ const HELP: Record<string, string> = {
   block: "On: what's beneath can be seen but not touched; only the card works. Off: taps reach the dashboard round the card.",
 };
 
-/** HA's card picker and card editor, loaded: its conditional card's editor brings both. */
-async function haCardEditors(): Promise<void> {
-  if (customElements.get("hui-card-element-editor") && customElements.get("hui-card-picker")) return;
-  const helpers = await (window as any).loadCardHelpers();
-  const card = await helpers.createCardElement({ type: "conditional", conditions: [], card: { type: "button" } });
-  await (card.constructor as any).getConfigElement?.();
-  await customElements.whenDefined("hui-card-element-editor");
-}
-
 export class OverLayerEditor extends LitElement {
-  static properties = { hass: { attribute: false }, lovelace: { attribute: false }, _config: { state: true }, _ready: { state: true } };
+  static properties = { hass: { attribute: false }, lovelace: { attribute: false }, _config: { state: true }, _ready: { state: true }, _editors: { state: true }, _failed: { state: true } };
   hass?: Hass;
   lovelace?: unknown;
   _config?: Config;
   _ready = false;
+  /** Why HA's card editors couldn't be loaded (ha.ts: haCardEditors), said in the editor. */
+  _failed = "";
+  /** HA's card editors are defined: drawn before, its card editor loses its config (cards-editor.ts: _ready). */
+  _editors = false;
 
   setConfig(config: Config) {
     this._config = config;
@@ -96,7 +91,19 @@ export class OverLayerEditor extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    Promise.all([haForm(), haCardEditors()]).then(() => (this._ready = true));
+    haForm().then(() => (this._ready = true));
+  }
+
+  /** HA's card editors, asked for once hass is here (they are drawn with it). */
+  private _asked = false;
+  willUpdate() {
+    if (this.hass && !this._asked) {
+      this._asked = true;
+      haCardEditors(this.hass).then(
+        () => (this._editors = true),
+        (err) => (this._failed = String(err?.message ?? err)),
+      );
+    }
   }
 
   private _save(config: Config) {
@@ -133,6 +140,8 @@ export class OverLayerEditor extends LitElement {
 
   /** Its own card: HA's card picker, then HA's card editor. */
   private _card(card: Config["card"]) {
+    if (this._failed) return html`<h3>Its card</h3><p class="cm-pill cm-filled cm-bad">${this._failed}</p>`;
+    if (!this._editors) return html`<h3>Its card</h3><p class="note">Loading Home Assistant's card editors…</p>`;
     return html`<h3>Its card</h3>
       ${card?.type
         ? html`<div class="actions">

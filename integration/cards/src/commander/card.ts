@@ -16,7 +16,7 @@ import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictu
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
-import { PlaceCard } from "./place.ts";
+import { cardsOf, PlaceCards } from "./place.ts";
 
 export class CommanderCard extends CommanderTalk {
   static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true }, _armed: { state: true } };
@@ -41,8 +41,8 @@ export class CommanderCard extends CommanderTalk {
    * ARMED_MS lapses or a tap lands anywhere else. */
   _armed: { camera: string; key: string } | null = null;
   private armGone = 0;
-  /** The card in the commander's last place (this card's `card`), kept between redraws. */
-  private place = new PlaceCard(() => this.requestUpdate());
+  /** The cards in the commander's last place (this card's `cards`), kept between redraws. */
+  private place = new PlaceCards(() => this.requestUpdate());
 
   constructor() {
     super();
@@ -167,15 +167,15 @@ export class CommanderCard extends CommanderTalk {
     const [w, h] = laid.size;
     const mainRect = laid.main;
     const tiles = laid.tiles.filter((t) => t.rect[2] > 0);
-    // The last place, where the commander keeps it: this card's own card goes there. A
-    // config with no type is one being typed, or emptied, in the editor: no card yet.
-    const placeConfig = this._config?.card?.type ? this._config.card : undefined;
-    const inPlace = laid.card ? this.place.element(placeConfig, this.hass!) : undefined;
-    // A card with nowhere to go is said while the dashboard is edited, where it can be
+    // The last place, where the commander keeps it: this card's own cards go there, the
+    // first showing filling it (place.ts). In edit mode each shows, as HA's sections do.
+    const placeCards = cardsOf(this._config);
+    const inPlace = laid.card ? this.place.elements(placeCards, this.hass!, editing) : [];
+    // Cards with nowhere to go are said while the dashboard is edited, where it can be
     // put right. (Not when the commander keeps the place and only this size has no cells.)
     const noPlace =
-      editing && placeConfig && !(own.mode === "responsive" && own.responsive?.card_place)
-        ? "Its card has no place: switch on Keep the last place for a card for this commander (Camera Commander page, Responsive layout)"
+      editing && placeCards.length && !(own.mode === "responsive" && own.responsive?.card_place)
+        ? "Its cards in the last place have no place: switch on Keep the last place for a card for this commander (Camera Commander page, Responsive layout)"
         : "";
     // Full screen (tap_main: full): the camera tapped, live over the whole screen, shown
     // whole; its channel chosen for the screen's device pixels, as the main area's is.
@@ -359,12 +359,13 @@ export class CommanderCard extends CommanderTalk {
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
         ${laid.card
           ? html`<div class="place" style=${at(laid.card)}>
-              ${inPlace ??
-              (this.place.failed
-                ? html`<span class="cm-pill cm-filled cm-bad">Its card can't be drawn: ${this.place.failed}</span>`
-                : editing && !placeConfig
-                  ? html`<span class="cm-pill">A card goes here: this card's Card in the last place</span>`
-                  : nothing)}
+              ${this.place.failed
+                ? html`<span class="cm-pill cm-filled cm-bad">Its cards can't be drawn: ${this.place.failed}</span>`
+                : inPlace.length
+                  ? inPlace
+                  : editing && !placeCards.length
+                    ? html`<span class="cm-pill">Cards go here: this card's Last place</span>`
+                    : nothing}
             </div>`
           : nothing}
         ${mark && mark[2] > 0 && this._framed === (editing ? "still" : `s${this._shown}`)

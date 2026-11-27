@@ -219,7 +219,7 @@ crops the cameras least is used.
 - **Keep the last place for a card:** the last place, in the corner of the picture, is
   left clear of cameras, and each Camera Commander card showing this commander can draw
   a card of its own there, such as a clock or a few buttons (see
-  [A card in the last place](#a-card-in-the-last-place)). The place is never given to a
+  [Cards in the last place](#cards-in-the-last-place)). The place is never given to a
   camera: when there are too many, **+n more** takes the place before it. A size that
   shows the main camera alone has no such place.
 - **When the limits can't all be met:** **Find something that fits** uses other edges,
@@ -349,8 +349,8 @@ Its options (each left at its default unless you change it):
 - **Its controls over the main camera**, **Sound button** and **Full screen button:**
   buttons over the main camera. See
   [Controls and buttons over the main camera](#controls-and-buttons-over-the-main-camera).
-- **Card in the last place:** a card of your own in the commander's last place. See
-  [A card in the last place](#a-card-in-the-last-place).
+- **Last place:** cards of your own in the commander's last place. See
+  [Cards in the last place](#cards-in-the-last-place).
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. Direct means the app's own address, on port
   8099. With the default, a page at home that gets no picture from that address within
@@ -377,49 +377,37 @@ Its options (each left at its default unless you change it):
 - **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
   you answer, or half duplex, where it goes out only while you hold a button (see below).
 
-### A card in the last place
+### Cards in the last place
 
 A Responsive commander can keep its last place, in the corner of the picture, clear of
 cameras (**Keep the last place for a card**, on the Camera Commander page). The card then
-draws one Lovelace card there. It is set in the card's editor, under **Last place**, as
-YAML, and it can be any card Home Assistant has. Two dashboards showing the same
-commander can each have a different card there.
+draws Lovelace cards of your choosing there. They are set in the card's editor, under
+**Last place**, which shows them only when the commander chosen keeps the place, and
+otherwise says where to switch it on. Two dashboards showing the same commander can each
+have their own cards there.
 
-A clock:
+The cards are a list, in order, and the first one that is showing fills the place. So the
+order is the priority: put an alert first and a clock last, and the clock shows whenever
+the alert has nothing to say. Whether a card is showing is decided by Home Assistant, as on
+any dashboard: by the conditions on the card's **Visibility** tab, or by the card itself
+when it has nothing to show. While the dashboard is being edited, every card counts as
+showing, so the first one fills the place.
 
-```yaml
-type: clock
-```
+In the editor each card is a chip, numbered in the list's order. **+ Add card** opens Home
+Assistant's card picker. For the chosen card, **‹ Earlier** and **Later ›** move it,
+**✕ Remove** takes it out, and **Card** and **Visibility** open Home Assistant's own editor
+for the card and for its visibility conditions, as in Home Assistant's own edit dialog.
 
-Four buttons are Home Assistant's grid card with four button cards in it:
+Some cards that suit the place: a clock; a grid card holding a few button cards; a card
+that shows alerts only when there are any. With many cameras the place is one tile, and a
+card made for a wide column may not fit it: anything that doesn't fit is cut off at its
+edge.
 
-```yaml
-type: grid
-columns: 2
-square: false
-cards:
-  - type: button
-    entity: light.porch
-  - type: button
-    entity: cover.front_gate
-  - type: button
-    name: Home
-    icon: mdi:home
-    tap_action:
-      action: navigate
-      navigation_path: /lovelace/home
-  - type: button
-    entity: script.goodnight
-```
-
-A tap in the place goes to the card in it and never changes the main camera. The card is
-given the place's size and anything that doesn't fit is cut off at its edge, so a card
-made for a wide column may need its own options set to suit a small place.
-
-The place is clear in the picture itself, so anything that shows the commander's picture
-without this card has nothing there. While the dashboard is being edited, the place says
-that a card goes there when none is set, and the card says so when it has a card and the
-commander keeps no place for it.
+A tap in the place goes to the card in it and never changes the main camera. The place is
+clear in the picture itself, so anything that shows the commander's picture without this
+card has nothing there. While the dashboard is being edited, the place says that cards go
+there when none are set, and the card says so when it has cards and the commander keeps no
+place for them.
 
 ### Controls and buttons over the main camera
 

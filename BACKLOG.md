@@ -23,6 +23,7 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 - **Docs: camera streams on UniFi Protect, the only camera system tried** (asked 2026-10-11). How a Protect camera's streams reach Casa Mia (RTSP per channel in Protect, the high, medium and low channels HA gives each camera, which Casa Mia uses for what, how they reach go2rtc). Say plainly in the camera guides and README that nothing else is tested, and invite reports (Reolink, ONVIF, generic RTSP, Frigate).
 - **Commander controls as entities; idle mode as the worked example** (asked 2026-10-10). A commander's layout controls as entities on its device (a mode select, a main-panel size, panels on or off), so automations can change the layout. Idle mode: when KS's screensaver starts, the main panel grows to fill the screen but for a thin gap (8 %, or 100 px); back to normal when it's dismissed. Check whether a layout option already gives the look, else a new mode in both engines with a case. See "Templates for card options": ideally one way for a layout to follow a state.
 - **Commander auto-layout** (asked 2026-10-10). Place a commander's cameras for you: fill the edges in order from a chosen start, tiles square. A `layout.json` option, in both engines, with cases.
+- **A commander's detections and their clips** (specified 2026-11-27, not built): `docs/design/commander-detections.md`. A chip beside the main camera's name saying what is detected (with the number plate), and a dialog of that camera's recorded detections with thumbnails and clips, from UniFi Protect's event entities and media source. It takes the place of "The card shows the kind" in the item below.
 - **Cameras: every detection a camera has, and choosing the main camera by them** (asked 2026-10-09). Cameras know one motion sensor each today. UniFi Protect's also offer person, vehicle, animal, package, plate, face; sounds (baby cry, barking, glass break, smoke and CO alarms); and states such as is dark, mostly each with its own detection switch.
   - **Gather them in discovery:** per camera, every detection sensor paired with its switch, by kind (Protect's translation keys where present, else device class and name); a small table of known kinds; generic, not one integration.
   - **Show them on the Cameras page:** which detections, which are off, and live in its preview.
@@ -965,6 +966,16 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **Review the algorithm** (owner, 2026-10-27: "OK for now"): after living with it, check whether time at each level is right, or whether escalating by count or by how far out earns a place.
   - **Acknowledging:** decided against (2026-11-22). Snooze, above, has an end.
   - **The Escalation handler blueprint and the remedy tools** (`docs/never-silently-stuck.md`), on the events it sends.
+- **Custom actions per sensor** (asked 2026-11-27; needs design before any building). A
+  mechanism that lets a watched sensor offer actions of the user's own. The use cases:
+  the internet speed is reported as low, so its row gives a button to run the check
+  again; the gates have been open for too long, so its row gives a close action. The
+  actions **must be defined by the user**, per sensor or per group, because Sensor Watch
+  can't know what they will want to do. How they are defined needs designing too. To
+  settle in the design: where an action is set (a watch, a group, a profile) and which
+  wins; whether it is offered at every level or only at some; where its button shows
+  (the page, the card, the gauge, a notification); and how it sits with the remedy tools
+  under Escalation above and the snooze button for Heads Up.
 - **Watch a template** (asked 2026-10-11): some faults show only between sensors (a downstream meter's voltage differing from the upstream one). A **+ From a template** choice in the Watch dialog creates an HA template helper (through "Entities Casa Mia makes") and opens the bands editor on it. A real entity, so it has history.
 - **Dependencies** (asked 2026-10-11): a record names an upstream sensor and counts only while that one is nominal, so a supply drop raises one alert, not one per meter. Think through chains, what the summary shows for a suppressed sensor, and loops. The owner's ESPHome generator knows each meter's upstream link and could produce the difference sensors and dependencies; Sensor Watch takes them as they come.
 - **Groups, what's left** (built in b15–b21): members suggested from history (a new member waits for a few days of it, shown as pending), availability-only groups (design with Availability rules), and watching an attribute (one entity can since 2026.10.8-b23; groups watch states only).
