@@ -36,6 +36,16 @@ export class CardsEditor extends LitElement {
   _ready = false;
   private asked = false;
 
+  /** Only this editor's own value-changed (the whole list) leaves it. HA's card editors
+   * inside fire their forms' value-changed too, and it bubbles out of every shadow root:
+   * one reaching the Camera Commander's editor was taken for the list, emptied it, and
+   * opened the card picker at each change to a card (to 2026.11.14-b25). */
+  createRenderRoot() {
+    const root = super.createRenderRoot();
+    root.addEventListener("value-changed", (ev) => ev.stopPropagation());
+    return root;
+  }
+
   willUpdate() {
     if (this.hass && !this.asked) {
       this.asked = true;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.14-b26
+
+- **Camera Commander card editor: changing a card in the last place no longer jumps to
+  the card picker.** Each change to a card (the clock's seconds, say) briefly emptied the
+  list, so the editor opened the picker and HA's preview lost the cards for a moment. The
+  change itself was kept.
+
 ## 2026.11.14-b25
 
 - **Casa Mia Clock is now Home Assistant's own clock card, made to fill its place.** b23

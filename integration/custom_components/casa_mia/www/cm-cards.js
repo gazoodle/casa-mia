@@ -997,6 +997,10 @@ var gt = class extends B {
 			_ready: { state: !0 }
 		};
 	}
+	createRenderRoot() {
+		let e = super.createRenderRoot();
+		return e.addEventListener("value-changed", (e) => e.stopPropagation()), e;
+	}
 	willUpdate() {
 		this.hass && !this.asked && (this.asked = !0, Ne(this.hass).then(() => this._ready = !0, (e) => this._failed = String(e?.message ?? e))), this.cards.length || (this._adding = !0), this._chosen = Math.min(this._chosen, Math.max(0, this.cards.length - 1));
 	}
