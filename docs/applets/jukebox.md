@@ -250,7 +250,8 @@ Until then, a library song is refused with a message that says so.
 
 ### Songs from Spotify
 
-Spotify plays on a phone through Spotify's own player for web pages. That needs a
+Spotify plays on a phone through Spotify's own player for web pages, which runs in a
+frame of Spotify's, kept apart from Home Assistant's page. That needs a
 Spotify Premium account, a page reached over `https`, and a sign-in of Jukebox's own:
 Home Assistant's Spotify integration is a remote control, and Spotify doesn't let its
 sign-in play music.

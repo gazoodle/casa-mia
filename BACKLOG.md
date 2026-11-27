@@ -1199,12 +1199,11 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 - **Jukebox's catalog submission** (hacs/default#14999, opened 2026-11-26). Frenck
   asked for four changes on 2026-11-27. Done in 2026.11.15-b1: search with Jukebox's own
   sign-in, stations a speaker named and a signed relay (`phone.Stream`), the Spotify
-  token for administrators only. Open:
-  - Spotify's Web Playback SDK (`sound.ts`) runs on Home Assistant's own page. He asks
-    for it in a sandboxed iframe without `allow-same-origin`, the token passed in with
-    `postMessage`, or no in-page player. Try the iframe on a real phone first: the SDK
-    needs Widevine (encrypted media) and may need storage, which an opaque origin may
-    refuse.
+  token for administrators only. Done in b2: no script of Spotify's in Home Assistant's
+  page (`spotify.ts` drives Spotify's frame). Open:
+  - Release the mirror and re-request review, replying that his sandboxed frame can't
+    play (Chromium refuses encrypted media in an opaque origin, measured) and that
+    Spotify's player now runs only in Spotify's own frame.
   - Not raised yet: `art.View` is `requires_auth = False`, guarded by one key per start
     shared by every page; it also fetches from Spotify's picture servers. Fix as the
     relay was: addresses signed for each connection's login (`async_sign_path`).

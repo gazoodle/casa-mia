@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.15-b2
+
+- **Jukebox: Home Assistant's page no longer runs Spotify's script.** Spotify's player
+  for web pages plays in Spotify's own frame, kept apart from Home Assistant's page, and
+  Jukebox's page tells it what to play with the same messages Spotify's script sends.
+  Before, the script was fetched from Spotify into Home Assistant's page, where it could
+  have done anything the signed-in person can. Raised in Jukebox's review for the
+  Marketplace (hacs/default#14999).
+
 ## 2026.11.15-b1
 
 - **Breaking:** Jukebox searches Spotify, and looks up the covers of songs on the

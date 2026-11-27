@@ -1,8 +1,8 @@
 // The sound of the room that is this device (phone.ts): the two players a browser has.
 // A file of the music library and a radio station play in an <audio> element. A song
-// from Spotify plays in Spotify's own player for web pages (its Web Playback SDK), which
-// makes this page a device of the Spotify account and is told what to play through
-// Spotify's web API.
+// from Spotify plays in Spotify's own player for web pages, in a frame of Spotify's that
+// spotify.ts drives, which makes this page a device of the Spotify account and is told
+// what to play through Spotify's web API.
 //
 // Measured on an iPhone (2026-11-24, Safari and Home Assistant's app) with a throwaway
 // page, which is where each oddity below comes from:
@@ -13,6 +13,7 @@
 // - A page that plays nothing is put to sleep, and after 42 s asleep Spotify had dropped
 //   its player with no word: asked to play, it answers 404. Then the player connects
 //   again, and that is said meanwhile.
+import { Player } from "./spotify.ts";
 
 /** What a player says of itself: at each change, never on a timer. Spotify's also says
  * what the song is, which is more than a list of an album's songs knows of it. */
@@ -30,15 +31,14 @@ export type Hears = {
   note(text: string): void;
 };
 
-const SDK = "https://sdk.scdn.co/spotify-player.js";
 const PLAY = "https://api.spotify.com/v1/me/player/play";
 /** How long Spotify's player may take to connect, in ms. */
 const READY = 15_000;
 /** Why Spotify's player won't start, in words to show, for each of its own reasons. */
 const WHY: Record<string, string> = {
-  initialization_error: "This browser can't run Spotify's player",
-  authentication_error: "Spotify refused Jukebox's sign-in",
-  account_error: "Spotify plays in a page only for a Premium account",
+  PLAYER_INIT_ERROR: "This browser can't run Spotify's player",
+  AUTH_ERROR: "Spotify refused Jukebox's sign-in",
+  ACCOUNT_ERROR: "Spotify plays in a page only for a Premium account",
 };
 
 /** A tenth of a second of silence, as a sound file: what `unlock` plays. */
@@ -63,21 +63,6 @@ function silence(): string {
   return URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
 }
 
-/** Spotify's player code, fetched once. */
-let fetched: Promise<any> | undefined;
-function sdk(): Promise<any> {
-  const page = window as any;
-  return (fetched ??= new Promise((done, failed) => {
-    if (page.Spotify) return done(page.Spotify);
-    page.onSpotifyWebPlaybackSDKReady = () => done(page.Spotify);
-    const script = Object.assign(document.createElement("script"), { src: SDK, onerror: () => failed(new Error("Spotify's player couldn't be fetched from Spotify")) });
-    document.head.append(script);
-  }).catch((err) => {
-    fetched = undefined; // asked for again at the next song
-    throw err;
-  }));
-}
-
 export class Sound {
   /** Which player has the song: none before the first, and after Stop. */
   on: "" | "audio" | "spotify" = "";
@@ -87,10 +72,10 @@ export class Sound {
   private _audio?: HTMLAudioElement;
   private _silence?: string;
   /** Spotify's player, made once for the page. */
-  private _made?: Promise<any>;
+  private _player?: Player;
   /** How Spotify knows this page's player: empty while it isn't connected. */
   private _device = "";
-  private _connecting?: Promise<any>;
+  private _connecting?: Promise<Player>;
   /** Whoever is waiting for the player to say it is ready. */
   private _wait?: { done: () => void; failed: (err: Error) => void };
   /** Spotify's song has been heard playing, so "paused at 0:00" is its end. */
@@ -104,7 +89,7 @@ export class Sound {
    * sound by themselves afterwards. */
   unlock(): void {
     // Spotify's player has its own way of being let, if it has been made by now.
-    void this._made?.then((player) => player.activateElement?.()).catch(() => undefined);
+    void this._player?.activateElement();
     if (this._audio) return;
     const audio = this._listen(new Audio());
     audio.src = this._silence = silence();
@@ -130,7 +115,7 @@ export class Sound {
 
   /** Play what is at a web address, from `from` seconds in. */
   async audio(url: string, from = 0): Promise<void> {
-    if (this.on === "spotify") void this._made?.then((player) => player.pause()).catch(() => undefined);
+    if (this.on === "spotify") void this._player?.pause();
     const audio = this._audio ?? this._listen(new Audio());
     this.on = "audio";
     audio.src = url;
@@ -153,32 +138,26 @@ export class Sound {
   }
 
   /** Spotify's player, with everything it may say listened to. */
-  private _make(): Promise<any> {
-    return (this._made ??= sdk()
-      .then((Spotify) => {
-        const player = new Spotify.Player({ name: "Jukebox", volume: 1, getOAuthToken: (use: (token: string) => void) => void this._token().then(use, (err) => this._cant(err)) });
-        player.addListener("ready", (now: { device_id: string }) => {
-          this._device = now.device_id;
-          this._wait?.done();
-        });
-        player.addListener("not_ready", () => (this._device = ""));
-        for (const kind of Object.keys(WHY))
-          player.addListener(kind, (said: { message: string }) => this._cant(new Error(`${WHY[kind]} (${said.message})`)));
-        player.addListener("playback_error", (said: { message: string }) => this.on === "spotify" && this._hears.failed(`Spotify says: ${said.message}`));
-        player.addListener("autoplay_failed", () => this.on === "spotify" && this._hears.lost("The browser starts sound only from a tap. Press play."));
-        player.addListener("player_state_changed", (state: any) => this._spotifySaid(state));
-        return player;
-      })
-      .catch((err) => {
-        this._made = undefined;
-        throw err;
-      }));
+  private _make(): Player {
+    if (this._player) return this._player;
+    const player = (this._player = new Player({ name: "Jukebox", volume: 1, getOAuthToken: (use) => void this._token().then(use, (err) => this._cant(err)) }));
+    player.addListener("PLAYER_READY", (now: { device_id: string }) => {
+      this._device = now.device_id;
+      this._wait?.done();
+    });
+    player.addListener("PLAYER_NOT_READY", () => (this._device = ""));
+    for (const kind of Object.keys(WHY))
+      player.addListener(kind, (said: { message: string }) => this._cant(new Error(`${WHY[kind]} (${said.message})`)));
+    player.addListener("PLAYBACK_ERROR", (said: { message: string }) => this.on === "spotify" && this._hears.failed(`Spotify says: ${said.message}`));
+    player.addListener("AUTOPLAY_FAILED", () => this.on === "spotify" && this._hears.lost("The browser starts sound only from a tap. Press play."));
+    player.addListener("PLAYER_STATE_CHANGED", (state: any) => this._spotifySaid(state));
+    return player;
   }
 
   /** Spotify's player, connected: Spotify knows this page as a device. `afresh` drops
    * the connection there was first, for when Spotify has forgotten the device. */
-  private _connect(afresh = false): Promise<any> {
-    return (this._connecting ??= this._make()
+  private _connect(afresh = false): Promise<Player> {
+    return (this._connecting ??= Promise.resolve(this._make())
       .then(async (player) => {
         if (afresh) {
           player.disconnect();
@@ -251,7 +230,7 @@ export class Sound {
   }
 
   async pause(): Promise<void> {
-    if (this.on === "spotify") await (await this._make()).pause();
+    if (this.on === "spotify") await this._make().pause();
     else this._audio?.pause();
   }
 
@@ -268,13 +247,13 @@ export class Sound {
     if (this.on === "spotify") {
       // Back at 0:00 and paused is how an ended song looks: this one hasn't ended.
       if (!seconds) this._heard = false;
-      await (await this._make()).seek(Math.round(seconds * 1000));
+      await this._make().seek(Math.round(seconds * 1000));
     } else if (this._audio) this._audio.currentTime = seconds;
   }
 
   /** Silence, and nothing loaded: a station left loaded would go on being fetched. */
   stop(): void {
-    if (this.on === "spotify") void this._made?.then((player) => player.pause()).catch(() => undefined);
+    if (this.on === "spotify") void this._player?.pause();
     this.on = "";
     if (!this._audio) return;
     this._audio.pause();

@@ -599,7 +599,14 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   room, the page keeping the queue). Home Assistant knows nothing of that room.
   - **On the page:** `phone.ts` is the room, `lineup.ts` its queue's rules (no page in
     it, tested in node) and `sound.ts` the two players: an `<audio>` element for a
-    library file or a station, Spotify's Web Playback SDK for a Spotify song.
+    library file or a station, and Spotify's own player frame for a Spotify song.
+    **No script of Spotify's is in Home Assistant's page** (b2): `spotify.ts` drives the
+    frame (`sdk.scdn.co/embedded/index.html`) with the messages Spotify's script sends,
+    as read from its v1.10.0 (its header lists them). If Spotify changes them, the
+    player stops connecting: read `sdk.scdn.co/spotify-player.js` again. Why (Frenck,
+    hacs/default#14999; owner, 2026-11-27): his sandboxed frame can't play, since
+    Chromium refuses encrypted media in an opaque origin (measured), and a copy of
+    Spotify's script would be redistributing it.
     `common.ts` puts the room into the house (`follow`) and sends its requests to
     `phone.do` and `phone.queue`, so the players, queue, favourites, search and editor
     needed no change of their own. Its id is `PHONE` (`this_device`). Favourites,
