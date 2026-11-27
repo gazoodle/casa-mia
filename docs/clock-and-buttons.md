@@ -1,31 +1,41 @@
 # Clock and Buttons cards
 
-Two small Lovelace cards that come with Casa Mia. Both are made to fit small places, such
+Two Lovelace cards that come with Casa Mia. Both are made to fit small places, such
 as a Camera Commander's last place or a Tablet Layout panel, and both work anywhere a
 card can go. Add them from the dashboard's card picker, where they are **Casa Mia Clock**
 and **Casa Mia Buttons**.
 
 ## Casa Mia Clock
 
-The time, digital or analogue, made as big as the space it is given. In a place with a
-height of its own (a Camera Commander's last place, a Tablet Layout panel, a sections card
-with its rows set on the Layout tab) it fills it. In a column with no height of its own it
-takes its own shape: 5 by 2 when digital, square when analogue.
+Home Assistant's own clock card, made as big as the space it is given. Every option of
+Home Assistant's clock works here, with Home Assistant's own editor for it: a title, digital
+or analogue, the size, seconds, the date in the parts and order you choose, 12 or 24
+hours, the time zone, and for the analogue face its border, ticks, numbers (plain or
+Roman) and whether the second hand sweeps or ticks. Home Assistant's
+[clock card documentation](https://www.home-assistant.io/dashboards/clock/) describes them.
+A clock you already have becomes this one by changing its `type: clock` to
+`type: custom:casa-mia-clock`.
 
-| Option | What it does |
-|---|---|
-| **Style** | Digital (the default) or Analogue. |
-| **Hours** | As your language has it (the default), 24-hour or 12-hour. A 12-hour clock shows am or pm beside the time. |
-| **Show seconds** | Adds the seconds, and a second hand on the analogue face. |
-| **Time zone** | As your profile (the default): this device's zone, or the server's where your Home Assistant profile says so. Or any zone from the list. |
-| **No background** | Just the time, on whatever is behind the card. |
+What it adds is the size. Home Assistant draws its clock at one of three fixed sizes
+(**Size**: small, medium or large). This card scales the whole clock, title and date
+included, to fill the place it is in, as a picture is scaled: whole and centred. So in a
+Camera Commander's last place, a Tablet Layout panel, or a sections card with its rows set
+on the Layout tab, the clock is as big as the place allows. In a column with no height of
+its own it is the size you chose, as Home Assistant's own card would be, or smaller if the
+column is too narrow for it.
 
 In YAML:
 
 ```yaml
 type: custom:casa-mia-clock
 clock_style: analog
+ticks: hour
+face_style: roman
 show_seconds: true
+date_format:
+  - weekday-short
+  - day-numeric
+  - month-short
 ```
 
 ## Casa Mia Buttons

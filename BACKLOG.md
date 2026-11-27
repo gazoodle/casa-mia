@@ -474,8 +474,9 @@ the Gazette's own work is parked below it.
   - **A clock for every era**, built as a specialisation of one clock, because the owner
     wants many clock designs: styled after fine chronographs, station clocks and flap
     digit clocks (like the departure board's style), and more. The one clock exists since
-    2026.11.14-b23: Casa Mia Clock (`integration/cards/src/clock/`, digital and analogue,
-    filling its place), so each design is a `clock_style` of it.
+    2026.11.14-b23: Casa Mia Clock (`integration/cards/src/clock/`), which since b25 is
+    HA's own clock scaled to fill its place. Each design of ours becomes another
+    `clock_style` of it, drawn by us beside HA's digital and analogue.
   - **More knobs and colours**: everything someone would need to style their own board
     from the basic controls.
   Open for the session: the cards' names and categories, what a panel's ordering looks

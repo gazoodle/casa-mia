@@ -4,7 +4,9 @@
 // draws the clock too. It redraws only itself, on each second, and only while it is on
 // the page; the card around it is not redrawn for it.
 import { LitElement } from "lit";
-import { timeIn } from "../clock/common.ts";
+
+/** "09:05:42", 24-hour, in a zone. */
+const TIME = (zone?: string) => new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
 
 export class CaptionClock extends LitElement {
   static properties = { zone: {} };
@@ -28,6 +30,6 @@ export class CaptionClock extends LitElement {
   };
 
   render() {
-    return timeIn(new Date(), this.zone, false, true).text;
+    return TIME(this.zone).format(new Date());
   }
 }

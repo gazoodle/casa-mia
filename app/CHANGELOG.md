@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.14-b25
+
+- **Casa Mia Clock is now Home Assistant's own clock card, made to fill its place.** b23
+  said it had the options of Home Assistant's clock; it had only a few. Now it has every
+  one, with Home Assistant's own editor: a title, the size, the date in the parts you
+  choose, and for the analogue face its border, ticks, plain or Roman numbers and a
+  sweeping or ticking second hand. The card scales the whole clock to fill the place it is
+  in, and a clock you already have becomes this one by changing its type. A b23 clock's
+  settings carry over.
+
 ## 2026.11.14-b24
 
 - **Camera Commander card: what the main camera reports shows beside its name.** A chip

@@ -1,9 +1,10 @@
-// Casa Mia Clock: the time, filling its space, digital or analogue. The parts: common.ts
-// (the time to show), card.ts, editor.ts.
+// Casa Mia Clock: Home Assistant's own clock card, made to fill its place (card.ts).
 import { define, register } from "../ha.ts";
 import { ClockCard } from "./card.ts";
-import { ClockEditor } from "./editor.ts";
 
 define("casa-mia-clock", ClockCard);
-define("casa-mia-clock-editor", ClockEditor);
-register("casa-mia-clock", "Casa Mia Clock", "The time, digital or analogue, filling whatever space it is given: a Camera Commander's last place, a Tablet Layout panel.");
+register(
+  "casa-mia-clock",
+  "Casa Mia Clock",
+  "Home Assistant's clock, with all its options, made as big as its place: a Camera Commander's last place, a Tablet Layout panel.",
+);
