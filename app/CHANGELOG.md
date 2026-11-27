@@ -1,575 +1,188 @@
 # Changelog
 
-## 2026.11.14-b38
+## 2026.11.14
 
-- **Camera Commander card: the pills and chips beside the main camera's name are as tall
-  as the name, and see-through like the camera's controls.** LIVE, the channel's bars,
-  the chip saying what live is doing, the detections and the closer look's chip are
-  white on black, or on their own colour, at the camera's Background (the Cameras page),
-  instead of b37's solid pills.
-- **Cameras: a camera's Background is 45% by default, not 60%,** so its controls and
-  the caption's chips show more of the picture. A camera whose Background has been saved
-  keeps its own value.
-
-## 2026.11.14-b37
-
-- **Camera Commander card: older browsers that misreport what they can decode no longer
-  try a channel they can't play.** The card now asks the browser twice, once for live
-  video and once for a video file, and leaves a channel out if either answer is no.
-  Android WebView 140 says yes to H.265 at any size for live video, even on a tablet
-  whose decoder stops at 2560 x 1440, so b36's check let it try a 4K high channel; asked
-  about a file, it gives the right answer. WebView 157 gives the right answer both ways.
-- **Camera Commander card: the main camera's name is just its name.** While live video
-  arrives, a green LIVE pill follows it (DELAYED in grey over HLS), and beside it three
-  rising bars show the UniFi Protect channel playing: one filled for low, two for
-  medium, three for high, its size on hover. They replace b34's letter and "(live)". The
-  chip saying what live is doing shows the same bars, as "Starting", "coming" or
-  "failed". Both are the style guide's pills (`pills.css`: `cm-solid`, `cm-bars`), with
-  the card's surface behind them so they read on any picture.
-
-## 2026.11.14-b36
-
-- **Camera Commander card: a device no longer tries a channel it says it can't play.**
-  The card asks the browser whether it can decode each channel's codec at its size, and
-  leaves out any channel it can't decode smoothly. Many wall tablets decode H.265 only
-  up to 2560 x 1440, so a 4K or 2688 x 1512 high channel never showed a frame there, and
-  trying it also stopped the channel already on screen: a full screen showing M fell to
-  L before coming back to M. Those tablets now play M on full screen from the start; a
-  device that can decode the high channel still gets it.
-- **The compositor reads each channel's codec along with its size,** keeps it across
-  restarts, and passes it to the cards. A size or codec newly read reaches the cards at
-  once.
-
-## 2026.11.14-b35
-
-- **Camera Commander card: the latest detection's chip names the right one after a
-  restart.** After Home Assistant restarted, UniFi Protect's ring, smart detection, motion,
-  package and sound entities came back as unknown: their kind was restored but not their
-  time, so the chip named an older detection from an entity that kept its time (a vehicle
-  from the day before, over people seen since). The Camera Commander integration now
-  keeps the time each of a commander's event entities last fired, in Home Assistant's
-  storage, and gives it to the card for an entity that has lost it. An entity it has no
-  record of yet is looked up once in the recorder, so this works from the first restart.
-  Home Assistant 2026.12 fixes the cause in UniFi Protect itself.
-- **Camera Commander card: the recordings dialog on a phone and on a Mac.** On a phone it
-  now stays clear of the status bar and the home bar, where its Close and kind chips were
-  hard to press, and its tiles are 96 px so three fit across. On a landscape screen it is
-  as tall as its picture again, worked out from its width and the camera's shape: in b33
-  it took its height from its contents, which left it one header high on a Mac.
-
-## 2026.11.14-b34
-
-- **Camera Commander card: the main camera's name says which channel is playing,** H, M
-  or L for a UniFi Protect camera's high, medium or low channel, before "(live)" ("Gate
-  H (live)"), with its size when you point at it. A chip beside it says what the live
-  video is doing when it isn't simply playing its best: "Starting M", "H coming" while a
-  sharper channel gets ready behind the one shown, or "H failed", with the reason and
-  when it is tried again. Until now a failed sharper channel was said only in Home
-  Assistant's log.
-
-## 2026.11.14-b33
-
-- **Camera Commander card: the recordings dialog fits its picture.** On a big monitor the
-  dialog was as tall as the screen, so the chosen recording sat between tall black bands.
-  Now the preview takes the camera's own shape. On a landscape screen the dialog is as tall
-  as the preview needs, with the list scrolling beside it. On a portrait screen the
-  preview is narrower and centred where 480 px of height would not take the whole width,
-  instead of being banded at the sides.
-
-## 2026.11.14-b32
-
-- **Camera Commander card: it no longer grows into its size.** In the card editor's
-  preview the card started as a thin strip with a squashed picture and grew down to its
-  shape over a third of a second, and did so again at every change of an option. Home
-  Assistant's own card frame animates every change of its size, and the commander sets
-  its height itself, so each height it set was animated; the picture was asked for at a
-  size part of the way there. The card now takes its height at once and asks for its
-  picture once, at that size. The same animation ran on the dashboard when the window
-  was resized.
-
-## 2026.11.14-b31
-
+- **New: a camera's recordings, from the Camera Commander card.** A press on the main
+  camera's name, or on a detection chip beside it, opens its recordings in UniFi Protect:
+  a picture of each, newest first, a day at a time, under Detections, Doorbell, Sounds or
+  Motion. The chosen recording plays beside the list on a landscape screen and above it
+  on a portrait one, in a dialog that fills the screen up to 1280 px each way and takes
+  the camera's shape. The list can be tiles or rows, which each device remembers. It
+  fetches the day before by itself when you reach its end, and stops after 7 empty days
+  in a row, with **Look further back** to go on. On a day busier than Protect's
+  integration lists (its "max media" option), the dialog says the list may be
+  incomplete. A guest signed in by Guest Login can't open recordings: for a guest, and
+  for a camera without recordings, the name and the chips do what a press on the camera
+  does.
+- **New: what the main camera reports shows beside its name.** A chip for a person, a
+  vehicle (its number plate when the camera read one), an animal, a package, a doorbell
+  ring or a sound such as a smoke alarm or glass breaking, for as long as the motion dot
+  stays after motion, newest first, at most three and then +n. Point at a chip for what
+  it was and when. While the camera reports nothing, a grey chip says its latest
+  detection and when, such as "Person 12:04". They come from the event entities on the
+  camera's device, which UniFi Protect makes, or any other integration's. Each
+  commander's Main camera select lists them in a `detections` attribute. UniFi Protect's
+  event entities lose their time when Home Assistant restarts (fixed in Home Assistant
+  2026.12), so the Camera Commander integration keeps the time each last fired, and the
+  latest detection is still the right one after a restart.
+- **New: the main camera says when it is live, and on which channel.** While live video
+  arrives, a green LIVE pill follows the camera's name (DELAYED in grey on a device that
+  plays it over HLS, some seconds behind). Beside it, three rising bars show the UniFi
+  Protect channel playing: one filled for low, two for medium, all three for high, with
+  its size when you point at it. A chip after them says what the live video is doing
+  when it isn't simply playing its best: starting, a sharper channel getting ready
+  behind the one shown, or a channel that wouldn't play, with the reason and when it is
+  tried again. These pills and chips are as tall as the name and as see-through as the
+  camera's controls.
+- **New: a closer look on the main camera's full screen.** Pinch, or turn the mouse
+  wheel, to enlarge the live picture, and drag to move it. While it is enlarged, a chip
+  beside the camera's name says by how much, and the card asks for a larger channel
+  where the camera has one. It goes back to the whole picture a minute after the last
+  touch, or at a tap on the picture or the chip. This enlarges the picture on the
+  screen; it doesn't move the camera's own zoom.
+- **New: a card of your own in a commander's last place.** A Responsive commander has a
+  new switch, **Keep the last place for a card**, which keeps the place in the corner of
+  the picture clear of cameras (with too many cameras, **+n more** takes the place
+  before it). The Camera Commander card's **Last place** holds a list of cards, and the
+  first one that is showing fills the place, so an alert can go first and a clock last.
+  Its editor adds cards with Home Assistant's card picker, moves and removes them, and
+  edits each with Home Assistant's own card and Visibility editors. Each dashboard
+  showing the commander can have its own.
+- **New card: Casa Mia Clock.** Home Assistant's own clock card, with all its options
+  and its editor, scaled whole to fill the place it is in, such as a commander's last
+  place or a Tablet Layout panel. A clock card you already have becomes one by changing
+  its type. See `docs/clock-and-buttons.md`.
+- **New card: Casa Mia Buttons.** A few small buttons as the style guide's chips, four
+  of which fit a Camera Commander's last place on a phone. A tap is Home Assistant's own
+  action, so a button can toggle, open more-info, go to another page or ask first. Its
+  editor is Home Assistant's own list, with its entity, icon and action pickers.
+- **New: PTZ presets and zoom with a camera's controls.** A camera's PTZ presets are
+  shown wherever its controls are. Up to three presets each have a button; with more,
+  one PTZ button opens them out as a line beside the bar. A camera with a zoom has a
+  **Zoom** button showing its level, which opens **Out**, the level, **In** and
+  **Reset** (all the way out), a tenth of the zoom's range a step. The level is the
+  camera's own, so it is right after a preset has moved the lens, and a level on its way
+  shows as "40% → 60%". When Home Assistant refuses a preset or a zoom, the reason is
+  shown with the controls for ten seconds. A tap elsewhere on the camera puts an opened
+  line away. The Cameras page's previews show the presets, and a camera with presets and
+  no controls can set where they go.
+- **New: a lock, a gate or a garage door takes two taps.** The first tap only gets it
+  ready: the button turns amber and says "tap again". A second tap works it, and a tap
+  anywhere else, or six seconds without one, lets it be. Each control on the Cameras
+  page has **Two taps**, ticked at first for a lock, a valve, a siren, and a garage
+  door, gate or door; it can be ticked for any other control, such as a switch that
+  opens a gate.
+- **Camera Commander card: the controls are the style guide's chips.** The buttons over
+  the main camera (Full, Sound, a camera's controls, PTZ, Zoom) are one size on every
+  device, in capitals in Home Assistant's font, white on a see-through black and
+  coloured while their entity is on, 5 px apart. They always keep their names: when the
+  bar is too long the PTZ presets go behind the PTZ button, and a bar still too long
+  wraps. The **Size** slider on the Cameras page is gone, and a size set there is no
+  longer used. **Background** stays, at 45% by default instead of 60%; a camera whose
+  Background was saved keeps it. Controls go down the right edge from the top by
+  default, and a camera with its own edge keeps it. **Full screen** is now called
+  **Full**, and is shown pressed while the commander has the screen.
+- **Camera Commander card: a tap meant for a control lands on it.** A tap that misses a
+  control, in the gaps between them or just beside one, no longer opens the camera full
+  screen. The bar stands a button's height in from the frame at each end of its edge,
+  and the end buttons' tap areas reach across that room: on a wall tablet, a tap meant
+  for the button at the top of the frame pressed the one below it.
+- **Camera Commander: the names are one size on every device.** A tile's name is 11 px
+  and the main camera's 14 px, on a phone, a tablet and a computer alike. **Tile name
+  size** and **Main camera name size** are now a % of those, and a commander set larger
+  or smaller than the default is still larger or smaller by as much. The motion dot is
+  half the size of the tiles' names, and its **Size** setting in the card's editor is no
+  longer used. A name too long for its tile is cut short with "…", and the main camera's
+  name stops short of the clock. The card always draws the main camera's name, and the
+  clock while the main camera isn't live; under the Security look the name keeps its
+  own colours.
+- **Camera Commander card: Full works in the Home Assistant app on an iPad or an
+  iPhone, and in Safari on an iPhone.** It showed only the main camera, in iOS's own
+  video player. It now puts the whole commander over the app's window, over Home
+  Assistant's header and sidebar. In Safari on an iPhone, Safari's own bars stay.
+- **Camera Commander card: in a kiosk app that zooms its pages, Full keeps the zoom and
+  the picture is sharp.** The browser's full screen dropped the zoom, so everything
+  shrank; Full now fills the kiosk's window instead. The picture and the live channel
+  are asked for at the zoomed size, where they were stretched.
+- **Camera Commander card: a device only tries the live channels it can play.** The card
+  asks the browser whether it can decode each channel's codec at its size, and leaves
+  out any it can't decode smoothly. Many wall tablets decode H.265 only up to
+  2560 x 1440, so a 4K or 2688 x 1512 high channel never showed a frame there, and
+  trying it also stopped the channel already on screen. The app now reads each
+  channel's codec along with its size. Android WebView 140 says yes to any size for
+  live video, so the card asks about a video file too, which it answers correctly.
 - **Camera Commander card: the main camera's full screen opens with its live picture
   straight away.** Opening or leaving it started the stream again from nothing, which
   could leave the screen black for 5 to 10 seconds. The playing stream now carries on,
-  and a better channel for the new size is made ready behind it, as the card already did
-  in the page.
-- **Home Assistant's log says when a card's live video starts, and how long its first
-  frame took** ("Live video started … first frame 1.4 s after it was asked for"). A
-  channel that comes back after failing says it too.
-
-## 2026.11.14-b30
-
-- **Camera Commander card: guests can't open a camera's recordings.** For a user a Guest
-  Login endpoint signs visitors in as, the main camera's name and chips do what a press on
-  the camera does.
-- **Camera Commander card: while the main camera reports nothing, a grey chip says its
-  latest detection and when** (such as "Person 12:04"), so it is seen there are
-  recordings to watch; it opens them. Every chip now opens the recordings on its own kind:
-  a doorbell ring on Doorbell, a sound on Sounds.
-- **Camera Commander card: the recordings dialog fills the screen** (up to 1280 px each
-  way) and keeps its size. On a landscape screen the list is on the left and the chosen
-  recording on the right, starting on the newest one's picture; on a portrait screen it is
-  above the list. The list can be tiles or rows, which each device remembers, and fetches
-  the day before by itself at its end, stopping after 7 empty days in a row with Look
-  further back to go on. A run of empty days is one line, and a day that fails to list
-  has Try again.
-
-## 2026.11.14-b29
-
-- **Camera Commander card: a closer look at the main camera's full screen.** Pinch, or
-  turn the mouse wheel, to enlarge the live picture, and drag to move it. While it is
-  enlarged, a chip beside the camera's name says by how much, and the card asks for a
-  larger channel where the camera has one. It goes back to the whole picture a minute
-  after the last touch, or at a tap on the picture or the chip. This is the picture
-  enlarged on the screen, not the camera's own zoom.
-
-## 2026.11.14-b28
-
+  and a sharper channel for the new size is made ready behind it. Home Assistant's log
+  says when a card's live video starts, and how long its first frame took.
+- **Camera Commander card: it no longer grows into its size.** In the card editor's
+  preview, and on the dashboard when the window was resized, the card started as a thin
+  strip with a squashed picture and grew to its shape over a third of a second.
 - **Camera Commander card editor: its options are in sections that start collapsed**
-  (View, Behaviour, Intercom, Notifications, Last place, and Connection and performance),
-  with the Commander select above them, so the dialog opens as a short list of headers
-  instead of one long page. Each section keeps its options and saved values as before.
-
-## 2026.11.14-b27
-
-- **Camera Commander card: a press on the main camera's name, or on a detection chip,
-  opens its recordings** in UniFi Protect: a picture of each, newest first, a day at a
-  time (Detections, Doorbell, Sounds or Motion, and Earlier for the day before), each clip
-  playing above the list. On a day busier than Protect's integration lists (its "max
-  media" option), the dialog says the list may be incomplete. Where a browser can't play a
-  clip from Home Assistant's address, the card fetches it whole and plays it from there.
-- **Camera Commander card: for a camera without recordings, a press on a detection chip
-  is a press on the main camera,** as one on the motion dot is. In b24 a chip took the
-  press and did nothing.
-
-## 2026.11.14-b26
-
-- **Camera Commander card editor: changing a card in the last place no longer jumps to
-  the card picker.** Each change to a card (the clock's seconds, say) briefly emptied the
-  list, so the editor opened the picker and HA's preview lost the cards for a moment. The
-  change itself was kept.
-
-## 2026.11.14-b25
-
-- **Casa Mia Clock is now Home Assistant's own clock card, made to fill its place.** b23
-  said it had the options of Home Assistant's clock; it had only a few. Now it has every
-  one, with Home Assistant's own editor: a title, the size, the date in the parts you
-  choose, and for the analogue face its border, ticks, plain or Roman numbers and a
-  sweeping or ticking second hand. The card scales the whole clock to fill the place it is
-  in, and a clock you already have becomes this one by changing its type. A b23 clock's
-  settings carry over.
-
-## 2026.11.14-b24
-
-- **Camera Commander card: what the main camera reports shows beside its name.** A chip
-  for a person, a vehicle (its number plate when the camera read one), an animal, a
-  package, a doorbell ring or a sound such as a smoke alarm or glass breaking, for as long
-  as the motion dot stays after motion, newest first, at most three and then +n. Hover a
-  chip for what it was and when. They come from the event entities on the camera's device,
-  which UniFi Protect makes, and any other integration's work too.
-- **Camera Commander card: the card always draws the main camera's name, and the clock
-  while the main camera isn't live,** so the chips have a name to sit beside. The
-  commander's picture leaves both out for the card, as it already did while the main
-  camera played live. When live video was lost, the name was drawn twice, once by the
-  picture and once by the card; now it is drawn once.
-- **Camera Commander card: under the Security look, the main camera's name keeps its own
-  colours,** as the controls and the motion dot do.
-- **Camera Commander: the compositor's status no longer fails while a card is being
-  tuned** (its debug on, with sizes set by hand).
-
-## 2026.11.14-b23
-
-- **New card: Casa Mia Clock.** The time, digital or analogue, made as big as the space it
-  is given, such as a Camera Commander's last place or a Tablet Layout panel. It has the
-  options of Home Assistant's clock card: 12 or 24 hours, seconds and a time zone, and no
-  background if you like. See [Clock and Buttons cards](../docs/clock-and-buttons.md).
-- **New card: Casa Mia Buttons.** A few small buttons as the style guide's chips, four of
-  which fit a Camera Commander's last place on a phone. A tap is Home Assistant's own
-  action, so a button can toggle, open more-info, go to another page or ask first. Its
-  editor is Home Assistant's own list, with its entity, icon and action pickers.
-
-## 2026.11.14-b22
-
-- **Camera Commander: each commander's Main camera select lists its cameras' event
-  entities** in a new `detections` attribute (UniFi Protect's object detections,
-  doorbell rings and sounds, or any other integration's events on the camera's device).
-  Nothing shows them yet: they are for the detection chips the card will draw in a
-  later build.
+  (View, Behaviour, Intercom, Notifications, Last place, and Connection and
+  performance), with the Commander select above them.
+- **Camera Commander: a camera chosen as the main camera doesn't start with an old
+  picture.** The one kept from the last time it was the main camera could be hours old.
+  A picture older than the commander's "stale after" time now gives way to the camera's
+  newest until its channel's own arrives.
+- **Camera Commander, Responsive layout: fewer empty spaces in a space taller than the
+  cameras' shape.** With 4 cameras in 768 x 1024, 5% of the space is empty, where it was
+  22%.
 - **Camera Commander: a camera's new motion sensor is found as soon as Home Assistant
-  adds it,** instead of at the app's next report, which could be 30 seconds later.
-
-## 2026.11.14-b21
-
-- **Camera Commander card: Last place holds a list of cards, with a proper editor.** The
-  first card that is showing fills the place, so an alert can go first and a clock last:
-  the clock shows whenever the alert is hidden by its Visibility conditions, or hides
-  itself. The editor shows the cards as chips in their order, adds one with Home
-  Assistant's card picker, moves and removes them, and edits each with Home Assistant's
-  own card editor and Visibility editor. It replaces b19's YAML box, and a card set there
-  is kept as the first in the list. The section shows the editor only when the commander
-  chosen keeps its last place, and otherwise says where to switch that on.
+  adds it,** instead of up to 30 seconds later.
+- **Camera Commander: debug.** With a commander's debug on, the card's box of figures
+  gives the sizes in use and where the card is, and **EDIT** and **RECORD** try other
+  sizes on the device and write them to the Casa Mia log. The debug box that was drawn
+  into the picture is gone, as live video covered it.
+- **Fixed: Cameras page: the controls' positions went back to Top** after a click on a
+  preview, a caption or an entity in a control's list, and an entity's list opened again
+  after a choice made with the mouse.
+- **Camera compositor page: a camera's channels are listed low, medium, high** when the
+  cache is sorted by name.
 - **Over layer editor: Home Assistant's card picker and card editor load the way Home
   Assistant 2026.11 needs,** and the editor says so if they haven't loaded within 15
-  seconds, where before it could wait for them without a word.
-
-## 2026.11.14-b20
-
+  seconds.
 - **Casa Mia Intercom and Casa Mia Protect Talkback: checked against Home Assistant
-  2026.11.3.** The parts of Home Assistant they patch are the same as in 2026.11.0,
-  apart from one change to how go2rtc's streams are compared, which leaves Protect
-  Talkback's streams alone as before. Each logged a warning on every Home Assistant
-  but 2026.11.0; now it warns only on a release outside 2026.11.0 to 2026.11.3.
-
-## 2026.11.14-b19
-
-- **Camera Commander: a place for a card of your own.** A Responsive commander has a new
-  switch, **Keep the last place for a card**. With it on, the last place, in the corner
-  of the picture, is left clear of cameras, and never given to one: with too many
-  cameras, **+n more** takes the place before it.
-- **Camera Commander card: Card in the last place.** One Lovelace card, set as YAML in
-  the card's editor, drawn in the place the commander keeps: a clock (`type: clock`),
-  or a grid card of buttons that work a light or a gate or go to another page. Each
-  dashboard showing the commander can have its own. While the dashboard is edited, the
-  card says when its card has no place to go, and the place says when it has no card.
-- **Camera Commander card: Full works in the Home Assistant app on an iPad or an
-  iPhone, and in Safari on an iPhone.** These can't give a page the whole screen, so
-  Full showed only the main camera, in iOS's own video player. It now puts the whole
-  commander over the app's window, over Home Assistant's header and sidebar. In Safari on
-  an iPhone, Safari's own bars stay.
-
-## 2026.11.14-b18
-
-- **Camera Commander card: a lock, a gate or a garage door takes two taps.** The first
-  tap on its button only gets it ready: the button turns amber and says "tap again". A
-  second tap works it, and a tap anywhere else, or six seconds without one, lets it be.
-- **Cameras page: each page control has Two taps.** It is ticked at first for a lock, a
-  valve, a siren, and a garage door, gate or door, and can be ticked for any other
-  control, such as a switch that opens a gate, or unticked.
-- **Cameras page: the help for Controls on a full screen** no longer speaks of a size
-  for the buttons or of their names giving way, which ended in b16.
-- **Camera Commander card: a tap on a control no longer sends a PTZ preset.** With the
-  presets or the zoom opened out beside the controls, a tap near the inner side of a
-  control (along the top or foot, the lower or upper quarter of it) went to the preset
-  or zoom button beside it. Since b17.
-- **Camera Commander card: in a kiosk app that zooms its pages, Full keeps the zoom.**
-  The browser's full screen dropped it, so the controls, the names and the tiles all
-  shrank when the commander went full screen. Where the page is zoomed, Full now fills
-  the kiosk's window, which already fills the screen.
-- **Camera Commander card: the picture is sharp in a kiosk app that zooms its pages.** It
-  was asked for at the screen's pixel ratio alone and stretched by the zoom. It is now
-  asked for at the zoomed size, and so is the live main camera's channel.
-
-## 2026.11.14-b17
-
-- **Camera Commander card: the controls keep the chip's size, font and shape, in their
-  own colours again.** They are white on a see-through black, and coloured while on, as
-  before b16, and each camera's **Background** setting on the Cameras page is back. One
-  set before b16 still applies.
-- **Camera Commander card: the controls are closer together,** 5 px apart instead of 10.
-- **Camera Commander card: the PTZ presets open out as they did before b16,** in one line
-  beside the bar. b16 split a long bar down a side into columns, which pushed the
-  presets further out.
-
-## 2026.11.14-b16
-
-- **Camera Commander card: the controls are the style guide's chips.** The buttons over
-  the main camera (Full, Sound, a camera's controls, PTZ, Zoom) are now the same chips
-  as everywhere else in Casa Mia: one fixed size on every device, in capitals, in Home
-  Assistant's font, and filled in the theme's colour while their entity is on. The sizes
-  worked out from the main camera's name in b8 to b15 are gone, as is each camera's
-  **Background** setting on the Cameras page; one saved before is no longer used.
-- **Camera Commander card: the controls always keep their names.** They no longer turn
-  into round icons where there is little room, as on a phone: a name is more to hit than
-  an icon. Only the PTZ presets give way, behind the PTZ button; a bar still too long
-  wraps.
-- **Camera Commander card: Full screen is called Full,** so it is not the longest name
-  in the bar. It is shown pressed while the commander has the screen.
-- **Camera Commander: the names are one size on every device.** The tiles' names are
-  11 px and the main camera's name 14 px, on a phone, a tablet and a computer alike.
-  **Tile name size** and **Main camera name size** are a % of those. The rules of b15,
-  which worked a size out from the tile, the main camera's place and whether the device
-  had a mouse, are gone: fitted to sizes set by hand, they came out close to one size.
-  The motion dot stays half the tiles' names.
-- **Camera Commander card: the tuning dialog no longer sets the controls' size,** as
-  they have none. It still sets the tiles' names, the main camera's name and the dot.
-
-## 2026.11.14-b15
-
-- **Camera Commander: the names, the controls and the motion dot are sized by new rules,
-  fitted to sizes set by hand.** The rules come from sizes the owner set with the
-  tuning dialog on a phone, two wall tablets and a Mac, in the page and full screen.
-  The main camera's name grows slowly with its place: about 12 px on a phone and 16 to
-  21 px on a wall tablet. With a mouse it is a little smaller and grows more slowly, 13
-  to 16 px. The tiles' names grow slowly with the smallest tile: about 11 px on a phone
-  or a small tablet, and 16 px on a large commander. Neither has a floor or a cap any
-  more: the old floors were too large on a phone, and a tablet reached the caps.
-- **Camera Commander: Tile name size is now a % of the size worked out for the screen,**
-  as Main camera name size is. 100% is the default, and a share set before is carried
-  across in step (11% becomes 100%).
-- **Camera Commander card: the controls are 1.5 times the main camera's name,** up from
-  1.4, as set by hand on the tablets.
-- **Camera Commander card: the motion dot is half the size of the tiles' names.** Its
-  own Size setting in the card's editor is gone, and a size set there before is no
-  longer used.
-- **Camera Commander card: the names in the picture are drawn at the card's sizes.** The
-  card now tells the app the sizes it works out. The app can't tell a mouse from a touch
-  screen, so it drew a computer's names at a touch screen's size.
-- **Camera Commander card: the first button of the controls is easier to hit.** The bar
-  now stands a button's height in from the frame at each end of its edge, and the end
-  buttons' tap areas reach across that room. On a wall tablet, Full screen sat so close
-  to the top of the frame that a tap meant for it pressed the button below.
-
-## 2026.11.14-b14
-
-- **Camera Commander card: the debug figures say that the controls follow the main
-  camera's name.** The controls are the main name's pill, so changing the main name's
-  size in the sizes dialog changes them too, until the controls' own size is set there.
-  The debug box gave a controls height worked from the rule's name, not the name in use,
-  so it was wrong once the name had been changed. It now says "controls follow the main
-  name" with the height in use, or the size set by hand and what following the name
-  would give. In the dialog, the controls show what following the name gives, and their
-  button is **Follow the main name**. A record has the sizes in use and whether the
-  controls were following the name.
-
-## 2026.11.14-b13
-
-- **Camera Commander card: the sizes dialog can be dragged, closed in Safari and folded
-  away.** A drag stopped after its first step on every browser, as the dialog forgot it
-  each time it was redrawn. In Safari the × didn't close it, because a press on the
-  title bar's buttons also began a drag. A new − at the top left folds the dialog down
-  to its title bar, so the tiles can be seen past it; + opens it again.
-- **Camera Commander card: the debug box folds away.** A − at its top left, beside EDIT
-  and RECORD, folds it down to its buttons, so the tiles can be seen on a phone while
-  sizes are set; + shows the figures again.
-
-## 2026.11.14-b12
-
-- **Camera Commander card: sizes can be tuned on a device, and recorded.** With a
-  commander's debug on, the card's box of figures has two buttons. **EDIT** opens a small
-  dialog that can be dragged about, where the tile names, the main camera's name, the
-  controls and the motion dot are each set in px and shown at once, on this device only,
-  until the page is refreshed. Each place the card can be (in the page, with the whole
-  screen, the main camera full screen) is set on its own. **RECORD** writes the device's
-  figures, the sizes the rules gave and the sizes set by hand to the Casa Mia log, under
-  a reference shown in the box. The commander's Track motion is off while the dialog is
-  open, and the box says so. The box now also says where the card is, and it is shown
-  on the main camera's full screen too.
-- **Camera Commander: the debug box drawn into the picture is gone.** Live video covered
-  it, so it came and went; the card's box has the figures. The dimming and the corner
-  marks stay.
-
-## 2026.11.14-b11
-
-- **Camera Commander card: the debug figures say the sizes in use.** With a commander's
-  debug on, the card's box also gives the main camera's place, its name's size and the
-  sum that gave it, the controls' height, the smallest tile, its name's size with the
-  share before its limits were applied, and the motion dot's size. The picture's own
-  debug box gives the two names' sizes as drawn.
-- **Camera Commander card: the motion dot's size is a share.** It was a size in pixels,
-  the same on every screen. It is now a % of the shorter side of the commander's
-  smallest tile (12% at first), with no least or most, and it sits in from its corner in
-  proportion. A size saved in pixels is converted (10 px becomes 12%).
-- **Camera Commander card: controls go down the right edge from the top by default,**
-  wide or tall. b10 put them along the top, at the right.
-
-## 2026.11.14-b10
-
-- **Camera Commander card: a camera's controls are the main camera's name pill.** They
-  no longer have a size of their own: the Size slider is gone from the Cameras page, and
-  a size saved there is ignored. Each button is the height, text size and font of the
-  main camera's name where it is shown, so a name and a button over a camera match. In
-  b9 a size set on a camera only showed on a wall tablet: a phone held the buttons at
-  32 px and showed icons only, and a Mac capped them at 34 px.
-- **Camera Commander: the main camera's name is sized for the device.** On a touch
-  screen it grows slowly with the main camera's place, by the square root of its
-  shorter side: 13 px over a phone's main camera, about 22 px on a wall tablet, never
-  over 30 px. On a computer with a mouse it is 15 px whatever the commander's size, as a
-  desktop app keeps its text one size. The numbers are fitted to a phone, two wall
-  tablets and two commanders on a Mac. **Main camera name size** on the Camera
-  Commander page is now a % of that size, 100% at first; a commander set larger or
-  smaller than the default before is still larger or smaller by as much. When the main
-  camera isn't playing live, the name drawn into the picture uses the touch screen
-  size, because the app can't tell which device it is drawing for.
-- **Camera Commander card: controls go at the top right by default,** wide or tall. A
-  camera with its own edge set keeps it.
-
-## 2026.11.14-b9
-
-- **Camera Commander card: the controls' size is a height in pixels again, which bends
-  to the place.** In b8 it was a plain share of the place, which made the buttons tiny
-  over a phone's main camera and very large on a desktop. The size set on the Cameras
-  page (32 to 72 px, 44 at first) is now the height where there is room: a place whose
-  shorter side is 600 px or more. In a smaller place the buttons shrink in proportion,
-  but never under 32 px; what then doesn't fit gives way as before (the presets behind
-  PTZ, then icons in place of names). They are never larger than the size set, and with
-  a mouse never over 34 px. A size saved in b8 as a share is read as the height it gave
-  on a tablet (5% is 40 px).
-- **Camera Commander: the cameras' names can be read on a phone.** A name's size is still
-  a share of its tile or of the main camera's place, but a tile's name is never under
-  11 px or over 22 px, and the main camera's never under 13 px or over 30 px. In b8 the
-  limits were 7 px and 72 px.
-- **Camera Commander card: a tap that misses a control no longer opens the camera full
-  screen.** The area the buttons stand in, with the gaps between them and a little room
-  round them, takes the tap and does nothing.
-- **Camera Commander card: a tap anywhere on the camera puts the PTZ presets away** while
-  they are opened out. That tap does nothing else.
-- **Camera Commander card: a camera with a zoom has a Zoom button.** It stands with the
-  camera's controls and shows the zoom's level. A tap opens a line beside the bar, as the
-  PTZ button does: **Out**, the level, **In**, and **Reset**, which zooms all the way
-  out. A step is a tenth of the zoom's range. The level shown is the camera's own, so it
-  is right after a PTZ preset has moved the lens too; a level asked for and not yet
-  reached is shown as on its way ("40% → 60%"). A zoom that Home Assistant can't find or
-  that is unavailable has a dimmed button that says so, and a refusal is shown with the
-  controls for ten seconds. Only one line is open at a time, and a tap elsewhere on the
-  camera puts it away.
-
-## 2026.11.14-b8
-
+  2026.11.3.** Each warned in the log on every Home Assistant but 2026.11.0; now it
+  warns only outside 2026.11.0 to 2026.11.3.
 - **Jukebox: a replaced or cleared queue can be put back.** Playing something in place
-  of the queue, or clearing it, now happens without a question, and the player offers to
-  put the queue back for 15 seconds, whatever else it says in that time. It comes back
-  with the same songs, at the song and the place it had reached. Before replacing or
-  clearing, the speaker keeps a copy of the queue as a playlist called "Jukebox undo
-  copy", which Jukebox doesn't list and deletes after two minutes. If the copy can't be
-  made, the queue is left as it is and the reason is shown. If the replacing fails
-  part-way, the queue is put back at once; if that fails too, the player goes on
-  offering it. The phone player puts its own queue back too, with the station if one
-  was on.
-- **Jukebox: a station's song gets its cover when Spotify lists karaoke versions of it
-  first.** A song by "Calvin Harris feat. Rihanna" had no cover: asked for the station's
-  words as they were, Spotify sent ten karaoke and tribute versions and not the song
-  itself. Each song is now looked for with three searches at once: its title and first
-  artist through Spotify's own title and artist filters, the same with the two names
-  the other way round, and the plain words without "feat." or a title's bracketed
-  words. The cover is chosen from everything the three find. When a station's title
-  has words in brackets, such as "(Radio Edit)", the song itself is now chosen before
-  a remix of it. When no song is accepted, the log lists the songs Spotify sent.
-- **Jukebox: red is kept for what can't be got back.** Deleting a playlist, saving the
-  queue over one and taking out repeated songs still ask in red. Stopping the music asks
-  in amber, since the queue and the rooms have to be put together again by hand. The End
-  the party button is no longer red, and adding a song to a playlist that has it already
-  is asked as a plain question.
-- **Camera Commander card: a camera's PTZ presets are with its controls.** They are
-  shown wherever the camera's controls are: on its full screen, and over the main camera
-  when the card's "controls over the main camera" option is on. A camera with up to three
-  presets has a button for each. A camera with more has one PTZ button, which opens the
-  presets out as a second line beside the bar, on the picture's side of it: under a bar
-  at the top, to the left of a bar on the right. A tap on a preset moves the camera, and
-  if Home Assistant refuses, the reason is shown with the controls for ten seconds. The
-  Cameras page's previews show the presets too, and a camera with presets and no controls
-  can now set where they go.
-- **Camera Commander card: the controls are in the style guide's chip proportions.** The
-  text was small for the height of the button, which left about twice the guide's space
-  above and below it. The text, the space at each end and the icon are now in the guide's
-  proportions at whatever size is set, in capitals as the guide's chips are.
-- **Camera Commander card: the controls are sized for where they are shown.** A camera's
-  Size was a height in pixels, so the buttons were large over a small main camera and
-  small on a large screen. It is now a share of the shorter side of the place they are
-  in (the main camera's area, or the whole screen), from 3% to 12%, never under 10 px or
-  over 96 px. A size already saved is read as the share it was of a 1280 x 800 tablet's
-  full screen (40 px is 5%), so it looks the same there. A button drawn small can still
-  be tapped over an area 44 px across.
-- **Camera Commander card: controls that don't fit give way in order.** They no longer
-  wrap onto a second row or run off the end. First the PTZ presets go behind the PTZ
-  button, then the names go and the buttons are round icons (each still named to a
-  screen reader and on hover). The Cameras page's previews show what a tablet would get.
-- **Camera Commander: the cameras' names are sized for their tiles.** The two name sizes
-  were heights in pixels, so names crowded small tiles. A tile's name is now a share of
-  the shorter side of the commander's smallest tile, so every tile's name is the same
-  size, and the main camera's name and clock are a share of the main camera's place.
-  Neither is under 7 px or over 72 px. Sizes already saved are converted (16 px becomes
-  11%, 20 px becomes 4%), so a tablet looks as it did. The name's bar and the space
-  around it scale with it.
-- **Camera Commander: a name too long for its tile is cut short with "…".** It was drawn
-  over the next tile. The main camera's name stops short of the clock.
-- **Cameras page: the controls' positions no longer go back to Top.** A click on a
-  preview, on a caption or on an entity in a control's list was passed on to the first
-  button of the section, which is Top for a wide screen. The two sections that hold
-  several controls no longer pass clicks on.
-- **Cameras page: an entity's list closes when one is chosen with the mouse.** The same
-  passed-on click opened a list again after a choice.
-- **Camera Commander: a camera chosen as the main camera doesn't start with an old
-  picture.** The larger channels are fetched only while a picture uses them, so the one
-  kept from the last time the camera was the main camera could be hours old, and it was
-  drawn first. A picture older than the commander's "stale after" time now gives way to
-  the camera's newest, which is its tile's, until the channel's own arrives.
-- **Camera compositor page: a camera's channels are listed low, medium, high** when the
-  cache is sorted by name. They were in alphabetical order: high, low, medium.
-- **Camera Commander, Responsive layout: fewer empty spaces in a space taller than the
-  cameras' shape.** Tiles shortened to the most they may be cropped made a main camera's
-  place a fraction of a per cent over that limit, and every such layout was thrown away.
-  The main camera's place is allowed half a per cent more. In 11 of 275 spaces tried the
-  tiles are larger and less of the space is empty (4 cameras in 768 x 1024: 5% empty,
-  where it was 22%).
-
-## 2026.11.14-b7
-
-- **Jukebox: a new playlist can be started from a song.** Where you choose a playlist
-  for a song from the radio, or for one moved or copied from another playlist, there is
-  now a box to name a new one. It is made empty and the song is put in it. A name that a
-  playlist already has is refused.
-- **Jukebox: a song isn't put in a playlist twice without asking.** If the playlist you
-  choose has the song already, Jukebox says so and asks before adding, moving or copying
-  it there.
-- **Jukebox: a song from the radio that Spotify didn't answer for can still be added.**
-  That failure was kept until the app restarted. Pressing **Add to a playlist** now
-  looks for the song again, and the button works once it is found.
-
-## 2026.11.14-b6
-
-- Jukebox: nothing you can see. The big player's styles moved to a file of their own,
-  as the player's file was close to its size limit.
-
-## 2026.11.14-b5
-
-- Jukebox: nothing you can see. The code behind the page's requests was one file close
-  to its size limit, and is now four smaller ones. In the log its lines are now named
-  `casa_mia_jukebox.feed.asks` and `casa_mia_jukebox.feed.model`.
-
-## 2026.11.14-b4
-
+  of the queue, or clearing it, no longer asks first, and the player offers to put the
+  queue back for 15 seconds, with the same songs, at the song and the place it had
+  reached. Before replacing or clearing, the speaker keeps a copy as a playlist called
+  "Jukebox undo copy", which Jukebox doesn't list and deletes after two minutes. If the
+  copy can't be made, the queue is left as it is and the reason is shown. The phone
+  player puts its own queue back too.
 - **Jukebox: a song on the radio can be added to a playlist.** **Add to a playlist**
   under the song's title lists the Sonos playlists, with the one last chosen on that
-  screen first. The song added is the one found on Spotify for its cover, so the cover
-  shows what will be added. A song that hasn't been found says why when the button is
-  pressed (the station didn't name an artist and a title, Spotify has no match, or
-  Spotify isn't set up).
-- **Jukebox: a song can be moved or copied from one playlist to another.** Tap a song
-  while looking at a playlist, or choose it in the editor, then press **Move to another
-  playlist…** or **Copy to another playlist…**. It goes at the end of the other
-  playlist. A moved song is then taken out of this one, so a failure between the two
-  leaves it in both rather than in neither, and Jukebox says that it is in both. If the
-  playlist was changed by someone else meanwhile and another song is in that place,
-  nothing is changed and you are told.
-- **Jukebox: a playlist's tile shows its songs as they are now.** The tile's covers were
-  made when the favourites were first fetched, and stayed as they were after songs were
-  added, moved, taken out or sorted. They are now fetched again once the playlist is
-  closed.
-
-## 2026.11.14-b3
-
-- Jukebox: nothing you can see. The code that asks a speaker directly was one file close
-  to its size limit, and is now four smaller ones.
-
-## 2026.11.14-b2
-
-- **Jukebox: an announcement's words are made before anything plays.** Until now the
-  speaker fetched them only after the chime, while the music was already dipped, and
-  waited for the speech engine there. They are now made once for all the rooms as soon
-  as the action is called, and the chime starts when they are ready. An engine that
-  can't say them is each room's result, with the reason, and nothing is played.
-
-## 2026.11.14-b1
-
+  screen first. The song added is the one found on Spotify for its cover. A song that
+  hasn't been found is looked for again when the button is pressed, and says why if it
+  still can't be added.
+- **Jukebox: a song can be moved or copied to another playlist.** Tap a song in a
+  playlist, or choose it in the editor, then **Move to another playlist…** or **Copy to
+  another playlist…**. A moved song is taken out of the first playlist only once it is
+  in the other, and Jukebox says if it is left in both. Jukebox asks before putting a
+  song in a playlist that has it already.
+- **Jukebox: a new playlist can be started from a song,** wherever you choose a
+  playlist for a song from the radio or for one moved or copied from another playlist.
+- **Jukebox: a playlist's tile shows its songs as they are now,** after songs were
+  added, moved, taken out or sorted.
+- **Jukebox: more songs on the radio get their cover.** A song is no longer missed when
+  Spotify lists karaoke and tribute versions of it first: each song is looked for with
+  three searches at once, by its title and artist, by the two the other way round, and
+  by the plain words without "feat." or a title's bracketed words. A name spelt with an
+  accent or a hyphen by one of them and not the other no longer stops a song being
+  found. A title with "(Radio Edit)" chooses the song before a remix of it. When no song
+  is accepted, the log lists the songs Spotify sent.
 - **Jukebox: announcements can have a voice of their own.** After the Configure dialog,
-  Jukebox now asks for the speech engine's language and then one of its voices for that
-  language. Left empty, the engine's own default is used, as before, which Assist uses
-  too. An announcement whose voice the engine no longer has is refused with the reason,
-  and nothing is played. The dialog's **Voice** is now called **Speech engine**.
-- **Jukebox: more songs on the radio get their cover.** A name Spotify spells with an
-  accent the station leaves off, and a word one of them hyphenates and the other
-  doesn't, no longer stop the song being found.
+  Jukebox asks for the speech engine's language and then one of its voices; left empty,
+  the engine's default is used, as before. The dialog's **Voice** is now called
+  **Speech engine**. An announcement's words are made once, before anything plays, so
+  the music is no longer dipped while the speech engine works, and an engine that can't
+  say them is each room's result, with nothing played.
+- **Jukebox: red is kept for what can't be got back.** Deleting a playlist, saving the
+  queue over one and taking out repeated songs ask in red. Stopping the music asks in
+  amber, and ending the party is no longer red.
 
 ## 2026.11.13
 
