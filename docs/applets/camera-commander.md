@@ -723,6 +723,12 @@ duplex: full     # or half; only for button: answer
   `adb install -r`. Otherwise set the camera to H.264 (in UniFi Protect,
   the camera's encoding setting: Standard is H.264, Enhanced is H.265), or leave it: the
   drawn picture is the same camera.
+- **A tablet plays the medium channel (M) on full screen, not the high one:** the tablet
+  says it can't decode the high channel smoothly, so the card doesn't try it. Many
+  tablets decode H.265 only up to 2560 x 1440, and a 4K or 2688 x 1512 high channel is
+  larger. Trying it anyway never showed a frame there, and stopped the channel already
+  on screen too. The browser's console has a `casa-mia:` line for each size it rules
+  out.
 
 - **Taps on the commander do nothing:** the page says so when Home Assistant has no Main
   camera select for it yet: add the Casa Mia Camera Commander integration (see "In Home

@@ -70,7 +70,7 @@ def test_save_shows_the_commanders_live_at_once(tmp_path):
         aspect=lambda e: {"camera.a_low": 1.3333}.get(e),
         reload=lambda: reloads.append(1),
         health=lambda: {"state": "running"},
-        gather=types.SimpleNamespace(flags={"live_main": False}),
+        gather=types.SimpleNamespace(flags={"live_main": False}, channel_changes=0),
         cfg=Config(),
         port=8099,
     )
@@ -253,8 +253,12 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
         assert card["cameras"]["camera.b"] == {
             "title": "Tablet",
             "live": "/dashboard-cams/cam-tablet",
-            "channels": [["camera.b", 0, 0]],  # each channel, its size not known yet
+            "channels": [["camera.b", 0, 0, ""]],  # size and codec not known yet
         }
+        live.gather.res["camera.b"] = (1280, 720)
+        live.gather.codecs["camera.b"] = "hevc"
+        again = cmd.health()["commanders"][1]["card"]["cameras"]["camera.b"]
+        assert again["channels"] == [["camera.b", 1280, 720, "hevc"]]  # once read
         # a camera's controls and their edges, for the card's full screen
         bay = card["cameras"]["camera.a_low"]
         assert bay["controls"] == [{"entity": "button.gate"}]
@@ -313,6 +317,24 @@ def test_a_change_to_live_main_tells_the_integration_at_once(tmp_path, monkeypat
     assert cmd.check_live_main() and len(fired) == 2
 
 
+def test_a_channel_newly_read_tells_the_integration_at_once(tmp_path, monkeypatch):
+    from casa_mia.modules import guest_login
+
+    fired: list[str] = []
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "t")
+    monkeypatch.setattr(
+        guest_login, "fire_event", lambda t, name, d: fired.append(name)
+    )
+    live = types.SimpleNamespace(gather=types.SimpleNamespace(channel_changes=3))
+    cams = Cameras(tmp_path, None)
+    cmd = Commander(tmp_path, None, cams, lambda: "10.0.0.2", live=live)  # type: ignore[arg-type]
+    assert cmd.check_channels() and not fired  # the first look: nothing to tell
+    assert not cmd.check_channels()
+    live.gather.channel_changes += 1  # a codec read (cache.py: note_codec)
+    assert cmd.check_channels() and fired == ["casa_mia_settings_changed"]
+    assert not cmd.check_channels() and len(fired) == 1
+
+
 def test_cameras_left_out_of_track_motion_reach_the_integration(tmp_path):
     live = types.SimpleNamespace(
         aspect=lambda e: None,
@@ -320,7 +342,9 @@ def test_cameras_left_out_of_track_motion_reach_the_integration(tmp_path):
         health=lambda: {"state": "running"},
         cfg=Config(),
         port=8099,
-        gather=types.SimpleNamespace(flags={"live_main": False}, res={}),
+        gather=types.SimpleNamespace(
+            flags={"live_main": False}, res={}, codecs={}, channel_changes=0
+        ),
         main_camera=lambda c: None,
     )
     cmd = make(tmp_path, live=live)  # type: ignore[arg-type]

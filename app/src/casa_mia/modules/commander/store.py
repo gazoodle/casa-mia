@@ -56,6 +56,7 @@ class Base:
         self._error: str | None = None
         self._mains: dict[str, str] = {}  # commander id -> main camera, as chosen
         self._live_was: bool | None = None  # live_main as last looked
+        self._changes_was: int | None = None  # the channels' sizes and codecs, likewise
         self.store: dict[str, Any] = copy.deepcopy(DEFAULTS)
 
     @property

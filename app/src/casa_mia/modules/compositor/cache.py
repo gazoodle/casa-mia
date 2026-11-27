@@ -68,10 +68,15 @@ class Cache:
         # The pictures, never emptied: channel (a camera entity) -> (when, picture), each
         # at the channel's own size (or "(Waiting …)", the channels in _waiting); each
         # channel's size, kept across restarts (the channels whose size is their
-        # stream's in _streamed); and how long its last snapshot took (s).
+        # stream's in _streamed), with its stream's codec once read (FFmpeg's name, for
+        # the cards: commander/live.py); and how long its last snapshot took (s).
         self.shots: dict[str, tuple[float, Picture]] = {}
         self._waiting: set[str] = set()
         self.res: dict[str, tuple[int, int]] = {}
+        self.codecs: dict[str, str] = {}
+        # Counts each change to a size or codec: the cards' data changes with it, so the
+        # commander tells the integration at once (commander/live.py: check_channels).
+        self.channel_changes = 0
         self._streamed: set[str] = set()
         self._took: dict[str, float] = {}
         # The paces (seconds between): the gatherer's and each generator's (see PACES),
@@ -262,6 +267,20 @@ class Cache:
                     self.shots[entity] = (now, waiting_picture(round(shape, 2)))
                     self._waiting.add(entity)
 
+    def note_codec(self, entity: str, codec: str) -> None:
+        """A channel's stream's codec, as read: logged and kept when first known or
+        changed (a camera switched between H.264 and H.265)."""
+        if not codec or self.codecs.get(entity) == codec:
+            return
+        self.codecs[entity] = codec
+        _LOGGER.info(
+            "compositor (cameras): %s, %s channel: its stream is %s",
+            self._title(entity),
+            self._channel(entity)[1],
+            codec,
+        )
+        self._save_sizes()
+
     def _load_sizes(self) -> None:
         """The channels' sizes kept by an earlier run."""
         if not self.sizes_path:
@@ -278,11 +297,14 @@ class Cache:
                 continue
             if source == "stream":
                 self._streamed.add(entity)
+            if codec := one.get("codec"):
+                self.codecs[entity] = str(codec)
         _LOGGER.info(
             "compositor (cameras): %d channels' sizes known from before", len(self.res)
         )
 
     def _save_sizes(self) -> None:
+        self.channel_changes += 1
         if not self.sizes_path:
             return
         out = {
@@ -290,6 +312,7 @@ class Cache:
                 "size": list(size),
                 "from": "stream" if e in self._streamed else "still",
             }
+            | ({"codec": self.codecs[e]} if e in self.codecs else {})
             for e, size in sorted(self.res.items())
         }
         try:

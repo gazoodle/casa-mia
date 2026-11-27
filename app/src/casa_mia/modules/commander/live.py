@@ -75,8 +75,9 @@ class Live(Base):
         select's `card` attribute): the layout (it lays it out with the same engine, so
         its taps line up), its picture's address, the main camera at start, and each
         camera's title (its select's option) and live page on the dashboard, its
-        channels, smallest first, each with its size where known (the card plays its
-        main camera's as live video, when the compositor's live_main switch is on), and
+        channels, smallest first, each with its size and its stream's codec where known
+        (the card plays its main camera's as live video, when the compositor's
+        live_main switch is on, leaving out those its device says it can't decode), and
         its controls and PTZ presets with their edges, where it has them (the card's
         full screen)."""
         try:
@@ -95,6 +96,7 @@ class Live(Base):
             for e, cam in full["cameras"].items()
         }
         sizes = comp.gather.res if comp else {}
+        codecs = comp.gather.codecs if comp else {}
         keys = (
             "width",
             "height",
@@ -124,7 +126,7 @@ class Live(Base):
                     if url_path
                     else "",
                     "channels": [
-                        [c, *sizes[c]] if c in sizes else [c, 0, 0]
+                        [c, *sizes.get(c, (0, 0)), codecs.get(c, "")]
                         for c in channels(cfg, e).values()
                     ],
                     **own.get(e, {}),
@@ -151,21 +153,38 @@ class Live(Base):
         if now == self._live_was:
             return False
         if self._live_was is not None:
-            _LOGGER.info(
-                "commander: live main camera now %s%s; telling the integration",
-                "on" if now else "off",
-                " (the screenshot swap is on)" if swap.stamp() else "",
+            self._tell(
+                f"live main camera now {'on' if now else 'off'}"
+                + (" (the screenshot swap is on)" if swap.stamp() else "")
             )
-            if token := os.environ.get("SUPERVISOR_TOKEN"):
-                from ..guest_login import fire_event
-
-                fire_event(token, CHANGED_EVENT, {})
         self._live_was = now
         return True
+
+    def check_channels(self) -> bool:
+        """Whether a channel's size or codec has been newly read since last looked
+        (compositor.cache: channel_changes): if so the integration is told now, as for
+        live_main, so a card stops trying a channel its device can't play at once and
+        not at its next poll (30 s)."""
+        now = self.live.gather.channel_changes if self.live else 0
+        if now == self._changes_was:
+            return False
+        if self._changes_was is not None:
+            self._tell("a channel's size or codec newly read")
+        self._changes_was = now
+        return True
+
+    def _tell(self, what: str) -> None:
+        """Tell the integration to ask for the commanders again now (CHANGED_EVENT)."""
+        _LOGGER.info("commander: %s; telling the integration", what)
+        if token := os.environ.get("SUPERVISOR_TOKEN"):
+            from ..guest_login import fire_event
+
+            fire_event(token, CHANGED_EVENT, {})
 
     def _watch_live_main(self) -> None:
         while True:
             self.check_live_main()
+            self.check_channels()
             time.sleep(1)
 
     def commander(self) -> dict[str, Any]:

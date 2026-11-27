@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.11.14-b36
+
+- **Camera Commander card: a device no longer tries a channel it says it can't play.**
+  The card asks the browser whether it can decode each channel's codec at its size, and
+  leaves out any channel it can't decode smoothly. Many wall tablets decode H.265 only
+  up to 2560 x 1440, so a 4K or 2688 x 1512 high channel never showed a frame there, and
+  trying it also stopped the channel already on screen: a full screen showing M fell to
+  L before coming back to M. Those tablets now play M on full screen from the start; a
+  device that can decode the high channel still gets it.
+- **The compositor reads each channel's codec along with its size,** keeps it across
+  restarts, and passes it to the cards. A size or codec newly read reaches the cards at
+  once.
+
 ## 2026.11.14-b35
 
 - **Camera Commander card: the latest detection's chip names the right one after a

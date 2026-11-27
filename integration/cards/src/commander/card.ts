@@ -44,11 +44,15 @@ export class CommanderCard extends CommanderTalk {
   private armGone = 0;
   /** The cards in the commander's last place (this card's `cards`), kept between redraws. */
   private place = new PlaceCards(() => this.requestUpdate());
-  /** The closer look at the camera's full screen (closer.ts). */
+  /** The closer look at the camera's full screen (closer.ts), as close as the largest
+   * channel this device plays allows (live.ts: channelsHere). */
   private closer = new Closer(
     () => this.requestUpdate(),
     () => this.renderRoot.querySelector<HTMLElement>(".closer"),
-    (box) => closerLimits(this.now().card?.cameras[this._full]?.channels ?? [], box, screenRatio()),
+    (box) => {
+      const card = this.now().card;
+      return closerLimits(card ? this.channelsHere(card, this._full) : [], box, screenRatio());
+    },
   );
 
   constructor() {

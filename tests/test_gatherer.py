@@ -69,8 +69,13 @@ def test_sizes_are_kept_across_restarts(tmp_path):
     g = gatherer(tmp_path, sizes_path=sizes)
     g.keep("camera.a", Image.new("RGB", (2688, 1512)), streamed=True)
     g.keep("camera.b", jpeg((640, 360)))
+    seen = g.channel_changes
+    g.note_codec("camera.a", "hevc")  # its stream's, as read
+    g.note_codec("camera.a", "hevc")  # the same again: nothing new
+    assert g.channel_changes == seen + 1  # for the cards (commander/live.py)
     again = gatherer(tmp_path, sizes_path=sizes)
     assert again.res == {"camera.a": (2688, 1512), "camera.b": (640, 360)}
+    assert again.codecs == {"camera.a": "hevc"}  # a still has none
     assert again._streamed == {"camera.a"}  # a stream's size: no need to read it again
     assert again.aspect("camera.a") == round(2688 / 1512, 4)
     assert json.loads(sizes.read_text())["camera.b"] == {

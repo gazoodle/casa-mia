@@ -4,10 +4,11 @@
 // else the drawn picture, with a failed channel tried again later. Every "live" here is a
 // lease (RULE FIVE), and every loss is said on the card and in Home Assistant's log.
 import { html, nothing } from "lit";
+import type { Channel } from "../ha.ts";
 import { type Rect } from "../layout.ts";
 import { labelsOf } from "../labels.ts";
 import { playHLS, playWebRTC } from "../../../../app/web/src/webrtc.ts";
-import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, channelTier, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus } from "./common.ts";
+import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, channelTier, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus, playable } from "./common.ts";
 import { CommanderBase } from "./base.ts";
 import { type CaptionPress, detectionChips, latest, latestChip, pressable } from "./detect.ts";
 import { FOLDERS, type Shelf, shelfOf, whenSaid } from "./clips.ts";
@@ -35,6 +36,29 @@ function plays(): string {
 export const LIVE_BY = liveBy();
 if (LIVE_BY !== "webrtc")
   console.info(`casa-mia: this device has no WebRTC, so ${LIVE_BY ? "live main cameras play as HLS, some seconds behind" : "main cameras are drawn, not live"}, and Talk is not offered`);
+
+/** What this device says of decoding a codec at a size over WebRTC (MediaCapabilities):
+ * true when smoothly, false when not, undefined while asked or when it can't answer.
+ * Asked once for the page per codec and size: the answer is the device's own. */
+const DECODES = new Map<string, boolean | undefined>();
+const MIME: Record<string, string> = { hevc: "video/H265", h264: "video/H264", av1: "video/AV1", vp9: "video/VP9", vp8: "video/VP8" };
+function decodes([, w, h, codec]: Channel, answered: () => void): boolean | undefined {
+  const mime = MIME[codec ?? ""];
+  if (LIVE_BY !== "webrtc" || !mime || !w || !h || !navigator.mediaCapabilities) return undefined;
+  const key = `${mime.slice(6)} at ${w} x ${h}`;
+  if (!DECODES.has(key)) {
+    DECODES.set(key, undefined);
+    navigator.mediaCapabilities.decodingInfo({ type: "webrtc", video: { contentType: mime, width: w, height: h, bitrate: 4_000_000, framerate: 30 } }).then(
+      ({ supported, smooth }) => {
+        DECODES.set(key, supported && smooth);
+        if (!(supported && smooth)) console.info(`casa-mia: this device says it can't decode ${key} ${supported ? "smoothly " : ""}over WebRTC, so its channels that size aren't tried`);
+        answered();
+      },
+      (err) => console.info(`casa-mia: this device can't say whether it decodes ${key} (${err?.message ?? err}); its channels that size are tried`),
+    );
+  }
+  return DECODES.get(key);
+}
 
 export class CommanderLive extends CommanderBase {
   // liveOn is state: Talk is offered while the main camera is wanted live (talk.ts).
@@ -97,11 +121,17 @@ export class CommanderLive extends CommanderBase {
     return Boolean(LIVE_BY && card.live_main && this._config?.live_main !== false && this.hass?.connection && this._shown && !this.editing());
   }
 
+  /** A camera's channels this device is to try: those it says it can decode (common.ts:
+   * playable). The card is redrawn when it answers, so a channel ruled out goes at once. */
+  protected channelsHere(card: Card, camera: string): Channel[] {
+    return playable(card.cameras[camera]?.channels ?? [[camera, 0, 0]], (channel) => decodes(channel, () => this.requestUpdate()));
+  }
+
   /** What the main area shows now (common.ts: liveOrder, livePlan), for its place, which
    * is laid out in the picture's device pixels (as asked for; fewer away from home).
    * `whole`: the main camera is shown whole in its place, not cropped or stretched to it. */
   protected liveNow(card: Card, main: string, area: Rect, whole: boolean): LiveNow {
-    const order = liveOrder(card.cameras[main]?.channels ?? [[main, 0, 0]], [area[2], area[3]], whole);
+    const order = liveOrder(this.channelsHere(card, main), [area[2], area[3]], whole);
     const now = Date.now();
     const live = (channel: string) => {
       const s = this.sessions.get(channel);

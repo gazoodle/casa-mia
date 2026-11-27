@@ -307,14 +307,19 @@ export function pageZoom(
  * by the zoom, and soft. */
 export const screenRatio = (): number => (window.devicePixelRatio || 1) * pageZoom();
 
+/** One of a camera's channels, as the app sends it (commander/live.py): its entity, its
+ * size (0 x 0 not known), and its stream's codec, FFmpeg's name ("hevc", "h264"), once
+ * the app has read it. */
+export type Channel = [entity: string, width: number, height: number, codec?: string];
+
 /** The channel a live main camera plays (the compositor's ladder, compositor.choose):
  * going up its channels, smallest first ([entity, width, height]; 0 x 0 not known), the
  * first at least the place's size (device pixels), so the video is only made smaller;
  * none: the largest known; none known: the last. `whole`: fitted inside the place (one
  * side reaching it is enough), else filling it (both). */
-export function liveChannel(channels: [string, number, number][], place: [number, number], whole: boolean): string | undefined {
+export function liveChannel(channels: Channel[], place: [number, number], whole: boolean): string | undefined {
   const known = channels.filter(([, w, h]) => w > 0 && h > 0);
-  const enough = ([, w, h]: [string, number, number]) => (whole ? w >= place[0] || h >= place[1] : w >= place[0] && h >= place[1]);
+  const enough = ([, w, h]: Channel) => (whole ? w >= place[0] || h >= place[1] : w >= place[0] && h >= place[1]);
   return (known.find(enough) ?? known[known.length - 1] ?? channels[channels.length - 1])?.[0];
 }
 

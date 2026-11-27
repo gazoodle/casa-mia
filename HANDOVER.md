@@ -1971,6 +1971,25 @@ CLAUDE.md has them all. What trips agents here:
     tablet it stopped and stayed stopped because Settings was in front.
   - **The tablets have no Play Store**, so WebView never updates by itself (BACKLOG).
     Rollback for one tablet: `adb uninstall com.google.android.webview` (back to 131).
+  - **The model names above are doubtful** (checked 2026-11-27): the Android 15 tablets
+    report `TB305FU`, "Lenovo Tab One", MediaTek MT8786 (`mt6768`); `TB310FU` is the Tab
+    M9's number, so the Android 13 three are probably Tab M9s. Read `getprop
+    ro.product.model` and `ro.soc.model` before relying on either.
+  - **Their size limit** (2026-11-27, b36): the MT8786's H.265 decoder
+    (`c2.mtk.hevc.decoder`, `/vendor/etc/media_codecs_c2.xml`) takes at most 2560 x 1440
+    (performance point 1080p30), and WebView has no software H.265, so every 4K and
+    2688 x 1512 high channel ends "no video arrived"; only the doorbells' 1600 x 1200
+    plays. Trying one also stalled the channel already on screen (the box's log, three
+    times in the same second), which is why b31's full screen fell from M to L; a
+    1600 x 1200 high beside its medium did not. WebView knows its limit:
+    `navigator.mediaCapabilities.decodingInfo({type: "webrtc"})` says "not supported"
+    for exactly those sizes, so the card asks it (`common.ts: playable`), with each
+    channel's codec read by the app's survey (`streams.first_frame`, kept with the
+    sizes; a size or codec newly read is pushed, `commander/live.py: check_channels`;
+    before it, sizes waited for the 30 s health poll). The stall itself was not seen in logcat: the video driver logs every frame,
+    so a tablet's log buffer holds about 20 s. Kiosk Satellite's Remote API: `POST
+    /api/login {password}` gives a bearer token, then `POST /api/commands/evalJs
+    {code}` (port 2324 over `adb forward`).
   - **Not fixed:** the Cameras live view (`LiveView.tsx`) now names an unplayable format,
     but has no timeout and no MJPEG fallback.
   - **Open:** whether a stalled WebRTC stream can fool the lease (`requestVideoFrameCallback`

@@ -3,7 +3,8 @@
 // can stay in, and no failure that stops the tries for good.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, channelTier, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus, pictureDown } from "./common.ts";
+import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, channelTier, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, liveStatus, pictureDown, playable } from "./common.ts";
+import type { Channel } from "../ha.ts";
 
 const now = 10_000_000;
 
@@ -41,6 +42,15 @@ test("a failed channel's mark lapses, later for each failure in a row, up to the
 });
 
 const channels: [string, number, number][] = [["low", 640, 360], ["medium", 1280, 720], ["high", 2560, 1440]];
+
+test("a device tries only the channels it says it can decode, and all when it would try none", () => {
+  const camera: Channel[] = [["low", 640, 360, "hevc"], ["medium", 1280, 720, "hevc"], ["high", 3840, 2160, "hevc"]];
+  const tablet = ([, w]: Channel) => w <= 2560; // its H.265 decoder's largest
+  assert.deepEqual(playable(camera, tablet).map(([c]) => c), ["low", "medium"]);
+  assert.deepEqual(playable(camera, () => undefined), camera); // not answered yet: as before
+  assert.deepEqual(playable(camera, ([c]) => (c === "high" ? undefined : false)).map(([c]) => c), ["high"]);
+  assert.deepEqual(playable(camera, () => false), camera); // none: the ladder tries and says why
+});
 
 test("the order to try channels: the one that fits, then down the sizes, then up", () => {
   assert.deepEqual(liveOrder(channels, [1200, 600], false), ["medium", "low", "high"]);

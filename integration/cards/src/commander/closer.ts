@@ -4,6 +4,7 @@
 // by the browser, not the camera's lens, which is "zoom" in the commander (full.ts).
 // docs/design/commander-zoom.md has the decisions.
 import { html, nothing } from "lit";
+import type { Channel } from "../ha.ts";
 import { STEP, WHOLE, grip, zoomed, type View } from "../zoom.ts";
 
 /** How long an enlarged picture stays so after the last touch: a lease (decided 1). */
@@ -16,7 +17,7 @@ const SLOP = 8;
 /** For a camera's channels shown whole in `box` (CSS px) on a screen of `ratio` device
  * pixels to one: the most it can be enlarged, and the picture's size in the box at 1.
  * With no channel's size known: MOST_PX times, and the picture taken to fill the box. */
-export function closerLimits(channels: [string, number, number][], box: [number, number], ratio: number): { most: number; pic: [number, number] } {
+export function closerLimits(channels: Channel[], box: [number, number], ratio: number): { most: number; pic: [number, number] } {
   const [, vw, vh] = channels.reduce((a, b) => (b[1] > a[1] ? b : a), ["", 0, 0]);
   if (!vw || !vh) return { most: MOST_PX, pic: box };
   const k = Math.min(box[0] / vw, box[1] / vh); // CSS px to a video pixel, shown whole
