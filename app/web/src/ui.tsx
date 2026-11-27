@@ -106,13 +106,19 @@ function primaryButton(dialog: HTMLDialogElement): HTMLButtonElement | undefined
   return [...dialog.querySelectorAll<HTMLButtonElement>(`:scope > form > footer .${primary}`)].at(-1);
 }
 
-export function Field({ label, help, children }: { label: string; help?: ReactNode; children: ReactNode }) {
+/** A labelled field. `group`: it holds several controls, so it is not a <label>. A label
+ * passes a click on anything inside it that is not a control (a picture, a caption, a
+ * menu's choice) to its first control: in the Cameras page's "Controls on a full screen"
+ * that was the Top button, so a click on a preview moved the controls to the top
+ * (2026.11.14-b8). A group has no first control to click. */
+export function Field({ label, help, group, children }: { label: string; help?: ReactNode; group?: boolean; children: ReactNode }) {
+  const Tag = group ? "div" : "label";
   return (
-    <label className={css.field}>
+    <Tag className={css.field} role={group ? "group" : undefined} aria-label={group ? label : undefined}>
       <span className={css.fieldLabel}>{label}</span>
       {children}
       {help && <span className={css.help}>{help}</span>}
-    </label>
+    </Tag>
   );
 }
 

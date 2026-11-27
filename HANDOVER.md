@@ -78,6 +78,169 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   b8). Why: a new user took the generated commander page (one picture with a base64 tap
   zone over each tile) for the way to show a commander. A commander goes on a dashboard
   as its card; `docs/how-to/commander-on-your-home-page.md` is the worked example.
+- **Checking the patches on each Home Assistant release** (2026.11.14-b20): Casa Mia
+  Intercom and Protect Talkback patch HA's go2rtc, camera and Protect code. The releases
+  they were checked on are `CHECKED` in `casa_mia/patching.py` (2026.11.0 to 2026.11.3);
+  outside it each logs a warning. When HA releases, run `.venv/bin/python
+  tools/check_patches.py`: it compares the files they reach into (its `FILES`) with the
+  newest checked, records the new release when nothing changed, and otherwise prints the
+  diff to read against the two `patches.py` (`--accept` records it). Bump first. The
+  test harness lags: `pytest-homeassistant-custom-component` 0.13.375, the newest on
+  2026-11-27, pins HA 2026.10.4, so `tests_ha` can't run on 2026.11 yet; raise
+  `tests_ha/requirements.txt` when a 2026.11 release of it appears.
+- **The card place** (2026.11.14-b19, owner's family asked 2026-11-26; spec: "A place for
+  a card, and less important cameras" in `docs/design/commander-responsive-layout.md`).
+  A Responsive commander's `card_place` (one option in `layout.json`) keeps the last
+  cell: both solvers take it out of the room for tiles and count it as filled, and give
+  its place as `card` in their answer and in `placed`. The compositor draws nothing
+  there. The card's `card:` (one Lovelace config, YAML in the editor's Last place
+  section) is made by HA's card helpers and kept between redraws
+  (`commander/place.ts`), and drawn over the cell. Decided by the owner: one card, so
+  four buttons are HA's grid card; drawn by the card, not the compositor; cards of our
+  own (a clock) go in the same way later.
+  - **Seen on the test VM (2026-11-27):** it works; HA's clock card fits the place and a
+    grid of four HA button cards is cut off at half its height (figures in BACKLOG).
+  - **Casa Mia Clock and Casa Mia Buttons** (b23, `src/clock/`, `src/buttons/`, in
+    `cm-cards.js`). Since b25 the clock is HA's own clock card (`createCardElement`, type
+    `clock`, the card's config passed through) and its editor HA's clock editor, so it
+    has all of HA's options; the card scales it whole into its place with one transform,
+    measured by a ResizeObserver (the owner's exception to fixed sizes, CLAUDE.md). b23's
+    own drawing had a fraction of HA's options and was replaced the same day. Buttons are `pills.css` chips in a CSS grid; a tap fires `hass-action`, so
+    HA runs it. Its editor is ha-form's object selector with `multiple` and `fields`. Seen
+    on the VM in the place at 1280 x 800 and 393 x 852; a real tap on a chip there
+    navigated.
+  - **A list since b21** (`cards`; b19's `card` read as a list of one, `place.ts:
+    cardsOf`): each in HA's `hui-card`, which sets `hidden` by its Visibility or the card's
+    own wish, and one CSS rule shows the first not hidden. Edited by
+    `cards-editor.ts` (`casa-mia-cards-editor`, any list of cards), with HA's card picker,
+    card editor and `hui-card-visibility-editor`, loaded by `ha.ts: haCardEditors`. Three
+    traps found on the VM (HA 2026.11.1): the conditional card HA makes is defined later,
+    so ask `customElements.get("hui-conditional-card")`, not its element's constructor;
+    HA's editors take localize and formatters by Lit context, so anything drawing them
+    must be inside `<home-assistant>`; and `hui-card-element-editor` takes `value` by its
+    own setter, so draw it only once defined, or its config is lost.
+  - **Next:** less important cameras (BACKLOG, same spec): the solver run twice.
+- **Detections and their clips** (spec agreed 2026-11-27:
+  `docs/design/commander-detections.md`, built a step at a time, stopping after each).
+  Step 1 in b22: the Main camera select's `detections` (`casa_mia_commander/detections.py`),
+  found by the motion tracker's `refresh`, which since b22 also runs on the entity
+  registry's events, so a new motion sensor is found at once too. Step 2 in b24: the
+  chips (`commander/detect.ts`) in the main camera's caption (`live.ts`), which the card
+  now always draws, over the tap zones; the picture is asked with `?main=card` and leaves
+  the main name and clock out, and the card's clock is `caption-clock.ts` (owner's
+  decision, in the spec). The owner saw a chip on the box (2026-11-27). Step 3 in b27:
+  the recordings dialog (`clips.ts` fetching, `clips-dialog.ts` the element), opened by
+  the name or a chip where `FOLDERS.offered` (a Protect camera whose device has a folder,
+  looked up once per page load); otherwise a chip passes the main tap on. b30, after the
+  owner used it (spec, "After use on the box"): not for guests (`isGuest`), a latest
+  chip while nothing is current, and the dialog one size filling the screen, list beside
+  the preview in landscape, tiles or rows (`clips-styles.ts`), fetching on at the list's
+  end until 7 empty days. b33 and b35: the preview at the camera's shape, the dialog's
+  landscape height worked out from its width and that shape, clear of an iPhone's safe
+  areas, tiles 96 px. b35: `casa_mia_commander/fired.py` gives the card the times
+  Protect's entities lose in a restart (fixed upstream in HA 2026.12; remove then,
+  BACKLOG). Dialog sizes were checked in Playwright's Chromium and WebKit against a
+  stand-in page, which missed both the phone's status bar and the b33 collapse on the
+  owner's Mac (never reproduced): check a dialog on a phone in the iOS app before calling
+  it done. Seven hand-rolled card dialogs: BACKLOG, "One dialog for the cards".
+- **A closer look at the full screen** (b29, `docs/design/commander-zoom.md`):
+  `commander/closer.ts` (`Closer`, on the card) enlarges the `.closer` element inside
+  `_full`'s `.seen`, writing its transform directly; the card redraws only when the chip's
+  text changes. The maths is `src/zoom.ts`, shared with Dash-Bored's photograph. The
+  enlargement is a lease (`CLOSER_MS`, 60 s), and `asked` scales the place given to
+  `liveNow`, so a larger channel is chosen. "Zoom" stays the lens's word. The owner tried
+  it on 2026-11-27: a pinch in Safari on an iPhone and the wheel on a trackpad work, and an
+  old tablet with the largest channel seems fine.
+- **A live stream belongs to its channel, not its `<video>`** (b31, `live.ts:
+  followLive`). The main area and the full screen draw their own `<video>`s, so opening
+  full screen used to end the playing stream and start one from nothing: 5 to 10 s of
+  black on the box. A WebRTC session with frames now moves its `MediaStream` to the new
+  element (`Session.move`), so `livePlan` keeps it shown while a better channel starts
+  hidden. HLS still starts afresh. Every first frame is in HA's log with how long it took
+  (`live_report` "started").
+- **The caption says live with pills, not words** (b37, owner's design, 2026-11-27): the
+  name alone, then a LIVE pill (DELAYED over HLS) and the channel as rising bars
+  (`pills.ts: tierBars`, `.cm-bars` in `pills.css`; cheatsheet `cam-live`, `cam-tier`).
+  Since b38 every pill and chip in the caption is as tall as the name as a pill
+  (`--cm-label-size` × 1.4) and in the controls' colours at the camera's
+  `controls_at.opacity` (`--cm-chip-alpha`, default 45 since b38, was 60; owner: "more
+  transparency"), in `styles.ts`, which must out-rank `pills.css` as the card loads
+  PILLS after its own styles. The wrapper is `.playing`, as
+  `.live` is the `<video>`'s class. The bars are whole-pixel paths with `crispEdges`
+  (outlines are the inner box cut out, never a stroke), seen sharp at 1, 1.0625 and 2.
+- **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
+  the card's own buttons, the camera's controls, then its PTZ presets (each the call the
+  app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up
+  to `PRESETS_INLINE` (3) are buttons; more are behind a PTZ button that opens a second
+  `.controls-line` on the picture's side of the bar. The pills are the style guide's chip
+  at the height set: the proportions are once, in `app/web/src/cameras/controls.ts`
+  (`PILL`, `controlsStyle`), for the card and the Cameras page's preview.
+- **Sizes over a camera are fixed** (2026.11.14-b16; owner, 2026-11-26; the rule is in
+  CLAUDE.md, "Sizes are fixed CSS px"). b8 to b15 worked them out (a share of the place,
+  clamps, a square root, a mouse case, then power curves fitted to 23 tuning records).
+  The fitted exponents were 0.12 to 0.39, close to a constant, and the owner pointed at
+  KNX Pi's copy of `pills.css`, right on every device with no sizing code. Don't bring a
+  worked-out size back.
+  - **Names:** `labels.json` `name`: tiles 11 px, main 14 px (`nameSize`/`name_px`, the
+    same sum twice); `labels.tile_scale` and `main_scale` are a % of them (older
+    `tile_size`, `tile_share`, `main_size`, `main_share` converted in `commanders_of`).
+    The numbers are mine, from the records' small-tile and mid-range choices; the owner
+    has not seen them.
+  - **Controls** have the style guide's `cm-chip` size, font and shape (`full.ts`) in
+    their own colours: white on black at the camera's `controls_at.opacity`, the active
+    colour at it while on (owner, b17: "just the size, font and shape"). They always keep
+    their names (owner: a name is more to hit than an icon). Only the PTZ presets give
+    way (`foldPresets` in `controls.ts`, from estimated widths); the bar is one line and
+    the presets or the zoom's stepper one more, as before b16. `CHIP` and `ROOM` in
+    `controls.ts` are the chip and the room round it in numbers, for `foldPresets` and
+    the Cameras page's preview only. Room: 5 px between chips (tap areas meet half-way,
+    44 px across the bar, but half-way to a line opened beside it:
+    `tests/test_commander_tap_areas.py` checks every chip's face is its own), 22 px at each end of the edge (owner: Full at the top of a
+    wall tablet's frame was missed for the button under it). The card's Full screen
+    button is named Full (owner: not the longest name). A saved `size` is dropped by
+    `controlsAt`. Down a side on a phone, seven chips run past the place's foot: not
+    handled.
+  - **Two taps** (b18; owner, 2026-11-26): a control's `confirm` from the Cameras page,
+    else `guardedKind` (`controls.ts`, the one rule Dash-Bored's `house.ts` uses too).
+    The first tap arms (`card.ts` `_armed`, a lease of `ARMED_MS`, keyed by `armKey`:
+    entity and state); a capture-phase window click anywhere but on that button
+    disarms. The camera dashboard's tiles and Dash-Bored's camera clippings don't read
+    the tick yet. **Not seen** on a device.
+  - **The motion dot** is half the tile names (`dotSize`); the editor's Size is gone.
+  - **Zoom** (b9; owner: always one Zoom button and a stepper, not a slider): a second
+    line (Out, level, In, Reset) as PTZ has. `zoomOf`/`zoomStep`: a tap is a tenth of
+    the range; a level asked for is a lease (`ZOOM_PENDING_MS`). **Not seen** with a
+    real zoom entity.
+  - **The clock** is drawn beside the main name only while the main camera is not live
+    video: by the card since b24 (`caption-clock.ts`), by the compositor for anything
+    that doesn't ask `?main=card`. It has no settings of its own.
+  - **Tuning on a device** (b12 to b14, kept): with a commander's debug on, the card's
+    box (`tune.ts` `debugBox`) gives where the card is, the places and each size; EDIT
+    opens one draggable dialog for the tile names, the main name and the dot, kept per
+    commander and per where, in memory. Tuned names travel as `&tile=&name=` on the
+    picture's URL (its own `view_key` `~t..n..`), taken by `sized` only with debug on.
+    RECORD: ws `casa_mia_commander/tuning` → POST `/commander/tuning` → one INFO line
+    "commander tuning <ref>: <json>" in the app log (read it with the Supervisor's
+    `/api/hassio/addons/<slug>/logs`, stripping the ANSI colours). Quirk: two cards of
+    one commander share their tuned sizes on a device.
+  - **A kiosk's page zoom** (2026.11.14-b18): the large wall tablet's kiosk zooms pages
+    1.6x, which shrinks the window and leaves devicePixelRatio at 1.0625, and the
+    browser's full screen drops it. `ha.ts: pageZoom` sees it as a window the screen's
+    shape but smaller. `screenRatio()` (ratio × zoom) sizes the picture and the live
+    channel, so both are sharp. Where zoomed, Full fills the window (`card.ts: toScreen`,
+    `:host([filled])`) instead of asking the browser, so the zoom stays. Not seen: a
+    kiosk that keeps a status bar (another shape). Since b19 it fills the window too
+    wherever `canFill()` is false: the HA Companion app on iOS (iPad included) has no
+    page full screen. The iPhone's video-player fallback (`playFull`) is gone.
+  - The docs' screenshots (`cameras-controls.webp`, `commander-controls.webp`,
+    `commander-names-settings.webp`, `commander-full-screen.webp`) show the old look.
+- **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one
+  older than the commander's `stale` seconds is replaced by the camera's newest channel
+  (its tile's), so a camera chosen as main doesn't start with last night's picture. No
+  extra fetching: RULE FOUR.
+- **Responsive solver:** `BLOCK_OVER` (5 per mille) lets a block of cells shortened to
+  the crop limit pass (2026.11.14-b8). Trying more cell shapes was measured and made
+  layouts emptier: don't.
 - **Integration:** each commander is a device with a Main camera select and a Track motion
   switch (`motion.py`). The device keeps its old identifier (`DEVICE_KEYS` in
   `sensor.py`); the old `/camera-dashboard/` paths still route to `/commander/`.
@@ -218,11 +381,13 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   out (owner, 2026-11-23).
 - **`house.py`** (no HA imports) turns the Sonos entities' states into the page's model:
   groups by coordinator, every room in exactly one, a lone idle room `quiet`.
-  **`feed.py`** pushes it (`Feed`: one listener on HA's state events while anyone is
+  **`feed/`** (a package since 2026.11.14-b5: `model`, `doing`, `asks`, `common`) pushes it (`Feed`: one listener on HA's state events while anyone is
   listening, one model for a burst) and carries out what the page asks (`do`, a dict of
   actions). The rooms are every Sonos media player in the entity registry; nothing is
   listed in the options.
-- **`upnp.py`** asks a speaker itself (UPnP, port 1400). HA's Sonos player clears the
+- **`upnp/`** (a package since 2026.11.14-b3: `common`, `listing`, `saved` for the Sonos
+  playlists, `player`; all imported as `upnp.<name>`, as when it was `upnp.py`) asks a
+  speaker itself (UPnP, port 1400). HA's Sonos player clears the
   queue for any favourite whatever `enqueue` says, so "next" and "add" of a favourite
   go through `queue_favourite`; only "play now" and "replace" use HA's `play_media`.
   HA lists the Sonos playlists among the favourites with ids `SQ:n`; a speaker keeps
@@ -291,6 +456,24 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   name up. `Feed.sources` is the playlist each group's queue was loaded from or last
   saved as, from Jukebox, sent to the page as the group's `source`; it is in memory
   only, and a queue replaced from another app isn't noticed.
+- **A replaced or cleared queue is put back** (2026.11.14-b8, owner 2026-11-26;
+  `undo.py`). Neither is asked about. `_Doing._in_place` has the speaker keep the queue
+  first as a playlist, "Jukebox undo copy (room)" (`upnp.keep`, which the party's copy
+  uses too), with the song and place it was at; `queue_back` loads it again, and the
+  copy is deleted after `FOR` seconds, when it is used, and when Home Assistant stops.
+  If the copy can't be made nothing is done, and if the replacing fails part-way the
+  queue is put back at once. The page offers it back only while the model says a queue
+  is kept (`group.undo`) and for 15 s on the device that did it (`_undo` in `big.ts`),
+  so the offer lapses with the copy and is still there after a put-back that failed.
+  The phone's own room keeps its line in memory (`_before` in `phone.ts`). Not yet
+  tried on a real speaker; six more requests go to the speaker before a replace or a
+  clear, and the wait they add hasn't been measured.
+- **What a question's colour means** (owner, 2026-11-26; the `Sure` tones and `asking`
+  in `pick.ts`, one sheet for the player and the editor): red for what can't be got
+  back (a playlist deleted, saved over, or rid of repeated songs), amber (`caution`)
+  for what has to be put together again by hand (Stop), and plain (`ask`) where
+  nothing is lost. What Jukebox can put back isn't asked about. The playlist questions
+  lose their red when Jukebox keeps a copy of the playlists (BACKLOG).
 - **Songs' pictures** (b21): a speaker lists every playlist song's picture as a path
   on itself (`/getaa?…`), for library, Spotify and other streamed songs alike (read
   from real speakers 2026-11-24, with title and album for all of them). `art.py`
@@ -301,12 +484,36 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   one of the owner's stations always sends them swapped): `find.Covers` asks Spotify
   once for each song, through Home Assistant's Spotify integration, and `cover.py`
   (no Home Assistant in it) decides which song it is. The group's `cover` goes to the
-  page beside `picture`; `sleeve` in `parts.ts` draws the two. Not seen with a real
+  page beside `picture`; `sleeve` in `parts.ts` draws the two. Three searches for
+  each song, pooled (`cover.searches` says why, as measured on the box 2026-11-26:
+  plain words with "feat." brought back only karaoke versions). Lesson: the 2026-11-25
+  fixes changed the matching only, and no test ran the search; `a_catalogue` in
+  `tests_ha/test_jukebox_station.py` is a stand-in Spotify that takes a song through
+  both, so a new missed song goes there first. Not seen with a real
   Spotify answer: that a song's pictures are its album's is from memory of the
   library, which isn't installed in the test environment.
 - **A playlist's tile** (b24) is four covers: `art.tiled` asks the speaker for each
   playlist's first songs when the favourites are fetched (`upnp.covers`, one for each
-  album) and the page draws them two by two (`mosaic` in `parts.ts`).
+  album) and the page draws them two by two (`mosaic` in `parts.ts`). The big player
+  fetches the favourites again after a playlist is changed (`_dirty` in `big.ts`),
+  once its songs aren't being looked at (2026.11.14-b4).
+- **A song into a playlist** (2026.11.14-b4). From the radio: `find.Covers` keeps the
+  Spotify song it matched, or why there is none, and the group carries them as `found`
+  and `unfound`; the page gives `found.uri` to the `playlist_add` action there already
+  was. Between playlists: `playlist_send` and `playlist_copy` (`upnp.playlist_send`)
+  read the song from the speaker by its number, refuse if its title isn't the one the
+  page showed, add it to the other playlist and then, for a move, take it out. The
+  chooser is `pick.ts`, shared by the big player and the editor. Since b7: the
+  chooser names a new playlist (`playlist_new`, the speaker's `CreateSavedQueue` with
+  nothing to save, as SoCo makes one), which is made empty and then chosen; an add,
+  move or copy sent with `again: false` is answered `{already: true}` and left undone
+  when the playlist holds the song (`upnp.holds`, by Spotify's id or the address), and
+  `put` in `pick.ts` asks before sending it with `again: true`; and `song_find`
+  (`Covers.again`) looks a station's song up once more when the button is pressed,
+  since a failure is otherwise kept. Not tried on a real
+  speaker: a library song goes as `playlist_add` sends one, which was; a streamed
+  song goes with the speaker's own description (`_described`), which was only tried
+  for putting a song back into the queue. `CreateSavedQueue` hasn't been tried either.
 - **Putting the players in order** (b21) is `Arranging` in `page.ts`, which the page
   and the players' card both extend. Until then only the page had it.
 - **Who changes playlists** (b24, owner 2026-11-24): hosts at any time, and the
@@ -1453,7 +1660,9 @@ CLAUDE.md has them all. What trips agents here:
 - **Default-stripping editors:** a saved card keeps old values, so a changed default doesn't
   reach it. The owner's two commander cards still hold `tap_main: live`.
 - **`Field` is a `<label>`:** a click on anything non-interactive inside it clicks its first
-  button (`Chips` cancels that).
+  button (`Chips` cancels that). A field that holds several controls takes `group` and is
+  a `div` (2026.11.14-b8: the Cameras page's controls went back to Top on any stray
+  click); a menu's choice inside a label prevents its click, as `Select` does.
 - **HA's visibility is decided in core since 2026.9:** read a section's `hidden` attribute
   and `section-visibility-changed`, not private methods.
 - **`clip-path` makes an element a backdrop root:** a `backdrop-filter` inside it sees
@@ -1482,6 +1691,15 @@ CLAUDE.md has them all. What trips agents here:
   reloaded or HA restarts: HA's doing.
 - **Before claiming something is new,** search HA's frontend (issues, PRs, discussions) and
   HACS's default `plugin` list; the owner asks.
+- **HA's `ha-card` animates everything** (2026-11-27): its own style is `transition: all
+  0.3s ease-out`. A card that sets a size on its `ha-card` from JavaScript has it grown
+  into over 0.3 s, and a ResizeObserver reports every size on the way. The Commander grew
+  from nothing in the editor's preview (HA makes a new card element at every change of an
+  option) and asked for a squashed picture part of the way; it was tried and given up
+  several times from 2026-10-09 without the cause being named. Fixed in 2026.11.14-b32
+  with `transition: none` on its `ha-card` (`commander/styles.ts`). When something moves
+  and nothing in our code moves it, ask the browser: `el.getAnimations()` on each frame
+  names the property. Measured on the VM by serving the local bundle with `page.route`.
 
 ## How to work with the owner
 
@@ -1763,6 +1981,36 @@ CLAUDE.md has them all. What trips agents here:
     tablet it stopped and stayed stopped because Settings was in front.
   - **The tablets have no Play Store**, so WebView never updates by itself (BACKLOG).
     Rollback for one tablet: `adb uninstall com.google.android.webview` (back to 131).
+  - **The model names above are doubtful** (checked 2026-11-27): the Android 15 tablets
+    report `TB305FU`, "Lenovo Tab One", MediaTek MT8786 (`mt6768`); `TB310FU` is the Tab
+    M9's number, so the Android 13 three are probably Tab M9s. Read `getprop
+    ro.product.model` and `ro.soc.model` before relying on either.
+  - **Their size limit** (2026-11-27, b36): the MT8786's H.265 decoder
+    (`c2.mtk.hevc.decoder`, `/vendor/etc/media_codecs_c2.xml`) takes at most 2560 x 1440
+    (performance point 1080p30), and WebView has no software H.265, so every 4K and
+    2688 x 1512 high channel ends "no video arrived"; only the doorbells' 1600 x 1200
+    plays. Trying one also stalled the channel already on screen (the box's log, three
+    times in the same second), which is why b31's full screen fell from M to L; a
+    1600 x 1200 high beside its medium did not. WebView knows its limit:
+    `navigator.mediaCapabilities.decodingInfo({type: "webrtc"})` says "not supported"
+    for exactly those sizes, so the card asks it (`common.ts: playable`), with each
+    channel's codec read by the app's survey (`streams.first_frame`, kept with the
+    sizes; a size or codec newly read is pushed, `commander/live.py: check_channels`;
+    before it, sizes waited for the 30 s health poll). The stall itself was not seen in logcat: the video driver logs every frame,
+    so a tablet's log buffer holds about 20 s. Kiosk Satellite's Remote API: `POST
+    /api/login {password}` gives a bearer token, then `POST /api/commands/evalJs
+    {code}` (port 2324 over `adb forward`).
+  - **The large wall tablet is another model** (2026-11-27, b37): a Lenovo Idea Tab Plus
+    (`TB361FU`, Android 16, MediaTek MT8755) with the same 2560 x 1440 H.265 limit. It
+    came with WebView 140, whose `decodingInfo({type: "webrtc"})` says yes at any size
+    (even 7680 x 4320), so b36's card tried its 4K high channels there. Asked with
+    `type: "file"`, 140 answers right, so the card now asks both ways and a no from
+    either leaves the channel out. 157 was then installed there the same way as on the
+    others. For H.264 both questions say yes at every size on 157 (a software decoder,
+    not seen playing at 4K). Android 15 and later blank Developer options in the VNC
+    view until `disable_screen_share_protections_for_apps_and_notifications` is 1 and
+    droidVNC-NG is restarted (`docs/run-the-house-from-your-desk.md`);
+    `provision-tablet.sh` sets it since 2026-11-27.
   - **Not fixed:** the Cameras live view (`LiveView.tsx`) now names an unplayable format,
     but has no timeout and no MJPEG fallback.
   - **Open:** whether a stalled WebRTC stream can fool the lease (`requestVideoFrameCallback`

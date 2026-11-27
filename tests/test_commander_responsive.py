@@ -84,7 +84,7 @@ def test_cameras_there_is_no_room_for_are_in_more():
 
 def test_at_a_size_asked_for_the_smallest_tile_grows_with_the_scale():
     # twice the pixels: the same grid, every place twice the size (to a pixel's rounding)
-    one, two = placed(cmd()), placed(sized(cmd(), (2200, 1120, 2.0)))
+    one, two = placed(cmd()), placed(sized(cmd(), (2200, 1120, 2.0, 0, 0, False)))
     assert len(one.tiles) == len(two.tiles)
     for (_, _, a, _), (_, _, b, _) in zip(one.tiles, two.tiles):
         assert all(abs(2 * p - q) <= 4 for p, q in zip(a, b))
@@ -122,6 +122,20 @@ def test_its_picture_has_every_tile_and_the_main_camera_and_clear_gaps():
     assert rgba(pic, (x + 2, y + 2))[2] > 200  # cropped to fill: no bars
     # between the main camera and the tiles beside it: clear
     assert alpha(pic, (x + w + c["gap"] // 2, y + h // 2)) == 0
+
+
+def test_the_place_kept_for_a_card_is_clear_and_no_camera_is_in_it():
+    c = cmd(card_place=True)
+    laid, pic = placed(c, CAMS[0]), picture(c, CAMS[0])
+    assert laid.card and placed(cmd(), CAMS[0]).card is None
+    assert laid.card not in [rect for _, _, rect, _ in laid.tiles]
+    x, y, w, h = laid.card
+    for at in ((x + w // 2, y + h // 2), (x + 1, y + 1), (x + w - 2, y + h - 2)):
+        assert alpha(pic, at) == 0  # nothing drawn: the card's own card goes there
+    # every camera is still shown or counted: the place is never given to one
+    assert len(laid.tiles) + (laid.more[1] if laid.more else 0) == len(CAMS)
+    # a fixed commander has no such place
+    assert placed({**c, "mode": "fixed"}).card is None
 
 
 def test_a_main_camera_shown_whole_has_bars_that_are_clear():
@@ -188,6 +202,8 @@ def test_what_is_wrong_with_responsive_settings_is_said():
     assert any("at least" in p for p in wrong(main_least=5))
     assert any("smallest tile" in p for p in wrong(tile_min="big"))
     assert any("tile shape" in p for p in wrong(tile_shape="7:3"))
+    assert any("must be on or off" in p for p in wrong(card_place="yes"))
+    assert wrong(card_place=True) == []
     assert any("edges must be from" in p for p in wrong(edges=["bottom", "middle"]))
     assert any("edge twice" in p for p in wrong(edges_tall=["top", "top"]))
     assert wrong(edges_tall=None) == [] and wrong(edges=[]) == []

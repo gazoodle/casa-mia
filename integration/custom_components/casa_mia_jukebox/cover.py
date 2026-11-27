@@ -21,6 +21,7 @@ remastered one, the single before the album (owner, 2026-11-25), then the earlie
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from typing import NamedTuple
 
@@ -28,13 +29,18 @@ from typing import NamedTuple
 # follows " - " or "feat." ("- 2009 Remaster", "feat. Someone").
 _ASIDE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\s-\s.*$|\b(?:feat|ft|featuring)\b\.?.*$")
 _WORDS = re.compile(r"[^\w]+")
+# A hyphen or an apostrophe inside a word: "Un-Break" is "Unbreak", "Don't" is "Dont".
+_INSIDE = re.compile(r"(?<=\w)[-‐'’](?=\w)")
 # The words that only join two artists' names.
 _JOINS = frozenset({"and", "x", "with", "vs", "feat", "ft", "featuring"})
+# What parts one artist's name from the next: a joining word, or a mark.
+_NEXT = re.compile(rf"\s+(?:{'|'.join(sorted(_JOINS))})\b\.?\s+|\s*[&,+/]\s*")
 
 
 class Song(NamedTuple):
     """One of Spotify's songs, and the record it is on: who the record is by, what
-    kind it is ("single", "album", "compilation") and when it came out."""
+    kind it is ("single", "album", "compilation") and when it came out. `uri` is
+    Spotify's address for the song (`spotify:track:…`), which a playlist takes."""
 
     title: str
     artists: str
@@ -42,15 +48,57 @@ class Song(NamedTuple):
     record_by: str = ""
     kind: str = ""
     date: str = ""
+    uri: str = ""
 
 
 def _words(text: str) -> str:
-    return _WORDS.sub(" ", text.lower()).strip()
+    # Spotify spells some names with marks a station leaves off ("JAŸ-Z", "Beyoncé"),
+    # and one side may hyphenate a word the other doesn't ("Un-Break My Heart"):
+    # owner's box, 2026-11-25, two songs without a cover.
+    bare = "".join(
+        c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)
+    )
+    return _WORDS.sub(" ", _INSIDE.sub("", bare.lower())).strip()
 
 
 def plain(text: str) -> str:
     """A title or an artist as it is compared: its words, in small letters."""
     return _words(_ASIDE.sub(" ", text.lower()))
+
+
+def _bare(name: str) -> str:
+    """A name as Spotify is asked for it: without its asides, its spelling kept. A
+    quotation mark would end the phrase it is asked in."""
+    return " ".join(_ASIDE.sub(" ", name.lower()).replace('"', " ").split())
+
+
+def _first(artists: str) -> str:
+    """The first of the artists named, which is enough to ask Spotify with: `best`
+    checks the rest."""
+    return _NEXT.split(artists, maxsplit=1)[0] or artists
+
+
+def searches(pair: tuple[str, str]) -> list[str]:
+    """What Spotify is asked for a station's song; `best` then chooses from all that
+    the searches find. Measured on the owner's box, 2026-11-26, for "This Is What You
+    Came For" by "Calvin Harris feat. Rihanna", which had no cover:
+
+    - Asked for the station's words as they are, Spotify sent ten songs and the
+      artist's own wasn't one: karaoke and tribute versions came first, since their
+      titles hold every word ("… Originally Performed by Calvin Harris feat. Rihanna").
+    - Asked with its `track:` and `artist:` filters, it sent only that artist's songs
+      of that title, and allowed for marks, hyphens and apostrophes ("unbreak" found
+      "Un-Break", "ac" found "AC/DC"). With the two names the wrong way round it sent
+      nothing, and a station may give them either way, so both are asked.
+    - The plain words, without the asides, are asked as well, for a song the filters
+      are too strict for.
+    """
+    one, other = (_bare(name) for name in pair)
+    return [
+        f'track:"{other}" artist:"{_first(one)}"',
+        f'track:"{one}" artist:"{_first(other)}"',
+        f"{one} {other}",
+    ]
 
 
 def names(artist: str, title: str) -> tuple[str, str] | None:
@@ -83,10 +131,19 @@ def _is_by(named: str, artists: str) -> bool:
 
 
 def cover(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> str | None:
-    """The picture of the best of Spotify's `songs` (each a Song, or its fields) that
-    is the station's song, its two names taken either way round. Among equals,
-    Spotify's own order decides."""
-    said = {_words(pair[0]), _words(pair[1])}
+    """The picture of the best of Spotify's `songs` that is the station's song."""
+    found = best(pair, songs)
+    return found.picture if found else None
+
+
+def best(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> Song | None:
+    """The best of Spotify's `songs` (each a Song, or its fields) that is the
+    station's song, its two names taken either way round. Among equals, Spotify's own
+    order decides. The one whose cover is shown is the one added to a playlist, so
+    the two never disagree."""
+    # As the station named it, or that without its asides: a station's "(Radio Edit)"
+    # is the song itself before its "Extended Mix".
+    said = {form(name) for name in pair for form in (_words, plain)}
     ranked = []
     for song in (Song(*fields) for fields in songs):
         title = plain(song.title)
@@ -98,7 +155,7 @@ def cover(pair: tuple[str, str], songs: Iterable[tuple[str, ...]]) -> str | None
                     song.kind != "single",
                     song.date or "9999",
                 )
-                ranked.append((rank, song.picture))
+                ranked.append((rank, song))
                 break
     # `min` keeps the first of equals: Spotify's order.
     return min(ranked, key=lambda found: found[0])[1] if ranked else None

@@ -4,25 +4,56 @@
 import { html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { repeat } from "lit/directives/repeat.js";
-import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
+import { fire, type Hass, inPicker, navigate, pageZoom, screenRatio, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
-import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
-import { dot } from "./motion.ts";
-import { controlsBar, fullStyles, type Own } from "./full.ts";
-import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
-import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
+import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from "../labels.ts";
+import { dot, dotSize } from "./motion.ts";
+import { debugBox, dialogOpen, type Figures, recordOf, reference, toggleDialog, tunedAt, tuneDialog, tuneStyles, whereOf } from "./tune.ts";
+import { ARMED_MS, controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
+import { barRoom, canFill, fill, filling, SCREEN_EVENTS } from "./screen.ts";
+import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown, VERSION } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
+import { cardsOf, PlaceCards } from "./place.ts";
+import { Closer, closerChip, closerLimits } from "./closer.ts";
 
 export class CommanderCard extends CommanderTalk {
-  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true } };
+  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true }, _armed: { state: true } };
   /** The camera heard (its Sound button), "" for none: a camera's own, so another main
    * camera (a tap, Track motion) is never heard without a tap of its own. */
   _sound = "";
-  /** The card has the whole screen (its Full screen button, screen.ts). */
+  /** The card has the whole screen (its Full button): the browser's (screen.ts), or a
+   * zoomed kiosk's window (toScreen). */
   _screen = false;
+  /** The line of the controls bar that is opened out (its PTZ or Zoom button, full.ts),
+   * and whose: a camera's own, so it is put away when another becomes the main camera. */
+  _opened: { camera: string; line: Line | "" } = { camera: "", line: "" };
+  /** The zoom level asked for and whose, shown as on its way for ZOOM_PENDING_MS. */
+  _zoomTo: { camera: string; value: number } | null = null;
+  private zoomToGone = 0;
+  /** Why the last preset or zoom didn't go, said with the controls for PTZ_NOTE_MS. */
+  _ptzFailed = "";
+  private ptzNoteGone = 0;
+  /** What came of the last tuning record (tune.ts): its reference, or why it failed. */
+  _tuneNote = "";
+  /** The control armed by its first tap (Two taps, full.ts) and whose camera, until
+   * ARMED_MS lapses or a tap lands anywhere else. */
+  _armed: { camera: string; key: string } | null = null;
+  private armGone = 0;
+  /** The cards in the commander's last place (this card's `cards`), kept between redraws. */
+  private place = new PlaceCards(() => this.requestUpdate());
+  /** The closer look at the camera's full screen (closer.ts), as close as the largest
+   * channel this device plays allows (live.ts: channelsHere). */
+  private closer = new Closer(
+    () => this.requestUpdate(),
+    () => this.renderRoot.querySelector<HTMLElement>(".closer"),
+    (box) => {
+      const card = this.now().card;
+      return closerLimits(card ? this.channelsHere(card, this._full) : [], box, screenRatio());
+    },
+  );
 
   constructor() {
     super();
@@ -31,7 +62,40 @@ export class CommanderCard extends CommanderTalk {
     for (const name of SCREEN_EVENTS) this.addEventListener(name, () => (this._screen = filling()));
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("click", this.disarm, true);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("click", this.disarm, true);
+    this.closer.whole(); // and its lease's timer cleared
+  }
+
+  /** A tap anywhere on the page but on the armed button disarms it: on the way down, so
+   * it is disarmed before the tap does whatever it does, and a tap on another control with
+   * Two taps arms that one. */
+  private disarm = (e: Event) => {
+    const key = this._armed?.key;
+    if (key && !e.composedPath().some((n) => n instanceof HTMLElement && n.dataset.control === key && this.renderRoot.contains(n))) this._armed = null;
+  };
+
+  /** Give the card the whole screen, or give it back. The browser's full screen drops a
+   * kiosk's page zoom (ha.ts: pageZoom), so everything in it was 1/zoom the size it is in
+   * the page (owner, 2026-11-26). A kiosk already fills the screen, so there the card
+   * fills its window instead (full.ts: :host([filled])), and the zoom stays. So it does
+   * where the page can't have the screen (screen.ts: canFill), as in the Home Assistant
+   * app on an iPad or an iPhone: the whole app's space (owner, 2026-11-27). Given back
+   * the way it was taken. */
+  private toScreen(on: boolean) {
+    if (on ? canFill() && pageZoom() === 1 : filling()) fill(this, on);
+    else this._screen = on;
+  }
+
   updated() {
+    // Over the window while it has the screen (toScreen); in the browser's full screen
+    // the browser places it, and this changes nothing.
+    this.toggleAttribute("filled", this._screen);
     // The app restarted (an update): its stream died with it, and a browser often says
     // nothing (the <img> keeps a blank or frozen picture), so start a fresh one.
     const run = this.now().card?.run ?? "";
@@ -44,6 +108,12 @@ export class CommanderCard extends CommanderTalk {
     // switch off, the page hidden or edited), back to the commander, not a black screen.
     const card = this.now().card;
     if (this._full && card && !this.liveMain(card)) this._full = "";
+    // The closer look's view on the element drawn now; whole once the full screen is left.
+    if (this._full) this.closer.show();
+    else this.closer.whole();
+    // Debug switched off while the sizes dialog is open: closed, and Track motion back on.
+    const select = this._config?.entity ?? "";
+    if (card && !card.layout.debug?.on && dialogOpen(select)) toggleDialog(this.hass!, select, false);
     this.watchFrame();
     this.measure(); // its rows may have been set or cleared (a new config, or layout)
     if (this.streaming && this.editing()) this.done("editing");
@@ -97,11 +167,14 @@ export class CommanderCard extends CommanderTalk {
     const down = editing ? null : pictureDown(this.downSince, this.lastError, Date.now());
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
+    // While its debug is on, sizes can be set by hand on this device (tune.ts), each where
+    // the card is (in the page, with the whole screen, the main camera full screen).
+    const select = this._config!.entity!;
+    const tuning = Boolean(own.debug?.on);
     // In HA's card picker: drawn at its own size and shrunk, so its gaps and labels keep
     // their proportions (asked for at the picker's size, they'd crowd the cameras out).
     const sized: Size | null = inPicker(this) ? [own.width, own.height, 1] : this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
-    const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
     const still = editing && sized ? this.stillUrl(card, sized) : "";
     const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     // Where everything is, in either mode (placed.ts), as the compositor has it.
@@ -109,10 +182,22 @@ export class CommanderCard extends CommanderTalk {
     const [w, h] = laid.size;
     const mainRect = laid.main;
     const tiles = laid.tiles.filter((t) => t.rect[2] > 0);
+    // The last place, where the commander keeps it: this card's own cards go there, the
+    // first showing filling it (place.ts). In edit mode each shows, as HA's sections do.
+    const placeCards = cardsOf(this._config);
+    const inPlace = laid.card ? this.place.elements(placeCards, this.hass!, editing) : [];
+    // Cards with nowhere to go are said while the dashboard is edited, where it can be
+    // put right. (Not when the commander keeps the place and only this size has no cells.)
+    const noPlace =
+      editing && placeCards.length && !(own.mode === "responsive" && own.responsive?.card_place)
+        ? "Its cards in the last place have no place: switch on Keep the last place for a card for this commander (Camera Commander page, Responsive layout)"
+        : "";
     // Full screen (tap_main: full): the camera tapped, live over the whole screen, shown
-    // whole; its channel chosen for the screen's device pixels, as the main area's is.
+    // whole; its channel chosen for the screen's device pixels, as the main area's is, and
+    // for the enlarged size while it is looked at closer (closer.ts: asked).
     const full = Boolean(this._full && card.cameras[this._full]);
-    const screen: Rect = [0, 0, Math.round(innerWidth * devicePixelRatio), Math.round(innerHeight * devicePixelRatio)];
+    const enlarged = screenRatio() * this.closer.asked;
+    const screen: Rect = [0, 0, Math.round(innerWidth * enlarged), Math.round(innerHeight * enlarged)];
     // The live main camera (live.ts): its videos, and whether the picture leaves the main
     // area to one. With none to show, the picture draws the main camera itself.
     const live =
@@ -131,26 +216,19 @@ export class CommanderCard extends CommanderTalk {
             },
           ]
         : [];
-    // The Full screen button, where offered. Where the browser gives a page the screen,
-    // the whole commander. Where it gives it only to a video (Safari on an iPhone), the
-    // main camera's live video in the phone's own player, as drawn the last time: the
-    // once-a-second redraw while live (live.ts) finds a video that has just begun.
-    const playing = live?.shown && !canFill() ? this.renderRoot.querySelector<HTMLVideoElement>(`video.live[data-entity="${live.shown}"]`) : null;
-    const fills: Own[] = !this._config?.screen_button
-      ? []
-      : canFill()
-        ? [
-            {
-              on: this._screen,
-              icon: this._screen ? "mdi:fullscreen-exit" : "mdi:fullscreen",
-              label: this._screen ? "Exit full screen" : "Full screen",
-              title: this._screen ? "Back to the page" : "The commander over the whole screen",
-              toggle: () => fill(this, !this._screen),
-            },
-          ]
-        : playing && canPlayFull(playing)
-          ? [{ on: false, icon: "mdi:fullscreen", label: "Full screen", title: "The main camera over the whole screen", toggle: () => playFull(playing) }]
-          : [];
+    // The Full screen button, where offered: the whole commander over the screen, or over
+    // the window where the page can't have the screen (toScreen).
+    const fills: Own[] = this._config?.screen_button
+      ? [
+          {
+            on: this._screen,
+            icon: this._screen ? "mdi:fullscreen-exit" : "mdi:fullscreen",
+            label: "Full", // short, so it is never the bar's longest (owner, 2026-11-26); pressed while it has the screen
+            title: this._screen ? "Back to the page" : "The commander over the whole screen",
+            toggle: () => this.toScreen(!this._screen),
+          },
+        ]
+      : [];
     // One <video> per channel played: the one shown, and a better one tried unseen under it.
     const videos = (place: string) =>
       live
@@ -169,7 +247,6 @@ export class CommanderCard extends CommanderTalk {
           )
         : nothing;
     const whole = "left:0;top:0;width:100%;height:100%";
-    const src = asked && live?.video ? `${asked}&main=video` : asked;
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
@@ -178,7 +255,61 @@ export class CommanderCard extends CommanderTalk {
     // integration's own files (const.py: SCRIPTS_URL).
     const labels = labelsOf(own.labels);
     useFont(labels.font, (file) => `/casa_mia/fonts/${file}`);
-    const labelled = `--cm-label-font:${family(labels.font)};--cm-label-size:${labels.main_size}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
+    // The main camera's place and the whole screen, in CSS px: where its controls are laid
+    // out, and for the debug figures.
+    const mainPlace: [number, number] = [(mainRect[2] / w) * this._box[0], (mainRect[3] / h) * this._box[1]];
+    const screenPlace: [number, number] = [innerWidth, innerHeight];
+    // The names are one size on every device (labels.ts: nameSize), a % of it by the
+    // commander's settings; with its debug on, as set by hand on this device (tune.ts).
+    const ruleName = nameSize("main", labels.main_scale);
+    const where = whereOf(this._screen, full);
+    const set = tuning ? tunedAt(select, where) : {};
+    const nameIn = set.main ?? ruleName;
+    const labelled = `--cm-label-font:${family(labels.font)};--cm-label-size:${nameIn}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
+    // The commander's smallest tile, in CSS px, for the debug figures. The motion dots are
+    // half the tiles' names.
+    const css = ([, , rw, rh]: Rect): [number, number] => [(rw / w) * this._box[0], (rh / h) * this._box[1]];
+    const smallest = [...tiles.map((t) => t.rect), ...(laid.more ? [laid.more.rect] : [])].map(css).sort((a, b) => Math.min(...a) - Math.min(...b))[0] ?? [0, 0];
+    const tileRule = nameSize("tile", labels.tile_scale);
+    const dotRule = dotSize(set.tile ?? tileRule);
+    const dotPx = set.dot ?? dotRule;
+    // The app draws the picture's names at the same sizes (labels.py: name_px), so the
+    // picture is asked for with sizes only while they are set by hand here: it is then
+    // this card's own (compositor.sized). It is the page's or the whole screen's picture,
+    // never the main camera's full screen (live video).
+    const drawnSet = tuning ? tunedAt(select, whereOf(this._screen, false)) : {};
+    const tunedQuery = `${drawnSet.tile ? `&tile=${drawnSet.tile}` : ""}${drawnSet.main ? `&name=${drawnSet.main}` : ""}`;
+    const asked = sized && !editing ? this.pictureUrl(card, sized, tunedQuery) : "";
+    // The card draws the main camera's name and clock (live.ts: caption), and with live
+    // video it plays the main camera too.
+    const src = asked && `${asked}&main=${live?.video ? "video" : "card"}`;
+    // The debug box's figures (tune.ts): each size as the settings give it, and how.
+    const place = full ? screenPlace : mainPlace;
+    const fixed = (which: "tile" | "main", pct: number) => `${NAME[which]} px at ${pct}%`;
+    const figures: Figures = {
+      where,
+      box: full ? screenPlace : this._box,
+      place,
+      tile: smallest,
+      rules: { main: ruleName, tile: tileRule, dot: dotRule },
+      sums: { main: fixed("main", labels.main_scale), tile: fixed("tile", labels.tile_scale), dot: `half the tile names in use, ${set.tile ?? tileRule}` },
+    };
+    // For a record (tune.ts): whether this device has a mouse.
+    const desk = matchMedia("(pointer: fine)").matches;
+    const debug = tuning
+      ? debugBox({
+          hass: this.hass!,
+          select,
+          colour: own.debug?.colour ?? "#ffd60a",
+          head: html`${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px; screen ${window.devicePixelRatio}x${pageZoom() === 1 ? "" : `, page zoom ${pageZoom()}x`}<br />
+            asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"} ${this.viaHa() ? "through Home Assistant" : "direct"}
+            ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}`,
+          figures,
+          note: this._tuneNote,
+          record: () => this.record(card, figures, card.cameras[main]?.title ?? main, desk),
+          changed: () => this.requestUpdate(),
+        })
+      : nothing;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
     const mark = tiles.find((t) => t.camera === main)?.rect;
     // The cameras there is no room for ("+n more"): motion on one is marked on that tile.
@@ -231,22 +362,10 @@ export class CommanderCard extends CommanderTalk {
             )
           : nothing}
         ${live && !full
-          ? html`${videos(
-                `${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)}` : ""}`,
-              )}
-              ${this.caption(card.cameras[main]?.title ?? main, at(mainRect), live)}`
+          ? videos(`${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)}` : ""}`)
           : nothing}
         </div>
         ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
-        ${own.debug?.on
-          ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
-              ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
-              card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
-              asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
-              ${this.viaHa() ? "through Home Assistant" : "direct"}
-              ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}
-            </div>`
-          : nothing}
         ${tiles.map((t) =>
           t.camera !== main
             ? html`<div class="zone" style=${at(t.rect)} title=${card.cameras[t.camera]?.title ?? t.camera} @click=${() => this.choose(card, t.camera)}></div>`
@@ -254,6 +373,18 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${laid.more ? html`<div class="zone" style="${at(laid.more.rect)};cursor:default" title="${laid.more.count} more cameras"></div>` : nothing}
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
+        ${mainRect[2] > 0 && !full ? this.caption(card.cameras[main]?.title ?? main, at(mainRect), live, () => this.open(card, main)) : nothing /* over the zones: its chips take the pointer */}
+        ${laid.card
+          ? html`<div class="place" style=${at(laid.card)}>
+              ${this.place.failed
+                ? html`<span class="cm-pill cm-filled cm-bad">Its cards can't be drawn: ${this.place.failed}</span>`
+                : inPlace.length
+                  ? inPlace
+                  : editing && !placeCards.length
+                    ? html`<span class="cm-pill">Cards go here: this card's Last place</span>`
+                    : nothing}
+            </div>`
+          : nothing}
         ${mark && mark[2] > 0 && this._framed === (editing ? "still" : `s${this._shown}`)
           ? html`<img
               class="highlight ${Number(lit.pulse) > 0 ? (lit.style ?? "breathe") : ""}"
@@ -264,46 +395,129 @@ export class CommanderCard extends CommanderTalk {
           : nothing}
         ${tiles.map((t) =>
           // on the main camera's own tile too (as well as on the main picture)
-          dot(moving.get(t.camera), at(t.rect), this._config!, () => (t.camera === main ? this.open(card, t.camera) : this.choose(card, t.camera))),
+          dot(moving.get(t.camera), at(t.rect), this._config!, () => (t.camera === main ? this.open(card, t.camera) : this.choose(card, t.camera)), dotPx),
         )}
-        ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined) : nothing}
-        ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
+        ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined, dotPx) : nothing}
+        ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main), dotPx) : nothing}
         ${
           // The Full screen button stands here without the camera's controls too: it is the
           // card's, and the only way to it.
           (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
             ? this._config?.main_controls
-              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainRect[2] >= mainRect[3], [...sound, ...fills])
-              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [] }, at(mainRect), mainRect[2] >= mainRect[3], fills)
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainPlace, [...sound, ...fills], this.lines(main))
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [], presets: [], zoom: undefined }, at(mainRect), mainPlace, fills, this.lines(main))
             : nothing
         }
-        ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect)) : nothing}
+        ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn) : nothing}
         ${down
           ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>`
-          : unfit
-            ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit}</span></div>`
+          : unfit || noPlace
+            ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit || noPlace}</span></div>`
             : nothing}
+        ${full ? nothing : debug}
       </div>
       ${full
         ? html`<div class="full" style=${labelled}>
-            <div class="seen" style="filter:${this.look()}">${videos(`${whole};object-fit:contain`)}</div>
-            ${live ? this.caption(card.cameras[main].title, whole, live) : nothing}
-            <div class="zone" style=${whole} title="Back" @click=${() => (this._full = "")}></div>
+            <div class="seen" style="filter:${this.look()}">
+              <div class="closer">${videos(`${whole};object-fit:contain`) /* no bound style: Lit never writes over its transform */}</div>
+            </div>
+            <div
+              class="zone"
+              style=${whole}
+              title="Back"
+              @pointerdown=${this.closer.down}
+              @pointermove=${this.closer.move}
+              @pointerup=${this.closer.up}
+              @pointercancel=${this.closer.up}
+              @wheel=${this.closer.wheel}
+              @click=${() => {
+                if (this.closer.tap()) this._full = "";
+              }}
+            ></div>
+            ${live ? this.caption(card.cameras[main].title, whole, live, () => (this._full = ""), closerChip(this.closer)) : nothing}
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, innerWidth >= innerHeight, [...sound, ...fills])
+              controlsBar(this, this.hass!, card.cameras[main], whole, screenPlace, [...sound, ...fills], this.lines(main))
             }
-            ${this.talkParts(card, whole)}
+            ${this.talkParts(card, whole, nameIn)}
+            ${debug}
           </div>`
         : nothing}
+      ${tuning ? tuneDialog({ hass: this.hass!, select, where, rules: figures.rules, changed: () => this.requestUpdate() }) : nothing}${this.clipsDialog()}
     </ha-card>`;
+  }
+
+  /** Record this device's sizes (the debug box's RECORD): to the app's log, by way of the
+   * integration, which takes it only while the commander's debug is on. Its reference, or
+   * why it failed, stays in the debug box. */
+  private async record(card: Card, figures: Figures, main: string, desk: boolean) {
+    const ref = reference();
+    const select = this._config!.entity!;
+    const picture = new URL(card.picture).pathname.match(/\/g\/(.+)\.mjpg$/)?.[1] ?? "";
+    try {
+      await this.hass!.callWS({ type: "casa_mia_commander/tuning", picture, entry: recordOf({ ref, select, figures, main, version: VERSION, desk }) });
+      this._tuneNote = `Recorded ${ref}`;
+      console.info(`casa-mia: tuning recorded as ${ref}`);
+    } catch (err) {
+      this._tuneNote = `${ref} not recorded: ${(err as { message?: string })?.message ?? String(err)}`;
+      console.warn(`casa-mia: ${this._tuneNote}`);
+    }
   }
 
   /** A tap on a panel camera makes it the main one, on every device showing the commander
    * (the select is shared); a call goes on, as talking is a session of its own (talk.ts). */
   private choose(card: Card, camera: string) {
     this.hass?.callService("select", "select_option", { option: card.cameras[camera]?.title }, { entity_id: this._config!.entity });
+  }
+
+  /** The main camera's presets and zoom, for the controls bar (full.ts): the line opened
+   * out, and the taps, which call the camera's PTZ action or set its zoom's number. One
+   * that fails is said with the controls: Home Assistant's own message is outside the
+   * card, so unseen while the card has the whole screen. */
+  private lines(main: string): Lines {
+    const sent = async (what: string, call: Promise<unknown>) => {
+      clearTimeout(this.ptzNoteGone);
+      this._ptzFailed = "";
+      try {
+        await call;
+        console.info(`casa-mia: ${main}: ${what}`);
+        return true;
+      } catch (err) {
+        const why = (err as { message?: string })?.message ?? String(err);
+        console.warn(`casa-mia: ${main}: ${what} failed: ${why}`);
+        this._ptzFailed = `${what}: ${why}`;
+        this.ptzNoteGone = window.setTimeout(() => (this._ptzFailed = ""), PTZ_NOTE_MS);
+        return false;
+      }
+    };
+    const open = this._opened.camera === main ? this._opened.line : "";
+    return {
+      open,
+      armed: this._armed?.camera === main ? this._armed.key : "",
+      arm: (key) => {
+        clearTimeout(this.armGone);
+        this._armed = key ? { camera: main, key } : null;
+        if (key) this.armGone = window.setTimeout(() => (this._armed = null), ARMED_MS);
+      },
+      failed: this._ptzFailed,
+      zoomTo: this._zoomTo?.camera === main ? this._zoomTo.value : null,
+      show: (line) => (this._opened = { camera: main, line: open === line ? "" : line }),
+      go: (preset: Preset) => {
+        const [domain, service] = preset.action.split(".");
+        void sent(preset.name, this.hass!.callService(domain, service, preset.data));
+      },
+      zoom: async (entity, value) => {
+        // On its way until the camera says it is there, or the lease lapses.
+        clearTimeout(this.zoomToGone);
+        this._zoomTo = { camera: main, value };
+        this.zoomToGone = window.setTimeout(() => (this._zoomTo = null), ZOOM_PENDING_MS);
+        if (!(await sent("Zoom", this.hass!.callService("number", "set_value", { value }, { entity_id: entity })))) {
+          clearTimeout(this.zoomToGone);
+          this._zoomTo = null;
+        }
+      },
+    };
   }
 
   /** A tap on the main camera: its more-info (HA's camera dialog, the default), its live
@@ -316,10 +530,10 @@ export class CommanderCard extends CommanderTalk {
     else if (how === "full" && this.liveMain(card)) this._full = camera;
     else if (how !== "none") {
       // Home Assistant's dialog is outside the card, so under it while it has the screen.
-      if (this._screen) fill(this, false);
+      if (this._screen) this.toScreen(false);
       fire(this, "hass-more-info", { entityId: camera });
     }
   }
 
-  static styles = [...styles, PILLS, talkStyles, fullStyles];
+  static styles = [...styles, PILLS, talkStyles, fullStyles, tuneStyles];
 }

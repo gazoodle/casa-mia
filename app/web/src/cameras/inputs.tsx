@@ -3,9 +3,9 @@ import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import edges from "./edges.module.css";
 import { Segmented } from "../ui";
-import { Slider } from "../controls";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, PILL_SIZES, controlsAt, controlsStyle } from "./controls";
+import { Slider } from "../controls";
+import { type ControlsAt, EDGES, controlsAt, foldPresets, previewStyle, twoTaps } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -100,7 +100,13 @@ export function EntityInput({
               ref={i === at ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
               onPointerEnter={() => setAt(i)}
               onPointerDown={(ev) => ev.preventDefault()} // keep the focus in the field
-              onClick={() => pick(e.entity)}
+              onClick={(ev) => {
+                // In a Field the menu is inside a <label>, which passes this click on to
+                // its field: the menu opened again after a pick (as the Select's did,
+                // 2026.11.12-b3). A prevented click isn't passed on.
+                ev.preventDefault();
+                pick(e.entity);
+              }}
             >
               <span className={css.entity}>
                 <span>{e.name}</span>
@@ -138,18 +144,25 @@ export function Thumb({ entity, className = css.thumb }: { entity: string; class
 /** The previews' scale: a 1280 x 800 tablet each way round, drawn 384 px wide in
  * landscape and 240 px in portrait (edges.module.css). */
 const PREVIEW = 0.3;
+const TABLET: Record<"landscape" | "portrait", [number, number]> = { landscape: [1280, 800], portrait: [800, 1280] };
 
-/** How a camera's controls are shown on a commander's full screen: an edge for a wide
- * screen and one for a tall one, where along it, the pills' size and background, each
- * screen previewed to scale over the camera's still. */
+/** How a camera's controls and PTZ presets are shown on a commander's full screen: an edge
+ * for a wide screen and one for a tall one, where along it and how solid the buttons'
+ * background is, each screen previewed to scale over the camera's still. */
 export function ControlsEdges({
   entity,
   controls,
+  presets,
+  zoom,
   value,
   onChange,
 }: {
   entity: string;
   controls: Control[];
+  /** Its PTZ presets, by the names shown. */
+  presets: string[];
+  /** Whether it has a zoom: one Zoom button, which opens its stepper. */
+  zoom: boolean;
   value?: Partial<ControlsAt>;
   onChange: (at: ControlsAt) => void;
 }) {
@@ -157,6 +170,11 @@ export function ControlsEdges({
   const set = (change: Partial<ControlsAt>) => onChange({ ...at, ...change });
   const entities = useContext(Entities);
   const names = controls.map((c) => c.name || entities.find((e) => e.entity === c.entity)?.name || c.entity);
+  const zooms = zoom ? ["Zoom"] : [];
+  // Each screen's bar as the card would show it there: the presets by name, or behind
+  // PTZ where they don't fit (controls.ts: foldPresets).
+  const fold = (shape: "landscape" | "portrait") => foldPresets(TABLET[shape], at[shape], [...names, ...zooms], presets);
+  const pills = (shape: "landscape" | "portrait") => [...names, ...(presets.length ? (fold(shape) ? ["PTZ"] : presets) : []), ...zooms];
   return (
     <>
       <div className={edges.edges}>
@@ -165,10 +183,10 @@ export function ControlsEdges({
             <Segmented value={at[shape]} options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])} onChange={(edge) => set({ [shape]: edge })} />
             <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
               <Thumb entity={entity} className={edges.screenPicture} />
-              <div className={`${edges.screenControls} ${edges[at[shape]]}`} style={controlsStyle(at, PREVIEW)}>
-                {names.map((n, i) => (
+              <div className={`${edges.screenControls} ${edges[at[shape]]}`} style={previewStyle(at, PREVIEW)}>
+                {pills(shape).map((n, i) => (
                   <span key={i} className={edges.pill} title={n}>
-                    {n}
+                    <span>{n}</span>
                   </span>
                 ))}
               </div>
@@ -177,8 +195,6 @@ export function ControlsEdges({
         ))}
       </div>
       <div className={edges.look}>
-        <span>Size</span>
-        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v} px`} onChange={(size) => set({ size })} />
         <span>Along the edge</span>
         <Segmented
           value={at.align}
@@ -192,8 +208,10 @@ export function ControlsEdges({
   );
 }
 
-/** Entities shown at the top of a page (gates, lights): tapping one toggles it. */
+/** Entities shown at the top of a page (gates, lights): tapping one toggles it. Each has
+ * Two taps, ticked for a lock, a gate and the like until set (controls.ts: twoTaps). */
 export function Controls({ value, onChange }: { value: Control[]; onChange: (c: Control[]) => void }) {
+  const entities = useContext(Entities);
   const set = (i: number, c: Partial<Control>) => {
     const next = value.map((x, j) => (j === i ? clean({ ...x, ...c }) : x));
     onChange(next);
@@ -205,9 +223,19 @@ export function Controls({ value, onChange }: { value: Control[]; onChange: (c: 
           <EntityInput placeholder="switch.gate" value={c.entity} onChange={(entity) => set(i, { entity })} />
           <input placeholder="Name (the entity's own)" value={c.name ?? ""} onChange={(e) => set(i, { name: e.target.value })} />
           <input placeholder="mdi:gate (the entity's own)" value={c.icon ?? ""} onChange={(e) => set(i, { icon: e.target.value })} />
-          <button className={ui.iconButton} onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="Remove control">
-            ✕
-          </button>
+          <span className={css.controlEnd}>
+            <label title="On a Camera Commander card, the first tap on its button only gets it ready; a second tap works it, and a tap anywhere else lets it be.">
+              <input
+                type="checkbox"
+                checked={twoTaps(c, entities.find((e) => e.entity === c.entity)?.device_class)}
+                onChange={(e) => set(i, { confirm: e.target.checked })}
+              />
+              Two taps
+            </label>
+            <button className={ui.iconButton} onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="Remove control">
+              ✕
+            </button>
+          </span>
         </div>
       ))}
       <button className={`${ui.button} ${ui.small} ${css.start}`} onClick={() => onChange([...value, { entity: "" }])}>
@@ -221,5 +249,6 @@ export function clean(c: Control): Control {
   const out: Control = { entity: c.entity };
   if (c.name) out.name = c.name;
   if (c.icon) out.icon = c.icon;
+  if (c.confirm !== undefined) out.confirm = c.confirm;
   return out;
 }

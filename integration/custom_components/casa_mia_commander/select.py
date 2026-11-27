@@ -14,6 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
 from .commanders import CommanderEntity, add_commander_entities, unique_id
+from .fired import FIRED
 from .motion import tracker
 
 
@@ -33,10 +34,13 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
     """A commander's main camera. Its `card` attribute is what the Camera Commander card
     (Casa Mia's www/cm-cards.js) draws the commander from: layout, picture, cameras (see the app's
     commander.Live._card); `motion` each camera's motion sensor, which the card watches to
-    mark its tile. Kept out of the recorder: they only matter now."""
+    mark its tile; `detections` each camera's event entities and their translation keys
+    (detections.py), which the card watches for its detection chips; `fired` the time
+    each of those last fired, where its state lost it in a restart (fired.py). Kept out
+    of the recorder: they only matter now."""
 
     _attr_translation_key = "commander_main"
-    _unrecorded_attributes = frozenset({"card", "motion"})
+    _unrecorded_attributes = frozenset({"card", "motion", "detections", "fired"})
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
@@ -57,6 +61,11 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
         shown.append(show)
         self.async_on_remove(lambda: shown.remove(show))
 
+        # New sensors or detections show at once, not at the app's next report.
+        found = tracker(self.coordinator, self.cid).found
+        found.append(self.async_write_ha_state)
+        self.async_on_remove(lambda: found.remove(self.async_write_ha_state))
+
     @property
     def available(self) -> bool:
         return super().available and bool(self.commander.get("options"))
@@ -67,10 +76,14 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        sensors = tracker(self.coordinator, self.cid).sensors  # sensor -> camera
+        found = tracker(self.coordinator, self.cid)
+        fired = self.hass.data.get(FIRED)
+        events = (e for entities in found.detections.values() for e in entities)
         return {
             "card": self.commander.get("card"),
-            "motion": {camera: sensor for sensor, camera in sensors.items()},
+            "motion": {camera: sensor for sensor, camera in found.sensors.items()},
+            "detections": found.detections,
+            "fired": fired.lost(events) if fired else {},
         }
 
     @property

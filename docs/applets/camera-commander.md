@@ -216,6 +216,12 @@ crops the cameras least is used.
   takes it out and **+ Add…** puts one back.
 - **Different when the space is taller than wide:** a second list of edges for a tall
   space, such as a phone held upright.
+- **Keep the last place for a card:** the last place, in the corner of the picture, is
+  left clear of cameras, and each Camera Commander card showing this commander can draw
+  a card of its own there, such as a clock or a few buttons (see
+  [Cards in the last place](#cards-in-the-last-place)). The place is never given to a
+  camera: when there are too many, **+n more** takes the place before it. A size that
+  shows the main camera alone has no such place.
 - **When the limits can't all be met:** **Find something that fits** uses other edges,
   then lets the main camera go below its least, then the tiles below the smallest. Each
   time, your own edges are tried before any other, and an edge that didn't help is not
@@ -254,8 +260,11 @@ The **Any size** preview shows the names as you change them.
   DejaVu Sans Mono, which is fixed width. With Standard, the name over a live main camera
   is in the browser's own font, which is a little different from the drawn one; with the
   DejaVu fonts the two are the same.
-- **Tile name size** and **Main camera name size:** in px. A screen with more pixels draws
-  a name with more of them, so it looks the same size on every screen.
+- **Tile name size:** a % of the tiles' names' size, 100% at first. At 100% they are
+  11 px, the same on a phone, a tablet and a computer. A name too long for its tile is
+  cut short with "…". The motion dot is half the size of the tiles' names.
+- **Main camera name size:** a % of the main camera's name's size, 100% at first. At
+  100% it is 14 px on every device. The clock is the same size as the name.
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
   with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the
@@ -268,6 +277,30 @@ The **Any size** preview shows the names as you change them.
   below 0 moves it left or up. **Show where they go** puts a sample of each on the
   preview; it isn't saved.
 - **Reset to defaults** puts every one of these back to what it was at first.
+
+### Tuning the sizes on one device
+
+With a commander's **debug** on, every card showing it has a box of figures, in the
+middle of the card or of the main camera's full screen. The **−** at its top left folds
+it down to its buttons, so you can see the tiles past it; **+** shows the figures again. It says where the card is (in
+the page, with the whole screen, or with the main camera full screen), the main
+camera's place and the smallest tile in px, and for each of the tile names, the main
+camera's name and the motion dot the size in use and how it was worked out.
+
+**EDIT** opens a small dialog you can drag by its title bar, and fold down to that bar
+with its own **−**. Choose one of the three, and
+set its size with the slider or the number box: the card shows it at once. Each place
+the card can be is set on its own. The sizes are kept only on this device and only
+until the page is refreshed; **Back to the rule** returns one to the size its setting
+gives. The controls are not in the dialog: they are one size everywhere.
+While the dialog is open the commander's **Track motion** is off, so the main camera
+doesn't change under you. That switch is every device's, and the box says so in red; it
+is turned on again when the dialog is closed.
+
+**RECORD** writes this device's figures, the worked-out sizes and every size set by hand
+to the Casa Mia log, under a reference such as `T-1127-143205-KQZ`, which the box then
+shows. Quote it when you talk about the result. It works only while the commander's debug
+is on.
 
 ## In Home Assistant
 
@@ -296,9 +329,12 @@ its width. A Responsive commander in a narrow column, such as a phone held uprig
 the height of the screen below it instead, so it is laid out as a tall space and not as a
 short strip.
 
-The editor groups its options into **Main camera**, **Security look**, **Motion dot**,
-**Talking** and a collapsed **Connection and performance** section. Security look and
-Motion dot show their colour and adjustment controls only while their switches are on.
+The editor has the **Commander** select at the top and the other options in sections
+that start collapsed, so they all fit on a phone's screen: **View** (live video and the
+security look), **Behaviour** (a tap on the main camera and the buttons over it),
+**Intercom**, **Notifications** (the motion dot), **Last place** and **Connection and
+performance**. Press a section's header to open it. Security look and Motion dot show
+their colour and adjustment controls only while their switches are on.
 Hidden choices are kept, so switching a feature back on restores them. Colour controls
 stay compact, with adjustments alongside on wider screens and below on narrow screens.
 
@@ -311,11 +347,19 @@ Its options (each left at its default unless you change it):
   with live video (the default); or **its page on the camera dashboard** (more-info when
   there is no dashboard); or **full screen, with its controls**; or nothing. Full screen
   shows the camera live over the whole screen, with its page controls as buttons along
-  the edge set on the Cameras page, and a tap on the picture goes back. Talk carries on
-  through it. Where the camera can't play live on the device, the tap opens more-info.
+  the edge set on the Cameras page. Pinch the picture, or turn the mouse wheel over it,
+  to enlarge it, and drag to move it about; a chip beside the camera's name says by how
+  much (2.4×, say), and the card plays a larger channel of the camera where it has one,
+  so the detail is there. The picture goes back to whole a minute after the last touch,
+  or at a tap on the picture or the chip, and a tap on the whole picture leaves full
+  screen. This enlarges the picture on the screen; the camera's own zoom is the **Zoom**
+  button. Talk carries on through it. Where the camera can't play live on the device, the
+  tap opens more-info.
 - **Its controls over the main camera**, **Sound button** and **Full screen button:**
   buttons over the main camera. See
   [Controls and buttons over the main camera](#controls-and-buttons-over-the-main-camera).
+- **Last place:** cards of your own in the commander's last place. See
+  [Cards in the last place](#cards-in-the-last-place).
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. Direct means the app's own address, on port
   8099. With the default, a page at home that gets no picture from that address within
@@ -324,7 +368,16 @@ Its options (each left at its default unless you change it):
   Full to Data saver, hidden when **Always direct** is selected.
 - **Main camera as live video:** the main camera plays as live video over the picture
   (Home Assistant's WebRTC, decoded by the tablet), when the compositor's **Live main
-  camera** switch is on. Its title says **(live)** while video is arriving. When a channel
+  camera** switch is on. While video is arriving, a green **LIVE** pill follows the
+  camera's name (**DELAYED** in grey on a device that plays it over HLS, some seconds
+  behind), and beside it three rising bars show which UniFi Protect channel is playing:
+  one bar filled for low, two for medium, all three for high (its size shows when you
+  point at it). A chip after them shows the channel's bars with **Starting** while the
+  video starts, **coming** while a sharper channel gets ready behind the one shown, and
+  **failed** when that channel wouldn't play, with the reason and when it is tried again
+  when you point at it. These pills and chips are as tall as the name, and as
+  see-through as the camera's controls (its **Background** on the
+  [Cameras](cameras.md) page). When a channel
   of the camera won't play, the card plays another of its channels, and when none plays
   it shows the drawn picture and says **Live lost … ago** with the reason, and tries
   again by itself (see Troubleshooting).
@@ -333,13 +386,106 @@ Its options (each left at its default unless you change it):
 - **Security look:** every picture in tinted monochrome, like a control room, with its
   tint, strength and darkness.
 - **Motion dot:** a small dot pulsing on a camera's tile while its motion sensor sees
-  motion, and for a while after; hover it for when. Its colour, size, pulse (0: steady),
-  how long it stays after the motion, and its corner. A camera whose own motion detection
+  motion, and for a while after; hover it for when. Its colour, pulse (0: steady), how
+  long it stays after the motion (a detection chip stays as long, see below), and its
+  corner. It is half the size of the tiles'
+  names, so it is in proportion on every screen (the commander's **Tile name size**). A camera whose own motion detection
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
   your own buttons.
-- **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
+- **Intercom → Mode:** full duplex (the default), where your voice goes out as soon as
   you answer, or half duplex, where it goes out only while you hold a button (see below).
+
+### What the main camera reports
+
+When the main camera reports something, the card shows a chip beside its name: a person,
+a vehicle (its number plate, when the camera read one), an animal, a package, a face, a
+doorbell ring, or a sound such as a smoke alarm, glass breaking or a dog barking. A chip
+stays for as long as the motion dot does after motion (10 seconds unless you changed it),
+newest first, and at most three are shown, then **+1** and so on. Hover a chip for what
+it was and when.
+
+The chips come from the event entities Home Assistant has on the camera's device. UniFi
+Protect makes these for its cameras and doorbells, and any other integration that makes
+event entities on a camera's device works too. Motion has no chip, as the motion dot
+already shows it.
+
+The card draws the main camera's name itself, and the clock beside it while the main
+camera isn't playing live, so the chips have a name to sit beside. The commander's
+picture leaves both out for the card.
+
+### Its recordings
+
+For a UniFi Protect camera, a press on the main camera's name, or on one of its chips,
+opens its recordings. While the camera reports nothing, a grey chip beside its name says
+its latest detection and when (such as **Person 12:04** or **Doorbell yesterday 18:02**),
+so you can see there is something to watch. It says **Recordings** when no detection is
+known yet. A chip opens the dialog on its own kind: a doorbell ring on Doorbell, a sound
+on Sounds, the rest on Detections.
+
+The chosen recording is shown at the camera's own shape, so its picture fills its space.
+On a landscape screen at least 700 px wide, the recordings are listed on the left and the
+one chosen is shown on the right, and the dialog is as tall as that picture needs (up to
+the screen's height). On a portrait screen the dialog fills the screen, up to 1280 px each
+way, and the chosen recording is shown above the list, no taller than 480 px. It starts
+on the newest recording's picture, which plays when you press **Play**. Press any
+recording in the list to play it there.
+
+The chips along the top choose what is listed: **Detections** (people, vehicles, animals
+and packages), **Doorbell** (its rings, for a doorbell), **Sounds** or **Motion**. The two
+round chips beside **Close** show the list as tiles or as rows; each device remembers
+which. The list starts with today, newest first, and fetches the day before by itself
+whenever you reach its end, or while there is room for more. A run of days with nothing
+recorded is said in one line. After 7 such days in a row it stops, and **Look further
+back** goes on. **Close**, a press outside the dialog, or Escape closes it and stops the
+clip.
+
+Guests don't get the recordings: for a user that a [Guest Login](guest-login.md)
+endpoint signs visitors in as, the name and chips do what a press on the main camera
+does, and the grey chip isn't shown. This is the card's limit only. Home Assistant has no
+permission for its media library, so anyone signed in can still reach the recordings
+through Home Assistant's own Media browser, which Guest Login's kiosk options hide from
+visitors along with the sidebar.
+
+They are the recordings Home Assistant's UniFi Protect integration lists in its media
+library (Media in the sidebar). For each day it lists at most its **max media** option's
+number of events (1,000 unless you changed it) across all of the console's cameras, so
+on a busy day the list can be incomplete, and the dialog says so when it is. For a camera
+without recordings there, a press on its name or a chip does what a press on the main
+camera does.
+
+### Cards in the last place
+
+A Responsive commander can keep its last place, in the corner of the picture, clear of
+cameras (**Keep the last place for a card**, on the Camera Commander page). The card then
+draws Lovelace cards of your choosing there. They are set in the card's editor, under
+**Last place**, which shows them only when the commander chosen keeps the place, and
+otherwise says where to switch it on. Two dashboards showing the same commander can each
+have their own cards there.
+
+The cards are a list, in order, and the first one that is showing fills the place. So the
+order is the priority: put an alert first and a clock last, and the clock shows whenever
+the alert has nothing to say. Whether a card is showing is decided by Home Assistant, as on
+any dashboard: by the conditions on the card's **Visibility** tab, or by the card itself
+when it has nothing to show. While the dashboard is being edited, every card counts as
+showing, so the first one fills the place.
+
+In the editor each card is a chip, numbered in the list's order. **+ Add card** opens Home
+Assistant's card picker. For the chosen card, **‹ Earlier** and **Later ›** move it,
+**✕ Remove** takes it out, and **Card** and **Visibility** open Home Assistant's own editor
+for the card and for its visibility conditions, as in Home Assistant's own edit dialog.
+
+Some cards that suit the place: [Casa Mia Clock](../clock-and-buttons.md#casa-mia-clock),
+which fills it; [Casa Mia Buttons](../clock-and-buttons.md#casa-mia-buttons), four of
+which fit it on a phone; a card that shows alerts only when there are any. With many cameras the place is one tile, and a
+card made for a wide column may not fit it: anything that doesn't fit is cut off at its
+edge.
+
+A tap in the place goes to the card in it and never changes the main camera. The place is
+clear in the picture itself, so anything that shows the commander's picture without this
+card has nothing there. While the dashboard is being edited, the place says that cards go
+there when none are set, and the card says so when it has cards and the commander keeps no
+place for them.
 
 ### Controls and buttons over the main camera
 
@@ -349,18 +495,40 @@ buttons over the main camera, in one bar with two buttons of its own.
 
 <img src="../screenshots/commander-controls.webp" alt="A commander on a dashboard whose main camera, Entrance, shows a front door. Along the foot of the main camera are three rounded buttons: Full screen, Front door with a padlock icon, and Hall light with a lamp icon. Panels of other cameras run down the left and along the bottom" width="800">
 
+- **The buttons** have Casa Mia's chip size, font and shape: the same on every device,
+  in capitals, and always with their names. They are white on a see-through black.
 - **The camera's controls.** Each button shows the entity's own icon and the name you
   gave it, and is coloured while the entity is on, open or unlocked. A tap is Home
   Assistant's toggle, the same as a tap on the entity's tile on a dashboard: a light
   switches, a lock locks or unlocks, a cover opens or closes. An entity that Home
   Assistant can't find, or that is unavailable, has a dimmed button that says so. The
   controls belong to the camera, so they change when the main camera does.
+- **Two taps.** A control with **Two taps** ticked on the Cameras page (a lock, a gate
+  or a garage door, unless you untick it) is not worked by its first tap. That tap turns
+  the button amber and adds "tap again" to its name, and a second tap on it works it. A
+  tap anywhere else, or six seconds without the second tap, lets it be. If the entity
+  changes in the meantime (someone opens the gate from elsewhere), the button is no
+  longer ready, and the next tap starts again.
+- **The camera's PTZ presets.** They are in the same bar, after the controls. A camera
+  with up to three presets has a button for each, named as the preset is on the Cameras
+  page. A camera with more has one **PTZ** button: a tap opens all its presets as a
+  second line beside the bar, on the picture's side of it (under a bar along the top, to
+  the left of a bar down the right), and another tap on it, or a tap anywhere else on the camera, puts them away. A tap on a preset
+  moves the camera. If Home Assistant refuses, the reason is shown with the controls for
+  ten seconds.
+- **The camera's zoom.** A camera with a zoom entity has a **Zoom** button in the same
+  bar, showing its level as a share of the zoom's range. A tap opens a line beside the
+  bar: **Out** and **In** move a tenth of the range each, the level is between them, and
+  **Reset** zooms all the way out. The level is the camera's own, so it follows a PTZ
+  preset that moves the lens, and a level asked for and not yet reached is shown as on
+  its way. The presets and the zoom are never both opened out: opening one puts the
+  other away.
 - **Where they show.** With **Its controls over the main camera** on, over the main
   camera on the commander. They are always on the main camera's full screen (**A tap on
   the main camera: full screen, with its controls**), whatever that switch says.
-- **How they look.** The edge they go along, where along it they sit, their size and how
-  solid their background is are set for each camera on the Cameras page, under
-  **Controls on a full screen**. There is one edge for a wide space and one for a tall
+- **Where they go.** The edge they go along, where along it they sit and how solid their
+  background is are set for each camera on the Cameras page, under **Controls on a full
+  screen**. There is one edge for a wide space and one for a tall
   one. Over the main camera, wide or tall goes by the shape of the main camera's area,
   not by the screen's.
 - **Sound button.** Off by default. A button to hear the main camera, shown wherever the
@@ -368,28 +536,31 @@ buttons over the main camera, in one bar with two buttons of its own.
   to off when the main camera changes, so a camera is never heard without a tap of its
   own. The camera is not heard while you talk to a doorbell, because the visitor is heard
   through Talk.
-- **Full screen button.** Off by default. A button that puts the whole commander over
-  the entire screen. It shows over the main camera whether or not the camera's controls
-  do.
+- **Full screen button.** Off by default. A button named **Full** that puts the whole
+  commander over the entire screen. It shows over the main camera whether or not the
+  camera's controls do.
 
 #### The commander full screen
 
 <img src="../screenshots/commander-full-screen.webp" alt="The same commander after a tap on Full screen: it fills the whole screen, with no browser bars and none of Home Assistant's header or sidebar. The first button now reads Exit full screen and is coloured; Front door and Hall light are beside it" width="800">
 
-A tap on **Full screen** asks the browser to show the card by itself. The browser's
+A tap on **Full** asks the browser to show the card by itself. The browser's
 address bar and tabs go, and so do Home Assistant's header and sidebar. The commander is
-drawn again for the larger space. Tap **Exit full screen** to go back, or use the
+drawn again for the larger space. The button is shown pressed; tap it again to go back, or use the
 browser's own way out (Esc on a keyboard, or the close button Safari shows).
 
-- It works in a browser on a computer or a tablet, Safari on an iPad included. It is not
-  shown in an app or frame that doesn't allow full screen.
+- It works in a browser on a computer or a tablet, Safari on an iPad included.
+- Safari on an iPhone, the Home Assistant app on an iPad or an iPhone, and a frame that
+  doesn't allow full screen can't give a page the whole screen. There the commander
+  fills the app's window instead, over Home Assistant's header and sidebar. In Safari on
+  an iPhone, Safari's own bars stay.
+- A kiosk app that zooms its pages (to 1.6×, say) loses the zoom in the browser's full
+  screen, so everything there would be smaller than on the page. The card sees the zoom,
+  and there it fills the kiosk's window instead, which already fills the screen, so the
+  zoom stays. It also asks for the picture at the zoomed size, so it is sharp.
 - An iPad keeps its status bar (the time, the date, the battery) on top of a full screen
   page. The commander leaves a black strip at the top for it, so the status bar doesn't
   sit over the picture.
-- Safari on an iPhone can't show a page full screen, only a video. There the button
-  puts the main camera's live video in the phone's own player, without the other
-  cameras or the buttons, and the player's own close button comes back to the
-  commander. The button is shown only while the main camera is playing as live video.
 - A browser only allows full screen from a tap, so after the page reloads it has to be
   tapped again. For a tablet that is left on one page,
   add the page to its Home Screen instead (Safari: Share, then **Add to Home Screen**),
@@ -422,7 +593,7 @@ on an https address, because browsers only give a microphone to secure pages.
 
 #### Half duplex: hold to talk
 
-With **Mode** under **Talking** set to half duplex, the button says **Answer**. Answering
+With **Mode** under **Intercom** set to half duplex, the button says **Answer**. Answering
 opens the call with the microphone silent: you hear the visitor, and the door hears nothing. A **Hold to
 talk** button appears next to Hang up, and your voice goes out only while you hold it,
 like a walkie-talkie. While you hold it the button says **Live**, and the visitor's
@@ -556,6 +727,12 @@ duplex: full     # or half; only for button: answer
   `adb install -r`. Otherwise set the camera to H.264 (in UniFi Protect,
   the camera's encoding setting: Standard is H.264, Enhanced is H.265), or leave it: the
   drawn picture is the same camera.
+- **A tablet plays the medium channel (two bars) on full screen, not the high one:** the
+  tablet says it can't decode the high channel smoothly, so the card doesn't try it. Many
+  tablets decode H.265 only up to 2560 x 1440, and a 4K or 2688 x 1512 high channel is
+  larger. Trying it anyway never showed a frame there, and stopped the channel already
+  on screen too. The browser's console has a `casa-mia:` line for each size it rules
+  out.
 
 - **Taps on the commander do nothing:** the page says so when Home Assistant has no Main
   camera select for it yet: add the Casa Mia Camera Commander integration (see "In Home
@@ -564,5 +741,17 @@ duplex: full     # or half; only for button: answer
   with "its page on the camera dashboard" chosen; choose more-info in its editor.
 - **No motion dot on a camera:** check its motion detection on the [Cameras](cameras.md)
   page.
+- **No chips when the camera sees someone:** the card shows what the camera's event
+  entities report. In Developer tools, States, the commander's Main camera select has a
+  `detections` attribute that lists each camera's event entities; a camera missing from
+  it has none on its device (in UniFi Protect, check its smart detections are on).
+- **A press on the main camera's name opens nothing:** its recordings are offered only for
+  a UniFi Protect camera that Protect's media library has a folder for (Media in Home
+  Assistant's sidebar, then UniFi Protect), and never to a guest. The card looks once
+  each time the page loads, so for a camera added since, reload the page.
+- **A clip doesn't play:** the dialog says why, and the browser's console has a
+  `casa-mia:` line for each step. When a browser can't play a clip from Home Assistant's
+  address, the card fetches the whole clip first, saying how much has arrived, and plays
+  it from there.
 - **The log** has a line for every save (`commander: saved N commanders (changed: …)`)
   and every main camera chosen (`commander '…': main camera … (from Home Assistant)`).

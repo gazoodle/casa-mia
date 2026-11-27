@@ -4,6 +4,7 @@ import { Dialog, Field, Switch } from "../ui";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import { Camera, DEFAULT_PTZ, HACamera, Preset } from "./common";
+import { controlsAt } from "./controls";
 import { Controls, ControlsEdges, EntityInput } from "./inputs";
 
 export function AddCameras({
@@ -80,6 +81,8 @@ export function CameraDialog({
   const [presets, setPresets] = useState(presetText(camera.ptz?.presets ?? []));
   const set = (change: Partial<Camera>) => setC((x) => ({ ...x, ...change }));
   const opt = (v: string) => v.trim() || undefined;
+  // The names its presets are shown by, where it has PTZ: they stand with its controls.
+  const presetNames = c.ptz ? parsePresets(presets).map((p) => (typeof p === "string" ? p : (p.label ?? p.preset))) : [];
   return (
     <Dialog
       title={`${camera.title}`}
@@ -98,10 +101,9 @@ export function CameraDialog({
               for (const k of ["medium", "high", "zoom"] as const) if (!out[k]) delete out[k];
               delete out.live; // the dashboard's choice now (Auto Dashboards)
               if (out.ptz) out.ptz = { ...out.ptz, presets: parsePresets(presets) };
-              if (!out.controls?.length) {
-                delete out.controls;
-                delete out.controls_at;
-              }
+              if (!out.controls?.length) delete out.controls;
+              if (!out.controls && !out.ptz?.presets.length && !out.zoom) delete out.controls_at;
+              else if (out.controls_at) out.controls_at = controlsAt(out.controls_at); // (a size of its own dropped)
               onSave(out);
             }}
           >
@@ -123,7 +125,7 @@ export function CameraDialog({
         <Field label="High channel" help="Everyone else. Blank: the camera itself.">
           <EntityInput domain="camera" value={c.high ?? ""} placeholder={ha?.high} onChange={(v) => set({ high: opt(v) })} />
         </Field>
-        <Field label="Zoom" help="A number entity; shown on its page.">
+        <Field label="Zoom" help="A number entity; shown on its page, and as a Zoom button with its controls on a Camera Commander card.">
           <EntityInput domain="number" value={c.zoom ?? ""} placeholder={ha?.zoom} onChange={(v) => set({ zoom: opt(v) })} />
         </Field>
       </div>
@@ -152,15 +154,20 @@ export function CameraDialog({
           </Field>
         </div>
       )}
-      <Field label="Page controls" help="Entities at the top of its live page (a gate, a light); a tap toggles them.">
+      <Field
+        group
+        label="Page controls"
+        help="Entities at the top of its live page (a gate, a light); a tap toggles them. With Two taps, the first tap on its button on a Camera Commander card only gets it ready, and a second tap works it. Two taps is ticked at first for a lock, a valve, a siren, and a garage door, gate or door."
+      >
         <Controls value={c.controls ?? []} onChange={(controls) => set({ controls })} />
       </Field>
-      {!!c.controls?.length && (
+      {(!!c.controls?.length || presetNames.length > 0 || !!c.zoom) && (
         <Field
+          group
           label="Controls on a full screen"
-          help="How they are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen): the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The previews are a 1280 × 800 tablet, to scale."
+          help="How its controls, PTZ presets and zoom are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), or over its main camera: the edge for a wide screen and for a tall one, where along it, and the buttons' background. The buttons are the style guide's chips, one size on every device, and always keep their names. Up to three presets are buttons of their own; more are behind one PTZ button, which opens them out beside the others, as the presets also do where they don't all fit. The previews are a 1280 × 800 tablet, to scale."
         >
-          <ControlsEdges entity={entity} controls={c.controls} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
+          <ControlsEdges entity={entity} controls={c.controls ?? []} presets={presetNames} zoom={!!c.zoom} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
         </Field>
       )}
     </Dialog>

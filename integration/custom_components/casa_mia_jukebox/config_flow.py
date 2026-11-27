@@ -27,11 +27,13 @@ from .const import (
     CHIME,
     CONF_CHIME,
     CONF_HOSTS,
+    CONF_LANGUAGE,
     CONF_PLAYERS,
     CONF_QUIET,
     CONF_SCREENS,
     CONF_SIDEBAR,
     CONF_TTS,
+    CONF_VOICE,
     DOMAIN,
     TITLE,
 )
@@ -124,6 +126,10 @@ class JukeboxFlow(config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOM
 
 
 class JukeboxOptions(OptionsFlow):
+    """The options, then the speech engine's language and voice when one is chosen."""
+
+    _chosen: dict[str, Any]
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -137,4 +143,81 @@ class JukeboxOptions(OptionsFlow):
             )
         # A box emptied in the dialog comes back missing. For the chime that must be
         # kept as "none", or Jukebox's own chime would come back.
-        return self.async_create_entry(data={CONF_CHIME: "", **user_input})
+        self._chosen = {CONF_CHIME: "", **user_input}
+        if self._engine() is None:
+            return self.async_create_entry(data=self._chosen)
+        return await self.async_step_language()
+
+    def _engine(self) -> Any:
+        """The speech engine chosen in the first step, or None."""
+        # Imported here: the tts integration brings audio libraries a house that makes
+        # no announcements need not load.
+        from homeassistant.components import tts  # noqa: PLC0415
+
+        name = self._chosen.get(CONF_TTS)
+        return tts.get_engine_instance(self.hass, name) if name else None
+
+    def _kept(self, key: str) -> Any:
+        """The language or voice chosen before, while the engine is the same one."""
+        options = self.config_entry.options
+        return (
+            options.get(key)
+            if options.get(CONF_TTS) == self._chosen[CONF_TTS]
+            else None
+        )
+
+    async def async_step_language(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The engine's language, asked before the voice: its voices are per language."""
+        engine = self._engine()
+        if user_input is None:
+            languages = list(engine.supported_languages or [])
+            return self.async_show_form(
+                step_id="language",
+                data_schema=self.add_suggested_values_to_schema(
+                    vol.Schema(
+                        {
+                            vol.Required(CONF_LANGUAGE): selector.LanguageSelector(
+                                selector.LanguageSelectorConfig(languages=languages)
+                            )
+                        }
+                    ),
+                    {
+                        CONF_LANGUAGE: self._kept(CONF_LANGUAGE)
+                        or engine.default_language
+                    },
+                ),
+            )
+        self._chosen[CONF_LANGUAGE] = user_input[CONF_LANGUAGE]
+        return await self.async_step_voice()
+
+    async def async_step_voice(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """One of the engine's voices for that language, or none: its own default."""
+        voices = (
+            self._engine().async_get_supported_voices(self._chosen[CONF_LANGUAGE]) or []
+        )
+        if user_input is None and voices:
+            pick = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=v.voice_id, label=v.name)
+                        for v in voices
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    sort=True,
+                )
+            )
+            return self.async_show_form(
+                step_id="voice",
+                data_schema=self.add_suggested_values_to_schema(
+                    vol.Schema({vol.Optional(CONF_VOICE): pick}),
+                    {CONF_VOICE: self._kept(CONF_VOICE)},
+                ),
+            )
+        voice = (user_input or {}).get(CONF_VOICE)
+        return self.async_create_entry(
+            data={**self._chosen, **({CONF_VOICE: voice} if voice else {})}
+        )

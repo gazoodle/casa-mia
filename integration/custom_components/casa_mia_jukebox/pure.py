@@ -13,7 +13,7 @@ Measured on real speakers, 2026-11-23:
 
 from __future__ import annotations
 
-from urllib.parse import quote, urlsplit
+from urllib.parse import urlsplit
 
 # A room's result.
 PLAYED = "played"
@@ -35,14 +35,9 @@ _GOING = {"ACTIVE", "QUEUED"}
 _ENDS = {"DONE": PLAYED, "INTERRUPTED": INTERRUPTED}
 
 
-def speech(engine: str, message: str) -> str:
-    """The media id that has Home Assistant's text-to-speech say a message."""
-    return f"media-source://tts/{engine}?message={quote(message)}"
-
-
-def clips(chime: str, media: str, message: str, engine: str) -> list[str]:
-    """What one announcement plays, in order. Empty strings are left out."""
-    said = speech(engine, message) if message else ""
+def clips(chime: str, media: str, said: str) -> list[str]:
+    """What one announcement plays, in order: `said` is the message's media id. Empty
+    strings are left out."""
     return [clip for clip in (chime, media, said) if clip]
 
 

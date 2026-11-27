@@ -33,8 +33,10 @@ Every change is saved at once: there is no Save button.
   - **Title:** its name on the commander's tile and its page.
   - **Medium channel:** for the wall tablets and phones. **High channel:** for everyone
     else. Blank: the camera itself.
-  - **Zoom:** a number entity, shown on its page.
-  - **PTZ presets** and **page controls** (a gate, a light): shown on its page.
+  - **Zoom:** a number entity, shown on its page, and as a **Zoom** button with the
+    camera's controls on a Camera Commander card.
+  - **PTZ presets** and **page controls** (a gate, a light): shown on its page, and on a
+    Camera Commander card with the camera's controls.
 - **Remove:** it also leaves every commander that shows it.
 
 ### Page controls
@@ -43,6 +45,12 @@ A camera's page controls are entities from Home Assistant that belong with what 
 camera sees: the gate it looks at, the lock on the door, a light. Each has its entity, an
 optional name and an optional icon; left blank, the entity's own name and icon are used.
 **+ Control** adds one.
+
+Each control also has **Two taps**. With it ticked, the first tap on the control's button
+on a Camera Commander card only gets it ready, and a second tap works it, so a finger
+brushing the button doesn't open the gate. It is ticked at first for a lock, a valve, a
+siren, and a cover that is a garage door, a gate or a door. Tick it for any other control
+that needs the same care, such as a switch or a button that opens a gate, or untick it.
 
 <img src="../screenshots/cameras-controls.webp" alt="Editing the Entrance camera on the Cameras page. Under Page controls are two rows, lock.front_door named Front door and light.hall_light named Hall light, and a + Control button. Under Controls on a full screen are a choice of Top, Bottom, Left or Right for a wide screen and for a tall one, each above a small preview of the camera on that screen with the two buttons along its foot, then a Size slider at 56 px, Along the edge (Left or top, Centre, Right or bottom) and a Background slider at 60%" width="480">
 
@@ -53,14 +61,30 @@ They are shown in three places, and a tap on one is Home Assistant's toggle in e
 - as buttons over the main camera on a Camera Commander card, when the card's **Its
   controls over the main camera** is on.
 
+A camera's **PTZ presets** are shown on the card in the same two places, in the same bar
+as its controls. A camera with up to three presets has a button for each. A camera with
+more has one **PTZ** button, which opens the presets out as a second line beside the bar,
+on the picture's side of it. A tap on a preset moves the camera.
+
 **Controls on a full screen** sets how the buttons look on the card, in both of its
-places:
+places. It is there for a camera that has controls or presets:
 
 - **The edge** they go along: one choice for a wide screen and one for a tall one, so a
   tablet turned upright can have them somewhere else.
 - **Along the edge:** at its start, its middle or its end.
-- **Size:** a slider for the buttons' height, from 24 px to 96 px. They start at 56 px. Under about 44 px a button is hard to hit with a finger.
-- **Background:** from clear to solid.
+- **Their size** is not set here. The buttons have Casa Mia's chip size, font and shape,
+  the same on every device, in capitals. They start down the right edge from the top,
+  wide or tall, a button's height in from each end of the edge, so the first one isn't
+  hard against the frame.
+- **When they don't fit:** the PTZ presets go behind the PTZ button. The buttons always
+  keep their names, on a phone too.
+- **A missed tap:** the area the buttons stand in takes a tap that lands between them or
+  just beside one, so it doesn't open the camera full screen. While the PTZ presets are
+  opened out, a tap anywhere else on the camera puts them away.
+- **Background:** how solid the black behind the buttons is, from clear to solid (45%
+  unless you change it). A button is coloured while its entity is on. The Camera
+  Commander's pills and chips beside the camera's name (LIVE, the channel's bars and
+  the detections) use the same setting when the camera is the main one.
 
 The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to
 scale. The buttons themselves are described under

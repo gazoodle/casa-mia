@@ -1,7 +1,8 @@
 // The Camera Commander card's editor.
 import { LitElement, css, html, nothing } from "lit";
-import { fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
+import { type CardConfig, fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
 import { type Config, LEAVE_AFTER, commanders } from "./common.ts";
+import { cardsOf } from "./place.ts";
 import { MOTION } from "./motion.ts";
 import { DUPLEX_CHOICES } from "./talk-rules.ts";
 
@@ -31,8 +32,10 @@ export function withoutDefaults(config: Config): Config {
 }
 
 export class CommanderEditor extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true } };
+  static properties = { hass: { attribute: false }, lovelace: { attribute: false }, _config: { state: true } };
   hass?: Hass;
+  /** The dashboard, which HA's card picker and card editor need (cards-editor.ts). */
+  lovelace?: unknown;
   _config?: Config;
 
   setConfig(config: Config) {
@@ -89,7 +92,6 @@ export class CommanderEditor extends LitElement {
       { name: "leave_after", selector: { number: { min: 0, max: 120, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       { name: "motion_dot", selector: { boolean: {} } },
       { name: "motion_colour", selector: { color_rgb: {} } },
-      { name: "motion_size", selector: { number: { min: 4, max: 40, step: 1, mode: "slider", unit_of_measurement: "px" } } },
       { name: "motion_pulse", selector: { number: { min: 0, max: 5, step: 0.1, mode: "slider", unit_of_measurement: "s" } } },
       { name: "motion_linger", selector: { number: { min: 0, max: 300, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       {
@@ -142,11 +144,14 @@ export class CommanderEditor extends LitElement {
       look_darkness: "Darkness",
       motion_dot: "Show motion dot",
       motion_colour: "Colour",
-      motion_size: "Size",
       motion_pulse: "Pulse",
       motion_linger: "Keep after motion",
       motion_corner: "Corner",
     };
+    // Whether the commander chosen keeps its last place for a card (its Responsive
+    // layout's switch, on the Camera Commander page), as its entity says.
+    const layout = this.hass.states[this._config.entity ?? ""]?.attributes.card?.layout;
+    const keeps = layout?.mode === "responsive" && Boolean(layout.responsive?.card_place);
     const fields = (...names: string[]) => schema.filter((field) => names.includes(field.name));
     const form = (schema: object[], className = "") => html`<ha-form
       class=${className}
@@ -166,15 +171,15 @@ export class CommanderEditor extends LitElement {
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
             : s.name === "main_controls"
-            ? "The main camera's page controls (a gate, a light) over it, as on its full screen: the edge, size and background set for it on the Cameras page, the wide or tall edge by the main camera's own shape."
+            ? "The main camera's page controls (a gate, a light) over it, as on its full screen: the edge and background set for it on the Cameras page, the wide or tall edge by the main camera's own shape."
             : s.name === "sound_button"
             ? "A Sound button with the main camera's controls (on its full screen, and over it when its controls are), to hear the camera. It goes back to off when the main camera changes, and the camera is not heard while you talk (the visitor is heard through Talk)."
             : s.name === "screen_button"
-            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. On an iPhone, where a browser can't show a page full screen, it shows the main camera's live video in the phone's own player instead. It has to be tapped again after the page reloads."
+            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. Where a page can't have the screen (Safari on an iPhone, the Home Assistant app on an iPad or an iPhone), the commander fills the app's window instead. It has to be tapped again after the page reloads."
             : s.name === "talk_button"
             ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
-            ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when."
+            ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when. It is half the size of the tiles' names (the commander's Tile name size)."
             : s.name === "motion_pulse"
             ? "Seconds each pulse takes; 0: a steady dot."
             : s.name === "motion_linger"
@@ -189,47 +194,77 @@ export class CommanderEditor extends LitElement {
       }}
     ></ha-form>`;
 
+    // Each section a collapsed panel, drawn as ha-form draws an expandable group, so the
+    // dialog opens as a short list of headers. `expanded` is never bound: each panel keeps
+    // its own open state through re-renders, so a change inside one doesn't close it.
+    const panel = (title: string, body: unknown) => html`<ha-expansion-panel outlined>
+      <div slot="header" role="heading" aria-level="3">${title}</div>
+      <div class="content">${body}</div>
+    </ha-expansion-panel>`;
+
+    // Connection and performance stays ha-form's own expandable group, not a panel: drawing
+    // it is what makes HA load ha-expansion-panel (ha-form loads it for that schema type
+    // only), and the panels upgrade when it arrives. Made a plain panel, every panel would
+    // draw as bare text wherever nothing else on the page had loaded it.
     return html`
-      <section aria-labelledby="main-heading">
-        <h3 id="main-heading">Main camera</h3>
-        ${form(fields("entity", "live_main", "tap_main", "main_controls", "sound_button", "screen_button"))}
-      </section>
-      <section aria-labelledby="security-heading">
-        <h3 id="security-heading">Security look</h3>
-        ${form(fields("security_look"))}
+      ${form(fields("entity"))}
+      ${panel("View", html`
+        ${form(fields("live_main", "security_look"))}
         ${data.security_look ? html`<div class="details">
           ${form(fields("look_tint"), "colour")}
           ${form(fields("look_strength", "look_darkness"), "adjustments")}
-        </div>` : nothing}
-      </section>
-      <section aria-labelledby="motion-heading">
-        <h3 id="motion-heading">Motion dot</h3>
+        </div>` : nothing}`)}
+      ${panel("Behaviour", form(fields("tap_main", "main_controls", "sound_button", "screen_button")))}
+      ${panel("Intercom", form(fields("talk_button", "duplex")))}
+      ${panel("Notifications", html`
         ${form(fields("motion_dot"))}
         ${data.motion_dot ? html`<div class="details">
           ${form(fields("motion_colour"), "colour")}
-          ${form(fields("motion_size", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
-        </div>` : nothing}
-      </section>
-      <section aria-labelledby="talk-heading">
-        <h3 id="talk-heading">Talking</h3>
-        ${form(fields("talk_button", "duplex"))}
-      </section>
-      <section>
-        ${form([{
-          type: "expandable", name: "", flatten: true,
-          title: "Connection and performance",
-          schema: fields("route", ...(data.route === "direct" ? [] : ["away_sharpness"]), "leave_after"),
-        }])}
-      </section>`;
+          ${form(fields("motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
+        </div>` : nothing}`)}
+      ${panel("Last place", this._config.entity ? this.place(keeps) : html`<p class="note">Choose a commander first.</p>`)}
+      ${form([{
+        type: "expandable", name: "", flatten: true,
+        title: "Connection and performance",
+        schema: fields("route", ...(data.route === "direct" ? [] : ["away_sharpness"]), "leave_after"),
+      }])}`;
+  }
+
+  /** The cards in the commander's last place, where the commander keeps one. Otherwise
+   * where to switch it on; the cards set are kept in the config either way. */
+  private place(keeps: boolean) {
+    if (!keeps)
+      return html`<p class="note">
+        This commander keeps no last place. To put cards there, switch on <strong>Keep the last place for a card</strong> for it on
+        the Camera Commander page (its Responsive layout).
+      </p>`;
+    return html`<p class="note">
+        Cards in the corner of the picture. The first one showing fills the place, so put alerts before a clock: each card's
+        Visibility decides when it shows, and a card with nothing to show hides itself.
+      </p>
+      <casa-mia-cards-editor
+        .hass=${this.hass}
+        .lovelace=${this.lovelace}
+        .cards=${cardsOf(this._config)}
+        @value-changed=${(ev: CustomEvent) => {
+          ev.stopPropagation();
+          // The list replaces b19's single card; an empty list is no option at all.
+          const { card: _single, cards: _list, ...rest } = this._config!;
+          const cards = ev.detail.value as CardConfig[];
+          this._config = withoutDefaults({ ...rest, ...(cards.length ? { cards } : {}) } as Config);
+          fire(this, "config-changed", { config: this._config });
+        }}
+      ></casa-mia-cards-editor>`;
   }
 
   static styles = css`
-    :host { display: block; }
-    section { padding: 16px 0; }
-    section + section { border-top: 1px solid var(--divider-color); }
-    h3 { margin: 0 0 12px; font-size: var(--ha-font-size-m, 16px); }
+    :host { display: flex; flex-direction: column; gap: 8px; }
+    /* As ha-form-expandable styles its panel, so the Connection group matches the rest. */
+    ha-expansion-panel { display: block; --expansion-panel-content-padding: 0; border-radius: 6px; --ha-card-border-radius: 6px; }
+    .content { padding: 12px; }
     .details { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 16px; }
     .colour { flex: 0 0 96px; width: 96px; }
     .adjustments { flex: 1 1 220px; min-width: 0; }
+    .note { margin: 0 0 12px; color: var(--secondary-text-color); }
   `;
 }

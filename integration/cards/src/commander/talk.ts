@@ -278,8 +278,9 @@ export class CommanderTalk extends CommanderLive {
   }
 
   /** Over the main camera: the call's state, "Live to …" while the microphone is on, a
-   * note (the call ended, refused), and the card's own Talk button. */
-  protected talkParts(card: Card, place: string) {
+   * note (the call ended, refused), and the card's own Talk button. `namePx`: the height
+   * of the main camera's name there, which chips at the foot keep clear of. */
+  protected talkParts(card: Card, place: string, namePx: number) {
     const sensor = this.call();
     if (!sensor && !this._talkNote) return nothing;
     const st = this.hass?.states[sensor ?? ""];
@@ -292,7 +293,7 @@ export class CommanderTalk extends CommanderLive {
     // Each where the commander's labels put it (labels.ts), clear of what the camera
     // writes on its own picture; in the same corner, what is said stands over the buttons.
     const labels = labelsOf(card.layout.labels);
-    const at = (where: Place, parts: unknown) => html`<div class="talk-at" style=${styleMap(corner(where, footOf(labels, where)))}>${parts}</div>`;
+    const at = (where: Place, parts: unknown) => html`<div class="talk-at" style=${styleMap(corner(where, footOf(labels, where, namePx)))}>${parts}</div>`;
     const status = html`<div class="talk-said" style=${styleMap(nudge(labels, "talk_status"))}>
         ${out ? html`<span class="cm-pill cm-filled cm-bad">Live to ${card.cameras[this._talk]?.title ?? this.hass?.states[this._talk]?.attributes.friendly_name ?? this._talk}</span>` : nothing}
         ${words ? html`<span class="cm-pill cm-filled ${TONES[st!.state]}">${words}</span>` : nothing}

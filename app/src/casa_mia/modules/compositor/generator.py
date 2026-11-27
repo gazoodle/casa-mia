@@ -378,7 +378,7 @@ class Generator:
         each tile (where: its panel) and the main area. The channel is the one to draw it
         from (see `choose`); until the channels' sizes are known, a tile's low channel
         and the main camera's medium."""
-        _, (_, _, mw, mh), main_fit, tiles, _, _ = placed(cmd, main)
+        _, (_, _, mw, mh), main_fit, tiles, _, _, _ = placed(cmd, main)
         out = []
 
         def place(where: str, camera: str, size: tuple[int, int], whole: bool) -> None:
@@ -438,9 +438,9 @@ class Generator:
         main_image, age = None, math.inf
         for where, camera, chan, _, _ in self._places(cmd, main):
             if where == "main":
-                main_image, age = self.gather.pick(camera, chan)
+                main_image, age = self.gather.pick(camera, chan, limit)
                 continue
-            images[camera], tile_age = self.gather.pick(camera, chan)
+            images[camera], tile_age = self.gather.pick(camera, chan, limit)
             if tile_age > limit:
                 stale.add(camera)
         async with self._draw_lock:
@@ -631,6 +631,7 @@ class Generator:
         def picture(key: str, at: float) -> dict[str, Any]:
             live_main = key.endswith(LIVE_MAIN)
             name, _, size = key.removesuffix(LIVE_MAIN).partition("@")
+            size = size.split("~")[0]  # less a tuned card's ~t..n.. and the card's ~c
             cmd = self.cfg.named(name) or {}
             w, h, scale = (
                 size.split("x") if size else (cmd.get("width"), cmd.get("height"), 1)

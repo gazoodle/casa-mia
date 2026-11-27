@@ -12,16 +12,39 @@ export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export const MOTION = {
   motion_dot: true,
   motion_colour: [255, 59, 48] as [number, number, number],
-  motion_size: 10, // CSS px across
   motion_pulse: 1.5, // seconds a pulse takes; 0: steady
   motion_linger: 10, // seconds the dot stays once the motion has stopped
   motion_corner: "top-right" as Corner,
 };
 
+/** The dot's size across, px, beside tiles' names `tileName` px high: half of them, so it
+ * is in proportion with the names on every screen (owner, 2026-11-26: set by hand on a
+ * phone, two wall tablets and a Mac, it came out at about half the names each time). It
+ * has no size of its own: one saved before 2026.11.14-b15 (motion_share, motion_size)
+ * is no longer used. */
+export const dotSize = (tileName: number): number => Math.round(tileName * 5) / 10;
+
 /** A camera's motion to show: since when, and until when once it has stopped. */
 type Seen = { since?: number; until?: number };
 
-const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+/** A time of day as a tooltip says it (here and detect.ts). */
+export const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+/** One timer that redraws a card when something it shows for a while is due to go (a
+ * lingering dot here, a detection chip in detect.ts). Set again at each redraw. */
+export class Wake {
+  private timer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Call `again` at `when` (ms) in place of any time set before; never, for Infinity. */
+  at(when: number, again: () => void) {
+    clearTimeout(this.timer);
+    if (when < Infinity) this.timer = setTimeout(again, when - Date.now() + 50);
+  }
+
+  stop() {
+    clearTimeout(this.timer);
+  }
+}
 
 const tip = ({ since, until }: Seen) =>
   until === undefined
@@ -34,13 +57,13 @@ const tip = ({ since, until }: Seen) =>
  * that lingers can still say it), and when the next lingering dot is due to go. */
 export class Motion {
   private began = new Map<string, number>(); // sensor -> when it last turned on
-  private timer: ReturnType<typeof setTimeout> | undefined;
+  private wake = new Wake();
 
   /** Each camera's motion to show now; `again` is called when a lingering dot is due to go. */
   seen(hass: Hass, sensors: Record<string, string>, config: Config, again: () => void): Map<string, Seen> {
     const o = { ...MOTION, ...config };
     const out = new Map<string, Seen>();
-    clearTimeout(this.timer);
+    this.wake.stop();
     if (!o.motion_dot) return out;
     const now = Date.now();
     let next = Infinity;
@@ -56,27 +79,29 @@ export class Motion {
         next = Math.min(next, changed + o.motion_linger * 1000);
       }
     }
-    if (next < Infinity) this.timer = setTimeout(again, next - now + 50);
+    this.wake.at(next, again);
     return out;
   }
 
   stop() {
-    clearTimeout(this.timer);
+    this.wake.stop();
   }
 }
 
-/** The dot on one tile (`at`: the tile's place, as the card's tap zones); a tap on it is a
- * tap on the tile. */
-export function dot(seen: Seen | undefined, at: string, config: Config, tap: () => void): TemplateResult | typeof nothing {
+/** The dot on one tile (`at`: the tile's place, as the card's tap zones), `size` px across
+ * (dotSize) and as far in from its corner as it is from the tile's edge at 10 px: 6 px;
+ * a tap on it is a tap on the tile. */
+export function dot(seen: Seen | undefined, at: string, config: Config, tap: () => void, size: number): TemplateResult | typeof nothing {
   if (!seen) return nothing;
   const o = { ...MOTION, ...config };
+  const inset = Math.round(size * 6) / 10;
   const [r, g, b] = o.motion_colour;
   const [v, h] = o.motion_corner.split("-");
   return html`<div class="motion-tile" style=${at}>
     <span
       class="motion ${o.motion_pulse > 0 ? "pulse" : ""}"
       title=${tip(seen)}
-      style="${v}:6px;${h}:6px;--cm-motion:rgb(${r},${g},${b});--cm-motion-size:${o.motion_size}px;--cm-motion-pulse:${o.motion_pulse}s"
+      style="${v}:${inset}px;${h}:${inset}px;--cm-motion:rgb(${r},${g},${b});--cm-motion-size:${size}px;--cm-motion-pulse:${o.motion_pulse}s"
       @click=${tap}
     ></span>
   </div>`;

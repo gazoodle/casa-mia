@@ -20,6 +20,8 @@ export type Placed = {
   tiles: Tile[];
   /** The "+n more" tile, and how many cameras it stands for. */
   more: { rect: Rect; count: number } | null;
+  /** The place kept for a card (Responsive: its `card_place`); the picture is clear there. */
+  card: Rect | null;
   /** The limits that gave way (Responsive: see the compositor's `responsive`). */
   gave: string[];
 };
@@ -44,6 +46,7 @@ export function placed(s: Commander, main: string | null = null): Placed {
       mainHow: MAIN_HOW[s.main_fit ?? "fit"] ?? "contain",
       tiles: PANELS.flatMap((p) => s[p].cameras.map((camera, i): Tile => ({ where: p, camera, rect: rects[p][i], how: CROPPED.includes(s[p].fit ?? "cover") ? "cover" : "contain" }))),
       more: null,
+      card: null,
       gave: [],
     };
   }
@@ -56,6 +59,7 @@ export function placed(s: Commander, main: string | null = null): Placed {
     mainHow: laid.main_how,
     tiles: laid.tiles.map((rect, i): Tile => ({ where: "tiles", camera: cameras[i], rect, how: "cover" })),
     more: laid.more ? { rect: laid.more, count: laid.dropped } : null,
+    card: laid.card,
     gave: laid.gave,
   };
 }

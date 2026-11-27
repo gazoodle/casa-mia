@@ -1,42 +1,42 @@
 {
   "casa-mia-tablet-layout": {
-    "digest": "fcbd8435745aef317472dd732af36abba2f4ed5fc257431e4e5f6deb14c1cf1f",
-    "version": "2026.11.13"
+    "digest": "626f8e5f5be7014428510728b1b3c297c94971fa588cdefbce51ed043f331cd8",
+    "version": "2026.11.14"
   },
   "casa_mia": {
-    "digest": "1351778577b0a67daa86931668a66266e5a892a9c2902641253d718180c4aaa1",
-    "version": "2026.11.13"
+    "digest": "ebd877dc678e56990453b7d2b77bd839be676af4ca22ccc87e9764df24222b57",
+    "version": "2026.11.14"
   },
   "casa_mia_commander": {
-    "digest": "e14854bd0121fdf8e16785e09459dd782bf7d2f83c84784a495ae8ea4805adc7",
-    "version": "2026.11.9"
+    "digest": "83b4d58a512b7285073c4d4cfa127e6a62b0ea84e968db2048f11556a8c6c503",
+    "version": "2026.11.14"
   },
   "casa_mia_dash_bored": {
-    "digest": "b46e8204e5e7d76b34a89eaded915c4227d82d934dda114669f2039c2d920b24",
-    "version": "2026.11.12"
+    "digest": "0a7c4d46348b3c836ce3a575b9b6bb2d16611c48158de38ec074122ee4647e4c",
+    "version": "2026.11.14"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",
     "version": "2026.11.2-b21"
   },
   "casa_mia_intercom": {
-    "digest": "9dfd466e3fe56a9c0b991e477a6996a8862ea87351828bf920425e90ccaba923",
-    "version": "2026.11.2-b20"
+    "digest": "bc96ffb339bea88bfb34273d0ac77622d8027085ef27e41edaa1712cbcda81f5",
+    "version": "2026.11.14"
   },
   "casa_mia_jukebox": {
-    "digest": "c4052c661bf8452ff11076edd226306a8eedd37c97e0a8550e3532d67971f7a2",
-    "version": "2026.11.13"
+    "digest": "b64f6234fca7857374dc025c39f963d1f0f5e4a3cafebfee4056637336ddb85b",
+    "version": "2026.11.14"
   },
   "casa_mia_love_or_loathe": {
-    "digest": "becc854cf6cac4f50507a667667800e41475603510e3058f009ce3678327ce54",
-    "version": "2026.11.13"
+    "digest": "bb1314bb19910dfacb3e63b0ddf6f45e0476805a8dbadf23548315b6ef351fe7",
+    "version": "2026.11.14"
   },
   "casa_mia_protect_talkback": {
-    "digest": "dde0abdacfc4178e08b84f524d976cce2e6f6d342058476fcdb56bcd0079dc7e",
-    "version": "2026.11.2-b21"
+    "digest": "e5d7f1b01a52ed675250290a33ae9b586fdc89c9dbbdbdd5430f6dea24129a3a",
+    "version": "2026.11.14"
   },
   "casa_mia_sensor_watch": {
-    "digest": "e8a7c2d17479bfebd8984bfbf61763088567494a9a91a3fdcf3146e1a603ec21",
-    "version": "2026.11.12"
+    "digest": "105b963fc7fa38d9e4cf3cc99c20d42a172b8ec8a03bbd99a553fba07dcfd6f2",
+    "version": "2026.11.14"
   }
 }

@@ -111,6 +111,8 @@ export type Responsive = {
   /** A second list for a space taller than wide; null: the one list everywhere. */
   edges_tall: Edge[] | null;
   main_other: string;
+  /** The last place kept clear, for a Camera Commander card to draw a card of its own in. */
+  card_place: boolean;
   cant_fit: string;
 };
 

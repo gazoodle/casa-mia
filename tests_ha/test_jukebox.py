@@ -3,14 +3,20 @@ entities registered as Sonos's, a `play_media` that records what it was sent, an
 speaker's own reports (speaker.py) answered here, as measured on real ones."""
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from custom_components.casa_mia_jukebox import announce, speaker, volume_id
 from custom_components.casa_mia_jukebox.const import CHIME, DOMAIN, EVENT
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.components import tts
+from homeassistant.components.tts.const import DATA_COMPONENT
+from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_capture_events,
@@ -18,6 +24,49 @@ from pytest_homeassistant_custom_component.common import (
 
 KITCHEN, GARDEN = "media_player.kitchen", "media_player.garden"
 VOICE = "media-source://tts/tts.voice?message="
+# What Home Assistant adds to a message's media id when no language or voice is chosen.
+NO_OPTIONS = "&tts_options=null"
+
+
+class Engine(tts.TextToSpeechEntity):
+    """A speech engine with two British voices, as a Piper with two installed has."""
+
+    _attr_name = "voice"
+    _attr_unique_id = "voice"
+    _attr_supported_languages = ["en-GB", "en-US"]
+    _attr_default_language = "en-GB"
+    _attr_supported_options = ["voice"]
+
+    @callback
+    def async_get_supported_voices(self, language):
+        if language != "en-GB":
+            return None
+        return [tts.Voice("en_GB-cori", "Cori"), tts.Voice("en_GB-alba", "Alba")]
+
+    made: list = []  # each message made, with its options
+    broken = False
+
+    async def async_get_tts_audio(self, message, language, options):
+        if self.broken:
+            raise HomeAssistantError("the engine is down")
+        self.made.append((message, language, dict(options)))
+        return "mp3", b"ID3 words"
+
+
+@pytest.fixture(autouse=True)
+def no_speech_on_disk(monkeypatch):
+    """Home Assistant keeps speech on disk, in the test config every test shares: a
+    message made in one test would be found by the next, and the engine never asked."""
+    monkeypatch.setattr(tts, "DEFAULT_CACHE", False)
+
+
+async def an_engine(hass):
+    """tts.voice, added straight to Home Assistant's text-to-speech."""
+    assert await async_setup_component(hass, "tts", {})
+    engine = Engine()
+    engine.made = []
+    await hass.data[DATA_COMPONENT].async_add_entities([engine])
+    return engine
 
 
 class Speakers:
@@ -79,6 +128,7 @@ def a_player(hass, entity_id, platform="sonos", state="playing"):
 
 
 async def add(hass, **options):
+    hass.data["engine"] = await an_engine(hass)
     for player in (KITCHEN, GARDEN):
         a_player(hass, player)
     entry = MockConfigEntry(
@@ -123,7 +173,7 @@ async def test_a_chime_then_the_words_in_each_room_at_its_own_volume(hass, speak
 
     assert [clip for clip in speakers.sent if clip[0] == KITCHEN] == [
         (KITCHEN, CHIME, {"volume": 25}),
-        (KITCHEN, VOICE + "Dinner", {"volume": 25}),
+        (KITCHEN, VOICE + "Dinner" + NO_OPTIONS, {"volume": 25}),
     ]
     assert [clip[2] for clip in speakers.sent if clip[0] == GARDEN] == [
         {"volume": 40}
@@ -145,7 +195,7 @@ async def test_a_chime_then_the_words_in_each_room_at_its_own_volume(hass, speak
 async def test_the_actions_volume_and_no_chime(hass, speakers):
     await add(hass)
     await say(hass, players=[KITCHEN], chime=False, volume=12)
-    assert speakers.sent == [(KITCHEN, VOICE + "Dinner", {"volume": 12})]
+    assert speakers.sent == [(KITCHEN, VOICE + "Dinner" + NO_OPTIONS, {"volume": 12})]
 
 
 async def test_quiet_hours_keep_all_but_a_priority_announcement_back(hass, speakers):
@@ -214,15 +264,15 @@ async def test_a_second_announcement_waits_for_the_first_to_end(hass, speakers):
     await settle()
 
     # Only the first has been sent: sending the second now would cut it off.
-    assert speakers.log == [(KITCHEN, VOICE + "Dinner", {"volume": 25})]
+    assert speakers.log == [(KITCHEN, VOICE + "Dinner" + NO_OPTIONS, {"volume": 25})]
 
     speakers.playing.set()
     assert (await first)["result"] == "played"
     assert (await second)["result"] == "played"
     assert [e if e == "ended" else e[1] for e in speakers.log] == [
-        VOICE + "Dinner",
+        VOICE + "Dinner" + NO_OPTIONS,
         "ended",
-        VOICE + "Pudding",
+        VOICE + "Pudding" + NO_OPTIONS,
         "ended",
     ]
 
@@ -271,3 +321,118 @@ async def test_a_room_taken_out_takes_its_volume_with_it(hass, speakers):
 
     assert not registry.async_get_entity_id("number", DOMAIN, volume_id(entry, GARDEN))
     assert registry.async_get_entity_id("number", DOMAIN, volume_id(entry, KITCHEN))
+
+
+async def test_the_words_are_said_in_the_language_and_voice_chosen(hass, speakers):
+    await add(hass, language="en-GB", voice="en_GB-alba")
+
+    await say(hass, chime=False)
+
+    said = urlsplit(speakers.sent[0][1])
+    asked = parse_qs(said.query)
+    assert said.path == "/tts.voice"
+    assert asked["message"] == ["Dinner"]
+    assert asked["language"] == ["en-GB"]
+    assert json.loads(asked["tts_options"][0]) == {"voice": "en_GB-alba"}
+
+
+async def test_a_voice_the_engine_no_longer_has_is_refused_and_nothing_plays(
+    hass, speakers
+):
+    await add(hass, language="en-GB", voice="en_GB-gone")
+
+    with pytest.raises(ServiceValidationError) as refused:
+        await say(hass)
+    assert refused.value.translation_key == "voice_gone"
+    assert speakers.sent == []
+
+
+async def configure(hass, entry, *steps):
+    """The Configure dialog, each step's form filled in turn: the forms shown."""
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    shown = []
+    for fill in steps:
+        shown.append(flow)
+        flow = await hass.config_entries.options.async_configure(flow["flow_id"], fill)
+    return shown, flow
+
+
+async def test_configure_asks_the_engines_language_then_one_of_its_voices(
+    hass, speakers
+):
+    entry = await add(hass)
+
+    shown, done = await configure(
+        hass,
+        entry,
+        {"players": [KITCHEN], "tts": "tts.voice"},
+        {"language": "en-GB"},
+        {"voice": "en_GB-alba"},
+    )
+
+    assert [form["step_id"] for form in shown] == ["init", "language", "voice"]
+    voices = shown[2]["data_schema"].schema["voice"].config["options"]
+    assert {v["value"]: v["label"] for v in voices} == {
+        "en_GB-cori": "Cori",
+        "en_GB-alba": "Alba",
+    }
+    assert done["type"] == "create_entry"
+    assert entry.options["language"] == "en-GB"
+    assert entry.options["voice"] == "en_GB-alba"
+
+
+async def test_no_voice_chosen_or_none_to_choose_leaves_the_engines_own(hass, speakers):
+    entry = await add(hass, language="en-GB", voice="en_GB-alba")
+
+    # No voice for that language: the step isn't shown, and the old voice goes.
+    shown, _ = await configure(hass, entry, {"tts": "tts.voice"}, {"language": "en-US"})
+    assert [form["step_id"] for form in shown] == ["init", "language"]
+    assert entry.options["language"] == "en-US"
+    assert "voice" not in entry.options
+
+    # The voice box left empty.
+    await configure(hass, entry, {"tts": "tts.voice"}, {"language": "en-GB"}, {})
+    assert "voice" not in entry.options
+
+    # No engine at all: neither language nor voice is kept.
+    shown, _ = await configure(hass, entry, {"players": [KITCHEN]})
+    assert [form["step_id"] for form in shown] == ["init"]
+    assert "language" not in entry.options
+
+
+async def test_the_words_are_made_once_before_anything_plays(hass, speakers):
+    await add(hass, language="en-GB", voice="en_GB-alba")
+    engine = hass.data["engine"]
+    made_when = []
+    play = speakers.play_media
+
+    async def noting(call):
+        made_when.append(len(engine.made))
+        await play(call)
+
+    hass.services.async_register("media_player", "play_media", noting)
+
+    await say(hass)
+
+    # Made once, for both rooms, before the first clip (the chime) was sent.
+    assert engine.made == [("Dinner", "en-GB", {"voice": "en_GB-alba"})]
+    assert made_when and made_when[0] == 1
+    # The speaker's own fetch of the words is then served from Home Assistant's memory.
+    await tts.async_get_media_source_audio(hass, speakers.sent[1][1])
+    assert len(engine.made) == 1
+
+
+async def test_an_engine_that_fails_is_each_rooms_reason_and_nothing_plays(
+    hass, speakers
+):
+    await add(hass)
+    hass.data["engine"].broken = True
+
+    answer = await say(hass)
+
+    assert speakers.sent == []
+    assert answer["result"] == "nothing"
+    assert answer["rooms"][KITCHEN] == {
+        "result": "failed",
+        "reason": "the speech engine couldn't say it: the engine is down",
+    }

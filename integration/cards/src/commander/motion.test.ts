@@ -1,7 +1,7 @@
 // Which tiles show a motion dot, and for how long (motion.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Motion } from "./motion.ts";
+import { dotSize, Motion } from "./motion.ts";
 
 const at = (secondsAgo: number) => new Date(Date.now() - secondsAgo * 1000).toISOString();
 const hass = (states: Record<string, [string, number]>) => ({
@@ -27,4 +27,10 @@ test("a dot while the sensor is on, and lingering after", () => {
   assert.equal(m.seen(hass({ "binary_sensor.drive_motion": ["off", 11] }), sensors, config, () => woken++).size, 0);
   assert.equal(m.seen(hass({ "binary_sensor.drive_motion": ["on", 1] }), sensors, { ...config, motion_dot: false }, () => woken++).size, 0);
   assert.equal(woken, 0);
+});
+
+test("the dot is half the tiles' names", () => {
+  assert.equal(dotSize(10), 5); // a phone's
+  assert.equal(dotSize(11), 5.5); // a wall tablet's
+  assert.equal(dotSize(16), 8); // a desktop's large commander
 });

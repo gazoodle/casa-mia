@@ -124,6 +124,7 @@ class Survey(Fetcher):
         BENCH seconds (its snapshot meanwhile)."""
         reader = self._readers.get(entity)
         if reader and reader.alive and reader.frame is not None:
+            self.note_codec(entity, reader.codec)
             return "read", "", (reader.frame.width, reader.frame.height), 0.0
         why, cpu = "", 0.0
         known = entity in self._names  # given to go2rtc before: it may have forgotten
@@ -151,6 +152,7 @@ class Survey(Fetcher):
                     cpu += again
             if image is not None:
                 self.keep(entity, image, streamed=True)
+                self.note_codec(entity, image.info.get("codec", ""))
                 return "stream", "", image.size, cpu
             why = failed
             if refused(failed):  # HA's go2rtc down (a restart): no fault of the stream

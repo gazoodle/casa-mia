@@ -70,6 +70,7 @@ CHANGES_MUSIC = frozenset(
         "queue_move",
         "queue_remove",
         "queue_clear",
+        "queue_back",
     }
 )
 
@@ -278,19 +279,10 @@ class Party:
 
     async def _keep(self, session: aiohttp.ClientSession, host: str) -> None:
         """Have the speaker keep the queue as a playlist of Jukebox's own, to put the
-        queue back from.
-
-        A song put back one at a time, from what the queue's listing said of it, came
-        back with less than it had: no length, and for a streamed song sometimes no
-        title (a real speaker, 2026-11-24). A playlist that the speaker loads itself
-        comes back as the queue was made. One left by a party that never ended (a
-        restart of Home Assistant) has the same name, and is replaced."""
+        queue back from (upnp.keep)."""
         name = f"{upnp.COPY} ({room_name(self.hass, self.leader)})"
         try:
-            for old in await upnp.playlists(session, host):
-                if old["title"] == name:
-                    await upnp.delete_playlist(session, host, old["id"])
-            self.copy = await upnp.save(session, host, name) if self.queue else ""
+            self.copy = await upnp.keep(session, host, name) if self.queue else ""
         except HomeAssistantError as err:
             self.copy = ""
             self._record(

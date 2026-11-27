@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULTS, FILES, OPTIONS, back, corner, family, footOf, keepPosition, labelsOf, nudge } from "./labels.ts";
+import { DEFAULTS, FILES, OPTIONS, back, corner, family, footOf, keepPosition, labelsOf, nameSize, nudge } from "./labels.ts";
 
 test("every setting has a default, and a commander saved without labels gets them", () => {
   assert.deepEqual(Object.keys(DEFAULTS), Object.keys(OPTIONS));
   assert.deepEqual(labelsOf(undefined), DEFAULTS);
-  assert.equal(labelsOf({ tile_size: 30 }).tile_size, 30);
-  assert.equal(labelsOf({ tile_size: 30 }).main_size, DEFAULTS.main_size);
+  assert.equal(labelsOf({ tile_scale: 120 }).tile_scale, 120);
+  assert.equal(labelsOf({ tile_scale: 120 }).main_scale, DEFAULTS.main_scale);
+});
+
+test("a name is one size on every device, a % of it by the setting (as labels.py: name_px)", () => {
+  assert.equal(nameSize("tile", 100), 11);
+  assert.equal(nameSize("main", 100), 14);
+  assert.equal(nameSize("main", 50), 7); // % of its size
+  assert.equal(nameSize("tile", 200), 22);
+  assert.equal(nameSize("main", 100, 2), 28); // in pixels twice as fine
+  assert.equal(nameSize("tile", 100, 1.0625), 12);
 });
 
 test("every font offered but the standard one has a file", () => {
@@ -30,11 +39,12 @@ test("a corner is a top or a foot, and a side or the middle", () => {
 });
 
 test("chips at the foot sit clear of the main camera's name", () => {
-  const pill = labelsOf({ main_style: "pill", main_size: 20 });
-  assert.equal(footOf(pill, "bottom-right"), 10); // beside the pill, as they always were
-  assert.equal(footOf(pill, "bottom-left"), 44); // over it
-  assert.equal(footOf(labelsOf({ main_style: "bar", main_size: 20 }), "bottom-right"), 44);
-  assert.equal(footOf(labelsOf({ main_style: "none" }), "bottom-left"), 10);
+  const pill = labelsOf({ main_style: "pill" });
+  assert.equal(footOf(pill, "bottom-right", 20), 10); // beside the pill, as they always were
+  assert.equal(footOf(pill, "bottom-left", 20), 44); // over it
+  assert.equal(footOf(pill, "bottom-left", 10), 32); // a smaller name, less to clear
+  assert.equal(footOf(labelsOf({ main_style: "bar" }), "bottom-right", 20), 44);
+  assert.equal(footOf(labelsOf({ main_style: "none" }), "bottom-left", 20), 10);
 });
 
 test("a nudge moves a group across and down from its corner, and is nothing at first", () => {
