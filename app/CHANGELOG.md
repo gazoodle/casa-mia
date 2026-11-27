@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026.11.14-b19
+
+- **Camera Commander: a place for a card of your own.** A Responsive commander has a new
+  switch, **Keep the last place for a card**. With it on, the last place, in the corner
+  of the picture, is left clear of cameras, and never given to one: with too many
+  cameras, **+n more** takes the place before it.
+- **Camera Commander card: Card in the last place.** One Lovelace card, set as YAML in
+  the card's editor, drawn in the place the commander keeps: a clock (`type: clock`),
+  or a grid card of buttons that work a light or a gate or go to another page. Each
+  dashboard showing the commander can have its own. While the dashboard is edited, the
+  card says when its card has no place to go, and the place says when it has no card.
+- **Camera Commander card: Full works in the Home Assistant app on an iPad or an
+  iPhone, and in Safari on an iPhone.** These can't give a page the whole screen, so
+  Full showed only the main camera, in iOS's own video player. It now puts the whole
+  commander over the app's window, over Home Assistant's header and sidebar. In Safari on
+  an iPhone, Safari's own bars stay.
+
 ## 2026.11.14-b18
 
 - **Camera Commander card: a lock, a gate or a garage door takes two taps.** The first

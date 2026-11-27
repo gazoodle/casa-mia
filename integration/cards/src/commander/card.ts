@@ -11,11 +11,12 @@ import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from ".
 import { dot, dotSize } from "./motion.ts";
 import { debugBox, dialogOpen, type Figures, recordOf, reference, toggleDialog, tunedAt, tuneDialog, tuneStyles, whereOf } from "./tune.ts";
 import { ARMED_MS, controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
-import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
+import { barRoom, canFill, fill, filling, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown, VERSION } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
+import { PlaceCard } from "./place.ts";
 
 export class CommanderCard extends CommanderTalk {
   static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true }, _armed: { state: true } };
@@ -40,6 +41,8 @@ export class CommanderCard extends CommanderTalk {
    * ARMED_MS lapses or a tap lands anywhere else. */
   _armed: { camera: string; key: string } | null = null;
   private armGone = 0;
+  /** The card in the commander's last place (this card's `card`), kept between redraws. */
+  private place = new PlaceCard(() => this.requestUpdate());
 
   constructor() {
     super();
@@ -68,10 +71,12 @@ export class CommanderCard extends CommanderTalk {
   /** Give the card the whole screen, or give it back. The browser's full screen drops a
    * kiosk's page zoom (ha.ts: pageZoom), so everything in it was 1/zoom the size it is in
    * the page (owner, 2026-11-26). A kiosk already fills the screen, so there the card
-   * fills its window instead (full.ts: :host([filled])), and the zoom stays. Given back
+   * fills its window instead (full.ts: :host([filled])), and the zoom stays. So it does
+   * where the page can't have the screen (screen.ts: canFill), as in the Home Assistant
+   * app on an iPad or an iPhone: the whole app's space (owner, 2026-11-27). Given back
    * the way it was taken. */
   private toScreen(on: boolean) {
-    if (on ? pageZoom() === 1 : filling()) fill(this, on);
+    if (on ? canFill() && pageZoom() === 1 : filling()) fill(this, on);
     else this._screen = on;
   }
 
@@ -162,6 +167,16 @@ export class CommanderCard extends CommanderTalk {
     const [w, h] = laid.size;
     const mainRect = laid.main;
     const tiles = laid.tiles.filter((t) => t.rect[2] > 0);
+    // The last place, where the commander keeps it: this card's own card goes there. A
+    // config with no type is one being typed, or emptied, in the editor: no card yet.
+    const placeConfig = this._config?.card?.type ? this._config.card : undefined;
+    const inPlace = laid.card ? this.place.element(placeConfig, this.hass!) : undefined;
+    // A card with nowhere to go is said while the dashboard is edited, where it can be
+    // put right. (Not when the commander keeps the place and only this size has no cells.)
+    const noPlace =
+      editing && placeConfig && !(own.mode === "responsive" && own.responsive?.card_place)
+        ? "Its card has no place: switch on Keep the last place for a card for this commander (Camera Commander page, Responsive layout)"
+        : "";
     // Full screen (tap_main: full): the camera tapped, live over the whole screen, shown
     // whole; its channel chosen for the screen's device pixels, as the main area's is.
     const full = Boolean(this._full && card.cameras[this._full]);
@@ -184,26 +199,19 @@ export class CommanderCard extends CommanderTalk {
             },
           ]
         : [];
-    // The Full screen button, where offered. Where the browser gives a page the screen,
-    // the whole commander. Where it gives it only to a video (Safari on an iPhone), the
-    // main camera's live video in the phone's own player, as drawn the last time: the
-    // once-a-second redraw while live (live.ts) finds a video that has just begun.
-    const playing = live?.shown && !canFill() ? this.renderRoot.querySelector<HTMLVideoElement>(`video.live[data-entity="${live.shown}"]`) : null;
-    const fills: Own[] = !this._config?.screen_button
-      ? []
-      : canFill()
-        ? [
-            {
-              on: this._screen,
-              icon: this._screen ? "mdi:fullscreen-exit" : "mdi:fullscreen",
-              label: "Full", // short, so it is never the bar's longest (owner, 2026-11-26); pressed while it has the screen
-              title: this._screen ? "Back to the page" : "The commander over the whole screen",
-              toggle: () => this.toScreen(!this._screen),
-            },
-          ]
-        : playing && canPlayFull(playing)
-          ? [{ on: false, icon: "mdi:fullscreen", label: "Full", title: "The main camera over the whole screen", toggle: () => playFull(playing) }]
-          : [];
+    // The Full screen button, where offered: the whole commander over the screen, or over
+    // the window where the page can't have the screen (toScreen).
+    const fills: Own[] = this._config?.screen_button
+      ? [
+          {
+            on: this._screen,
+            icon: this._screen ? "mdi:fullscreen-exit" : "mdi:fullscreen",
+            label: "Full", // short, so it is never the bar's longest (owner, 2026-11-26); pressed while it has the screen
+            title: this._screen ? "Back to the page" : "The commander over the whole screen",
+            toggle: () => this.toScreen(!this._screen),
+          },
+        ]
+      : [];
     // One <video> per channel played: the one shown, and a better one tried unseen under it.
     const videos = (place: string) =>
       live
@@ -349,6 +357,16 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${laid.more ? html`<div class="zone" style="${at(laid.more.rect)};cursor:default" title="${laid.more.count} more cameras"></div>` : nothing}
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
+        ${laid.card
+          ? html`<div class="place" style=${at(laid.card)}>
+              ${inPlace ??
+              (this.place.failed
+                ? html`<span class="cm-pill cm-filled cm-bad">Its card can't be drawn: ${this.place.failed}</span>`
+                : editing && !placeConfig
+                  ? html`<span class="cm-pill">A card goes here: this card's Card in the last place</span>`
+                  : nothing)}
+            </div>`
+          : nothing}
         ${mark && mark[2] > 0 && this._framed === (editing ? "still" : `s${this._shown}`)
           ? html`<img
               class="highlight ${Number(lit.pulse) > 0 ? (lit.style ?? "breathe") : ""}"
@@ -375,8 +393,8 @@ export class CommanderCard extends CommanderTalk {
         ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect), nameIn) : nothing}
         ${down
           ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>`
-          : unfit
-            ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit}</span></div>`
+          : unfit || noPlace
+            ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit || noPlace}</span></div>`
             : nothing}
         ${full ? nothing : debug}
       </div>

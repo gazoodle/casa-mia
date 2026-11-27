@@ -78,6 +78,21 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   b8). Why: a new user took the generated commander page (one picture with a base64 tap
   zone over each tile) for the way to show a commander. A commander goes on a dashboard
   as its card; `docs/how-to/commander-on-your-home-page.md` is the worked example.
+- **The card place** (2026.11.14-b19, owner's family asked 2026-11-26; spec: "A place for
+  a card, and less important cameras" in `docs/design/commander-responsive-layout.md`).
+  A Responsive commander's `card_place` (one option in `layout.json`) keeps the last
+  cell: both solvers take it out of the room for tiles and count it as filled, and give
+  its place as `card` in their answer and in `placed`. The compositor draws nothing
+  there. The card's `card:` (one Lovelace config, YAML in the editor's Last place
+  section) is made by HA's card helpers and kept between redraws
+  (`commander/place.ts`), and drawn over the cell. Decided by the owner: one card, so
+  four buttons are HA's grid card; drawn by the card, not the compositor; cards of our
+  own (a clock) go in the same way later.
+  - **Not seen in a browser yet.** Tests cover the solvers, the clear cell in the
+    picture and the helper. HA's clock card and a grid of four button cards in a real
+    tile have not been looked at (BACKLOG): HA's cards size themselves for a column, and
+    may be cramped or cut off in a small place.
+  - **Next:** less important cameras (BACKLOG, same spec): the solver run twice.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the
   app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up
@@ -138,7 +153,9 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     shape but smaller. `screenRatio()` (ratio × zoom) sizes the picture and the live
     channel, so both are sharp. Where zoomed, Full fills the window (`card.ts: toScreen`,
     `:host([filled])`) instead of asking the browser, so the zoom stays. Not seen: a
-    kiosk that keeps a status bar (another shape).
+    kiosk that keeps a status bar (another shape). Since b19 it fills the window too
+    wherever `canFill()` is false: the HA Companion app on iOS (iPad included) has no
+    page full screen. The iPhone's video-player fallback (`playFull`) is gone.
   - The docs' screenshots (`cameras-controls.webp`, `commander-controls.webp`,
     `commander-names-settings.webp`, `commander-full-screen.webp`) show the old look.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one

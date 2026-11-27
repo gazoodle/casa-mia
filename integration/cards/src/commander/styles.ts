@@ -56,6 +56,26 @@ export const styles = [motionStyles, css`
       position: absolute;
       box-sizing: border-box;
     }
+    /* The last place, kept clear by the picture for a card of the dashboard's own
+       (place.ts). The card fills it, and what doesn't fit is cut off at its edge. A note
+       there (nothing set, or it can't be drawn) sits in the middle and wraps. */
+    .place {
+      position: absolute;
+      box-sizing: border-box;
+      display: flex;
+      overflow: hidden;
+    }
+    .place > * {
+      flex: 1;
+      min-width: 0;
+    }
+    .place > .cm-pill {
+      flex: none;
+      max-width: 100%;
+      margin: auto;
+      white-space: normal;
+      text-align: center;
+    }
     /* The live main camera over the picture (its drawn main area shows until it plays). */
     .live {
       pointer-events: none;

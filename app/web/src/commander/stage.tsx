@@ -267,6 +267,11 @@ export function Stage({
               +{laid.more.count} more
             </div>
           )}
+          {laid.card && (
+            <div className={`${css.tile} ${css.more}`} style={at(laid.card)} title="Kept clear in the picture: a Camera Commander card draws its own card here">
+              Card
+            </div>
+          )}
           {talk && mainShown && (
             // A sample of what the card shows in a call, where the labels put each
             // (the card's own chips, at their real size whatever the stage's scale).

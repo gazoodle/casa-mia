@@ -348,6 +348,9 @@ class Placed(NamedTuple):
     # whether the camera is shown whole in it (else cropped to fill).
     tiles: list[tuple[str, str, Rect, bool]]
     more: tuple[Rect, int] | None  # the "+n more" tile, and the cameras it stands for
+    # The place kept for a card (Responsive: its card_place). Nothing is drawn there:
+    # the Camera Commander card draws a card of its own over it.
+    card: Rect | None
     gave: list[str]  # the limits that gave way (Responsive: see `responsive`)
 
 
@@ -366,6 +369,7 @@ def placed(cmd: dict, main: str | None = None) -> Placed:
                 for p in PANELS
                 for e, rect in zip(cmd[p]["cameras"], rects[p], strict=True)
             ],
+            None,
             None,
             [],
         )
@@ -387,6 +391,7 @@ def placed(cmd: dict, main: str | None = None) -> Placed:
         "crop" if laid["main_how"] == "cover" else "fit",
         [("tiles", e, tuple(r), False) for e, r in zip(cameras, laid["tiles"])],
         (tuple(laid["more"]), laid["dropped"]) if laid["more"] else None,
+        tuple(laid["card"]) if laid["card"] else None,
         laid["gave"],
     )
 
@@ -453,7 +458,7 @@ def commander(
     shown the moment the main camera is switched, from stills already to hand: blurred,
     with "Changing to <camera>" over it, until the sharp one is ready. `stale`: the
     cameras whose tile picture is old (marked Stale); `main_stale`: the main picture is."""
-    size, main_rect, main_fit, places, more, _ = placed(cmd, main)
+    size, main_rect, main_fit, places, more, _, _ = placed(cmd, main)
     # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
     scale = float(cmd.get("scale", 1))
     # Its labels' font, colours and style (labels.py), sized for this picture.

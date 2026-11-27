@@ -18,6 +18,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -60,6 +61,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -108,6 +110,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -168,6 +171,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -252,6 +256,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -366,6 +371,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -516,6 +522,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -702,6 +709,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -924,6 +932,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -953,6 +962,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -995,6 +1005,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1043,6 +1054,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1103,6 +1115,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1187,6 +1200,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1301,6 +1315,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1451,6 +1466,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1637,6 +1653,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1859,6 +1876,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1888,6 +1906,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1930,6 +1949,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -1978,6 +1998,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2038,6 +2059,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2122,6 +2144,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2236,6 +2259,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2386,6 +2410,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2572,6 +2597,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2794,6 +2820,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2823,6 +2850,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2865,6 +2893,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2913,6 +2942,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -2973,6 +3003,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3057,6 +3088,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3171,6 +3203,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3321,6 +3354,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3507,6 +3541,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3729,6 +3764,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3758,6 +3794,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3800,6 +3837,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3848,6 +3886,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3908,6 +3947,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -3992,6 +4032,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4106,6 +4147,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4256,6 +4298,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4442,6 +4485,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4664,6 +4708,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4693,6 +4738,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4735,6 +4781,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4783,6 +4830,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4843,6 +4891,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -4927,6 +4976,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5041,6 +5091,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5191,6 +5242,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5377,6 +5429,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5562,6 +5615,7 @@
     128,
     66
    ],
+   "card": null,
    "dropped": 7,
    "gave": [],
    "grid": [
@@ -5591,6 +5645,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5633,6 +5688,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5681,6 +5737,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5741,6 +5798,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5825,6 +5883,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -5939,6 +5998,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6082,6 +6142,7 @@
     118,
     64
    ],
+   "card": null,
    "dropped": 2,
    "gave": [],
    "grid": [
@@ -6225,6 +6286,7 @@
     118,
     64
    ],
+   "card": null,
    "dropped": 8,
    "gave": [],
    "grid": [
@@ -6368,6 +6430,7 @@
     118,
     64
    ],
+   "card": null,
    "dropped": 14,
    "gave": [],
    "grid": [
@@ -6397,6 +6460,7 @@
    "main_how": "cover",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6439,6 +6503,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6487,6 +6552,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6547,6 +6613,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6631,6 +6698,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6745,6 +6813,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -6895,6 +6964,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7081,6 +7151,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7303,6 +7374,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7332,6 +7404,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7374,6 +7447,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7422,6 +7496,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7482,6 +7557,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7566,6 +7642,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7680,6 +7757,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -7830,6 +7908,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -8016,6 +8095,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -8238,6 +8318,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -8267,6 +8348,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -8309,6 +8391,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -8360,6 +8443,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -8423,6 +8507,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -8510,6 +8595,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -8627,6 +8713,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -8780,6 +8867,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -8969,6 +9057,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -9194,6 +9283,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -9314,6 +9404,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -9401,6 +9492,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -9518,6 +9610,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -9605,6 +9698,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -9722,6 +9816,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -9809,6 +9904,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -9962,6 +10058,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -10115,6 +10212,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -10268,6 +10366,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -10386,6 +10485,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -10504,6 +10604,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -10622,6 +10723,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least"
@@ -10777,6 +10879,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -10875,6 +10978,7 @@
     216,
     137
    ],
+   "card": null,
    "dropped": 10,
    "gave": [],
    "grid": [
@@ -11028,6 +11132,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -11150,6 +11255,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -11269,6 +11375,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -11388,6 +11495,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -11434,6 +11542,7 @@
     170,
     108
    ],
+   "card": null,
    "dropped": 13,
    "gave": [],
    "grid": [
@@ -11553,6 +11662,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -11599,6 +11709,7 @@
     170,
     108
    ],
+   "card": null,
    "dropped": 13,
    "gave": [],
    "grid": [
@@ -11718,6 +11829,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -11837,6 +11949,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -11957,6 +12070,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12077,6 +12191,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12197,6 +12312,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12317,6 +12433,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12437,6 +12554,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12484,6 +12602,7 @@
     170,
     108
    ],
+   "card": null,
    "dropped": 13,
    "gave": [],
    "grid": [
@@ -12604,6 +12723,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12651,6 +12771,7 @@
     170,
     108
    ],
+   "card": null,
    "dropped": 13,
    "gave": [],
    "grid": [
@@ -12771,6 +12892,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -12891,6 +13013,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13012,6 +13135,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13133,6 +13257,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13255,6 +13380,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13377,6 +13503,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13499,6 +13626,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13621,6 +13749,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -13738,6 +13867,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "edges"
@@ -13857,6 +13987,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "edges"
@@ -13981,6 +14112,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14103,6 +14235,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14158,6 +14291,7 @@
     147,
     93
    ],
+   "card": null,
    "dropped": 12,
    "gave": [],
    "grid": [
@@ -14276,6 +14410,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14394,6 +14529,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14512,6 +14648,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14630,6 +14767,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14748,6 +14886,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14866,6 +15005,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -14984,6 +15124,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -15102,6 +15243,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -15220,6 +15362,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -15323,6 +15466,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -15358,6 +15502,7 @@
    "main_how": "contain",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 12,
    "gave": [
     "main_alone"
@@ -15523,6 +15668,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least"
@@ -15605,6 +15751,7 @@
     182,
     107
    ],
+   "card": null,
    "dropped": 15,
    "gave": [],
    "grid": [
@@ -15768,6 +15915,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -15811,6 +15959,7 @@
    "main_how": "cover",
    "tiles": [],
    "more": null,
+   "card": null,
    "dropped": 20,
    "gave": [
     "main_alone"
@@ -15859,6 +16008,7 @@
     128,
     81
    ],
+   "card": null,
    "dropped": 11,
    "gave": [],
    "grid": [
@@ -15906,6 +16056,7 @@
     128,
     81
    ],
+   "card": null,
    "dropped": 11,
    "gave": [],
    "grid": [
@@ -16010,6 +16161,7 @@
     148,
     84
    ],
+   "card": null,
    "dropped": 19,
    "gave": [],
    "grid": [
@@ -16223,6 +16375,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [
     "main_least",
@@ -16233,6 +16386,642 @@
     8,
     5,
     5
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, 2 cameras",
+  "width": 1100,
+  "height": 560,
+  "cameras": 2,
+  "options": {
+   "card_place": true
+  },
+  "expect": {
+   "size": [
+    1100,
+    560
+   ],
+   "main": [
+    0,
+    16,
+    824,
+    527
+   ],
+   "main_how": "cover",
+   "tiles": [
+    [
+     828,
+     16,
+     272,
+     173
+    ],
+    [
+     828,
+     193,
+     272,
+     173
+    ]
+   ],
+   "more": null,
+   "card": [
+    828,
+    370,
+    272,
+    173
+   ],
+   "dropped": 0,
+   "gave": [],
+   "grid": [
+    4,
+    3,
+    3,
+    3
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, 5 cameras",
+  "width": 1100,
+  "height": 560,
+  "cameras": 5,
+  "options": {
+   "card_place": true
+  },
+  "expect": {
+   "size": [
+    1100,
+    560
+   ],
+   "main": [
+    0,
+    0,
+    824,
+    419
+   ],
+   "main_how": "cover",
+   "tiles": [
+    [
+     0,
+     423,
+     272,
+     137
+    ],
+    [
+     276,
+     423,
+     272,
+     137
+    ],
+    [
+     552,
+     423,
+     272,
+     137
+    ],
+    [
+     828,
+     0,
+     272,
+     137
+    ],
+    [
+     828,
+     141,
+     272,
+     137
+    ]
+   ],
+   "more": null,
+   "card": [
+    828,
+    423,
+    272,
+    137
+   ],
+   "dropped": 0,
+   "gave": [],
+   "grid": [
+    4,
+    4,
+    3,
+    3
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, 14 cameras",
+  "width": 1100,
+  "height": 560,
+  "cameras": 14,
+  "options": {
+   "card_place": true
+  },
+  "expect": {
+   "size": [
+    1100,
+    560
+   ],
+   "main": [
+    2,
+    0,
+    781,
+    466
+   ],
+   "main_how": "cover",
+   "tiles": [
+    [
+     2,
+     470,
+     153,
+     90
+    ],
+    [
+     159,
+     470,
+     153,
+     90
+    ],
+    [
+     316,
+     470,
+     153,
+     90
+    ],
+    [
+     473,
+     470,
+     153,
+     90
+    ],
+    [
+     630,
+     470,
+     153,
+     90
+    ],
+    [
+     787,
+     0,
+     153,
+     90
+    ],
+    [
+     944,
+     0,
+     153,
+     90
+    ],
+    [
+     787,
+     94,
+     153,
+     90
+    ],
+    [
+     944,
+     94,
+     153,
+     90
+    ],
+    [
+     787,
+     188,
+     153,
+     90
+    ],
+    [
+     944,
+     188,
+     153,
+     90
+    ],
+    [
+     787,
+     282,
+     153,
+     90
+    ],
+    [
+     944,
+     282,
+     153,
+     90
+    ],
+    [
+     787,
+     376,
+     153,
+     90
+    ]
+   ],
+   "more": null,
+   "card": [
+    944,
+    470,
+    153,
+    90
+   ],
+   "dropped": 0,
+   "gave": [],
+   "grid": [
+    7,
+    6,
+    5,
+    5
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, 32 cameras",
+  "width": 1100,
+  "height": 560,
+  "cameras": 32,
+  "options": {
+   "card_place": true
+  },
+  "expect": {
+   "size": [
+    1100,
+    560
+   ],
+   "main": [
+    3,
+    2,
+    728,
+    416
+   ],
+   "main_how": "cover",
+   "tiles": [
+    [
+     3,
+     422,
+     118,
+     66
+    ],
+    [
+     125,
+     422,
+     118,
+     66
+    ],
+    [
+     247,
+     422,
+     118,
+     66
+    ],
+    [
+     369,
+     422,
+     118,
+     66
+    ],
+    [
+     491,
+     422,
+     118,
+     66
+    ],
+    [
+     613,
+     422,
+     118,
+     66
+    ],
+    [
+     3,
+     492,
+     118,
+     66
+    ],
+    [
+     125,
+     492,
+     118,
+     66
+    ],
+    [
+     247,
+     492,
+     118,
+     66
+    ],
+    [
+     369,
+     492,
+     118,
+     66
+    ],
+    [
+     491,
+     492,
+     118,
+     66
+    ],
+    [
+     613,
+     492,
+     118,
+     66
+    ],
+    [
+     735,
+     2,
+     118,
+     66
+    ],
+    [
+     857,
+     2,
+     118,
+     66
+    ],
+    [
+     979,
+     2,
+     118,
+     66
+    ],
+    [
+     735,
+     72,
+     118,
+     66
+    ],
+    [
+     857,
+     72,
+     118,
+     66
+    ],
+    [
+     979,
+     72,
+     118,
+     66
+    ],
+    [
+     735,
+     142,
+     118,
+     66
+    ],
+    [
+     857,
+     142,
+     118,
+     66
+    ],
+    [
+     979,
+     142,
+     118,
+     66
+    ],
+    [
+     735,
+     212,
+     118,
+     66
+    ],
+    [
+     857,
+     212,
+     118,
+     66
+    ],
+    [
+     979,
+     212,
+     118,
+     66
+    ],
+    [
+     735,
+     282,
+     118,
+     66
+    ],
+    [
+     857,
+     282,
+     118,
+     66
+    ],
+    [
+     979,
+     282,
+     118,
+     66
+    ],
+    [
+     735,
+     352,
+     118,
+     66
+    ],
+    [
+     857,
+     352,
+     118,
+     66
+    ],
+    [
+     979,
+     352,
+     118,
+     66
+    ],
+    [
+     735,
+     422,
+     118,
+     66
+    ],
+    [
+     857,
+     422,
+     118,
+     66
+    ]
+   ],
+   "more": null,
+   "card": [
+    979,
+    492,
+    118,
+    66
+   ],
+   "dropped": 0,
+   "gave": [],
+   "grid": [
+    9,
+    8,
+    6,
+    6
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, tall",
+  "width": 393,
+  "height": 700,
+  "cameras": 9,
+  "options": {
+   "card_place": true
+  },
+  "expect": {
+   "size": [
+    393,
+    700
+   ],
+   "main": [
+    1,
+    2,
+    390,
+    196
+   ],
+   "main_how": "cover",
+   "tiles": [
+    [
+     1,
+     202,
+     193,
+     96
+    ],
+    [
+     198,
+     202,
+     193,
+     96
+    ],
+    [
+     1,
+     302,
+     193,
+     96
+    ],
+    [
+     198,
+     302,
+     193,
+     96
+    ],
+    [
+     1,
+     402,
+     193,
+     96
+    ],
+    [
+     198,
+     402,
+     193,
+     96
+    ],
+    [
+     1,
+     502,
+     193,
+     96
+    ],
+    [
+     198,
+     502,
+     193,
+     96
+    ],
+    [
+     1,
+     602,
+     193,
+     96
+    ]
+   ],
+   "more": null,
+   "card": [
+    198,
+    602,
+    193,
+    96
+   ],
+   "dropped": 0,
+   "gave": [],
+   "grid": [
+    2,
+    7,
+    2,
+    2
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, one camera: none",
+  "width": 1100,
+  "height": 560,
+  "cameras": 1,
+  "options": {
+   "card_place": true
+  },
+  "expect": {
+   "size": [
+    1100,
+    560
+   ],
+   "main": [
+    0,
+    0,
+    1100,
+    560
+   ],
+   "main_how": "contain",
+   "tiles": [],
+   "more": null,
+   "card": null,
+   "dropped": 0,
+   "gave": [],
+   "grid": [
+    1,
+    1,
+    1,
+    1
+   ]
+  }
+ },
+ {
+  "name": "a place for a card, kept to limits that don't fit: none",
+  "width": 200,
+  "height": 150,
+  "cameras": 12,
+  "options": {
+   "card_place": true,
+   "cant_fit": "keep"
+  },
+  "expect": {
+   "size": [
+    200,
+    150
+   ],
+   "main": [
+    0,
+    0,
+    200,
+    150
+   ],
+   "main_how": "contain",
+   "tiles": [],
+   "more": null,
+   "card": null,
+   "dropped": 12,
+   "gave": [
+    "main_alone"
+   ],
+   "grid": [
+    1,
+    1,
+    1,
+    1
    ]
   }
  },
@@ -16342,6 +17131,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -16458,6 +17248,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -16574,6 +17365,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -16691,6 +17483,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [
@@ -16844,6 +17637,7 @@
     ]
    ],
    "more": null,
+   "card": null,
    "dropped": 0,
    "gave": [],
    "grid": [

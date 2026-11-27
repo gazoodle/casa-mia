@@ -378,7 +378,7 @@ class Generator:
         each tile (where: its panel) and the main area. The channel is the one to draw it
         from (see `choose`); until the channels' sizes are known, a tile's low channel
         and the main camera's medium."""
-        _, (_, _, mw, mh), main_fit, tiles, _, _ = placed(cmd, main)
+        _, (_, _, mw, mh), main_fit, tiles, _, _, _ = placed(cmd, main)
         out = []
 
         def place(where: str, camera: str, size: tuple[int, int], whole: bool) -> None:

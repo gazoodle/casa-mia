@@ -202,8 +202,8 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
 
 export const fullStyles = css`
   /* Over the whole screen, Home Assistant's own header and sidebar too: the main camera
-     (.full), and the card itself when its Full fills a zoomed kiosk's window (card.ts:
-     toScreen). */
+     (.full), and the card itself when its Full fills the window: a zoomed kiosk's, or
+     one whose page can't have the screen (card.ts: toScreen). */
   .full,
   :host([filled]) {
     position: fixed;

@@ -17,6 +17,7 @@ export type Options = {
   edges: string[];
   edges_tall: string[] | null;
   main_other: string;
+  card_place: boolean;
   cant_fit: string;
 };
 /** A commander laid out: see the compositor's `responsive`. */
@@ -26,6 +27,8 @@ export type Laid = {
   main_how: "cover" | "contain";
   tiles: Rect[];
   more: Rect | null;
+  /** The place kept for a card: the last cell, with `card_place` on. */
+  card: Rect | null;
   dropped: number;
   gave: string[];
   grid: [cols: number, rows: number, mc: number, mr: number];
@@ -72,10 +75,10 @@ type Grid = [cols: number, rows: number, mc: number, mr: number, left: number, t
 const found = new Map<string, Grid | null>(); // kept: a size is asked for again and again
 
 /** The best grid for a space w x h, or null when the limits allow none. */
-function best(w: number, h: number, gap: number, tiles: number, tile: Shape, main: Shape, loss: number, tileMin: number, least: number, most: number, edges: string[]): Grid | null {
-  const asked = JSON.stringify([w, h, gap, tiles, tile, main, loss, tileMin, least, most, edges]);
-  const kept = found.get(asked);
-  if (kept !== undefined) return kept;
+function best(w: number, h: number, gap: number, tiles: number, tile: Shape, main: Shape, loss: number, tileMin: number, least: number, most: number, edges: string[], kept: number): Grid | null {
+  const asked = JSON.stringify([w, h, gap, tiles, tile, main, loss, tileMin, least, most, edges, kept]);
+  const had = found.get(asked);
+  if (had !== undefined) return had;
 
   const biggest = whole(w, h, main);
   let key: number[] | null = null;
@@ -96,8 +99,8 @@ function best(w: number, h: number, gap: number, tiles: number, tile: Shape, mai
         if (left === null) continue;
         for (let mr = 2; mr <= rows; mr++) {
           const top = before(rows - mr, "top", "bottom", edges);
-          const room = cols * rows - mc * mr;
-          if (top === null || !room) continue;
+          const room = cols * rows - mc * mr - kept;
+          if (top === null || room < 1) continue;
           const [bw, bh] = [mc * cw + (mc - 1) * gap, mr * ch + (mr - 1) * gap];
           const lost = lostIn(bw, bh, main);
           const shown = bw * bh;
@@ -105,7 +108,7 @@ function best(w: number, h: number, gap: number, tiles: number, tile: Shape, mai
 
           const dropped = room >= tiles ? 0 : tiles - (room - 1);
           const used = Math.min(tiles, room);
-          const unused = w * h - used * cw * ch - shown;
+          const unused = w * h - (used + kept) * cw * ch - shown;
           const over = Math.max(0, shown * 100 - most * biggest);
           const cost = div(unused * 1_000_000, w * h) + 500 * tileLost + 500 * lost + div(over * 9_000, w * h);
           const k = [dropped, cost, -cw * ch, cols, rows, mc, mr];
@@ -154,8 +157,9 @@ export function responsive(width: number, height: number, gap: number, margin: n
   const main = o.main_other === "follow" ? own : MAIN_SHAPE;
   const tiles = cameras > 1 ? cameras : 0;
   const tileMin = Math.max(1, pyRound(o.tile_min * scale));
+  const kept = o.card_place ? 1 : 0;
   const solve = (among: string[], least: number, smallest: number) =>
-    best(w, h, gap, tiles, shapeOf(o.tile_shape), main, Math.trunc(o.tile_loss), smallest, least, Math.trunc(o.main_most), among);
+    best(w, h, gap, tiles, shapeOf(o.tile_shape), main, Math.trunc(o.tile_loss), smallest, least, Math.trunc(o.main_most), among, kept);
 
   // What gives way, in order (see the compositor's): the main camera's least, then the
   // smallest tile too; at each, the listed edges first, then others added one at a time,
@@ -187,6 +191,7 @@ export function responsive(width: number, height: number, gap: number, margin: n
       main_how: lostIn(w, h, own) <= WHOLE_OVER ? "cover" : "contain",
       tiles: [],
       more: null,
+      card: null,
       dropped: tiles,
       gave: tiles ? [...gave, "main_alone"] : [],
       grid: [1, 1, 1, 1],
@@ -197,6 +202,7 @@ export function responsive(width: number, height: number, gap: number, margin: n
   const y0 = m + div(h - (rows * ch + (rows - 1) * gap), 2);
   const [bw, bh] = [mc * cw + (mc - 1) * gap, mr * ch + (mr - 1) * gap];
   const places = cells(grid, edges).map(([c, r]): Rect => [x0 + c * (cw + gap), y0 + r * (ch + gap), cw, ch]);
+  const card = kept ? places.pop()! : null; // the last cell; "+n more" is the one before it
   const dropped = places.length >= tiles ? 0 : tiles - (places.length - 1);
   const shown = tiles - dropped;
 
@@ -207,6 +213,7 @@ export function responsive(width: number, height: number, gap: number, margin: n
     main_how: bars ? "contain" : "cover",
     tiles: places.slice(0, shown),
     more: dropped ? places[shown] : null,
+    card,
     dropped,
     gave,
     grid: [cols, rows, mc, mr],

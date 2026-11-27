@@ -1,19 +1,19 @@
 {
   "casa-mia-tablet-layout": {
-    "digest": "fcbd8435745aef317472dd732af36abba2f4ed5fc257431e4e5f6deb14c1cf1f",
-    "version": "2026.11.13"
+    "digest": "84b27f0d73bd91f182833d6217c6e741ca1ea1add8cfee84af7214e381b44b12",
+    "version": "2026.11.14-b19"
   },
   "casa_mia": {
-    "digest": "b2e39e44c575bfebdebf2635769bae3aa3b63e48f9c74fa7bd6440e38de6a80d",
-    "version": "2026.11.14-b18"
+    "digest": "db52aff0e79c4be90bf6d88d64d040fd0879b9728be1d03839004700d485c281",
+    "version": "2026.11.14-b19"
   },
   "casa_mia_commander": {
     "digest": "9255fa6975a2847fe036110df36ceafa4b4c1349883f107b1d4680b6d84a192d",
     "version": "2026.11.14-b12"
   },
   "casa_mia_dash_bored": {
-    "digest": "6f945e8c7ad137a322313319ea70c3672aae7760dd2cbb7eff19d3485459eac8",
-    "version": "2026.11.14-b18"
+    "digest": "9297413da760cfc8ab7c554be28b31024b324d384533bfafe9da543055316551",
+    "version": "2026.11.14-b19"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",
@@ -24,19 +24,19 @@
     "version": "2026.11.2-b20"
   },
   "casa_mia_jukebox": {
-    "digest": "d8e1b278516be391495903fc805f0dc1b9c7c852333f533ddbdc93fa6ccb1e93",
-    "version": "2026.11.14-b8"
+    "digest": "b64f6234fca7857374dc025c39f963d1f0f5e4a3cafebfee4056637336ddb85b",
+    "version": "2026.11.14-b19"
   },
   "casa_mia_love_or_loathe": {
-    "digest": "becc854cf6cac4f50507a667667800e41475603510e3058f009ce3678327ce54",
-    "version": "2026.11.13"
+    "digest": "bb1314bb19910dfacb3e63b0ddf6f45e0476805a8dbadf23548315b6ef351fe7",
+    "version": "2026.11.14-b19"
   },
   "casa_mia_protect_talkback": {
     "digest": "dde0abdacfc4178e08b84f524d976cce2e6f6d342058476fcdb56bcd0079dc7e",
     "version": "2026.11.2-b21"
   },
   "casa_mia_sensor_watch": {
-    "digest": "91d79484b44fc36fc747d68e4e481a6628a957c48367b1d30a02caa7e5bbea1b",
-    "version": "2026.11.14-b8"
+    "digest": "44d93dec7aeedc5de88a002d1022056436a29cf74629cb73f148223aab7d0a73",
+    "version": "2026.11.14-b19"
   }
 }

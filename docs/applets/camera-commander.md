@@ -216,6 +216,12 @@ crops the cameras least is used.
   takes it out and **+ Add…** puts one back.
 - **Different when the space is taller than wide:** a second list of edges for a tall
   space, such as a phone held upright.
+- **Keep the last place for a card:** the last place, in the corner of the picture, is
+  left clear of cameras, and each Camera Commander card showing this commander can draw
+  a card of its own there, such as a clock or a few buttons (see
+  [A card in the last place](#a-card-in-the-last-place)). The place is never given to a
+  camera: when there are too many, **+n more** takes the place before it. A size that
+  shows the main camera alone has no such place.
 - **When the limits can't all be met:** **Find something that fits** uses other edges,
   then lets the main camera go below its least, then the tiles below the smallest. Each
   time, your own edges are tried before any other, and an edge that didn't help is not
@@ -343,6 +349,8 @@ Its options (each left at its default unless you change it):
 - **Its controls over the main camera**, **Sound button** and **Full screen button:**
   buttons over the main camera. See
   [Controls and buttons over the main camera](#controls-and-buttons-over-the-main-camera).
+- **Card in the last place:** a card of your own in the commander's last place. See
+  [A card in the last place](#a-card-in-the-last-place).
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. Direct means the app's own address, on port
   8099. With the default, a page at home that gets no picture from that address within
@@ -368,6 +376,50 @@ Its options (each left at its default unless you change it):
   your own buttons.
 - **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
   you answer, or half duplex, where it goes out only while you hold a button (see below).
+
+### A card in the last place
+
+A Responsive commander can keep its last place, in the corner of the picture, clear of
+cameras (**Keep the last place for a card**, on the Camera Commander page). The card then
+draws one Lovelace card there. It is set in the card's editor, under **Last place**, as
+YAML, and it can be any card Home Assistant has. Two dashboards showing the same
+commander can each have a different card there.
+
+A clock:
+
+```yaml
+type: clock
+```
+
+Four buttons are Home Assistant's grid card with four button cards in it:
+
+```yaml
+type: grid
+columns: 2
+square: false
+cards:
+  - type: button
+    entity: light.porch
+  - type: button
+    entity: cover.front_gate
+  - type: button
+    name: Home
+    icon: mdi:home
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/home
+  - type: button
+    entity: script.goodnight
+```
+
+A tap in the place goes to the card in it and never changes the main camera. The card is
+given the place's size and anything that doesn't fit is cut off at its edge, so a card
+made for a wide column may need its own options set to suit a small place.
+
+The place is clear in the picture itself, so anything that shows the commander's picture
+without this card has nothing there. While the dashboard is being edited, the place says
+that a card goes there when none is set, and the card says so when it has a card and the
+commander keeps no place for it.
 
 ### Controls and buttons over the main camera
 
@@ -431,8 +483,11 @@ address bar and tabs go, and so do Home Assistant's header and sidebar. The comm
 drawn again for the larger space. The button is shown pressed; tap it again to go back, or use the
 browser's own way out (Esc on a keyboard, or the close button Safari shows).
 
-- It works in a browser on a computer or a tablet, Safari on an iPad included. It is not
-  shown in an app or frame that doesn't allow full screen.
+- It works in a browser on a computer or a tablet, Safari on an iPad included.
+- Safari on an iPhone, the Home Assistant app on an iPad or an iPhone, and a frame that
+  doesn't allow full screen can't give a page the whole screen. There the commander
+  fills the app's window instead, over Home Assistant's header and sidebar. In Safari on
+  an iPhone, Safari's own bars stay.
 - A kiosk app that zooms its pages (to 1.6×, say) loses the zoom in the browser's full
   screen, so everything there would be smaller than on the page. The card sees the zoom,
   and there it fills the kiosk's window instead, which already fills the screen, so the
@@ -440,10 +495,6 @@ browser's own way out (Esc on a keyboard, or the close button Safari shows).
 - An iPad keeps its status bar (the time, the date, the battery) on top of a full screen
   page. The commander leaves a black strip at the top for it, so the status bar doesn't
   sit over the picture.
-- Safari on an iPhone can't show a page full screen, only a video. There the button
-  puts the main camera's live video in the phone's own player, without the other
-  cameras or the buttons, and the player's own close button comes back to the
-  commander. The button is shown only while the main camera is playing as live video.
 - A browser only allows full screen from a tap, so after the page reloads it has to be
   tapped again. For a tablet that is left on one page,
   add the page to its Home Screen instead (Safari: Share, then **Add to Home Screen**),

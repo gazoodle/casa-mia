@@ -1,5 +1,5 @@
 // The Camera Commander's types, constants and helpers, shared by the card and its editor.
-import { type Fit, type Hass, heightFor, liveChannel, type Sharpness, type State } from "../ha.ts";
+import { type CardConfig, type Fit, type Hass, heightFor, liveChannel, type Sharpness, type State } from "../ha.ts";
 import { pyRound } from "../layout.ts";
 import type { Commander } from "../placed.ts";
 import type { Labels } from "../labels.ts";
@@ -38,6 +38,9 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   talk_button?: boolean;
   /** full: the voice goes out from the answer; half: only while Hold to talk is held (talk-rules.ts). */
   duplex?: Duplex;
+  /** The card in the commander's last place, where it keeps one (place.ts): any Lovelace
+   * card, a clock or a grid of buttons. */
+  card?: CardConfig;
 };
 export type Card = {
   picture: string;

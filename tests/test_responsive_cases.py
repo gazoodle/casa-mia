@@ -138,6 +138,21 @@ def inputs() -> list[dict]:
     case("the main camera's least gives way", 300, 700, 30, {"main_least": 100})
     case("the smallest tile gives way", 300, 200, 30, {"tile_min": 200})
 
+    # The last place kept for a card: with room to spare, with cameras going into
+    # "+n more" (the cell before it), in a tall space, and where nothing fits.
+    place = {"card_place": True}
+    for n in (2, 5, 14, 32):
+        case(f"a place for a card, {n} cameras", 1100, 560, n, place)
+    case("a place for a card, tall", 393, 700, 9, place)
+    case("a place for a card, one camera: none", 1100, 560, 1, place)
+    case(
+        "a place for a card, kept to limits that don't fit: none",
+        200,
+        150,
+        12,
+        {**place, "cant_fit": "keep"},
+    )
+
     # The gap, the margin and the scale (device pixels: the smallest tile grows with it).
     case("no gap", 1100, 560, 14, gap=0)
     case("a wide gap", 1100, 560, 14, gap=12)
@@ -224,6 +239,26 @@ def test_every_camera_is_a_tile_or_in_more():
             assert len(r["tiles"]) + r["dropped"] == n
             assert (r["more"] is None) == (
                 r["dropped"] == 0 or "main_alone" in r["gave"]
+            )
+
+
+def test_the_card_has_the_last_place_and_no_camera_takes_it():
+    for w, h in SPACES:
+        for n in (2, 9, 20, 32):
+            r, plain = laid(w, h, n, card_place=True), laid(w, h, n)
+            assert plain["card"] is None
+            if "main_alone" in r["gave"]:
+                assert r["card"] is None
+                continue
+            # a cell like the tiles, clear of them all, and every camera still counted
+            others = rects(r)
+            assert r["card"] not in others and r["card"][2:] == r["tiles"][0][2:]
+            assert len(r["tiles"]) + r["dropped"] == n
+            # the last in the order the cells fill: nothing is after it on its line
+            x, y = r["card"][:2]
+            assert not any(ty == y and tx > x for tx, ty, _, _ in others[1:])
+            assert all(ty <= y for _, ty, _, _ in others[1:]) or all(
+                tx <= x for tx, _, _, _ in others[1:]
             )
 
 

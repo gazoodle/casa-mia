@@ -122,6 +122,7 @@ export class CommanderEditor extends LitElement {
       { name: "main_controls", selector: { boolean: {} } },
       { name: "sound_button", selector: { boolean: {} } },
       { name: "screen_button", selector: { boolean: {} } },
+      { name: "card", selector: { object: {} } },
     ];
     const labels: Record<string, string> = {
       entity: "Commander",
@@ -144,7 +145,12 @@ export class CommanderEditor extends LitElement {
       motion_pulse: "Pulse",
       motion_linger: "Keep after motion",
       motion_corner: "Corner",
+      card: "Card in the last place",
     };
+    // Whether the commander chosen keeps its last place for a card (its Responsive
+    // layout's switch, on the Camera Commander page), as its entity says.
+    const layout = this.hass.states[this._config.entity ?? ""]?.attributes.card?.layout;
+    const keeps = layout?.mode === "responsive" && Boolean(layout.responsive?.card_place);
     const fields = (...names: string[]) => schema.filter((field) => names.includes(field.name));
     const form = (schema: object[], className = "") => html`<ha-form
       class=${className}
@@ -168,7 +174,7 @@ export class CommanderEditor extends LitElement {
             : s.name === "sound_button"
             ? "A Sound button with the main camera's controls (on its full screen, and over it when its controls are), to hear the camera. It goes back to off when the main camera changes, and the camera is not heard while you talk (the visitor is heard through Talk)."
             : s.name === "screen_button"
-            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. On an iPhone, where a browser can't show a page full screen, it shows the main camera's live video in the phone's own player instead. It has to be tapped again after the page reloads."
+            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. Where a page can't have the screen (Safari on an iPhone, the Home Assistant app on an iPad or an iPhone), the commander fills the app's window instead. It has to be tapped again after the page reloads."
             : s.name === "talk_button"
             ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
@@ -177,6 +183,8 @@ export class CommanderEditor extends LitElement {
             ? "Seconds each pulse takes; 0: a steady dot."
             : s.name === "motion_linger"
             ? "Seconds the dot stays once the motion has stopped, so a short one is not missed. 0: it goes at once."
+            : s.name === "card"
+            ? `Any card, as YAML: a clock (type: clock), or a grid card of buttons. ${keeps ? "It is drawn in this commander's last place, in the picture's corner." : "This commander keeps no place for it yet: switch on Keep the last place for a card on the Camera Commander page (Responsive layout)."}`
             : s.name === "leave_after"
             ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once."
             : undefined}
@@ -211,6 +219,10 @@ export class CommanderEditor extends LitElement {
       <section aria-labelledby="talk-heading">
         <h3 id="talk-heading">Talking</h3>
         ${form(fields("talk_button", "duplex"))}
+      </section>
+      <section aria-labelledby="place-heading">
+        <h3 id="place-heading">Last place</h3>
+        ${form(fields("card"))}
       </section>
       <section>
         ${form([{

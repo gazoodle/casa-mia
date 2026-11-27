@@ -11,6 +11,15 @@ function forms(template: any): any[] {
   return template.values.flatMap((value: any) => Array.isArray(value) ? value.flatMap(forms) : forms(value));
 }
 
+/** A field's helper text, as the form would show it. */
+function helperOf(editor: CommanderEditor, name: string): string {
+  const find = (template: any): any =>
+    !template?.strings ? undefined
+    : template.strings.some((part: string) => part.includes("<ha-form")) ? template.values[5]
+    : template.values.map((v: any) => (Array.isArray(v) ? v.map(find).find(Boolean) : find(v))).find(Boolean);
+  return find(editor.render())({ name });
+}
+
 function names(editor: CommanderEditor): string[] {
   const fields = (schema: any[]): string[] => schema.flatMap((field) => field.schema ? fields(field.schema) : [field.name]);
   return forms(editor.render()).flatMap((form) => fields(form.schema));
@@ -37,6 +46,17 @@ test("security details follow their switch and motion defaults remain visible", 
   assert.ok(names(value).includes("motion_dot"));
   for (const name of ["motion_colour", "motion_pulse", "motion_linger", "motion_corner"])
     assert.ok(!names(value).includes(name), name);
+});
+
+test("the card in the last place is offered, and says when the commander keeps no place for it", () => {
+  const helper = (value: CommanderEditor) => helperOf(value, "card");
+  const none = editor({ entity: "select.oak_commander" });
+  assert.ok(names(none).includes("card"));
+  assert.match(helper(none), /keeps no place/);
+
+  const keeps = editor({ entity: "select.oak_commander" });
+  keeps.hass!.states["select.oak_commander"] = { state: "", attributes: { card: { layout: { mode: "responsive", responsive: { card_place: true } } } } };
+  assert.match(helper(keeps), /last place, in the picture's corner/);
 });
 
 test("only a forced direct route hides sharpness; talking mode stays with custom buttons", () => {
