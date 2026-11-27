@@ -211,6 +211,25 @@ export const fullStyles = css`
     z-index: 10;
     background: #000;
   }
+  /* The closer look (closer.ts): the videos' element is enlarged and moved inside .seen,
+     which cuts off what leaves the screen. The zone takes the touches itself, as Home
+     Assistant's page turns the browser's own zoom off. */
+  .full .seen {
+    overflow: hidden;
+  }
+  .closer {
+    position: absolute;
+    inset: 0;
+  }
+  .full .zone {
+    touch-action: none;
+  }
+  /* Its chip takes the pointer in the caption, which lets taps through; its icon is the
+     detection chips' size beside it (detect.ts). */
+  .caption .closer-chip {
+    pointer-events: auto;
+    --mdc-icon-size: 14px;
+  }
   /* Along its edge, the group of buttons sits at the start, the middle or the end. The
      group is only as big as its buttons and the room round them, and takes the taps that
      miss one. Its lines stand side by side from the edge inwards: the bar itself, then

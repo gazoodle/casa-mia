@@ -221,9 +221,10 @@ export class CommanderLive extends CommanderBase {
    * and a channel failed, in red how long live has been lost and why; and the clock while
    * the main camera isn't live video, as the picture drew it. Drawn over the tap zones,
    * so its chips take the pointer, and its name where it opens the camera's recordings;
-   * the rest of it lets taps through. `tap` is the main picture's own. */
+   * the rest of it lets taps through. `tap` is the main picture's own; `more` follows
+   * the chips (card.ts: the closer look's chip). */
   // Over HLS it says it is behind: "live" alone would claim more than is shown.
-  protected caption(title: string, place: string, live: LiveNow | null, tap: () => void) {
+  protected caption(title: string, place: string, live: LiveNow | null, tap: () => void, more: unknown = nothing) {
     const { card, main } = this.now();
     const style = labelsOf(card?.layout.labels).main_style;
     const opens = FOLDERS.offered(this.hass!, main, () => this.requestUpdate());
@@ -236,8 +237,8 @@ export class CommanderLive extends CommanderBase {
     // A bar runs along the whole foot, the name at its left and the clock at its right,
     // with the chips standing above it; otherwise the chips follow the name.
     return style === "bar"
-      ? html`<div class="caption bar" style=${place}>${chips}${lost}<div class="foot">${name}${clock}</div></div>`
-      : html`<div class="caption ${style}" style=${place}>${name}${chips}${lost}${clock}</div>`;
+      ? html`<div class="caption bar" style=${place}>${chips}${more}${lost}<div class="foot">${name}${clock}</div></div>`
+      : html`<div class="caption ${style}" style=${place}>${name}${chips}${more}${lost}${clock}</div>`;
   }
 
   /** The recordings dialog while one is open (card.ts draws it beside the tuning dialog). */

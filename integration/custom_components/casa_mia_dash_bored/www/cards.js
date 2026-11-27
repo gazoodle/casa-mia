@@ -13828,50 +13828,52 @@ var M_ = (e, t) => $(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 	s: 1,
 	x: 0,
 	y: 0
-}, F_ = 6, I_ = 1.2, L_ = 2.5;
-function R_(e, t, n, r, i, a, o, s) {
-	let c = Math.min(F_, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
+}, F_ = 1.2;
+function I_(e, t, n, r, i, a, o, s, c, l = o, u = s) {
+	let d = Math.min(c, Math.max(1, e.s * t)), f = d / e.s, p = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
 	return {
-		s: c,
-		x: u(n - (n - e.x - i) * l, (c - 1) * o / 2),
-		y: u(r - (r - e.y - a) * l, (c - 1) * s / 2)
+		s: d,
+		x: p(n - (n - e.x - i) * f, Math.max(0, (d * l - o) / 2)),
+		y: p(r - (r - e.y - a) * f, Math.max(0, (d * u - s) / 2))
 	};
 }
-var z_ = P_, B_ = /* @__PURE__ */ new Map();
-function V_() {
-	let e = [...B_.values()], t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
+function L_(e) {
+	let t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
 	return [
 		t(0),
 		t(1),
 		e.length > 1 ? Math.hypot(e[0][0] - e[1][0], e[0][1] - e[1][1]) : 0
 	];
 }
+//#endregion
+//#region src/dash-bored/zoom.ts
+var R_ = 6, z_ = 2.5, B_ = P_, V_ = /* @__PURE__ */ new Map();
 function H_(e, t, n, r, i = 0, a = 0) {
 	let o = e.getBoundingClientRect();
-	z_ = R_(z_, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${z_.x}px, ${z_.y}px) scale(${z_.s})`, e.classList.toggle("near", z_.s > 1);
+	B_ = I_(B_, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height, R_), e.firstElementChild.style.transform = `translate(${B_.x}px, ${B_.y}px) scale(${B_.s})`, e.classList.toggle("near", B_.s > 1);
 }
 var U_ = (e) => e.currentTarget, W_ = {
 	whole() {
-		z_ = P_, B_.clear();
+		B_ = P_, V_.clear();
 	},
 	down(e) {
-		U_(e).setPointerCapture(e.pointerId), B_.set(e.pointerId, [e.clientX, e.clientY]);
+		U_(e).setPointerCapture(e.pointerId), V_.set(e.pointerId, [e.clientX, e.clientY]);
 	},
 	move(e) {
-		if (!B_.has(e.pointerId)) return;
-		let [t, n, r] = V_();
-		B_.set(e.pointerId, [e.clientX, e.clientY]);
-		let [i, a, o] = V_();
+		if (!V_.has(e.pointerId)) return;
+		let [t, n, r] = L_([...V_.values()]);
+		V_.set(e.pointerId, [e.clientX, e.clientY]);
+		let [i, a, o] = L_([...V_.values()]);
 		H_(U_(e), r && o ? o / r : 1, i, a, i - t, a - n);
 	},
 	up(e) {
-		B_.delete(e.pointerId);
+		V_.delete(e.pointerId);
 	},
 	wheel(e) {
-		e.preventDefault(), H_(U_(e), e.deltaY < 0 ? I_ : 1 / I_, e.clientX, e.clientY);
+		e.preventDefault(), H_(U_(e), e.deltaY < 0 ? F_ : 1 / F_, e.clientX, e.clientY);
 	},
 	twice(e) {
-		H_(U_(e), z_.s > 1 ? 1 / z_.s : L_, e.clientX, e.clientY);
+		H_(U_(e), B_.s > 1 ? 1 / B_.s : z_, e.clientX, e.clientY);
 	}
 }, G_ = 5, K_ = /* @__PURE__ */ new Map();
 function q_(e) {

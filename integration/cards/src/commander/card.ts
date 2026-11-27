@@ -17,6 +17,7 @@ import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 import { cardsOf, PlaceCards } from "./place.ts";
+import { Closer, closerChip, closerLimits } from "./closer.ts";
 
 export class CommanderCard extends CommanderTalk {
   static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true }, _armed: { state: true } };
@@ -43,6 +44,12 @@ export class CommanderCard extends CommanderTalk {
   private armGone = 0;
   /** The cards in the commander's last place (this card's `cards`), kept between redraws. */
   private place = new PlaceCards(() => this.requestUpdate());
+  /** The closer look at the camera's full screen (closer.ts). */
+  private closer = new Closer(
+    () => this.requestUpdate(),
+    () => this.renderRoot.querySelector<HTMLElement>(".closer"),
+    (box) => closerLimits(this.now().card?.cameras[this._full]?.channels ?? [], box, screenRatio()),
+  );
 
   constructor() {
     super();
@@ -58,6 +65,7 @@ export class CommanderCard extends CommanderTalk {
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("click", this.disarm, true);
+    this.closer.whole(); // and its lease's timer cleared
   }
 
   /** A tap anywhere on the page but on the armed button disarms it: on the way down, so
@@ -96,6 +104,9 @@ export class CommanderCard extends CommanderTalk {
     // switch off, the page hidden or edited), back to the commander, not a black screen.
     const card = this.now().card;
     if (this._full && card && !this.liveMain(card)) this._full = "";
+    // The closer look's view on the element drawn now; whole once the full screen is left.
+    if (this._full) this.closer.show();
+    else this.closer.whole();
     // Debug switched off while the sizes dialog is open: closed, and Track motion back on.
     const select = this._config?.entity ?? "";
     if (card && !card.layout.debug?.on && dialogOpen(select)) toggleDialog(this.hass!, select, false);
@@ -178,9 +189,11 @@ export class CommanderCard extends CommanderTalk {
         ? "Its cards in the last place have no place: switch on Keep the last place for a card for this commander (Camera Commander page, Responsive layout)"
         : "";
     // Full screen (tap_main: full): the camera tapped, live over the whole screen, shown
-    // whole; its channel chosen for the screen's device pixels, as the main area's is.
+    // whole; its channel chosen for the screen's device pixels, as the main area's is, and
+    // for the enlarged size while it is looked at closer (closer.ts: asked).
     const full = Boolean(this._full && card.cameras[this._full]);
-    const screen: Rect = [0, 0, Math.round(innerWidth * screenRatio()), Math.round(innerHeight * screenRatio())];
+    const enlarged = screenRatio() * this.closer.asked;
+    const screen: Rect = [0, 0, Math.round(innerWidth * enlarged), Math.round(innerHeight * enlarged)];
     // The live main camera (live.ts): its videos, and whether the picture leaves the main
     // area to one. With none to show, the picture draws the main camera itself.
     const live =
@@ -401,9 +414,23 @@ export class CommanderCard extends CommanderTalk {
       </div>
       ${full
         ? html`<div class="full" style=${labelled}>
-            <div class="seen" style="filter:${this.look()}">${videos(`${whole};object-fit:contain`)}</div>
-            <div class="zone" style=${whole} title="Back" @click=${() => (this._full = "")}></div>
-            ${live ? this.caption(card.cameras[main].title, whole, live, () => (this._full = "")) : nothing}
+            <div class="seen" style="filter:${this.look()}">
+              <div class="closer">${videos(`${whole};object-fit:contain`) /* no bound style: Lit never writes over its transform */}</div>
+            </div>
+            <div
+              class="zone"
+              style=${whole}
+              title="Back"
+              @pointerdown=${this.closer.down}
+              @pointermove=${this.closer.move}
+              @pointerup=${this.closer.up}
+              @pointercancel=${this.closer.up}
+              @wheel=${this.closer.wheel}
+              @click=${() => {
+                if (this.closer.tap()) this._full = "";
+              }}
+            ></div>
+            ${live ? this.caption(card.cameras[main].title, whole, live, () => (this._full = ""), closerChip(this.closer)) : nothing}
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round

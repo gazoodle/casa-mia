@@ -347,8 +347,14 @@ Its options (each left at its default unless you change it):
   with live video (the default); or **its page on the camera dashboard** (more-info when
   there is no dashboard); or **full screen, with its controls**; or nothing. Full screen
   shows the camera live over the whole screen, with its page controls as buttons along
-  the edge set on the Cameras page, and a tap on the picture goes back. Talk carries on
-  through it. Where the camera can't play live on the device, the tap opens more-info.
+  the edge set on the Cameras page. Pinch the picture, or turn the mouse wheel over it,
+  to enlarge it, and drag to move it about; a chip beside the camera's name says by how
+  much (2.4×, say), and the card plays a larger channel of the camera where it has one,
+  so the detail is there. The picture goes back to whole a minute after the last touch,
+  or at a tap on the picture or the chip, and a tap on the whole picture leaves full
+  screen. This enlarges the picture on the screen; the camera's own zoom is the **Zoom**
+  button. Talk carries on through it. Where the camera can't play live on the device, the
+  tap opens more-info.
 - **Its controls over the main camera**, **Sound button** and **Full screen button:**
   buttons over the main camera. See
   [Controls and buttons over the main camera](#controls-and-buttons-over-the-main-camera).

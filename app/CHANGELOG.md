@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.14-b29
+
+- **Camera Commander card: a closer look at the main camera's full screen.** Pinch, or
+  turn the mouse wheel, to enlarge the live picture, and drag to move it. While it is
+  enlarged, a chip beside the camera's name says by how much, and the card asks for a
+  larger channel where the camera has one. It goes back to the whole picture a minute
+  after the last touch, or at a tap on the picture or the chip. This is the picture
+  enlarged on the screen, not the camera's own zoom.
+
 ## 2026.11.14-b28
 
 - **Camera Commander card editor: its options are in sections that start collapsed**
