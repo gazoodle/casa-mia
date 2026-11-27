@@ -21,8 +21,10 @@ if [ -x .venv-ha/bin/python ] || "$HA_PYTHON" -c '' 2>/dev/null; then
   .venv-ha/bin/python -m pip install -q -U pip
   .venv-ha/bin/python -m pip install -q -r tests_ha/requirements.txt
   # Home Assistant's own pages, which Sensor Watch's panel needs, and the audio library
-  # its text-to-speech needs (Jukebox's voice), at the versions this Home Assistant pins.
-  .venv-ha/bin/python -m pip install -q home-assistant-frontend mutagen \
+  # and ffmpeg wrapper its text-to-speech needs (Jukebox's voice), at the versions this
+  # Home Assistant pins. Why ha-ffmpeg: tts imports HA's ffmpeg component, and CI's
+  # tests_ha failed on 2026-11-27 without it, where the owner's venv had it already.
+  .venv-ha/bin/python -m pip install -q home-assistant-frontend mutagen ha-ffmpeg \
     -c "$(.venv-ha/bin/python -c 'import homeassistant, pathlib; print(pathlib.Path(homeassistant.__file__).parent / "package_constraints.txt")')"
 else
   echo "no $HA_PYTHON that runs: .venv-ha not made, so tests_ha can't run here (CI runs them)"

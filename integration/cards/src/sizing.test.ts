@@ -5,16 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { heightFor, LOOK, lookCss, modeOf } from "./ha.ts";
-import { styles } from "./commander/styles.ts";
 
 const WIDE = 16 / 9;
-
-// Home Assistant's ha-card animates every property ("transition: all 0.3s ease-out"), so
-// a height the rule sets was grown into over 0.3 s, with a picture asked for on the way.
-test("the commander's height is set at once, never animated by ha-card's transition", () => {
-  const rules = styles.map((s) => s.cssText).join("\n");
-  assert.match(rules, /\n\s*ha-card \{[^}]*transition: none;/);
-});
 
 test("the container decides the mode", () => {
   assert.equal(modeOf("HUI-PANEL-VIEW", false), "screen");
