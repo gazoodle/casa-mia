@@ -1,7 +1,7 @@
 // The guest's goodbye: when a page moves to the goodbye, and when it stays.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { goodbye } from "./guest-goodbye.ts";
+import { goodbye, isGuest } from "./guest-goodbye.ts";
 
 const ME = { id: "u1" };
 const sw = (id: string, state: string, attrs: object = {}) => ({
@@ -48,4 +48,20 @@ test("stays when nothing signs out, when already closed at load, and for others"
     null,
   );
   assert.equal(goodbye({ "switch.oak": sw("oak", "off") }, { id: "u2" }, new Map([["switch.oak", true]]), 0, "h"), null);
+});
+
+test("a guest is a user an endpoint signs visitors in as, open or not; never an administrator", () => {
+  const states = { "switch.oak": sw("oak", "off") };
+  const entities = { "switch.oak": { platform: "casa_mia_guest_login" } };
+  assert.equal(isGuest({ states, entities, user: { id: "u1" } }), true);
+  assert.equal(isGuest({ states, entities, user: { id: "u2" } }), false);
+  assert.equal(isGuest({ states, entities, user: { id: "u1", is_admin: true } }), false);
+  // Another integration's switch with the same attribute is not an endpoint's.
+  assert.equal(isGuest({ states, entities: { "switch.oak": { platform: "template" } }, user: { id: "u1" } }), false);
+});
+
+test("until Home Assistant has sent its user and entities, a user counts as a guest", () => {
+  const states = { "switch.oak": sw("oak", "on") };
+  assert.equal(isGuest({ states, user: { id: "u2" } }), true);
+  assert.equal(isGuest({ states, entities: {} }), true);
 });

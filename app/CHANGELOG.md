@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026.11.14-b30
+
+- **Camera Commander card: guests can't open a camera's recordings.** For a user a Guest
+  Login endpoint signs visitors in as, the main camera's name and chips do what a press on
+  the camera does.
+- **Camera Commander card: while the main camera reports nothing, a grey chip says its
+  latest detection and when** (such as "Person 12:04"), so it is seen there are
+  recordings to watch; it opens them. Every chip now opens the recordings on its own kind:
+  a doorbell ring on Doorbell, a sound on Sounds.
+- **Camera Commander card: the recordings dialog fills the screen** (up to 1280 px each
+  way) and keeps its size. On a landscape screen the list is on the left and the chosen
+  recording on the right, starting on the newest one's picture; on a portrait screen it is
+  above the list. The list can be tiles or rows, which each device remembers, and fetches
+  the day before by itself at its end, stopping after 7 empty days in a row with Look
+  further back to go on. A run of empty days is one line, and a day that fails to list
+  has Try again.
+
 ## 2026.11.14-b29
 
 - **Camera Commander card: a closer look at the main camera's full screen.** Pinch, or

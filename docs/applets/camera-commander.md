@@ -408,12 +408,33 @@ picture leaves both out for the card.
 ### Its recordings
 
 For a UniFi Protect camera, a press on the main camera's name, or on one of its chips,
-opens its recordings: a picture of each, newest first, starting with today. The chips
-along the top choose what is listed: **Detections** (people, vehicles, animals and
-packages), **Doorbell** (its rings, for a doorbell), **Sounds** or **Motion**. **Earlier**
-adds the day before, under its own date. Press a picture to play its clip above the list.
-**Close**, a press outside the dialog, or Escape closes it and stops the clip. Anyone who
-can see the card can open them.
+opens its recordings. While the camera reports nothing, a grey chip beside its name says
+its latest detection and when (such as **Person 12:04** or **Doorbell yesterday 18:02**),
+so you can see there is something to watch. It says **Recordings** when no detection is
+known yet. A chip opens the dialog on its own kind: a doorbell ring on Doorbell, a sound
+on Sounds, the rest on Detections.
+
+The dialog fills the screen, up to 1280 px each way. On a landscape screen at least 700 px
+wide, the recordings are listed on the left and the one chosen is shown on the right; on
+a portrait screen, it is shown above the list. It starts on the newest recording's
+picture, which plays when you press **Play**. Press any recording in the list to play it
+there.
+
+The chips along the top choose what is listed: **Detections** (people, vehicles, animals
+and packages), **Doorbell** (its rings, for a doorbell), **Sounds** or **Motion**. The two
+round chips beside **Close** show the list as tiles or as rows; each device remembers
+which. The list starts with today, newest first, and fetches the day before by itself
+whenever you reach its end, or while there is room for more. A run of days with nothing
+recorded is said in one line. After 7 such days in a row it stops, and **Look further
+back** goes on. **Close**, a press outside the dialog, or Escape closes it and stops the
+clip.
+
+Guests don't get the recordings: for a user that a [Guest Login](guest-login.md)
+endpoint signs visitors in as, the name and chips do what a press on the main camera
+does, and the grey chip isn't shown. This is the card's limit only. Home Assistant has no
+permission for its media library, so anyone signed in can still reach the recordings
+through Home Assistant's own Media browser, which Guest Login's kiosk options hide from
+visitors along with the sidebar.
 
 They are the recordings Home Assistant's UniFi Protect integration lists in its media
 library (Media in the sidebar). For each day it lists at most its **max media** option's
@@ -709,8 +730,8 @@ duplex: full     # or half; only for button: answer
   it has none on its device (in UniFi Protect, check its smart detections are on).
 - **A press on the main camera's name opens nothing:** its recordings are offered only for
   a UniFi Protect camera that Protect's media library has a folder for (Media in Home
-  Assistant's sidebar, then UniFi Protect). The card looks once each time the page loads,
-  so for a camera added since, reload the page.
+  Assistant's sidebar, then UniFi Protect), and never to a guest. The card looks once
+  each time the page loads, so for a camera added since, reload the page.
 - **A clip doesn't play:** the dialog says why, and the browser's console has a
   `casa-mia:` line for each step. When a browser can't play a clip from Home Assistant's
   address, the card fetches the whole clip first, saying how much has arrived, and plays

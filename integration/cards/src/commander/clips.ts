@@ -2,8 +2,9 @@
 // Protect's media library, one kind and one day at a time, and a clip's address to play
 // (docs/design/commander-detections.md, step 3). Only Home Assistant's public websocket
 // commands: media_source/browse_media, media_source/resolve_media and auth/sign_path.
-// Nothing fetches by itself (RULE FOUR): the cameras' folders are looked up once per page
-// load, and the rest when the dialog is opened or asked for an earlier day.
+// Nothing fetches on a timer (RULE FOUR): the cameras' folders are looked up once per page
+// load, and the rest when the dialog is opened or the end of its list comes into view
+// (owner, 2026-11-27), stopping by itself after EMPTY_STOP empty days in a row.
 import type { Hass } from "../ha.ts";
 import { KINDS } from "./detect.ts";
 
@@ -87,9 +88,9 @@ export const FOLDERS = new Folders();
 /** A day as Protect's media library names one: in Home Assistant's time zone, unpadded. */
 export type Day = { y: number; m: number; d: number };
 
-/** Today where Home Assistant is, not where this browser is. */
-export function today(zone: string | undefined, now = Date.now()): Day {
-  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: zone, year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
+/** The day it is at `at` where Home Assistant is, not where this browser is. */
+export function dayAt(zone: string | undefined, at = Date.now()): Day {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: zone, year: "numeric", month: "numeric", day: "numeric" }).formatToParts(at);
   const n = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return { y: n("year"), m: n("month"), d: n("day") };
 }
@@ -99,13 +100,27 @@ export function before({ y, m, d }: Day): Day {
   return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
 }
 
-/** The next day the list shows: today, then at each Earlier the day before the last. */
+/** The next day the list shows: today, then each time the day before the last. */
 export const nextDay = (shown: Day[], zone: string | undefined, now = Date.now()): Day =>
-  shown.length ? before(shown[shown.length - 1]) : today(zone, now);
+  shown.length ? before(shown[shown.length - 1]) : dayAt(zone, now);
 
 /** A day as its heading says it, in this browser's language. */
 export const dayName = ({ y, m, d }: Day): string =>
   new Date(Date.UTC(y, m - 1, d)).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+
+/** When something was, as a chip says it, where Home Assistant is (as the caption's clock):
+ * the time today, "yesterday" and the time, the weekday and time within the week, else
+ * the date. `lang`: this browser's language unless given. */
+export function whenSaid(at: number, zone: string | undefined, now: number, lang?: string): string {
+  const utc = ({ y, m, d }: Day) => Date.UTC(y, m - 1, d);
+  const days = Math.round((utc(dayAt(zone, now)) - utc(dayAt(zone, at))) / 86_400_000);
+  const say = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(lang, { timeZone: zone, ...o }).format(at);
+  const time = say({ hour: "2-digit", minute: "2-digit" });
+  if (days <= 0) return time;
+  if (days === 1) return `yesterday ${time}`;
+  if (days < 7) return `${say({ weekday: "short" })} ${time}`;
+  return say({ day: "numeric", month: "short" });
+}
 
 /** The kinds of recording, one shown at a time (decided: the items carry no time a merged
  * list could be sorted on). Never Protect's `all`: one console passed its 1,000 events of
@@ -117,6 +132,49 @@ export const SHELVES = [
   { kind: "motion", label: "Motion", icon: "mdi:motion-sensor" },
 ] as const;
 export type Shelf = (typeof SHELVES)[number]["kind"];
+
+/** The kind of recording a detection is found under (KINDS' shelf; objects and anything
+ * not known under Detections), for a chip to open the dialog on. */
+export const shelfOf = (kind: string): Shelf => KINDS[kind]?.shelf ?? "smart";
+
+/** One day of the list: its clips once listed, or why they couldn't be, and whether
+ * Protect's list of it was cut short. */
+export type Shown = { day: Day; clips?: Clip[]; failed?: string; cut?: boolean };
+
+/** How many empty days in a row the list goes back by itself before it stops: a quiet
+ * camera would otherwise be fetched back to its first day. Look further back goes on. */
+export const EMPTY_STOP = 7;
+
+/** The empty days at the end of the list, counted from `from` (where Look further back
+ * was pressed). */
+export function emptyRun(days: Shown[], from: number): number {
+  let run = 0;
+  for (let i = days.length - 1; i >= from && days[i].clips?.length === 0; i--) run++;
+  return run;
+}
+
+/** Whether the list fetches the day before by itself: none still loading, none failed
+ * (that one waits for Try again), and fewer than EMPTY_STOP empty days in a row. */
+export const goesOn = (days: Shown[], from: number): boolean =>
+  days.every((s) => s.clips && !s.failed) && emptyRun(days, from) < EMPTY_STOP;
+
+/** The list as drawn: each day with clips (or loading, or failed) under its heading, and
+ * each run of empty days as one line. */
+export type Part = { shown: Shown } | { empty: Day[] };
+export function parts(days: Shown[]): Part[] {
+  const out: Part[] = [];
+  for (const shown of days) {
+    const last = out[out.length - 1];
+    if (shown.clips?.length !== 0) out.push({ shown });
+    else if (last && "empty" in last) last.empty.push(shown.day);
+    else out.push({ empty: [shown.day] });
+  }
+  return out;
+}
+
+/** A run of empty days (newest first), said in one line. */
+export const nothingOn = (days: Day[]): string =>
+  days.length === 1 ? `Nothing recorded on ${dayName(days[0])}` : `Nothing recorded from ${dayName(days[days.length - 1])} to ${dayName(days[0])}`;
 
 export const dayId = (folder: string, kind: Shelf, { y, m, d }: Day): string => `${folder}:${kind}:range:${y}:${m}:${d}`;
 

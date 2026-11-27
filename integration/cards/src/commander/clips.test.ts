@@ -3,7 +3,7 @@
 // cameras and plates.
 import { mock, test } from "node:test";
 import assert from "node:assert/strict";
-import { before, clipOf, dayClips, download, Folders, nextDay, reason, resolve, ROOT, today, truncated } from "./clips.ts";
+import { before, clipOf, dayAt, dayClips, download, EMPTY_STOP, emptyRun, Folders, goesOn, nextDay, nothingOn, parts, reason, resolve, ROOT, shelfOf, type Shown, truncated, whenSaid } from "./clips.ts";
 
 const P = `${ROOT}/`;
 const folder = (nvr: string, camera: string, entity?: string) => ({
@@ -96,10 +96,10 @@ test("while the look has failed the name stays pressable, and a redraw never loo
   }
 });
 
-test("today is Home Assistant's, and Earlier adds the day before, over months and years", () => {
+test("today is Home Assistant's, and each day after it the day before, over months and years", () => {
   const late = Date.parse("2026-11-27T23:30:00Z");
-  assert.deepEqual(today("Europe/London", late), { y: 2026, m: 11, d: 27 });
-  assert.deepEqual(today("Asia/Tokyo", late), { y: 2026, m: 11, d: 28 });
+  assert.deepEqual(dayAt("Europe/London", late), { y: 2026, m: 11, d: 27 });
+  assert.deepEqual(dayAt("Asia/Tokyo", late), { y: 2026, m: 11, d: 28 });
   const first = nextDay([], "Asia/Tokyo", late);
   assert.deepEqual(nextDay([first], "Asia/Tokyo", late), { y: 2026, m: 11, d: 27 });
   assert.deepEqual(before({ y: 2026, m: 12, d: 1 }), { y: 2026, m: 11, d: 30 });
@@ -178,4 +178,52 @@ test("the fallback fetches a clip whole, telling how much has come; a refusal is
   } finally {
     fetch.mock.restore();
   }
+});
+
+test("a chip's time: today's, yesterday's, the weekday's within the week, else the date", () => {
+  const now = Date.parse("2026-11-27T15:00:00Z"); // a Friday
+  const at = (iso: string) => whenSaid(Date.parse(iso), "Europe/London", now, "en-GB");
+  assert.equal(at("2026-11-27T12:04:00Z"), "12:04");
+  assert.equal(at("2026-11-26T18:02:00Z"), "yesterday 18:02");
+  assert.equal(at("2026-11-24T09:15:00Z"), "Tue 09:15");
+  assert.equal(at("2026-11-20T09:15:00Z"), "20 Nov");
+  // Home Assistant's day, not UTC's: 23:30 UTC on the 27th is the 28th in Tokyo.
+  assert.equal(whenSaid(Date.parse("2026-11-27T23:30:00Z"), "Asia/Tokyo", Date.parse("2026-11-28T01:00:00Z"), "en-GB"), "08:30");
+});
+
+test("a chip opens the dialog on its kind's recordings", () => {
+  assert.deepEqual(
+    ["ring", "glass_break", "baby_cry", "person", "vehicle", "package", "scanned", "", "garden_gnome"].map(shelfOf),
+    ["ring", "audio", "audio", "smart", "smart", "smart", "smart", "smart", "smart"],
+  );
+});
+
+/** A day of the list: listed with `clips` clips, still loading (undefined), or failed. */
+const day = (d: number, clips?: number, failed?: string): Shown => ({
+  day: { y: 2026, m: 11, d },
+  clips: clips === undefined ? undefined : Array.from({ length: clips }, (_, i) => clipOf({ title: "x", media_content_id: `e${d}.${i}` })),
+  failed,
+});
+
+test("the list goes on by itself until EMPTY_STOP empty days in a row, never past a day loading or failed", () => {
+  assert.equal(goesOn([], 0), true);
+  assert.equal(goesOn([day(27, 3), day(26)], 0), false, "one loading");
+  assert.equal(goesOn([day(27, 3), day(26, undefined, "Timed out")], 0), false, "one failed");
+  const quiet = [day(27, 3), ...Array.from({ length: EMPTY_STOP }, (_, i) => day(26 - i, 0))];
+  assert.equal(emptyRun(quiet, 0), EMPTY_STOP);
+  assert.equal(goesOn(quiet, 0), false);
+  assert.equal(goesOn(quiet.slice(0, -1), 0), true);
+  assert.equal(goesOn(quiet, quiet.length), true, "Look further back counts again from there");
+  assert.equal(emptyRun([day(27, 0), day(26, 2), day(25, 0)], 0), 1, "only the run at the end");
+});
+
+test("a run of empty days is one line; a day with clips, loading or failed has its heading", () => {
+  const list = [day(27, 2), day(26, 0), day(25, 0), day(24, 0), day(23, 1), day(22, 0), day(21), day(20, undefined, "Timed out")];
+  assert.deepEqual(
+    parts(list).map((p) => ("empty" in p ? p.empty.map((d) => d.d) : p.shown.day.d)),
+    [27, [26, 25, 24], 23, [22], 21, 20],
+  );
+  const run = (parts(list)[1] as { empty: { y: number; m: number; d: number }[] }).empty;
+  assert.match(nothingOn(run), /^Nothing recorded from .*24.* to .*26/);
+  assert.match(nothingOn([run[0]]), /^Nothing recorded on .*26/);
 });

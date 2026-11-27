@@ -203,7 +203,8 @@ entity id or the name. A failure is not kept: the next opening tries again.
   under the day's date as a heading. "Today" is the date in `hass.config.time_zone`, not
   the browser's.
 - A button **Earlier** at the foot fetches the day before and adds it under its own
-  heading. No scrolling that fetches by itself.
+  heading. No scrolling that fetches by itself. **Replaced in b30** (owner, 2026-11-27,
+  below): the end of the list fetches by itself.
 - Each item is a tile: the thumbnail at a fixed 120 × 120 CSS px, and under it the
   title's `<what>` with its `Object Detection - ` or `Audio Detection - ` removed, and
   the rest of the title (date, time, length) as Protect wrote it. The kind's icon from
@@ -231,6 +232,30 @@ playsinline>` at the top of the dialog, the list staying below.
 a day reversed; Earlier adding a day; the title forms; a browse that fails shown and not
 kept; the truncation callout; no folder, no press.
 
+## After use on the box (owner, 2026-11-27; built in 2026.11.14-b30)
+
+- **Guests don't get the recordings.** `isGuest` (`guest-goodbye.ts`, by the guest-login
+  endpoints' Access switches, as the goodbye reads them; never an administrator; until
+  the user and entities are known, a guest) turns the name's and chips' press into the
+  main picture's. The card's limit only: Home Assistant has no permission on its media
+  library, so its own Media browser still serves any signed-in user.
+- **A chip says there is something to watch.** While no detection is current, a muted
+  chip at rest shows the latest detection (motion left out) and when, in Home
+  Assistant's time zone (`clips.ts: whenSaid`), or "Recordings" with none known. From
+  the event entities' pushed states, so nothing is fetched. A count ("14 today") was
+  turned down: it needs a list fetched per camera, and is cut short on a busy day. Every
+  chip opens the dialog on its kind (`KINDS` `shelf`).
+- **The dialog keeps one size and fills the screen**, less 16 px each side, up to 1280 px
+  each way. Landscape and at least 700 px wide: the list (412 px) on the left, the
+  preview on the right; otherwise the preview (at most 360 px tall) above the list. The
+  preview starts on the newest clip's picture, played at a press. Tiles or rows, kept in
+  this device's `localStorage`.
+- **The list fetches by itself** (owner: "that's what happens when we use things live"),
+  reversing "no scrolling that fetches by itself": the day before whenever the end of
+  the list is within 300 px of view, one day at a time, until `EMPTY_STOP` (7) empty days
+  in a row; then **Look further back**. A failed day stops it, with **Try again**. A run
+  of empty days is one line.
+
 ## What the owner checks on the box
 
 - Step 2: the card's name sits exactly over the picture's; a chip appears on a person
@@ -241,6 +266,6 @@ kept; the truncation callout; no folder, no press.
 
 ## Open, for the owner
 
-- The words on screen: "Detections", "Doorbell", "Sounds", "Motion", "Earlier".
-- Whether guests' logins should be able to open the dialog (it shows who came to the
-  door). As specified, anyone who can see the card can.
+- The words on screen: "Detections", "Doorbell", "Sounds", "Motion", "Look further back".
+- ~~Whether guests' logins should be able to open the dialog.~~ Decided 2026-11-27: no
+  (above).

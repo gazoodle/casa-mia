@@ -1,7 +1,7 @@
 // Which detections the main camera's caption shows, and for how long (detect.ts).
 import { mock, test } from "node:test";
 import assert from "node:assert/strict";
-import { Detect, detected, KINDS, kindOf } from "./detect.ts";
+import { Detect, detected, KINDS, kindOf, latest } from "./detect.ts";
 
 const NOW = Date.parse("2026-11-27T12:00:00Z");
 const at = (secondsAgo: number) => new Date(NOW - secondsAgo * 1000).toISOString();
@@ -112,4 +112,15 @@ test("the card is redrawn when the oldest chip is due to go, and not after stop"
   } finally {
     mock.timers.reset();
   }
+});
+
+test("the latest detection, however long ago, with motion left out; none, null", () => {
+  const states = hass({
+    "event.gate_object": [3600, { event_type: "person", event_id: "e14" }],
+    "event.gate_ring": [86400 * 3, { event_type: "ring", event_id: "e15" }],
+    "event.gate_motion": [5, { event_type: "motion", event_id: "e16" }],
+  });
+  assert.deepEqual(latest(states, GATE), { kind: "person", text: "Person", since: NOW - 3600_000 });
+  assert.equal(latest(hass({ "event.gate_motion": [5, { event_type: "motion", event_id: "e17" }] }), GATE), null);
+  assert.equal(latest(hass({}), {}), null);
 });

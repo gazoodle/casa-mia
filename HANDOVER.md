@@ -131,9 +131,13 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   decision, in the spec). The owner saw a chip on the box (2026-11-27). Step 3 in b27:
   the recordings dialog (`clips.ts` fetching, `clips-dialog.ts` the element), opened by
   the name or a chip where `FOLDERS.offered` (a Protect camera whose device has a folder,
-  looked up once per page load); otherwise a chip passes the main tap on. Seen in
-  Chromium only, against a stand-in library with a WebM clip (Playwright's Chromium has
-  no H.264); not on the box, and Safari, the iOS app and the tablets are not known.
+  looked up once per page load); otherwise a chip passes the main tap on. b30, after the
+  owner used it (spec, "After use on the box"): not for guests (`isGuest`), a latest
+  chip while nothing is current, and the dialog one size filling the screen, list beside
+  the preview in landscape, tiles or rows (`clips-styles.ts`), fetching on at the list's
+  end until 7 empty days. Seen in Chromium only, against a stand-in library with a WebM
+  clip (Playwright's Chromium has no H.264); not on the box, and Safari, the iOS app and
+  the tablets are not known.
 - **A closer look at the full screen** (b29, `docs/design/commander-zoom.md`):
   `commander/closer.ts` (`Closer`, on the card) enlarges the `.closer` element inside
   `_full`'s `.seen`, writing its transform directly; the card redraws only when the chip's

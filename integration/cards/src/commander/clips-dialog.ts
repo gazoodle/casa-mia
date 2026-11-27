@@ -1,59 +1,115 @@
 // The Camera Commander card's clips dialog: a camera's recordings in UniFi Protect, one kind
-// and one day at a time, newest first, each playing at the top with the list below
-// (docs/design/commander-detections.md, step 3; the fetching is clips.ts). A press on the
-// main camera's name or a detection chip opens it (live.ts: caption), and the card draws it
-// while it is open. Its leaving the page (disconnectedCallback) stops the video and any
-// fetch, and gives back a clip held in memory.
-import { css, html, LitElement, nothing } from "lit";
+// at a time, newest first (docs/design/commander-detections.md, step 3; the fetching is
+// clips.ts). A press on the main camera's name or a chip opens it (live.ts: caption), on
+// the pressed chip's kind, and the card draws it while it is open.
+//
+// It fills the screen up to a cap, one size from the moment it opens (owner, 2026-11-27).
+// On a landscape screen at least 700 px wide, the list is on the left and the preview on
+// the right; otherwise the preview is above the list. The preview starts on the newest
+// clip's picture, which plays at a press. The list is tiles or rows, remembered on this
+// device, and the day before is fetched whenever the end of the list is in view, until
+// EMPTY_STOP empty days in a row (clips.ts: goesOn). Its leaving the page
+// (disconnectedCallback) stops the video, any fetch and the watch on the list's end, and
+// gives back a clip held in memory.
+import { html, LitElement, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Clip, type Day, dayClips, dayName, download, FOLDERS, nextDay, reason, resolve, type Shelf, SHELVES, truncated } from "./clips.ts";
+import { clipsStyles } from "./clips-styles.ts";
+import {
+  type Clip,
+  dayClips,
+  dayName,
+  download,
+  EMPTY_STOP,
+  emptyRun,
+  FOLDERS,
+  goesOn,
+  nextDay,
+  nothingOn,
+  parts,
+  reason,
+  resolve,
+  type Shelf,
+  SHELVES,
+  type Shown,
+  truncated,
+} from "./clips.ts";
 
-/** One day of the list: its clips once listed, or why they couldn't be, and whether
- * Protect's list of it was cut short. */
-type Shown = { day: Day; clips?: Clip[]; failed?: string; cut?: boolean };
-
-/** The clip chosen: its address once resolved (in memory after the fallback), how much has
- * arrived while it is fetched whole, or why it can't be played. */
+/** The clip playing: its address once resolved (in memory after the fallback), how much
+ * has arrived while it is fetched whole, or why it can't be played. */
 type Playing = { id: string; src?: string; whole?: boolean; got?: number; of?: number; failed?: string };
+
+/** Tiles or rows, remembered on this device for every camera. */
+type View = "tiles" | "rows";
+const VIEW = "casa-mia-clips-view";
+
+/** How far below the list's end the next day is fetched, so it is there on arrival. */
+const AHEAD_PX = 300;
 
 const mb = (bytes: number) => `${(bytes / 1e6).toFixed(1)} MB`;
 
 export class ClipsDialog extends LitElement {
-  static properties = { _shelf: { state: true }, _days: { state: true }, _playing: { state: true }, _broken: { state: true }, _lost: { state: true } };
+  static properties = {
+    _shelf: { state: true },
+    _days: { state: true },
+    _chosen: { state: true },
+    _playing: { state: true },
+    _broken: { state: true },
+    _lost: { state: true },
+    _view: { state: true },
+  };
   // Set by the card as it opens the dialog. Not reactive: a new hass (every state change in
   // the house) must not redraw a long list.
   hass!: Hass;
   camera = "";
   name = "";
+  /** The kind it opens on (the pressed chip's). */
+  shelf: Shelf = "smart";
   doorbell = false;
 
   _shelf: Shelf = "smart";
   _days: Shown[] = [];
+  /** The clip in the preview: the newest at first, then the one pressed. */
+  _chosen: Clip | null = null;
   _playing: Playing | null = null;
   /** The clips whose thumbnail failed to load: an icon in its place. */
   _broken = new Set<string>();
   /** Why the camera's recordings can't be found ("" while they can). */
   _lost = "";
+  _view: View = localStorage.getItem(VIEW) === "rows" ? "rows" : "tiles";
+  /** Where the count of empty days starts: Look further back starts it again. */
+  private from = 0;
   private folder = "";
   private list = 0; // the list shown: a reply for an older one (another kind) is dropped
-  private plays = 0; // the clip chosen: likewise
+  private plays = 0; // the clip asked for: likewise
   private fetching?: AbortController;
   private blob = "";
+  private watch?: IntersectionObserver;
 
   async firstUpdated() {
     this.renderRoot.querySelector("dialog")!.showModal();
     try {
       this.folder = await FOLDERS.of(this.hass, this.camera);
-      if (!this.folder) this.lose("UniFi Protect's media library has no folder for this camera");
-      else await this.show("smart");
+      if (!this.folder) return this.lose("UniFi Protect's media library has no folder for this camera");
     } catch (err) {
-      this.lose(`UniFi Protect's recordings could not be listed (${reason(err)}). Close this and open it again to try again`);
+      return this.lose(`UniFi Protect's recordings could not be listed (${reason(err)}). Close this and open it again to try again`);
     }
+    // Closed while it looked: nothing more starts (more() would go on, as off the page every
+    // position is 0, so the end always looks in view).
+    if (!this.isConnected) return;
+    // The kind first (show sets it at once), so the watch's first look is for its list.
+    const shown = this.show(this.shelf === "ring" && !this.doorbell ? "smart" : this.shelf);
+    this.watch = new IntersectionObserver((seen) => seen.some((e) => e.isIntersecting) && this.more(), {
+      root: this.renderRoot.querySelector(".list"),
+      rootMargin: `0px 0px ${AHEAD_PX}px 0px`,
+    });
+    this.watch.observe(this.renderRoot.querySelector(".end")!);
+    await shown;
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.watch?.disconnect();
     this.stop();
     this.list++;
   }
@@ -63,43 +119,95 @@ export class ClipsDialog extends LitElement {
     this._lost = why;
   }
 
-  /** A kind's list, from today. */
+  /** A kind's list, from today. What plays goes on playing; otherwise the new list's
+   * newest is chosen. */
   private show = async (shelf: Shelf) => {
+    if (shelf === this._shelf && this._days.length) return;
     this.list++;
     this._shelf = shelf;
     this._days = [];
-    await this.earlier();
+    this.from = 0;
+    if (!this._playing?.src) {
+      this.stop();
+      this._chosen = null;
+    }
+    await this.updateComplete;
+    await this.more();
   };
 
-  /** The next day (today first) under its heading; then, once, whether Protect's list of
-   * it was cut short, which, failing, is logged and not shown. */
-  private earlier = async () => {
-    const list = this.list;
-    const shelf = this._shelf;
+  /** The day before, when the end of the list is in view and the list goes on by itself;
+   * then again, while the end is still in view (a short list leaves room). The watch on
+   * the end calls it as it scrolls into view. Never off the page. */
+  private more = async () => {
+    if (!this.isConnected || !this.folder || !goesOn(this._days, this.from) || !this.endInView()) return;
     const shown: Shown = { day: nextDay(this._days.map((s) => s.day), this.hass.config?.time_zone) };
     this._days = [...this._days, shown];
+    if (!(await this.fill(shown))) return;
+    await this.updateComplete;
+    await this.more();
+  };
 
+  private endInView(): boolean {
+    const end = this.renderRoot.querySelector(".end")?.getBoundingClientRect();
+    const list = this.renderRoot.querySelector(".list")?.getBoundingClientRect();
+    return Boolean(end && list && end.top <= list.bottom + AHEAD_PX);
+  }
+
+  /** A day's clips, or why they couldn't be listed; false when the list changed meanwhile.
+   * Then, once and not waited for, whether Protect's list of it was cut short, which,
+   * failing, is logged and not shown. */
+  private async fill(shown: Shown): Promise<boolean> {
+    const list = this.list;
+    const shelf = this._shelf;
     try {
       shown.clips = await dayClips(this.hass, this.folder, shelf, shown.day);
     } catch (err) {
       shown.failed = reason(err);
       console.warn(`casa-mia: ${this.camera}: its ${shelf} recordings of ${dayName(shown.day)} could not be listed: ${shown.failed}`);
     }
-    if (list !== this.list) return;
+    if (list !== this.list) return false;
+    if (!this._chosen && shown.clips?.length) this._chosen = shown.clips[0];
     this.requestUpdate();
-    if (shown.failed) return;
+    if (shown.clips) void this.checkCut(shown, list, shelf);
+    return true;
+  }
 
+  private async checkCut(shown: Shown, list: number, shelf: Shelf) {
     try {
       shown.cut = await truncated(this.hass, this.folder, shelf, shown.day);
       if (list === this.list) this.requestUpdate();
     } catch (err) {
       console.warn(`casa-mia: ${this.camera}: whether Protect listed all its ${shelf} recordings of ${dayName(shown.day)} could not be checked: ${reason(err)}`);
     }
+  }
+
+  /** Try again, on a day that failed: it is fetched again, and the list goes on. */
+  private retry = async (shown: Shown) => {
+    shown.failed = undefined;
+    this.requestUpdate();
+    if (!(await this.fill(shown))) return;
+    await this.updateComplete;
+    await this.more();
   };
 
-  /** A clip pressed: its address resolved, the tile saying it is loading meanwhile. */
+  /** Look further back, after EMPTY_STOP empty days: as many again. */
+  private further = async () => {
+    this.from = this._days.length;
+    this.requestUpdate();
+    await this.updateComplete;
+    await this.more();
+  };
+
+  private setView(view: View) {
+    this._view = view;
+    localStorage.setItem(VIEW, view);
+  }
+
+  /** A clip pressed: chosen, and its address resolved, its Play chip saying it is loading
+   * meanwhile. */
   private play = async (clip: Clip) => {
     this.stop();
+    this._chosen = clip;
     const n = ++this.plays;
     this._playing = { id: clip.id };
     try {
@@ -140,7 +248,7 @@ export class ClipsDialog extends LitElement {
   }
 
   /** Stop what plays: its fetch aborted, the video paused, a clip in memory given back.
-   * None is chosen after, so a player failing as its clip is given back says nothing. */
+   * None plays after, so a player failing as its clip is given back says nothing. */
   private stop() {
     this.plays++;
     this._playing = null;
@@ -165,31 +273,49 @@ export class ClipsDialog extends LitElement {
 
   render() {
     const shelves = SHELVES.filter((s) => s.kind !== "ring" || this.doorbell);
+    const view = (v: View, icon: string, label: string) =>
+      html`<button class="cm-chip cm-icon ${this._view === v ? "cm-on" : ""}" title=${label} aria-label=${label} aria-pressed=${this._view === v} @click=${() => this.setView(v)}>
+        <ha-icon icon=${icon}></ha-icon>
+      </button>`;
     // The dialog is only the margin round its body: a press there is outside.
     return html`<dialog aria-label="${this.name}: recordings" @close=${this.closed} @click=${(e: Event) => e.target === e.currentTarget && this.shut()}>
       <div class="body">
-        <header><h2>${this.name}</h2><button class="cm-chip" @click=${this.shut}>Close</button></header>
-        ${this._lost
-          ? html`<p class="callout bad" role="alert">${this._lost}.</p>`
-          : html`<nav>
-                ${shelves.map((s) => html`<button class="cm-chip ${s.kind === this._shelf ? "cm-on" : ""}" aria-pressed=${s.kind === this._shelf} @click=${() => this.show(s.kind)}>${s.label}</button>`)}
-              </nav>
-              ${this.player()}
-              <div class="list">
-                ${this._days.map((s) => this.day(s))}
-                ${this._days.length ? html`<button class="cm-chip earlier" @click=${this.earlier}>Earlier</button>` : nothing}
-              </div>`}
+        <header>
+          <h2>${this.name}</h2>
+          ${view("tiles", "mdi:view-grid-outline", "Tiles")}${view("rows", "mdi:view-list-outline", "List")}
+          <button class="cm-chip" autofocus @click=${this.shut}>Close</button>
+          <nav>
+            ${shelves.map((s) => html`<button class="cm-chip ${s.kind === this._shelf ? "cm-on" : ""}" aria-pressed=${s.kind === this._shelf} @click=${() => this.show(s.kind)}>${s.label}</button>`)}
+          </nav>
+        </header>
+        ${this._lost ? html`<p class="callout bad lost" role="alert">${this._lost}.</p>` : this.preview()}
+        <div class="list">${parts(this._days).map((p) => ("empty" in p ? html`<p class="note">${nothingOn(p.empty)}</p>` : this.day(p.shown)))}${this.tail()}<div class="end"></div></div>
       </div>
     </dialog>`;
   }
 
-  private player() {
-    const p = this._playing;
-    if (p?.failed) return html`<p class="callout bad" role="alert">This clip can't be played: ${p.failed}.</p>`;
-    if (p?.src) return html`<video src=${p.src} controls autoplay playsinline @error=${this.failed}></video>`;
-    if (p?.got !== undefined)
-      return html`<p class="note">It didn't play from Home Assistant's address, so it is being fetched whole: ${mb(p.got)}${p.of ? ` of ${mb(p.of)}` : ""}.</p>`;
-    return nothing; // none chosen, or its address on the way: its tile says so
+  /** The clip chosen, large: playing, or its picture with Play; under it what it was and
+   * when, and anything said about playing it. */
+  private preview() {
+    const c = this._chosen;
+    if (!c) return html`<div class="preview"><div class="stage"><span class="note">${this._days.some((s) => s.clips?.length) ? "" : "No recording to show yet"}</span></div></div>`;
+    const p = this._playing?.id === c.id ? this._playing : null;
+    const waiting = p && !p.src && !p.failed && p.got === undefined;
+    return html`<div class="preview">
+      ${p?.src
+        ? html`<video class="stage" src=${p.src} controls autoplay playsinline @error=${this.failed}></video>`
+        : html`<div class="stage">
+            ${this.picture(c, "big")}
+            ${p?.failed || p?.got !== undefined
+              ? nothing
+              : html`<button class="cm-chip cm-on cm-accent play" @click=${() => this.play(c)}><ha-icon icon="mdi:play"></ha-icon>${waiting ? "Loading…" : "Play"}</button>`}
+          </div>`}
+      <p class="said"><span class="what">${c.what}</span> <span class="when">${c.when}</span></p>
+      ${p?.got !== undefined
+        ? html`<p class="note">It didn't play from Home Assistant's address, so it is being fetched whole: ${mb(p.got)}${p.of ? ` of ${mb(p.of)}` : ""}.</p>`
+        : nothing}
+      ${p?.failed ? html`<p class="callout bad" role="alert">This clip can't be played: ${p.failed}.</p>` : nothing}
+    </div>`;
   }
 
   private day(s: Shown) {
@@ -198,176 +324,39 @@ export class ClipsDialog extends LitElement {
         ? html`<p class="callout warn">The console had more recordings that day than Home Assistant's UniFi Protect integration lists (its "max media" option), so this list may be incomplete.</p>`
         : nothing}
       ${s.failed
-        ? html`<p class="callout bad" role="alert">This day could not be listed: ${s.failed}.</p>`
+        ? html`<p class="callout bad" role="alert">This day could not be listed: ${s.failed}.</p>
+            <button class="cm-chip" @click=${() => this.retry(s)}>Try again</button>`
         : !s.clips
           ? html`<p class="note">Loading…</p>`
-          : s.clips.length
-            ? html`<div class="tiles">${s.clips.map((c) => this.tile(c))}</div>`
-            : html`<p class="note">Nothing recorded</p>`}`;
+          : html`<div class=${this._view}>${s.clips.map((c) => this.item(c))}</div>`}`;
   }
 
-  private tile(c: Clip) {
+  /** At the end, after EMPTY_STOP empty days in a row: said, and a way to go on. */
+  private tail() {
+    if (emptyRun(this._days, this.from) < EMPTY_STOP) return nothing;
+    return html`<p class="note">It stops looking after ${EMPTY_STOP} days in a row with nothing recorded.</p>
+      <button class="cm-chip" @click=${this.further}>Look further back</button>`;
+  }
+
+  private item(c: Clip) {
+    const chosen = this._chosen?.id === c.id;
     const p = this._playing?.id === c.id ? this._playing : null;
-    const icon = c.icon || SHELVES.find((s) => s.kind === this._shelf)!.icon;
-    return html`<button class="tile ${p ? "chosen" : ""}" @click=${() => this.play(c)}>
-      ${c.thumb && !this._broken.has(c.id)
-        ? html`<img src=${c.thumb} alt="" loading="lazy" width="120" height="120" @error=${() => this.broke(c.id)} />`
-        : html`<span class="thumb"><ha-icon icon=${icon}></ha-icon></span>`}
-      <span class="what">${c.icon ? html`<ha-icon icon=${c.icon}></ha-icon>` : nothing}${c.what}</span>
-      <span class="when">${c.when}</span>
-      ${p && !p.src && !p.failed && p.got === undefined ? html`<span class="loading">Loading…</span>` : nothing}
+    const waiting = p && !p.src && !p.failed && p.got === undefined;
+    return html`<button class="item ${chosen ? "chosen" : ""}" aria-current=${chosen ? "true" : nothing} @click=${() => this.play(c)}>
+      ${this.picture(c, "thumb")}
+      <span class="text">
+        <span class="what">${c.icon ? html`<ha-icon icon=${c.icon}></ha-icon>` : nothing}${c.what}</span>
+        <span class="when">${waiting ? "Loading…" : c.when}</span>
+      </span>
     </button>`;
   }
 
-  static styles = [
-    PILLS,
-    css`
-      dialog {
-        width: min(840px, calc(100vw - 16px));
-        max-width: none;
-        max-height: calc(100dvh - 16px);
-        padding: 0;
-        border: none;
-        border-radius: 16px;
-        background: var(--card-background-color, #fff);
-        color: var(--primary-text-color, #212121);
-        font: 14px / 1.4 var(--ha-font-family-body, Roboto, sans-serif);
-      }
-      dialog::backdrop {
-        background: rgb(0 0 0 / 0.6);
-      }
-      .body {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        box-sizing: border-box;
-        max-height: calc(100dvh - 16px);
-        padding: 16px;
-      }
-      header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      h2 {
-        flex: 1;
-        margin: 0;
-        font-size: 18px;
-        font-weight: 500;
-        overflow-wrap: anywhere;
-      }
-      nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      video {
-        width: 100%;
-        max-height: 50dvh;
-        border-radius: 8px;
-        background: #000;
-      }
-      .list {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-      }
-      h3 {
-        margin: 12px 0 8px;
-        font-size: 14px;
-        font-weight: 500;
-      }
-      h3:first-child {
-        margin-top: 0;
-      }
-      .tiles {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, 120px);
-        gap: 12px;
-      }
-      .tile {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        width: 120px;
-        padding: 0;
-        border: 0;
-        background: none;
-        color: inherit;
-        font: inherit;
-        font-size: 12px;
-        line-height: 1.3;
-        text-align: left;
-        cursor: pointer;
-      }
-      .tile img,
-      .thumb,
-      .loading {
-        box-sizing: border-box;
-        width: 120px;
-        height: 120px;
-        border-radius: 8px;
-      }
-      .tile img {
-        object-fit: cover;
-        background: var(--secondary-background-color, #e5e5e5);
-      }
-      .thumb {
-        display: grid;
-        place-items: center;
-        background: var(--secondary-background-color, #e5e5e5);
-        color: var(--secondary-text-color, #727272);
-        --mdc-icon-size: 40px;
-      }
-      .tile.chosen :is(img, .thumb) {
-        outline: 3px solid var(--primary-color, #03a9f4);
-        outline-offset: -3px;
-      }
-      .loading {
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: grid;
-        place-items: center;
-        background: rgb(0 0 0 / 0.55);
-        color: #fff;
-      }
-      .what {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-weight: 500;
-        overflow-wrap: anywhere;
-        --mdc-icon-size: 14px;
-      }
-      .when,
-      .note {
-        color: var(--secondary-text-color, #727272);
-      }
-      .note {
-        margin: 0;
-      }
-      .earlier {
-        margin-top: 16px;
-      }
-      /* The admin UI's callout (ui.module.css .callout, docs/design/chrome.html#callout),
-         which a card can't import: something to know, in its tone. */
-      .callout {
-        margin: 0 0 8px;
-        padding: 10px 14px;
-        border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--divider-color, #ddd));
-        border-radius: 12px;
-        background: color-mix(in srgb, var(--tone) 10%, var(--card-background-color, #fff));
-        font-size: 13.5px;
-        overflow-wrap: anywhere;
-      }
-      .callout.warn {
-        --tone: var(--warning-color, #ffa600);
-      }
-      .callout.bad {
-        --tone: var(--error-color, #db4437);
-      }
-    `,
-  ];
+  /** A clip's picture, or, where it didn't load, its kind's icon in its place. */
+  private picture(c: Clip, cls: string) {
+    return c.thumb && !this._broken.has(c.id)
+      ? html`<img class=${cls} src=${c.thumb} alt="" loading="lazy" @error=${() => this.broke(c.id)} />`
+      : html`<span class="${cls} none"><ha-icon icon=${c.icon || SHELVES.find((s) => s.kind === this._shelf)!.icon}></ha-icon></span>`;
+  }
+
+  static styles = [PILLS, clipsStyles];
 }
