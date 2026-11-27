@@ -968,7 +968,7 @@ function lt([e, t, n], r, i) {
 function ut(e, t) {
 	return Object.fromEntries(Object.entries(e).filter(([e, n]) => !(e in t) || JSON.stringify(n) !== JSON.stringify(t[e])));
 }
-var dt = ".cm-pill, .cm-chip {\n  --surface: var(--card-background-color, #fff);\n  --muted: var(--secondary-text-color, #727272);\n  --accent: var(--primary-color, #03a9f4);\n  --on-accent: var(--text-primary-color, #fff);\n  --good: var(--success-color, #43a047);\n  --warn: var(--warning-color, #ffa600);\n  --bad: var(--error-color, #db4437);\n  --bark: #d8885a;\n  --mono: var(--ha-font-family-code, monospace);\n}\n.cm-pill{box-sizing:border-box;background:color-mix(in srgb, var(--tone,var(--muted)) 14%, transparent);max-width:100%;color:var(--tone,var(--muted));letter-spacing:.04em;text-transform:uppercase;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;border-radius:12px;padding:3px 9px;font-size:10px;font-weight:600;line-height:16px;display:inline-block;overflow:hidden}.cm-pill.cm-filled{background:var(--tone,var(--muted));color:var(--on-accent)}.cm-pill.cm-outline{box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--tone,var(--muted)) 55%, transparent);background:0 0}.cm-pill.cm-fixed{text-align:center;width:104px}.cm-pill.cm-solid{background:color-mix(in srgb, var(--tone,var(--muted)) 14%, var(--surface))}.cm-bars{fill:currentColor;shape-rendering:crispedges;flex:none;width:16px;height:16px;display:block}.cm-chip{box-sizing:border-box;box-shadow:inset 0 0 0 1px var(--tone,var(--muted));background:var(--surface);color:var(--tone,var(--muted));font:inherit;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;cursor:pointer;border:none;border-radius:12px;justify-content:center;align-items:center;gap:4px;padding:3px 10px;font-size:10px;font-weight:500;line-height:16px;transition:box-shadow .15s,filter .15s;display:inline-flex}.cm-chip.cm-on{box-shadow:none;background:var(--tone,var(--accent));color:var(--on-accent)}.cm-chip.cm-icon{border-radius:50%;width:26px;height:26px;padding:4px}.cm-chip.cm-icon svg{fill:currentColor;width:16px;height:16px;display:block}.cm-chip.cm-mono{font:11px/14px var(--mono);letter-spacing:0;text-transform:none;border-radius:8px;padding:1px 6px}.cm-chip.cm-quiet{box-shadow:none;background:color-mix(in srgb, var(--surface) 80%, transparent);color:var(--muted)}.cm-chip:disabled{opacity:.4;cursor:default}.cm-chip:not(:disabled):hover,.cm-chip:focus-visible{box-shadow:inset 0 0 0 1px var(--tone,var(--muted)), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);filter:brightness(1.08);outline:none}.cm-chip.cm-on:not(:disabled):hover,.cm-chip.cm-on:focus-visible,.cm-chip.cm-quiet:not(:disabled):hover{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent)}.cm-good{--tone:var(--good)}.cm-accent{--tone:var(--accent)}.cm-warn{--tone:var(--warn)}.cm-bad{--tone:var(--bad)}.cm-muted{--tone:var(--muted)}.cm-bark{--tone:var(--bark)}", ft = a(dt), pt = {
+var dt = ".cm-pill, .cm-chip {\n  --surface: var(--card-background-color, #fff);\n  --muted: var(--secondary-text-color, #727272);\n  --accent: var(--primary-color, #03a9f4);\n  --on-accent: var(--text-primary-color, #fff);\n  --good: var(--success-color, #43a047);\n  --warn: var(--warning-color, #ffa600);\n  --bad: var(--error-color, #db4437);\n  --bark: #d8885a;\n  --mono: var(--ha-font-family-code, monospace);\n}\n.cm-pill{box-sizing:border-box;background:color-mix(in srgb, var(--tone,var(--muted)) 14%, transparent);max-width:100%;color:var(--tone,var(--muted));letter-spacing:.04em;text-transform:uppercase;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;border-radius:12px;padding:3px 9px;font-size:10px;font-weight:600;line-height:16px;display:inline-block;overflow:hidden}.cm-pill.cm-filled{background:var(--tone,var(--muted));color:var(--on-accent)}.cm-pill.cm-outline{box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--tone,var(--muted)) 55%, transparent);background:0 0}.cm-pill.cm-fixed{text-align:center;width:104px}.cm-bars{fill:currentColor;shape-rendering:crispedges;flex:none;width:16px;height:16px;display:block}.cm-chip{box-sizing:border-box;box-shadow:inset 0 0 0 1px var(--tone,var(--muted));background:var(--surface);color:var(--tone,var(--muted));font:inherit;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;cursor:pointer;border:none;border-radius:12px;justify-content:center;align-items:center;gap:4px;padding:3px 10px;font-size:10px;font-weight:500;line-height:16px;transition:box-shadow .15s,filter .15s;display:inline-flex}.cm-chip.cm-on{box-shadow:none;background:var(--tone,var(--accent));color:var(--on-accent)}.cm-chip.cm-icon{border-radius:50%;width:26px;height:26px;padding:4px}.cm-chip.cm-icon svg{fill:currentColor;width:16px;height:16px;display:block}.cm-chip.cm-mono{font:11px/14px var(--mono);letter-spacing:0;text-transform:none;border-radius:8px;padding:1px 6px}.cm-chip.cm-quiet{box-shadow:none;background:color-mix(in srgb, var(--surface) 80%, transparent);color:var(--muted)}.cm-chip:disabled{opacity:.4;cursor:default}.cm-chip:not(:disabled):hover,.cm-chip:focus-visible{box-shadow:inset 0 0 0 1px var(--tone,var(--muted)), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);filter:brightness(1.08);outline:none}.cm-chip.cm-on:not(:disabled):hover,.cm-chip.cm-on:focus-visible,.cm-chip.cm-quiet:not(:disabled):hover{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent)}.cm-good{--tone:var(--good)}.cm-accent{--tone:var(--accent)}.cm-warn{--tone:var(--warn)}.cm-bad{--tone:var(--bad)}.cm-muted{--tone:var(--muted)}.cm-bark{--tone:var(--bark)}", ft = a(dt), pt = {
 	Low: 1,
 	Medium: 2,
 	High: 3
@@ -2153,7 +2153,7 @@ var Qn = o`
 	landscape: "right",
 	portrait: "right",
 	align: "start",
-	opacity: 60
+	opacity: 45
 };
 function ir(e) {
 	let { size: t, ...n } = e ?? {};
@@ -3371,10 +3371,10 @@ var la = class extends Ei {
 		}, d = B;
 		if (n?.shown) {
 			let e = aa === "hls", t = e ? "cm-muted" : "cm-good", r = Rr(n.shown), i = r ? a?.cameras[o]?.channels?.find(([e]) => e === n.shown) : void 0;
-			d = z`<span class="playing">${yi(`cm-pill cm-solid ${t}`, e ? "Live over HLS, some seconds behind" : "Live video", e ? "Delayed" : "Live", u)}${r ? yi(`cm-pill cm-solid ${t}`, `${r}${i?.[1] ? `, ${i[1]} × ${i[2]}` : ""}`, mt(r), u) : B}</span>`;
+			d = z`<span class="playing">${yi(`cm-pill ${t}`, e ? "Live over HLS, some seconds behind" : "Live video", e ? "Delayed" : "Live", u)}${r ? yi(`cm-pill ${t}`, `${r}${i?.[1] ? `, ${i[1]} × ${i[2]}` : ""}`, mt(r), u) : B}</span>`;
 		}
-		let f = n?.status, p = f ? yi(`live-status cm-chip cm-${f.tone}`, f.tip, z`${mt(f.tier)}${f.text}`, u) : B, m = c ? yi("title", "Its recordings", e, l) : z`<span class="title">${e}</span>`, h = this.detections(), g = c && !h.length ? vi(this.hass, this.eventsOf(o), this.firedOf()) : null, _ = h.length ? bi(h, l) : c ? xi(g, g ? Ri(g.since, this.hass?.config?.time_zone, Date.now()) : "", l) : B, v = n?.lost ? z`<span class="lost">Live lost ${Br(Date.now() - n.lost.since)} ago: ${n.lost.why}</span>` : B, y = n?.video ? B : z`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
-		return s === "bar" ? z`<div class="caption bar" style=${t}>${p}${_}${i}${v}<div class="foot">${m}${d}${y}</div></div>` : z`<div class="caption ${s}" style=${t}>${m}${d}${p}${_}${i}${v}${y}</div>`;
+		let f = n?.status, p = f ? yi(`live-status cm-chip cm-${f.tone}`, f.tip, z`${mt(f.tier)}${f.text}`, u) : B, m = c ? yi("title", "Its recordings", e, l) : z`<span class="title">${e}</span>`, h = this.detections(), g = c && !h.length ? vi(this.hass, this.eventsOf(o), this.firedOf()) : null, _ = h.length ? bi(h, l) : c ? xi(g, g ? Ri(g.since, this.hass?.config?.time_zone, Date.now()) : "", l) : B, v = n?.lost ? z`<span class="lost">Live lost ${Br(Date.now() - n.lost.since)} ago: ${n.lost.why}</span>` : B, y = n?.video ? B : z`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`, b = `${t};--cm-chip-alpha:${ir(a?.cameras[o]?.controls_at).opacity}%`;
+		return s === "bar" ? z`<div class="caption bar" style=${b}>${p}${_}${i}${v}<div class="foot">${m}${d}${y}</div></div>` : z`<div class="caption ${s}" style=${b}>${m}${d}${p}${_}${i}${v}${y}</div>`;
 	}
 	clipsDialog() {
 		let e = this._clips;
@@ -3826,13 +3826,36 @@ var Oa = /* @__PURE__ */ new WeakSet(), ka = {
       color: #fff;
       font-weight: 600;
     }
-    /* LIVE and the channel's bars (live.ts: caption): the style guide's pills, side by
-       side at their own size, in the row or in the bar (not .live: the video's class). */
+    /* LIVE and the channel's bars (live.ts: caption), side by side in the row or in the
+       bar (not .live: the video's class). In the bar it adds no height of its own. */
     .caption .playing {
       display: flex;
       flex: none;
       align-items: center;
       gap: 4px;
+    }
+    .caption.bar .foot > .playing {
+      padding-block: 0;
+    }
+    /* The caption's pills and chips (LIVE, the bars, what live is doing, the detections,
+       the closer look's) have the style guide's size and font, but are as tall as the name
+       as a pill (its line, 1.2, and 0.1 em above and below: .caption.pill .title), and in
+       the controls' colours over the picture (full.ts): white on black at the camera's
+       background strength (--cm-chip-alpha, set by the caption from its controls_at), or
+       on their own colour at it (owner, 2026-11-27). Specific enough to beat pills.css,
+       which the card loads after these. */
+    .caption :is(.cm-pill, .cm-chip) {
+      display: inline-flex;
+      align-items: center;
+      box-sizing: border-box;
+      height: calc(var(--cm-label-size) * 1.4);
+      padding-block: 0;
+      box-shadow: none;
+      background: rgb(0 0 0 / var(--cm-chip-alpha));
+      color: #fff;
+    }
+    .caption :is(.cm-pill, .cm-chip):is(.cm-on, .cm-good, .cm-accent, .cm-warn, .cm-bad, .cm-bark):not(.cm-muted) {
+      background: color-mix(in srgb, var(--tone, var(--accent)) var(--cm-chip-alpha), transparent);
     }
     /* What the live video is doing (common.ts: liveStatus), LIVE and the bars: taking the
        pointer for their tooltips, as the detection chips do. */

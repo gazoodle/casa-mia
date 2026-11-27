@@ -14,6 +14,7 @@ import { type CaptionPress, detectionChips, latest, latestChip, pressable } from
 import { FOLDERS, type Shelf, shelfOf, whenSaid } from "./clips.ts";
 import { isGuest } from "../guest-goodbye.ts";
 import { tierBars } from "../pills.ts";
+import { controlsAt } from "../../../../app/web/src/cameras/controls.ts";
 
 /** One channel playing (or starting) in its <video>: when it started, when it last put a
  * frame on screen (0: none yet), and how to move its stream to another <video>. */
@@ -328,8 +329,8 @@ export class CommanderLive extends CommanderBase {
       const tone = hls ? "cm-muted" : "cm-good";
       const tier = channelTier(live.shown);
       const size = tier ? card?.cameras[main]?.channels?.find(([channel]) => channel === live.shown) : undefined;
-      playing = html`<span class="playing">${pressable(`cm-pill cm-solid ${tone}`, hls ? "Live over HLS, some seconds behind" : "Live video", hls ? "Delayed" : "Live", shown)}${
-        tier ? pressable(`cm-pill cm-solid ${tone}`, `${tier}${size?.[1] ? `, ${size[1]} × ${size[2]}` : ""}`, tierBars(tier), shown) : nothing
+      playing = html`<span class="playing">${pressable(`cm-pill ${tone}`, hls ? "Live over HLS, some seconds behind" : "Live video", hls ? "Delayed" : "Live", shown)}${
+        tier ? pressable(`cm-pill ${tone}`, `${tier}${size?.[1] ? `, ${size[1]} × ${size[2]}` : ""}`, tierBars(tier), shown) : nothing
       }</span>`;
     }
 
@@ -346,11 +347,14 @@ export class CommanderLive extends CommanderBase {
         : nothing;
     const lost = live?.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing;
     const clock = live?.video ? nothing : html`<casa-mia-commander-clock class="clock" .zone=${this.hass?.config?.time_zone}></casa-mia-commander-clock>`;
+    // Its pills and chips are as see-through as the camera's controls (styles.ts).
+    const at = `${place};--cm-chip-alpha:${controlsAt(card?.cameras[main]?.controls_at).opacity}%`;
+
     // A bar runs along the whole foot, the name and LIVE at its left and the clock at its
     // right, with the chips standing above it; otherwise LIVE and the chips follow the name.
     return style === "bar"
-      ? html`<div class="caption bar" style=${place}>${status}${chips}${more}${lost}<div class="foot">${name}${playing}${clock}</div></div>`
-      : html`<div class="caption ${style}" style=${place}>${name}${playing}${status}${chips}${more}${lost}${clock}</div>`;
+      ? html`<div class="caption bar" style=${at}>${status}${chips}${more}${lost}<div class="foot">${name}${playing}${clock}</div></div>`
+      : html`<div class="caption ${style}" style=${at}>${name}${playing}${status}${chips}${more}${lost}${clock}</div>`;
   }
 
   /** The recordings dialog while one is open (card.ts draws it beside the tuning dialog). */

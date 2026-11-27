@@ -167,13 +167,36 @@ export const styles = [motionStyles, detectStyles, css`
       color: #fff;
       font-weight: 600;
     }
-    /* LIVE and the channel's bars (live.ts: caption): the style guide's pills, side by
-       side at their own size, in the row or in the bar (not .live: the video's class). */
+    /* LIVE and the channel's bars (live.ts: caption), side by side in the row or in the
+       bar (not .live: the video's class). In the bar it adds no height of its own. */
     .caption .playing {
       display: flex;
       flex: none;
       align-items: center;
       gap: 4px;
+    }
+    .caption.bar .foot > .playing {
+      padding-block: 0;
+    }
+    /* The caption's pills and chips (LIVE, the bars, what live is doing, the detections,
+       the closer look's) have the style guide's size and font, but are as tall as the name
+       as a pill (its line, 1.2, and 0.1 em above and below: .caption.pill .title), and in
+       the controls' colours over the picture (full.ts): white on black at the camera's
+       background strength (--cm-chip-alpha, set by the caption from its controls_at), or
+       on their own colour at it (owner, 2026-11-27). Specific enough to beat pills.css,
+       which the card loads after these. */
+    .caption :is(.cm-pill, .cm-chip) {
+      display: inline-flex;
+      align-items: center;
+      box-sizing: border-box;
+      height: calc(var(--cm-label-size) * 1.4);
+      padding-block: 0;
+      box-shadow: none;
+      background: rgb(0 0 0 / var(--cm-chip-alpha));
+      color: #fff;
+    }
+    .caption :is(.cm-pill, .cm-chip):is(.cm-on, .cm-good, .cm-accent, .cm-warn, .cm-bad, .cm-bark):not(.cm-muted) {
+      background: color-mix(in srgb, var(--tone, var(--accent)) var(--cm-chip-alpha), transparent);
     }
     /* What the live video is doing (common.ts: liveStatus), LIVE and the bars: taking the
        pointer for their tooltips, as the detection chips do. */

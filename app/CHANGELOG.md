@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b38
+
+- **Camera Commander card: the pills and chips beside the main camera's name are as tall
+  as the name, and see-through like the camera's controls.** LIVE, the channel's bars,
+  the chip saying what live is doing, the detections and the closer look's chip are
+  white on black, or on their own colour, at the camera's Background (the Cameras page),
+  instead of b37's solid pills.
+- **Cameras: a camera's Background is 45% by default, not 60%,** so its controls and
+  the caption's chips show more of the picture. A camera whose Background has been saved
+  keeps its own value.
+
 ## 2026.11.14-b37
 
 - **Camera Commander card: older browsers that misreport what they can decode no longer

@@ -81,8 +81,10 @@ places. It is there for a camera that has controls or presets:
 - **A missed tap:** the area the buttons stand in takes a tap that lands between them or
   just beside one, so it doesn't open the camera full screen. While the PTZ presets are
   opened out, a tap anywhere else on the camera puts them away.
-- **Background:** how solid the black behind the buttons is, from clear to solid. A
-  button is coloured while its entity is on.
+- **Background:** how solid the black behind the buttons is, from clear to solid (45%
+  unless you change it). A button is coloured while its entity is on. The Camera
+  Commander's pills and chips beside the camera's name (LIVE, the channel's bars and
+  the detections) use the same setting when the camera is the main one.
 
 The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to
 scale. The buttons themselves are described under

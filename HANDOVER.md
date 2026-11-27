@@ -160,8 +160,12 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   (`live_report` "started").
 - **The caption says live with pills, not words** (b37, owner's design, 2026-11-27): the
   name alone, then a LIVE pill (DELAYED over HLS) and the channel as rising bars
-  (`pills.ts: tierBars`, `.cm-bars` in `pills.css`; cheatsheet `cam-live`, `cam-tier`),
-  both `.cm-pill.cm-solid` so they read on the picture. The wrapper is `.playing`, as
+  (`pills.ts: tierBars`, `.cm-bars` in `pills.css`; cheatsheet `cam-live`, `cam-tier`).
+  Since b38 every pill and chip in the caption is as tall as the name as a pill
+  (`--cm-label-size` × 1.4) and in the controls' colours at the camera's
+  `controls_at.opacity` (`--cm-chip-alpha`, default 45 since b38, was 60; owner: "more
+  transparency"), in `styles.ts`, which must out-rank `pills.css` as the card loads
+  PILLS after its own styles. The wrapper is `.playing`, as
   `.live` is the `<video>`'s class. The bars are whole-pixel paths with `crispEdges`
   (outlines are the inner box cut out, never a stroke), seen sharp at 1, 1.0625 and 2.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):

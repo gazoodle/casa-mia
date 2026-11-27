@@ -16,7 +16,7 @@ test("a lock, a valve, a siren and a garage door, gate or door take two taps, un
 });
 
 test("controls have no size of their own, and go down the right from the top unless a camera says otherwise", () => {
-  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start", opacity: 60 });
+  assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start", opacity: 45 });
   // a size saved before: dropped; a background kept
   assert.deepEqual(controlsAt({ size: 72, opacity: 30, landscape: "bottom" } as never), { landscape: "bottom", portrait: "right", align: "start", opacity: 30 });
 });

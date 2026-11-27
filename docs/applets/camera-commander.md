@@ -375,7 +375,9 @@ Its options (each left at its default unless you change it):
   point at it). A chip after them shows the channel's bars with **Starting** while the
   video starts, **coming** while a sharper channel gets ready behind the one shown, and
   **failed** when that channel wouldn't play, with the reason and when it is tried again
-  when you point at it. When a channel
+  when you point at it. These pills and chips are as tall as the name, and as
+  see-through as the camera's controls (its **Background** on the
+  [Cameras](cameras.md) page). When a channel
   of the camera won't play, the card plays another of its channels, and when none plays
   it shows the drawn picture and says **Live lost … ago** with the reason, and tries
   again by itself (see Troubleshooting).

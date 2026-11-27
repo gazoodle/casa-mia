@@ -91,7 +91,7 @@ window.captionMisses = (style, camera, who, quiet) => {
         "switch.oak": { platform: "casa_mia_guest_login" },
       },
     },
-    now: () => ({ card: { layout: { labels: { main_style: style } } }, main: camera }),
+    now: () => ({ card: { layout: { labels: { main_style: style } }, cameras: {} }, main: camera }),
     detections: () => (quiet ? [] : found),
     eventsOf: () => ({}),
     firedOf: () => ({}),

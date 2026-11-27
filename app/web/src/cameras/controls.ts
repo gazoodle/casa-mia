@@ -32,7 +32,7 @@ export type Align = "start" | "center" | "end";
  * chip does with no sizing at all: a CSS px already suits every device. */
 export type ControlsAt = { landscape: Edge; portrait: Edge; align: Align; opacity: number };
 /** Down the right edge from the top, either way up (owner, 2026-11-27). */
-export const CONTROLS_AT: ControlsAt = { landscape: "right", portrait: "right", align: "start", opacity: 60 };
+export const CONTROLS_AT: ControlsAt = { landscape: "right", portrait: "right", align: "start", opacity: 45 };
 
 /** A camera's own settings, each it lacks at its default. A size saved before
  * 2026.11.14-b10 is left out: it is no longer used, and is dropped when the camera is

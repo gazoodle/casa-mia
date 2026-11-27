@@ -43,12 +43,6 @@
   text-align: center;
 }
 
-/* Over a picture: the tint on the surface rather than see-through, so it reads on any
-   picture (the Camera Commander's LIVE). */
-.cm-pill.cm-solid {
-  background: color-mix(in srgb, var(--tone, var(--muted)) 14%, var(--surface));
-}
-
 /* A camera channel's resolution, in a pill or a chip as one line of its text: three
    rising bars, as many filled as its tier (the cards' pills.ts: tierBars). Every edge is
    on a whole pixel and left unsmoothed, so the boxes stay sharp. */
