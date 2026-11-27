@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b32
+
+- **Camera Commander card: it no longer grows into its size.** In the card editor's
+  preview the card started as a thin strip with a squashed picture and grew down to its
+  shape over a third of a second, and did so again at every change of an option. Home
+  Assistant's own card frame animates every change of its size, and the commander sets
+  its height itself, so each height it set was animated; the picture was asked for at a
+  size part of the way there. The card now takes its height at once and asks for its
+  picture once, at that size. The same animation ran on the dashboard when the window
+  was resized.
+
 ## 2026.11.14-b31
 
 - **Camera Commander card: the main camera's full screen opens with its live picture

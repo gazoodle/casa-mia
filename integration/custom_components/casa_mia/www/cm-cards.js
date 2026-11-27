@@ -3577,9 +3577,14 @@ var ba = /* @__PURE__ */ new WeakSet(), xa = {
     }
     /* All of its width; its height from the rule (render). Width set: with only a height,
        aspect-ratio would make the width from it (wider than its space). */
+    /* No transition: Home Assistant's ha-card has "transition: all 0.3s ease-out", which
+       animated every height the rule sets. A card just made (the editor's preview makes a
+       new one at each change of an option) grew from nothing over 0.3 s, and asked for
+       its picture at a size on the way: a squashed commander, stretched as it grew. */
     ha-card {
       position: relative;
       width: 100%;
+      transition: none;
       overflow: hidden;
       background: none;
       border: none;

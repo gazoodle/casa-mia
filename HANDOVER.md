@@ -1676,6 +1676,15 @@ CLAUDE.md has them all. What trips agents here:
   reloaded or HA restarts: HA's doing.
 - **Before claiming something is new,** search HA's frontend (issues, PRs, discussions) and
   HACS's default `plugin` list; the owner asks.
+- **HA's `ha-card` animates everything** (2026-11-27): its own style is `transition: all
+  0.3s ease-out`. A card that sets a size on its `ha-card` from JavaScript has it grown
+  into over 0.3 s, and a ResizeObserver reports every size on the way. The Commander grew
+  from nothing in the editor's preview (HA makes a new card element at every change of an
+  option) and asked for a squashed picture part of the way; it was tried and given up
+  several times from 2026-10-09 without the cause being named. Fixed in 2026.11.14-b32
+  with `transition: none` on its `ha-card` (`commander/styles.ts`). When something moves
+  and nothing in our code moves it, ask the browser: `el.getAnimations()` on each frame
+  names the property. Measured on the VM by serving the local bundle with `page.route`.
 
 ## How to work with the owner
 
