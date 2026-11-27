@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.14-b28
+
+- **Camera Commander card editor: its options are in sections that start collapsed**
+  (View, Behaviour, Intercom, Notifications, Last place, and Connection and performance),
+  with the Commander select above them, so the dialog opens as a short list of headers
+  instead of one long page. Each section keeps its options and saved values as before.
+
 ## 2026.11.14-b27
 
 - **Camera Commander card: a press on the main camera's name, or on a detection chip,

@@ -4574,45 +4574,34 @@ var Sa = class extends V {
 				...e.detail.value
 			}), U(this, "config-changed", { config: this._config });
 		}}
-    ></ha-form>`;
+    ></ha-form>`, s = (e, t) => R`<ha-expansion-panel outlined>
+      <div slot="header" role="heading" aria-level="3">${e}</div>
+      <div class="content">${t}</div>
+    </ha-expansion-panel>`;
 		return R`
-      <section aria-labelledby="main-heading">
-        <h3 id="main-heading">Main camera</h3>
-        ${o(a("entity", "live_main", "tap_main", "main_controls", "sound_button", "screen_button"))}
-      </section>
-      <section aria-labelledby="security-heading">
-        <h3 id="security-heading">Security look</h3>
-        ${o(a("security_look"))}
+      ${o(a("entity"))}
+      ${s("View", R`
+        ${o(a("live_main", "security_look"))}
         ${e.security_look ? R`<div class="details">
           ${o(a("look_tint"), "colour")}
           ${o(a("look_strength", "look_darkness"), "adjustments")}
-        </div>` : B}
-      </section>
-      <section aria-labelledby="motion-heading">
-        <h3 id="motion-heading">Motion dot</h3>
+        </div>` : B}`)}
+      ${s("Behaviour", o(a("tap_main", "main_controls", "sound_button", "screen_button")))}
+      ${s("Intercom", o(a("talk_button", "duplex")))}
+      ${s("Notifications", R`
         ${o(a("motion_dot"))}
         ${e.motion_dot ? R`<div class="details">
           ${o(a("motion_colour"), "colour")}
           ${o(a("motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
-        </div>` : B}
-      </section>
-      <section aria-labelledby="talk-heading">
-        <h3 id="talk-heading">Talking</h3>
-        ${o(a("talk_button", "duplex"))}
-      </section>
-      <section aria-labelledby="place-heading">
-        <h3 id="place-heading">Last place</h3>
-        ${this._config.entity ? this.place(i) : R`<p class="note">Choose a commander first.</p>`}
-      </section>
-      <section>
-        ${o([{
+        </div>` : B}`)}
+      ${s("Last place", this._config.entity ? this.place(i) : R`<p class="note">Choose a commander first.</p>`)}
+      ${o([{
 			type: "expandable",
 			name: "",
 			flatten: !0,
 			title: "Connection and performance",
 			schema: a("route", ...e.route === "direct" ? [] : ["away_sharpness"], "leave_after")
-		}])}
-      </section>`;
+		}])}`;
 	}
 	place(e) {
 		return e ? R`<p class="note">
@@ -4638,10 +4627,10 @@ var Sa = class extends V {
 	}
 	static {
 		this.styles = o`
-    :host { display: block; }
-    section { padding: 16px 0; }
-    section + section { border-top: 1px solid var(--divider-color); }
-    h3 { margin: 0 0 12px; font-size: var(--ha-font-size-m, 16px); }
+    :host { display: flex; flex-direction: column; gap: 8px; }
+    /* As ha-form-expandable styles its panel, so the Connection group matches the rest. */
+    ha-expansion-panel { display: block; --expansion-panel-content-padding: 0; border-radius: 6px; --ha-card-border-radius: 6px; }
+    .content { padding: 12px; }
     .details { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 16px; }
     .colour { flex: 0 0 96px; width: 96px; }
     .adjustments { flex: 1 1 220px; min-width: 0; }

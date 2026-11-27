@@ -194,42 +194,40 @@ export class CommanderEditor extends LitElement {
       }}
     ></ha-form>`;
 
+    // Each section a collapsed panel, drawn as ha-form draws an expandable group, so the
+    // dialog opens as a short list of headers. `expanded` is never bound: each panel keeps
+    // its own open state through re-renders, so a change inside one doesn't close it.
+    const panel = (title: string, body: unknown) => html`<ha-expansion-panel outlined>
+      <div slot="header" role="heading" aria-level="3">${title}</div>
+      <div class="content">${body}</div>
+    </ha-expansion-panel>`;
+
+    // Connection and performance stays ha-form's own expandable group, not a panel: drawing
+    // it is what makes HA load ha-expansion-panel (ha-form loads it for that schema type
+    // only), and the panels upgrade when it arrives. Made a plain panel, every panel would
+    // draw as bare text wherever nothing else on the page had loaded it.
     return html`
-      <section aria-labelledby="main-heading">
-        <h3 id="main-heading">Main camera</h3>
-        ${form(fields("entity", "live_main", "tap_main", "main_controls", "sound_button", "screen_button"))}
-      </section>
-      <section aria-labelledby="security-heading">
-        <h3 id="security-heading">Security look</h3>
-        ${form(fields("security_look"))}
+      ${form(fields("entity"))}
+      ${panel("View", html`
+        ${form(fields("live_main", "security_look"))}
         ${data.security_look ? html`<div class="details">
           ${form(fields("look_tint"), "colour")}
           ${form(fields("look_strength", "look_darkness"), "adjustments")}
-        </div>` : nothing}
-      </section>
-      <section aria-labelledby="motion-heading">
-        <h3 id="motion-heading">Motion dot</h3>
+        </div>` : nothing}`)}
+      ${panel("Behaviour", form(fields("tap_main", "main_controls", "sound_button", "screen_button")))}
+      ${panel("Intercom", form(fields("talk_button", "duplex")))}
+      ${panel("Notifications", html`
         ${form(fields("motion_dot"))}
         ${data.motion_dot ? html`<div class="details">
           ${form(fields("motion_colour"), "colour")}
           ${form(fields("motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
-        </div>` : nothing}
-      </section>
-      <section aria-labelledby="talk-heading">
-        <h3 id="talk-heading">Talking</h3>
-        ${form(fields("talk_button", "duplex"))}
-      </section>
-      <section aria-labelledby="place-heading">
-        <h3 id="place-heading">Last place</h3>
-        ${this._config.entity ? this.place(keeps) : html`<p class="note">Choose a commander first.</p>`}
-      </section>
-      <section>
-        ${form([{
-          type: "expandable", name: "", flatten: true,
-          title: "Connection and performance",
-          schema: fields("route", ...(data.route === "direct" ? [] : ["away_sharpness"]), "leave_after"),
-        }])}
-      </section>`;
+        </div>` : nothing}`)}
+      ${panel("Last place", this._config.entity ? this.place(keeps) : html`<p class="note">Choose a commander first.</p>`)}
+      ${form([{
+        type: "expandable", name: "", flatten: true,
+        title: "Connection and performance",
+        schema: fields("route", ...(data.route === "direct" ? [] : ["away_sharpness"]), "leave_after"),
+      }])}`;
   }
 
   /** The cards in the commander's last place, where the commander keeps one. Otherwise
@@ -260,10 +258,10 @@ export class CommanderEditor extends LitElement {
   }
 
   static styles = css`
-    :host { display: block; }
-    section { padding: 16px 0; }
-    section + section { border-top: 1px solid var(--divider-color); }
-    h3 { margin: 0 0 12px; font-size: var(--ha-font-size-m, 16px); }
+    :host { display: flex; flex-direction: column; gap: 8px; }
+    /* As ha-form-expandable styles its panel, so the Connection group matches the rest. */
+    ha-expansion-panel { display: block; --expansion-panel-content-padding: 0; border-radius: 6px; --ha-card-border-radius: 6px; }
+    .content { padding: 12px; }
     .details { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 16px; }
     .colour { flex: 0 0 96px; width: 96px; }
     .adjustments { flex: 1 1 220px; min-width: 0; }

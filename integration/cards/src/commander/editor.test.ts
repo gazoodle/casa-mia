@@ -78,6 +78,22 @@ test("the last place's cards are edited only where the commander keeps the place
   assert.ok(!("cards" in keeps._config!), "an empty list is no option");
 });
 
+test("the commander sits above the sections, each a panel that starts collapsed", () => {
+  const value = editor({ entity: "select.oak_commander", security_look: true });
+  assert.deepEqual(forms(value.render())[0].schema.map((field: any) => field.name), ["entity"]);
+  const panels = templates(value.render()).filter((t) => t.strings[0].includes("<ha-expansion-panel"));
+  assert.deepEqual(panels.map((t) => t.values[0]), ["View", "Behaviour", "Intercom", "Notifications", "Last place"]);
+  for (const panel of panels) assert.doesNotMatch(panel.strings.join(""), /expanded/, "never bound: each keeps its own open state");
+  const inside = (title: string) => {
+    const panel = panels.find((t) => t.values[0] === title);
+    return forms(panel.values[1]).flatMap((form) => form.schema.map((field: any) => field.name));
+  };
+  assert.deepEqual(inside("View"), ["live_main", "security_look", "look_tint", "look_strength", "look_darkness"]);
+  assert.deepEqual(inside("Behaviour"), ["tap_main", "main_controls", "sound_button", "screen_button"]);
+  assert.deepEqual(inside("Intercom"), ["talk_button", "duplex"]);
+  assert.deepEqual(inside("Notifications"), ["motion_dot", "motion_colour", "motion_pulse", "motion_linger", "motion_corner"]);
+});
+
 test("only a forced direct route hides sharpness; talking mode stays with custom buttons", () => {
   for (const route of [undefined, "auto", "ha", "direct"]) {
     const value = editor({ route, talk_button: false, live_main: false });
@@ -85,7 +101,7 @@ test("only a forced direct route hides sharpness; talking mode stays with custom
     assert.ok(names(value).includes("duplex"));
     assert.ok(names(value).includes("leave_after"));
     const connection = forms(value.render()).find((form) => form.schema[0].title === "Connection and performance").schema[0];
-    assert.equal(connection.type, "expandable");
+    assert.equal(connection.type, "expandable", "drawing this group is what loads ha-expansion-panel for the other panels");
     assert.equal(connection.expanded, undefined, "connection settings start collapsed");
     assert.equal(connection.flatten, true, "group must not change the saved config shape");
   }

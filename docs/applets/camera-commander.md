@@ -329,9 +329,12 @@ its width. A Responsive commander in a narrow column, such as a phone held uprig
 the height of the screen below it instead, so it is laid out as a tall space and not as a
 short strip.
 
-The editor groups its options into **Main camera**, **Security look**, **Motion dot**,
-**Talking** and a collapsed **Connection and performance** section. Security look and
-Motion dot show their colour and adjustment controls only while their switches are on.
+The editor has the **Commander** select at the top and the other options in sections
+that start collapsed, so they all fit on a phone's screen: **View** (live video and the
+security look), **Behaviour** (a tap on the main camera and the buttons over it),
+**Intercom**, **Notifications** (the motion dot), **Last place** and **Connection and
+performance**. Press a section's header to open it. Security look and Motion dot show
+their colour and adjustment controls only while their switches are on.
 Hidden choices are kept, so switching a feature back on restores them. Colour controls
 stay compact, with adjustments alongside on wider screens and below on narrow screens.
 
@@ -375,7 +378,7 @@ Its options (each left at its default unless you change it):
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
   your own buttons.
-- **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
+- **Intercom → Mode:** full duplex (the default), where your voice goes out as soon as
   you answer, or half duplex, where it goes out only while you hold a button (see below).
 
 ### What the main camera reports
@@ -552,7 +555,7 @@ on an https address, because browsers only give a microphone to secure pages.
 
 #### Half duplex: hold to talk
 
-With **Mode** under **Talking** set to half duplex, the button says **Answer**. Answering
+With **Mode** under **Intercom** set to half duplex, the button says **Answer**. Answering
 opens the call with the microphone silent: you hear the visitor, and the door hears nothing. A **Hold to
 talk** button appears next to Hang up, and your voice goes out only while you hold it,
 like a walkie-talkie. While you hold it the button says **Live**, and the visitor's
