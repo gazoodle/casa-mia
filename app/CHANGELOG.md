@@ -1,15 +1,6 @@
 # Changelog
 
-## 2026.11.15-b2
-
-- **Jukebox: Home Assistant's page no longer runs Spotify's script.** Spotify's player
-  for web pages plays in Spotify's own frame, kept apart from Home Assistant's page, and
-  Jukebox's page tells it what to play with the same messages Spotify's script sends.
-  Before, the script was fetched from Spotify into Home Assistant's page, where it could
-  have done anything the signed-in person can. Raised in Jukebox's review for the
-  Marketplace (hacs/default#14999).
-
-## 2026.11.15-b1
+## 2026.11.15
 
 - **Breaking:** Jukebox searches Spotify, and looks up the covers of songs on the
   radio, with its own sign-in to Spotify instead of Home Assistant's Spotify
@@ -26,8 +17,14 @@
   favourites. A plain-http station passed on to a page reached over https goes by a link
   signed for the login that asked, where before the link worked without signing in.
   Until now any login could have Home Assistant fetch an address of its choosing,
-  including one on the house's own network. Raised in Jukebox's review for the
-  Marketplace (hacs/default#14999), with the two changes above.
+  including one on the house's own network.
+- **Jukebox: Home Assistant's page no longer runs Spotify's script.** Spotify's player
+  for web pages plays in Spotify's own frame, kept apart from Home Assistant's page, and
+  Jukebox's page tells it what to play with the same messages Spotify's script sends.
+  Before, the script was fetched from Spotify into Home Assistant's page, where it could
+  have done anything the signed-in person can.
+- All four changes were raised in Jukebox's review for the Marketplace
+  (hacs/default#14999).
 
 ## 2026.11.14
 
