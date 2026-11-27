@@ -1,12 +1,13 @@
 """Finding music to play: searching the Sonos music library and Spotify together, and
 browsing what a speaker can play.
 
-Both come from Home Assistant: the library through its Sonos integration, and Spotify
-through its Spotify integration, whose signed-in account is used as it stands (Jukebox
-has no login of its own). Sonos's browsing already includes Spotify's once that
-integration is set up, and Sonos plays what either finds, honouring where in the queue
-it should go. A Spotify result is given the address Spotify's own browsing gives, so it
-is browsed and played the same way.
+The library is searched through Home Assistant's Sonos integration. Spotify is searched
+with Jukebox's own sign-in (config_flow.py), on Spotify's public Web API: Home
+Assistant's Spotify integration has no search that keeps each song's album, and its
+client is that integration's own (hacs/default#14999). Sonos's browsing already
+includes Spotify's once that integration is set up, and Sonos plays what either finds,
+honouring where in the queue it should go. A Spotify result is given the address
+Spotify's own browsing gives, so it is browsed and played the same way.
 
 One source failing never hides the other: each comes back with its results, or the
 reason there are none.
@@ -21,15 +22,25 @@ from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
 
+import aiohttp
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import config_entry_oauth2_flow
 
 from . import cover
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 PLAYER = "media_player"
 SPOTIFY = "spotify"
+SEARCH = "https://api.spotify.com/v1/search"
+# How long Spotify has to answer a search.
+WAIT = aiohttp.ClientTimeout(total=10)
+SIGN_IN = (
+    "Jukebox isn't signed in to Spotify. In Settings, Devices & services, open Jukebox "
+    "and choose Reconfigure from its menu."
+)
 LIBRARY_NAME = "Music library"
 SPOTIFY_NAME = "Spotify"
 # What Sonos keeps the favourites under, which have a tab of their own on the page.
@@ -127,34 +138,54 @@ async def _library(hass: HomeAssistant, entity: str, query: str) -> list[dict]:
     return [found for kind in kinds for found in kind]
 
 
-async def _seek(hass: HomeAssistant, query: str, kinds: list[str]) -> tuple[Any, Any]:
-    """Ask Spotify, through Home Assistant's integration: its entry and what it found."""
-    entries = hass.config_entries.async_loaded_entries(SPOTIFY)
-    if not entries:
-        raise HomeAssistantError(
-            "Home Assistant's Spotify integration isn't set up, or isn't signed in"
-        )
+async def signed_in(hass: HomeAssistant) -> config_entry_oauth2_flow.OAuth2Session:
+    """Jukebox's own sign-in to Spotify (config_flow.py), its token renewed if it has
+    run out. It is the house's one Spotify account."""
+    entries = hass.config_entries.async_loaded_entries(DOMAIN)
+    if not entries or "token" not in entries[0].data:
+        raise HomeAssistantError(SIGN_IN)
     entry = entries[0]
-    # The Spotify integration's own signed-in client. It is another integration's
-    # inside, so its shape is checked and its absence said, not assumed.
-    coordinator = getattr(getattr(entry, "runtime_data", None), "coordinator", None)
-    # Its request, not its `search`: that one drops each song's album, and the album
-    # is what has the cover (owner's box, 2026-11-25: every song came without one).
-    get = getattr(getattr(coordinator, "client", None), "_get", None)
-    if get is None:
-        raise HomeAssistantError(
-            "This version of Home Assistant's Spotify integration can't be searched"
-        )
-    asked = {"q": query, "limit": SPOTIFY_EACH, "type": ",".join(kinds)}
+
     try:
-        # Spotify's own answer, read by name: `found.tracks.items[0].album.images`.
-        return entry, json.loads(
-            await get("v1/search", params=asked),
-            object_hook=lambda fields: SimpleNamespace(**fields),
+        session = config_entry_oauth2_flow.OAuth2Session(
+            hass,
+            entry,
+            await config_entry_oauth2_flow.async_get_config_entry_implementation(
+                hass, entry
+            ),
         )
-    except Exception as err:
-        # Whatever Spotify's library raises (no network, a refused token, a change in
-        # what Spotify sends) is this source's reason, never the whole search's end.
+        await session.async_ensure_token_valid()
+    except (aiohttp.ClientError, HomeAssistantError, ValueError) as err:
+        raise HomeAssistantError(
+            f"Spotify wouldn't renew Jukebox's sign-in "
+            f"({err or type(err).__name__}). {SIGN_IN}"
+        ) from err
+    return session
+
+
+async def _seek(hass: HomeAssistant, query: str, kinds: list[str]) -> Any:
+    """What Spotify's own search finds, asked with Jukebox's sign-in. Spotify's
+    answer, not a library's reading of it: a song's album is what has its cover, and
+    Home Assistant's Spotify integration drops it (owner's box, 2026-11-25)."""
+    session = await signed_in(hass)
+    asked = {"q": query, "limit": SPOTIFY_EACH, "type": ",".join(kinds)}
+
+    try:
+        async with await session.async_request(
+            "GET", SEARCH, params=asked, timeout=WAIT
+        ) as answer:
+            if answer.status != 200:
+                raise HomeAssistantError(
+                    f"Spotify refused the search ({answer.status})"
+                )
+            # Read by name: `found.tracks.items[0].album.images`.
+            return json.loads(
+                await answer.text(),
+                object_hook=lambda fields: SimpleNamespace(**fields),
+            )
+    except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+        # No network, or an answer that isn't Spotify's JSON: this source's reason,
+        # never the whole search's end.
         raise HomeAssistantError(
             f"Spotify didn't answer: {err or type(err).__name__}"
         ) from err
@@ -252,7 +283,7 @@ class Covers:
                     getattr(song.album, "release_date", ""),
                     getattr(song, "uri", ""),
                 )
-                for _, answer in answers
+                for answer in answers
                 for song in _each(answer, "tracks")
                 if (images := _images(song))
             ]
@@ -285,7 +316,16 @@ class Covers:
 
 
 async def _spotify(hass: HomeAssistant, query: str) -> list[dict]:
-    entry, found = await _seek(hass, query, ["track", "album", "playlist", "artist"])
+    # What is found is opened and played through Home Assistant's Spotify integration,
+    # by an address that names its entry.
+    entries = hass.config_entries.async_loaded_entries(SPOTIFY)
+    if not entries:
+        raise HomeAssistantError(
+            "Home Assistant's Spotify integration isn't set up, and what Spotify "
+            "finds is opened through it"
+        )
+    entry = entries[0]
+    found = await _seek(hass, query, ["track", "album", "playlist", "artist"])
 
     def one(
         heading: str, kind: str, thing: Any, by: str = "", expand: bool = False

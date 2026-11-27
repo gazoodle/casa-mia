@@ -154,6 +154,16 @@ def test_every_jukebox_card_can_be_edited_without_yaml():
     assert registered == forms == 5
 
 
+def test_no_script_of_spotifys_is_put_into_home_assistants_page():
+    """Spotify's player runs in Spotify's own frame, driven by the page (spotify.ts).
+    Its script would run code fetched from Spotify with the access of whoever is signed
+    in (hacs/default#14999)."""
+    component = Path(__file__).parent.parent / "integration/custom_components"
+    bundle = (component / "casa_mia_jukebox/www/cards.js").read_text()
+    assert "sdk.scdn.co/spotify-player.js" not in bundle
+    assert "sdk.scdn.co/embedded/index.html" in bundle
+
+
 def test_a_speaker_playing_with_no_title_is_not_a_quiet_room():
     """Some streams give neither a title nor a station's name. Playing is playing."""
     bare = {"media_content_id": "aac://stream", "volume_level": 0.3}

@@ -2,13 +2,13 @@
 and what the page asks to be done. The speakers are stand-ins: entities registered as
 Sonos's, and media player services that record what they were sent."""
 
-import json
 import logging
 from types import SimpleNamespace as Of
 from xml.sax.saxutils import escape
 
 import pytest
 from custom_components.casa_mia_jukebox.const import DOMAIN
+from custom_components.casa_mia_jukebox.find import SEARCH as SPOTIFY_SEARCH
 from custom_components.casa_mia_jukebox.page import (
     BROWSE as BROWSING,
 )
@@ -23,9 +23,16 @@ from custom_components.casa_mia_jukebox.page import (
     SEARCH,
 )
 from homeassistant.components import frontend
+from homeassistant.components.application_credentials import (
+    ClientCredential,
+    async_import_client_credential,
+)
 from homeassistant.core import SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import (
+    AiohttpClientMockResponse,
+)
 
 from test_jukebox import GARDEN, KITCHEN, a_player
 
@@ -675,21 +682,11 @@ def library(hass, sent):
         )
 
 
-def a_spotify(hass, monkeypatch, search):
-    """Home Assistant's Spotify integration, signed in, whose client asks Spotify
-    with `search`, which answers as Spotify's own search does (a dict of its JSON).
-    Only its place among the loaded entries is stood in for: a real entry would have
-    Home Assistant load the integration itself."""
-
-    async def get(uri, params):
-        assert uri == "v1/search"
-        found = await search(params["q"], params["type"].split(","), params["limit"])
-        return json.dumps(found)
-
-    entry = Of(
-        entry_id="0123abc",
-        runtime_data=Of(coordinator=Of(client=Of(_get=get))),
-    )
+def spotify_set_up(hass, monkeypatch):
+    """Home Assistant's Spotify integration, set up. What Spotify finds is opened
+    through it, by an address naming its entry, so only its place among the loaded
+    entries is stood in for: a real entry would have Home Assistant load it."""
+    entry = Of(entry_id="0123abc")
     loaded = hass.config_entries.async_loaded_entries
     monkeypatch.setattr(
         hass.config_entries,
@@ -699,8 +696,35 @@ def a_spotify(hass, monkeypatch, search):
     return entry
 
 
+async def signed_in(hass):
+    """Jukebox signed in to Spotify (config_flow.py), with a token good for ages."""
+    await async_import_client_credential(hass, DOMAIN, ClientCredential("id", "secret"))
+    token = {"access_token": "abc", "refresh_token": "def", "expires_at": 9e12}
+    signed = {"auth_implementation": DOMAIN, "token": token}
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(entry, data=signed)
+    await hass.async_block_till_done()
+
+
+async def a_spotify(hass, monkeypatch, aioclient_mock, search):
+    """Home Assistant's Spotify integration set up, and Jukebox signed in to Spotify,
+    whose search answers with `search`: a dict of its JSON, as Spotify's own search
+    sends it, or a status it refuses the search with."""
+
+    async def answer(method, url, data):
+        asked = url.query
+        found = await search(asked["q"], asked["type"].split(","), int(asked["limit"]))
+        if isinstance(found, int):
+            return AiohttpClientMockResponse(method, url, status=found)
+        return AiohttpClientMockResponse(method, url, json=found)
+
+    aioclient_mock.get(SPOTIFY_SEARCH, side_effect=answer)
+    await signed_in(hass)
+    return spotify_set_up(hass, monkeypatch)
+
+
 async def test_the_library_and_spotify_are_searched_together(
-    hass, hass_ws_client, library, caplog, monkeypatch
+    hass, hass_ws_client, library, caplog, monkeypatch, aioclient_mock
 ):
     asked = []
 
@@ -729,10 +753,12 @@ async def test_the_library_and_spotify_are_searched_together(
             "artists": {"items": []},
         }
 
-    entry = a_spotify(hass, monkeypatch, search)
+    entry = await a_spotify(hass, monkeypatch, aioclient_mock, search)
     client = await hass_ws_client(hass)
     caplog.set_level(logging.INFO)
     found = (await ask(client, SEARCH, entity_id=KITCHEN, query="paper"))["result"]
+    # Asked with Jukebox's own sign-in, never Home Assistant's Spotify integration's.
+    assert aioclient_mock.mock_calls[-1][3]["Authorization"] == "Bearer abc"
 
     ours, spotify = found["sources"]
     assert (ours["name"], ours["why"]) == ("Music library", None)
@@ -762,27 +788,33 @@ async def test_the_library_and_spotify_are_searched_together(
 
 
 async def test_one_source_failing_never_hides_the_other(
-    hass, hass_ws_client, library, monkeypatch
+    hass, hass_ws_client, library, monkeypatch, aioclient_mock
 ):
     client = await hass_ws_client(hass)
 
+    async def why(query):
+        """The two sources' answers to a search: the library's, and Spotify's."""
+        found = await ask(client, SEARCH, entity_id=KITCHEN, query=query)
+        return found["result"]["sources"]
+
     # No Spotify integration: the library's results come, and Spotify says why not.
-    ours, spotify = (await ask(client, SEARCH, entity_id=KITCHEN, query="paper"))[
-        "result"
-    ]["sources"]
+    ours, spotify = await why("paper")
     assert len(ours["items"]) == 2 and not spotify["items"]
     assert "isn't set up" in spotify["why"]
 
-    # Spotify's library raising anything at all, and the library failing too.
-    async def search(query, kinds, limit):
-        raise RuntimeError("401 from Spotify")
+    # Set up, but Jukebox has no sign-in of its own to search with.
+    spotify_set_up(hass, monkeypatch)
+    _, spotify = await why("paper")
+    assert "isn't signed in to Spotify" in spotify["why"]
 
-    a_spotify(hass, monkeypatch, search)
-    ours, spotify = (await ask(client, SEARCH, entity_id=KITCHEN, query="broken"))[
-        "result"
-    ]["sources"]
+    # Spotify refusing the search, and the library failing too.
+    async def search(query, kinds, limit):
+        return 401
+
+    await a_spotify(hass, monkeypatch, aioclient_mock, search)
+    ours, spotify = await why("broken")
     assert ours["why"] == "the library is being indexed" and not ours["items"]
-    assert spotify["why"] == "Spotify didn't answer: 401 from Spotify"
+    assert spotify["why"] == "Spotify refused the search (401)"
 
 
 async def test_browsing_starts_without_the_favourites_and_opens_a_place(

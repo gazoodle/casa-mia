@@ -39,6 +39,7 @@ from .common import (
 from .listing import (
     covers,
     detailed,
+    favourite_addresses,
     favourite_item,
     library,
     named,
@@ -105,6 +106,7 @@ __all__ = [
     "covers",
     "delete_playlist",
     "detailed",
+    "favourite_addresses",
     "favourite_item",
     "go_to",
     "holds",

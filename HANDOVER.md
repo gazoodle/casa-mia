@@ -482,7 +482,7 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
 - **A station's song's cover** (b24, owner 2026-11-24: the cover is the main picture,
   the station's logo a badge on it; both orders of artist and title are tried, since
   one of the owner's stations always sends them swapped): `find.Covers` asks Spotify
-  once for each song, through Home Assistant's Spotify integration, and `cover.py`
+  once for each song, with Jukebox's own sign-in (`find.signed_in`), and `cover.py`
   (no Home Assistant in it) decides which song it is. The group's `cover` goes to the
   page beside `picture`; `sleeve` in `parts.ts` draws the two. Three searches for
   each song, pooled (`cover.searches` says why, as measured on the box 2026-11-26:
@@ -599,7 +599,14 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
   room, the page keeping the queue). Home Assistant knows nothing of that room.
   - **On the page:** `phone.ts` is the room, `lineup.ts` its queue's rules (no page in
     it, tested in node) and `sound.ts` the two players: an `<audio>` element for a
-    library file or a station, Spotify's Web Playback SDK for a Spotify song.
+    library file or a station, and Spotify's own player frame for a Spotify song.
+    **No script of Spotify's is in Home Assistant's page** (b2): `spotify.ts` drives the
+    frame (`sdk.scdn.co/embedded/index.html`) with the messages Spotify's script sends,
+    as read from its v1.10.0 (its header lists them). If Spotify changes them, the
+    player stops connecting: read `sdk.scdn.co/spotify-player.js` again. Why (Frenck,
+    hacs/default#14999; owner, 2026-11-27): his sandboxed frame can't play, since
+    Chromium refuses encrypted media in an opaque origin (measured), and a copy of
+    Spotify's script would be redistributing it.
     `common.ts` puts the room into the house (`follow`) and sends its requests to
     `phone.do` and `phone.queue`, so the players, queue, favourites, search and editor
     needed no change of their own. Its id is `PHONE` (`this_device`). Favourites,
@@ -612,13 +619,21 @@ search, the party lock, sensors) and what was measured for it are in `BACKLOG.md
     `playable.placed` finds where a share is mounted by looking for the song's own path,
     once for each share. **A station** is its own web address, or TuneIn's answer for
     its number; a plain-http one is passed on by `phone.Stream` to an https page,
-    which would refuse it. Only sound is passed on.
+    which would refuse it, by a link signed with `async_sign_path`. Only sound is
+    passed on. **Only a station a speaker named** (`Phone._named`: a room's
+    `media_content_id`, or a favourite's address), checked at each start because the
+    page keeps its station across restarts. Why (Frenck, hacs/default#14999,
+    2026-11-27): the page's address let any login make Home Assistant fetch anything
+    on the network.
   - **Spotify needs a sign-in of Jukebox's own** (`config_flow.py`: Reconfigure, with
     Home Assistant's OAuth helper and application credentials). Home Assistant's
     Spotify sign-in has no `streaming` scope. The token is kept in the entry's data and
     renewed there hourly, so **the entry starts again only when its options change**
-    (`__init__.py`). It is given to hosts only (`may.HOST`): it is a key to the house's
-    one account. My choice; the owner hasn't ruled on it.
+    (`__init__.py`). The token is given to administrators only (`Who.admin`; Frenck,
+    hacs/default#14999, 2026-11-27): it is a key to the house's one account. Search
+    and station covers use the same sign-in (`find.signed_in`), never Home Assistant's
+    Spotify integration's client (same review); that integration is still needed to
+    open and play what is found.
   - **The measured oddities are in `sound.ts`'s header**: sound starts only from a tap
     (`unlock`, called in `phone.do` before anything is awaited: keep it first), a
     Spotify song's end is "paused at 0:00", and Spotify forgets a sleeping page's

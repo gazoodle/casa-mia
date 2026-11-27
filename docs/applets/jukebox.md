@@ -185,10 +185,12 @@ Tap a player to open it over the whole screen. There you have:
   what each found under its own heading. Press **+** beside a result to play it, play
   it next or add it to the end of the queue. An album, an artist or a playlist can be
   opened to see what is in it. While the box is empty you can browse the music library
-  and Spotify instead. Spotify is searched through Home Assistant's
+  and Spotify instead. Spotify is searched with Jukebox's own sign-in to Spotify
+  ([Songs from Spotify](#songs-from-spotify) has the steps). What it finds is opened
+  and played through Home Assistant's
   [Spotify integration](https://www.home-assistant.io/integrations/spotify), which
-  must be set up and signed in, and Spotify must be linked to Sonos as a music
-  service for its music to play. If one of the two can't be searched, the player says
+  must be set up too, and Spotify must be linked to Sonos as a music service for its
+  music to play. If one of the two can't be searched, the player says
   why and still shows the other's results.
 
 On a phone the queue, rooms, favourites and search open as a sheet over the player. On a wide screen,
@@ -214,7 +216,8 @@ take one out, shuffle and repeat. It plays:
 - a Sonos playlist or favourite, and anything found by Search;
 - songs from the music library;
 - songs from Spotify;
-- radio stations, from TuneIn or with a web address of their own.
+- radio stations, from TuneIn or with a web address of their own, when a Sonos room is
+  playing the station or it is one of the Sonos favourites.
 
 A song from any other music service can't be played on a phone. It is left out, and
 the player says how many were.
@@ -247,7 +250,8 @@ Until then, a library song is refused with a message that says so.
 
 ### Songs from Spotify
 
-Spotify plays on a phone through Spotify's own player for web pages. That needs a
+Spotify plays on a phone through Spotify's own player for web pages, which runs in a
+frame of Spotify's, kept apart from Home Assistant's page. That needs a
 Spotify Premium account, a page reached over `https`, and a sign-in of Jukebox's own:
 Home Assistant's Spotify integration is a remote control, and Spotify doesn't let its
 sign-in play music.
@@ -261,10 +265,13 @@ sign-in play music.
    developer app's client ID and client secret.
 4. Sign in on Spotify's page with the account the house uses, and agree.
 
-Only administrators and the logins listed under **Who may run a party** can then
-listen to Spotify on their own device. The page is given a key to the Spotify account
-to play with, so it is not handed to every login. The library and radio stations need
-no sign-in and are for everyone.
+Search and the covers of songs on the radio use the same sign-in. They don't need
+Spotify Premium.
+
+Only administrators can then listen to Spotify on their own device. The page is given
+a key to the Spotify account to play with, and whoever holds it can act as that
+account, so it isn't given to the logins listed under **Who may run a party** either.
+The library and radio stations need no sign-in and are for everyone.
 
 Spotify plays in one place at a time for one account. If the same account starts
 playing on the speakers, it stops on the phone, and the player says so.
@@ -355,8 +362,9 @@ Limits:
 
 ## The cover of a song on the radio
 
-While a station plays, a player's picture is the station's own. Where Home Assistant's
-Spotify integration is set up, Jukebox also looks the song up on Spotify, by the title
+While a station plays, a player's picture is the station's own. Where Jukebox is signed
+in to Spotify ([Songs from Spotify](#songs-from-spotify)), it also looks the song up on
+Spotify, by the title
 and artist the station sends, and shows the song's cover with the station's picture on
 it as a small round badge. The badge is how you tell a station from a queue.
 
@@ -371,7 +379,7 @@ it as a small round badge. The badge is how you tell a station from a queue.
 - Each song is looked up once, when a speaker starts playing it, with three searches
   sent together. The title and artist of every song your stations play are sent to
   Spotify as searches from your account.
-- Without the Spotify integration nothing changes.
+- Without that sign-in nothing changes.
 
 ### Adding a song on the radio to a playlist
 
@@ -386,7 +394,7 @@ song to the end of the one you choose.
   has moved on by the time you choose a playlist.
 - When there is no song to add, the button is dimmed, and pressing it says why: the
   station sent no artist and title, Spotify has no song that matches, the song is still
-  being looked for, or the Spotify integration isn't set up.
+  being looked for, or Jukebox isn't signed in to Spotify.
 - When there is no song to add, pressing the button also looks for it on Spotify once
   more. If Spotify didn't answer the first time, the song can be added once it has.
 - To start a new playlist with the song, type a name under the list and press **New
@@ -612,7 +620,7 @@ These are the differences that mattered there:
   what it found to the queue. Jukebox has no podcasts or audiobooks and keeps no
   library of its own.
 - **There is no server to run.** It is one integration, and it uses the Sonos and
-  Spotify integrations you already have.
+  Spotify integrations you already have, with a sign-in of its own to Spotify.
 
 [Listening on your own phone](#listening-on-your-own-phone) is the exception to the
 first two: there the queue is kept by the page, and Home Assistant sends the phone its
