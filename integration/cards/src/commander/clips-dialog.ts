@@ -3,9 +3,10 @@
 // clips.ts). A press on the main camera's name or a chip opens it (live.ts: caption), on
 // the pressed chip's kind, and the card draws it while it is open.
 //
-// It fills the screen up to a cap, one size from the moment it opens (owner, 2026-11-27).
-// On a landscape screen at least 700 px wide, the list is on the left and the preview on
-// the right; otherwise the preview is above the list. The preview starts on the newest
+// It is one size from the moment it opens (owner, 2026-11-27). On a landscape screen at
+// least 700 px wide, the list is on the left and the preview on the right, and the
+// preview, at the camera's shape, sets the dialog's height; otherwise the dialog fills the
+// screen up to a cap, the preview above the list (clips-styles.ts). The preview starts on the newest
 // clip's picture, which plays at a press. The list is tiles or rows, remembered on this
 // device, and the day before is fetched whenever the end of the list is in view, until
 // EMPTY_STOP empty days in a row (clips.ts: goesOn). Its leaving the page
@@ -66,6 +67,8 @@ export class ClipsDialog extends LitElement {
   /** The kind it opens on (the pressed chip's). */
   shelf: Shelf = "smart";
   doorbell = false;
+  /** The camera's picture's shape (width / height), which the preview takes. */
+  shape = 16 / 9;
 
   _shelf: Shelf = "smart";
   _days: Shown[] = [];
@@ -278,7 +281,7 @@ export class ClipsDialog extends LitElement {
         <ha-icon icon=${icon}></ha-icon>
       </button>`;
     // The dialog is only the margin round its body: a press there is outside.
-    return html`<dialog aria-label="${this.name}: recordings" @close=${this.closed} @click=${(e: Event) => e.target === e.currentTarget && this.shut()}>
+    return html`<dialog aria-label="${this.name}: recordings" style="--shape:${this.shape}" @close=${this.closed} @click=${(e: Event) => e.target === e.currentTarget && this.shut()}>
       <div class="body">
         <header>
           <h2>${this.name}</h2>
@@ -298,7 +301,13 @@ export class ClipsDialog extends LitElement {
    * when, and anything said about playing it. */
   private preview() {
     const c = this._chosen;
-    if (!c) return html`<div class="preview"><div class="stage"><span class="note">${this._days.some((s) => s.clips?.length) ? "" : "No recording to show yet"}</span></div></div>`;
+    // The lines under the picture (what, then when) are there before a clip is, so in
+    // landscape the dialog doesn't grow by them when the first one comes.
+    if (!c)
+      return html`<div class="preview">
+        <div class="stage"><span class="note">${this._days.some((s) => s.clips?.length) ? "" : "No recording to show yet"}</span></div>
+        <p class="said"><span class="what">&nbsp;</span><span class="when">&nbsp;</span></p>
+      </div>`;
     const p = this._playing?.id === c.id ? this._playing : null;
     const waiting = p && !p.src && !p.failed && p.got === undefined;
     return html`<div class="preview">

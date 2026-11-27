@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.14-b33
+
+- **Camera Commander card: the recordings dialog fits its picture.** On a big monitor the
+  dialog was as tall as the screen, so the chosen recording sat between tall black bands.
+  Now the preview takes the camera's own shape. On a landscape screen the dialog is as tall
+  as the preview needs, with the list scrolling beside it. On a portrait screen the
+  preview is narrower and centred where 480 px of height would not take the whole width,
+  instead of being banded at the sides.
+
 ## 2026.11.14-b32
 
 - **Camera Commander card: it no longer grows into its size.** In the card editor's

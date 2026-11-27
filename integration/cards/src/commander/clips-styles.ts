@@ -1,13 +1,14 @@
 // The Camera Commander card's clips dialog's look (clips-dialog.ts): its size, its two
 // layouts (the list beside the preview on a wide landscape screen, else above it), the
 // tiles and the rows. Sizes are fixed CSS px; the dialog's own is the screen less a
-// margin, up to a cap.
+// margin, up to a cap, and the preview's is the camera's shape (--shape, set by the card).
 import { css } from "lit";
 
 export const clipsStyles = css`
   /* The screen less a margin, up to a cap, and that size from the moment it opens: it
      never grows as days come. The cap is the same both ways, so a portrait tablet is
-     filled as a landscape one is. vh first, for a browser without dvh. */
+     filled as a landscape one is. In landscape the preview sets its height (below).
+     vh first, for a browser without dvh. */
   dialog {
     width: min(1280px, calc(100vw - 32px));
     height: min(1280px, calc(100vh - 32px));
@@ -64,16 +65,18 @@ export const clipsStyles = css`
     gap: 6px;
     min-height: 0;
   }
-  /* One cell, the box's own size: the picture fitted in it and Play centred over it (a
-     cell sized by the picture put Play below the box's edge on a portrait tablet). */
+  /* The camera's own shape, so its picture fills the box with no black bands round it; no
+     taller than 480px above the list, narrower instead, and centred. One cell, the box's
+     own size: the picture fitted in it and Play centred over it (a cell sized by the
+     picture put Play below the box's edge on a portrait tablet). */
   .stage {
     display: grid;
     grid-template: minmax(0, 1fr) / minmax(0, 1fr);
     place-items: center;
+    align-self: center;
     box-sizing: border-box;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    max-height: 360px;
+    width: min(100%, 480px * var(--shape));
+    aspect-ratio: var(--shape);
     border-radius: 8px;
     background: #000;
     overflow: hidden;
@@ -107,16 +110,28 @@ export const clipsStyles = css`
   .said .what {
     font-weight: 500;
   }
-  /* Landscape, wide enough: the list on the left, the preview filling the right. */
+  /* Landscape, wide enough: the list on the left, the preview on the right at the column's
+     width, anchored to its top. The preview sets the dialog's height, up to the screen's
+     less a margin, and the list scrolls in that height: its size is contained, so its days
+     add nothing. (At the screen's height a big monitor showed the picture between tall
+     black bands, owner 2026-11-27.) On a screen too short for it, the box is shorter and
+     the picture fitted in it. */
   @media (orientation: landscape) and (min-width: 700px) {
+    /* Not auto: a modal dialog is held at every edge of the screen, so auto stretches it. */
+    dialog {
+      height: fit-content;
+    }
     .body {
       grid-template: "head head" auto "list preview" minmax(0, 1fr) / 412px minmax(0, 1fr);
+      max-height: min(1280px, calc(100vh - 32px));
+      max-height: min(1280px, calc(100dvh - 32px));
+    }
+    .list {
+      contain: size;
     }
     .stage {
-      flex: 1;
+      width: 100%;
       min-height: 0;
-      aspect-ratio: auto;
-      max-height: none;
     }
   }
   .list {

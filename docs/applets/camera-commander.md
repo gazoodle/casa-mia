@@ -414,11 +414,13 @@ so you can see there is something to watch. It says **Recordings** when no detec
 known yet. A chip opens the dialog on its own kind: a doorbell ring on Doorbell, a sound
 on Sounds, the rest on Detections.
 
-The dialog fills the screen, up to 1280 px each way. On a landscape screen at least 700 px
-wide, the recordings are listed on the left and the one chosen is shown on the right; on
-a portrait screen, it is shown above the list. It starts on the newest recording's
-picture, which plays when you press **Play**. Press any recording in the list to play it
-there.
+The chosen recording is shown at the camera's own shape, so its picture fills its space.
+On a landscape screen at least 700 px wide, the recordings are listed on the left and the
+one chosen is shown on the right, and the dialog is as tall as that picture needs (up to
+the screen's height). On a portrait screen the dialog fills the screen, up to 1280 px each
+way, and the chosen recording is shown above the list, no taller than 480 px. It starts
+on the newest recording's picture, which plays when you press **Play**. Press any
+recording in the list to play it there.
 
 The chips along the top choose what is listed: **Detections** (people, vehicles, animals
 and packages), **Doorbell** (its rings, for a doorbell), **Sounds** or **Motion**. The two

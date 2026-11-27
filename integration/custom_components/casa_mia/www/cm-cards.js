@@ -3289,14 +3289,17 @@ var ta = class extends xi {
 	}
 	clipsDialog() {
 		let e = this._clips;
-		return e ? z`<casa-mia-commander-clips
-          .hass=${this.hass}
-          .camera=${e.camera}
-          .name=${e.name}
-          .shelf=${e.shelf}
-          .doorbell=${Object.values(this.eventsOf(e.camera)).includes("doorbell")}
-          @closed=${() => this._clips = null}
-        ></casa-mia-commander-clips>` : B;
+		if (!e) return B;
+		let { card: t } = this.now();
+		return z`<casa-mia-commander-clips
+      .hass=${this.hass}
+      .camera=${e.camera}
+      .name=${e.name}
+      .shelf=${e.shelf}
+      .shape=${t ? this.shapeOf(t, e.camera) : 16 / 9}
+      .doorbell=${Object.values(this.eventsOf(e.camera)).includes("doorbell")}
+      @closed=${() => this._clips = null}
+    ></casa-mia-commander-clips>`;
 	}
 }, na = {
 	talk: "Talk",
@@ -4236,7 +4239,8 @@ var Ra = class extends Sa {
 }, Va = o`
   /* The screen less a margin, up to a cap, and that size from the moment it opens: it
      never grows as days come. The cap is the same both ways, so a portrait tablet is
-     filled as a landscape one is. vh first, for a browser without dvh. */
+     filled as a landscape one is. In landscape the preview sets its height (below).
+     vh first, for a browser without dvh. */
   dialog {
     width: min(1280px, calc(100vw - 32px));
     height: min(1280px, calc(100vh - 32px));
@@ -4293,16 +4297,18 @@ var Ra = class extends Sa {
     gap: 6px;
     min-height: 0;
   }
-  /* One cell, the box's own size: the picture fitted in it and Play centred over it (a
-     cell sized by the picture put Play below the box's edge on a portrait tablet). */
+  /* The camera's own shape, so its picture fills the box with no black bands round it; no
+     taller than 480px above the list, narrower instead, and centred. One cell, the box's
+     own size: the picture fitted in it and Play centred over it (a cell sized by the
+     picture put Play below the box's edge on a portrait tablet). */
   .stage {
     display: grid;
     grid-template: minmax(0, 1fr) / minmax(0, 1fr);
     place-items: center;
+    align-self: center;
     box-sizing: border-box;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    max-height: 360px;
+    width: min(100%, 480px * var(--shape));
+    aspect-ratio: var(--shape);
     border-radius: 8px;
     background: #000;
     overflow: hidden;
@@ -4336,16 +4342,28 @@ var Ra = class extends Sa {
   .said .what {
     font-weight: 500;
   }
-  /* Landscape, wide enough: the list on the left, the preview filling the right. */
+  /* Landscape, wide enough: the list on the left, the preview on the right at the column's
+     width, anchored to its top. The preview sets the dialog's height, up to the screen's
+     less a margin, and the list scrolls in that height: its size is contained, so its days
+     add nothing. (At the screen's height a big monitor showed the picture between tall
+     black bands, owner 2026-11-27.) On a screen too short for it, the box is shorter and
+     the picture fitted in it. */
   @media (orientation: landscape) and (min-width: 700px) {
+    /* Not auto: a modal dialog is held at every edge of the screen, so auto stretches it. */
+    dialog {
+      height: fit-content;
+    }
     .body {
       grid-template: "head head" auto "list preview" minmax(0, 1fr) / 412px minmax(0, 1fr);
+      max-height: min(1280px, calc(100vh - 32px));
+      max-height: min(1280px, calc(100dvh - 32px));
+    }
+    .list {
+      contain: size;
     }
     .stage {
-      flex: 1;
+      width: 100%;
       min-height: 0;
-      aspect-ratio: auto;
-      max-height: none;
     }
   }
   .list {
@@ -4475,7 +4493,7 @@ var Ra = class extends Sa {
   }
 `, Ha = "casa-mia-clips-view", Ua = 300, Wa = (e) => `${(e / 1e6).toFixed(1)} MB`, Ga = class extends V {
 	constructor(...e) {
-		super(...e), this.camera = "", this.name = "", this.shelf = "smart", this.doorbell = !1, this._shelf = "smart", this._days = [], this._chosen = null, this._playing = null, this._broken = /* @__PURE__ */ new Set(), this._lost = "", this._view = localStorage.getItem(Ha) === "rows" ? "rows" : "tiles", this.from = 0, this.folder = "", this.list = 0, this.plays = 0, this.blob = "", this.show = async (e) => {
+		super(...e), this.camera = "", this.name = "", this.shelf = "smart", this.doorbell = !1, this.shape = 16 / 9, this._shelf = "smart", this._days = [], this._chosen = null, this._playing = null, this._broken = /* @__PURE__ */ new Set(), this._lost = "", this._view = localStorage.getItem(Ha) === "rows" ? "rows" : "tiles", this.from = 0, this.folder = "", this.list = 0, this.plays = 0, this.blob = "", this.show = async (e) => {
 			e === this._shelf && this._days.length || (this.list++, this._shelf = e, this._days = [], this.from = 0, this._playing?.src || (this.stop(), this._chosen = null), await this.updateComplete, await this.more());
 		}, this.more = async () => {
 			if (!this.isConnected || !this.folder || !Li(this._days, this.from) || !this.endInView()) return;
@@ -4599,7 +4617,7 @@ var Ra = class extends Sa {
 		let e = Pi.filter((e) => e.kind !== "ring" || this.doorbell), t = (e, t, n) => z`<button class="cm-chip cm-icon ${this._view === e ? "cm-on" : ""}" title=${n} aria-label=${n} aria-pressed=${this._view === e} @click=${() => this.setView(e)}>
         <ha-icon icon=${t}></ha-icon>
       </button>`;
-		return z`<dialog aria-label="${this.name}: recordings" @close=${this.closed} @click=${(e) => e.target === e.currentTarget && this.shut()}>
+		return z`<dialog aria-label="${this.name}: recordings" style="--shape:${this.shape}" @close=${this.closed} @click=${(e) => e.target === e.currentTarget && this.shut()}>
       <div class="body">
         <header>
           <h2>${this.name}</h2>
@@ -4616,7 +4634,10 @@ var Ra = class extends Sa {
 	}
 	preview() {
 		let e = this._chosen;
-		if (!e) return z`<div class="preview"><div class="stage"><span class="note">${this._days.some((e) => e.clips?.length) ? "" : "No recording to show yet"}</span></div></div>`;
+		if (!e) return z`<div class="preview">
+        <div class="stage"><span class="note">${this._days.some((e) => e.clips?.length) ? "" : "No recording to show yet"}</span></div>
+        <p class="said"><span class="what">&nbsp;</span><span class="when">&nbsp;</span></p>
+      </div>`;
 		let t = this._playing?.id === e.id ? this._playing : null, n = t && !t.src && !t.failed && t.got === void 0;
 		return z`<div class="preview">
       ${t?.src ? z`<video class="stage" src=${t.src} controls autoplay playsinline @error=${this.failed}></video>` : z`<div class="stage">

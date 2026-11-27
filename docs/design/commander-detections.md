@@ -245,11 +245,16 @@ kept; the truncation callout; no folder, no press.
   the event entities' pushed states, so nothing is fetched. A count ("14 today") was
   turned down: it needs a list fetched per camera, and is cut short on a busy day. Every
   chip opens the dialog on its kind (`KINDS` `shelf`).
-- **The dialog keeps one size and fills the screen**, less 16 px each side, up to 1280 px
-  each way. Landscape and at least 700 px wide: the list (412 px) on the left, the
-  preview on the right; otherwise the preview (at most 360 px tall) above the list. The
-  preview starts on the newest clip's picture, played at a press. Tiles or rows, kept in
-  this device's `localStorage`.
+- **The dialog keeps one size**, the screen's width less 16 px each side, up to 1280 px.
+  The preview is at the camera's shape (the card's `shapeOf`, as `--shape`), so its
+  picture fills it. Landscape and at least 700 px wide: the list (412 px) on the left,
+  the preview on the right at its column's width, and the preview sets the dialog's
+  height, up to the screen's (the list is size-contained, so its days add nothing).
+  Otherwise the dialog fills the screen's height too, the preview (at most 480 px tall,
+  narrower and centred beyond that) above the list. (2026.11.14-b33: at the screen's
+  height, a big monitor showed the picture between tall black bands; owner, 2026-11-27.)
+  The preview starts on the newest clip's picture, played at a press. Tiles or rows,
+  kept in this device's `localStorage`.
 - **The list fetches by itself** (owner: "that's what happens when we use things live"),
   reversing "no scrolling that fetches by itself": the day before whenever the end of
   the list is within 300 px of view, one day at a time, until `EMPTY_STOP` (7) empty days

@@ -284,15 +284,18 @@ export class CommanderLive extends CommanderBase {
   /** The recordings dialog while one is open (card.ts draws it beside the tuning dialog). */
   protected clipsDialog() {
     const c = this._clips;
-    return c
-      ? html`<casa-mia-commander-clips
-          .hass=${this.hass}
-          .camera=${c.camera}
-          .name=${c.name}
-          .shelf=${c.shelf}
-          .doorbell=${Object.values(this.eventsOf(c.camera)).includes("doorbell")}
-          @closed=${() => (this._clips = null)}
-        ></casa-mia-commander-clips>`
-      : nothing;
+    if (!c) return nothing;
+
+    // The camera's shape, which the preview takes (clips-styles.ts: .stage).
+    const { card } = this.now();
+    return html`<casa-mia-commander-clips
+      .hass=${this.hass}
+      .camera=${c.camera}
+      .name=${c.name}
+      .shelf=${c.shelf}
+      .shape=${card ? this.shapeOf(card, c.camera) : 16 / 9}
+      .doorbell=${Object.values(this.eventsOf(c.camera)).includes("doorbell")}
+      @closed=${() => (this._clips = null)}
+    ></casa-mia-commander-clips>`;
   }
 }
