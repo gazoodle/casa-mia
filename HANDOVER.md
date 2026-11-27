@@ -111,6 +111,12 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     must be inside `<home-assistant>`; and `hui-card-element-editor` takes `value` by its
     own setter, so draw it only once defined, or its config is lost.
   - **Next:** less important cameras (BACKLOG, same spec): the solver run twice.
+- **Detections and their clips** (spec agreed 2026-11-27:
+  `docs/design/commander-detections.md`, built a step at a time, stopping after each).
+  Step 1 in b22: the Main camera select's `detections` (`casa_mia_commander/detections.py`),
+  found by the motion tracker's `refresh`, which since b22 also runs on the entity
+  registry's events, so a new motion sensor is found at once too. Not seen on the box.
+  Next: step 2, the chip.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the
   app built, `cameras.py` `preset_calls`, in the card's data as `cameras[e].presets`). Up

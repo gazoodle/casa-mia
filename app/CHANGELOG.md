@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.14-b22
+
+- **Camera Commander: each commander's Main camera select lists its cameras' event
+  entities** in a new `detections` attribute (UniFi Protect's object detections,
+  doorbell rings and sounds, or any other integration's events on the camera's device).
+  Nothing shows them yet: they are for the detection chips the card will draw in a
+  later build.
+- **Camera Commander: a camera's new motion sensor is found as soon as Home Assistant
+  adds it,** instead of at the app's next report, which could be 30 seconds later.
+
 ## 2026.11.14-b21
 
 - **Camera Commander card: Last place holds a list of cards, with a proper editor.** The

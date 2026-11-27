@@ -109,6 +109,11 @@ The media library (`media-source://unifiprotect`):
 
 ## Step 1: the integration tells the card each camera's event entities
 
+**Built in 2026.11.14-b22.** The tracker turned out to be refreshed only at the app's
+reports, not on registry changes; its `refresh` now runs on Home Assistant's entity
+registry events too (event and binary sensor entities), and the select redraws when
+what it found changes (`MotionTracker.found`).
+
 File: `integration/custom_components/casa_mia_commander/select.py`, with the finding in a
 new small module beside `motion.py` (read how `tracker` finds motion sensors and is kept
 current on registry changes, and do the same; don't add a second mechanism).
