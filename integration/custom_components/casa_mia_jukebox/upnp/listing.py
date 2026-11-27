@@ -15,6 +15,7 @@ from .common import (
     ABOUT,
     DC,
     DIDL,
+    FAVOURITES,
     MOST,
     QUEUE,
     SAVED_QUEUES,
@@ -53,6 +54,12 @@ async def favourite_item(
     if item is None or not address:
         raise HomeAssistantError("Sonos doesn't have that favourite any more")
     return item, address
+
+
+async def favourite_addresses(session: aiohttp.ClientSession, host: str) -> set[str]:
+    """The addresses a speaker's favourites play from."""
+    listed, _ = await _listed(session, host, FAVOURITES, "favourites")
+    return {address for item in listed if (address := item.findtext(f"{DIDL}res"))}
 
 
 def named(item: Element) -> tuple[str, str | None]:

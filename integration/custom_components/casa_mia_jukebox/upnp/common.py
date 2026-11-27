@@ -31,8 +31,9 @@ DIDL = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}"
 SONOS = "{urn:schemas-rinconnetworks-com:metadata-1-0/}"
 DC = "{http://purl.org/dc/elements/1.1/}"
 UPNP = "{urn:schemas-upnp-org:metadata-1-0/upnp/}"
-# Where a speaker keeps the Sonos playlists.
+# Where a speaker keeps the Sonos playlists, and its favourites.
 SAVED_QUEUES = "SQ:"
+FAVOURITES = "FV:2"
 QUEUE = "Q:0"
 # How the name of a playlist starts that is a party's copy of its queue (party.py), kept
 # by the speaker for Jukebox: not one of the household's, so it isn't listed with them.

@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.11.15-b1
+
+- **Breaking:** Jukebox searches Spotify, and looks up the covers of songs on the
+  radio, with its own sign-in to Spotify instead of Home Assistant's Spotify
+  integration's. If you haven't signed Jukebox in for listening on a phone, do it once:
+  **Settings → Devices & services → Jukebox**, **Reconfigure** (the guide's "Songs from
+  Spotify" has the steps). Search still needs Home Assistant's Spotify integration,
+  which opens and plays what Spotify finds.
+- **Breaking:** only administrators can listen to Spotify on a device of their own. A
+  login listed under **Who may run a party** no longer can, because the page is given
+  the key to the house's Spotify account. Make that login an administrator if it needs
+  to.
+- **Jukebox: a phone plays only a station that a Sonos speaker named.** A station is
+  fetched for a phone only when a Sonos room is playing it or it is one of the Sonos
+  favourites. A plain-http station passed on to a page reached over https goes by a link
+  signed for the login that asked, where before the link worked without signing in.
+  Until now any login could have Home Assistant fetch an address of its choosing,
+  including one on the house's own network. Raised in Jukebox's review for the
+  Marketplace (hacs/default#14999), with the two changes above.
+
 ## 2026.11.14
 
 - **New: a camera's recordings, from the Camera Commander card.** A press on the main

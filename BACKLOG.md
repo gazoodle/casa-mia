@@ -393,8 +393,9 @@ across Sonos, Spotify and the local library, in place of Music Assistant. The na
      it from Jukebox's card (the brief above). A broken track that Sonos skips must not count as someone's change.  4. **Search and play:** one search across Spotify, the local library and Sonos
      favourites. Spotify plays through Sonos's own Spotify service (SoCo's share links),
      not Spotify Connect, which often can't see a sleeping Sonos.
-  5. **Playlists:** editing Spotify playlists and saved tracks through the Web API, reusing
-     the token of HA's Spotify integration rather than a second login.
+  5. **Playlists:** editing Spotify playlists and saved tracks through the Web API, with
+     Jukebox's own sign-in (`find.signed_in`), never HA's Spotify integration's client
+     (hacs/default#14999).
   6. **Sonos versions in Sensor Watch:** each speaker's software version, flagging
      speakers on different versions and speakers that are offline. Updates themselves stay
      with Sonos's overnight auto-update; no supported local way to start one is known.
@@ -1195,18 +1196,19 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   can still reload itself, but only when switched on in Configure; he asked for it to be
   dropped, so it may come back. Don't request a review otherwise: HACS's template says
   that gets a pull request closed.
-- **Jukebox's catalog submission: two likely objections, left until raised** (owner,
-  2026-11-25). Opened as hacs/default#14999 on 2026-11-26. Frenck rejected both patterns
-  in Dash-Bored (#14577), so they are fixed when he raises them, not before:
-  - `art.View` and `phone.Stream` are `requires_auth = False`, guarded by one key per
-    start shared by every page, which ends up in history and logs; the art view also
-    fetches from Spotify's picture servers. Fix as Dash-Bored's photos: addresses signed
-    for each connection's login (`async_sign_path` with `refresh_token_id`).
-  - `find._seek` searches through Home Assistant's Spotify integration's own client
-    (`runtime_data.coordinator.client._get`), another integration's internals. Fix:
-    search with Jukebox's own Spotify sign-in (the one the phone player uses) against
-    Spotify's public Web API, so search needs that sign-in.
-  - Lesser: `upnp.py` asks the speakers directly over UPnP for what Home Assistant's
+- **Jukebox's catalog submission** (hacs/default#14999, opened 2026-11-26). Frenck
+  asked for four changes on 2026-11-27. Done in 2026.11.15-b1: search with Jukebox's own
+  sign-in, stations a speaker named and a signed relay (`phone.Stream`), the Spotify
+  token for administrators only. Open:
+  - Spotify's Web Playback SDK (`sound.ts`) runs on Home Assistant's own page. He asks
+    for it in a sandboxed iframe without `allow-same-origin`, the token passed in with
+    `postMessage`, or no in-page player. Try the iframe on a real phone first: the SDK
+    needs Widevine (encrypted media) and may need storage, which an opaque origin may
+    refuse.
+  - Not raised yet: `art.View` is `requires_auth = False`, guarded by one key per start
+    shared by every page; it also fetches from Spotify's picture servers. Fix as the
+    relay was: addresses signed for each connection's login (`async_sign_path`).
+  - Lesser, not raised: `upnp.py` asks the speakers directly over UPnP for what Home Assistant's
     Sonos integration doesn't expose.
 
 Decided (2026-10-02): **ship everything.** Every module is off until enabled; no private edition: the house runs the public release like everyone else. House-specific values go to configuration (the alarm's entity ids, the compositor's cameras, the house photo). FONA's hardware is published with its sketch ("FONA Arduino firmware into the repo"). The costs: security reports (guest login hands out HA sessions), docs and support for other setups.

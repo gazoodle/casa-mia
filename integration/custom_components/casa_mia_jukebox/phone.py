@@ -12,13 +12,15 @@ do by itself is asked for here:
 
 A library song is a link to the file among Home Assistant's media, signed for this
 login. A station is its own web address; a page reached over https can't play one that
-is plain http, so that is passed on from here (`Stream`).
+is plain http, so that is passed on from here (`Stream`), by a link signed in the same
+way. Only a station a speaker named itself is looked up: Home Assistant fetches the
+address, and the page's word for it would let any login make it fetch anything on the
+house's network (hacs/default#14999).
 """
 
 from __future__ import annotations
 
 import hashlib
-import hmac
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
@@ -34,7 +36,6 @@ from homeassistant.components.http.auth import async_sign_path
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import art, find, may, playable, upnp
@@ -54,17 +55,13 @@ TUNEIN = "https://opml.radiotime.com/Tune.ashx"
 # What Spotify's player in a page needs leave for: to play, to be told what to play,
 # and (its own rule) to read the account it plays as.
 SCOPES = "streaming user-read-email user-read-private user-modify-playback-state"
-# How long a link to a song's file lasts: longer than any song, and a song paused
-# overnight is asked for again (phone.ts).
+# How long a link to a song's file or a station's stream lasts: longer than any song,
+# and a song paused overnight is asked for again (phone.ts).
 LINK = timedelta(hours=6)
 # Seconds for TuneIn or a station to answer, and for a stream to send nothing before
 # it is given up.
 ANSWER = 10
 STALL = 30
-SIGN_IN = (
-    "Jukebox isn't signed in to Spotify. In Settings, Devices & services, open Jukebox "
-    "and choose Reconfigure from its menu."
-)
 
 
 def _one(title: str, by: str, uri: str, source: str, **more: Any) -> dict[str, Any]:
@@ -100,7 +97,7 @@ class Phone:
     def spotify(self, who: Who) -> bool:
         """Whether this login can be given Spotify's player: the page asks only then."""
         entries = self.hass.config_entries.async_loaded_entries(DOMAIN)
-        return who.role == may.HOST and bool(entries) and "token" in entries[0].data
+        return who.admin and bool(entries) and "token" in entries[0].data
 
     async def songs(
         self, who: Who, entity: str, thing: str, kind: str, name: str, by: str
@@ -232,6 +229,11 @@ class Phone:
             path, _, key = signed.rpartition("?")
             url, what = f"{quote(path)}?{key}", "a song of the music library"
         elif uri.startswith(_STREAMS):
+            if not await self._named(uri):
+                raise Refused(
+                    "Only a station a Sonos room is playing, or one of the Sonos "
+                    "favourites, can be played on a phone or tablet"
+                )
             url = playable.direct(uri) or await self._tunein(uri)
             if secure and url.startswith("http://"):
                 url = self._relayed(url)
@@ -241,6 +243,23 @@ class Phone:
         # Never the address itself: a link carries a key.
         _LOGGER.info("%s: %s to play on their own device", who, what)
         return {"url": url}
+
+    async def _named(self, uri: str) -> bool:
+        """Whether a speaker named this station itself: a room is playing it, or it is
+        one of the favourites. Asked at each start, not remembered from `songs`: the
+        page keeps its station when it is opened again, after a restart too."""
+        for room in self.feed.rooms:
+            state = self.hass.states.get(room)
+            if state and state.attributes.get("media_content_id") == uri:
+                return True
+
+        host = next(
+            filter(None, (address(self.hass, r) for r in self.feed.rooms)), None
+        )
+        if host is None:
+            raise Refused("No Sonos speaker has an address to ask for its favourites")
+        session = async_get_clientsession(self.hass)
+        return uri in await upnp.favourite_addresses(session, host)
 
     async def _tunein(self, uri: str) -> str:
         station = playable.tunein(uri)
@@ -270,38 +289,22 @@ class Phone:
         return url
 
     def _relayed(self, url: str) -> str:
-        """The address of a plain-http stream as passed on from here."""
+        """The address of a plain-http stream as passed on from here, signed for the
+        login that asked: an <audio> can't sign in."""
         name = hashlib.sha256(url.encode()).hexdigest()[:24]
         self.streams[name] = url
-        return f"{STREAM}/{self.feed.art_key}/{name}"
+        return async_sign_path(self.hass, f"{STREAM}/{name}", LINK)
 
     async def token(self, who: Who) -> dict[str, Any]:
         """Jukebox's sign-in to Spotify, renewed if it has run out, for Spotify's
-        player in the page. Only for the people who look after the music: it is the
-        house's one Spotify account, and whoever holds this can play as it."""
-        if who.role != may.HOST:
+        player in the page. Administrators only: it is the house's one Spotify
+        account, and whoever holds this can act as it (hacs/default#14999)."""
+        if not who.admin:
             raise Refused(
-                "Only the people who may run a party can listen to Spotify on a "
-                "device of their own (Jukebox's Configure dialog lists them)"
+                "Only an administrator can listen to Spotify on a device of their "
+                "own: the page is given the key to the house's Spotify account"
             )
-        entries = self.hass.config_entries.async_loaded_entries(DOMAIN)
-        if not entries or "token" not in entries[0].data:
-            raise Refused(SIGN_IN)
-        entry = entries[0]
-        try:
-            session = config_entry_oauth2_flow.OAuth2Session(
-                self.hass,
-                entry,
-                await config_entry_oauth2_flow.async_get_config_entry_implementation(
-                    self.hass, entry
-                ),
-            )
-            await session.async_ensure_token_valid()
-        except (aiohttp.ClientError, HomeAssistantError, ValueError) as err:
-            raise Refused(
-                f"Spotify wouldn't renew Jukebox's sign-in "
-                f"({err or type(err).__name__}). {SIGN_IN}"
-            ) from err
+        session = await find.signed_in(self.hass)
         _LOGGER.info("%s: Spotify's player on their own device", who)
         token = session.token
         return {"token": token["access_token"], "expires": token["expires_at"]}
@@ -309,20 +312,17 @@ class Phone:
 
 class Stream(HomeAssistantView):
     """A station's plain-http stream, passed on to a page that is reached over https.
-    Only a stream `Phone.address` named, and only sound."""
+    Only a stream `Phone.address` named, by a signed link, and only sound."""
 
-    url = STREAM + "/{key}/{name}"
+    url = STREAM + "/{name}"
     name = f"api:{DOMAIN}:stream"
-    requires_auth = False  # an <audio> can't sign in: the key stands for it (art.py)
 
     def __init__(self, phone: Phone) -> None:
         self.phone = phone
 
-    async def get(
-        self, request: web.Request, key: str, name: str
-    ) -> web.StreamResponse:
+    async def get(self, request: web.Request, name: str) -> web.StreamResponse:
         where = self.phone.streams.get(name)
-        if not hmac.compare_digest(key, self.phone.feed.art_key) or where is None:
+        if where is None:
             return web.Response(status=404)
 
         session = async_get_clientsession(self.phone.hass)

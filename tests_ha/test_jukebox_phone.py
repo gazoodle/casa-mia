@@ -2,7 +2,7 @@
 its own (phone.py), and Jukebox's sign-in to Spotify. The speakers are the page
 tests' stand-ins; nothing here plays a sound, which is the page's own work."""
 
-from custom_components.casa_mia_jukebox.const import DOMAIN
+from custom_components.casa_mia_jukebox.const import CONF_HOSTS, DOMAIN
 from custom_components.casa_mia_jukebox.page import HOUSE
 from custom_components.casa_mia_jukebox.phone import (
     ADDRESS,
@@ -20,10 +20,11 @@ from homeassistant.core import SupportsResponse
 from homeassistant.setup import async_setup_component
 from test_jukebox_page import (  # noqa: F401  (sent is a fixture)
     BROWSE,
-    a_spotify,
     answered,
     ask,
     sent,
+    signed_in,
+    spotify_set_up,
 )
 
 from test_jukebox import KITCHEN
@@ -137,7 +138,7 @@ async def test_a_favourite_station_and_things_found_become_songs_for_a_phone(
     )
     album = await songs("spotify://0123abc/spotify:album:9", "spotify://album")
     assert "isn't set up" in album["error"]["message"]
-    a_spotify(hass, monkeypatch, None)
+    spotify_set_up(hass, monkeypatch)
     album = await songs("spotify://0123abc/spotify:album:9", "spotify://album")
     assert [(s["title"], s["uri"], s["album"]) for s in album["result"]["songs"]] == [
         ("One", "spotify:track:1", "Slow Sunday"),
@@ -149,7 +150,7 @@ async def test_a_favourite_station_and_things_found_become_songs_for_a_phone(
     assert "only Spotify" in other["error"]["message"]
 
 
-async def test_a_station_is_fetched_from_its_own_address_or_through_jukebox(
+async def test_a_station_a_speaker_named_is_fetched_from_its_address_or_through_jukebox(
     hass,
     hass_ws_client,
     hass_client_no_auth,
@@ -157,37 +158,45 @@ async def test_a_station_is_fetched_from_its_own_address_or_through_jukebox(
     aioclient_mock,
 ):
     client = await hass_ws_client(hass)
+    # A room playing it names it.
     held = "x-rincon-mp3radio://https://streams.example/harbour.mp3"
+    playing = {"group_members": [KITCHEN], "media_channel": "Harbour FM"}
+    hass.states.async_set(KITCHEN, "playing", playing | {"media_content_id": held})
     found = await ask(client, ADDRESS, uri=held, secure=True)
     assert found["result"]["url"] == "https://streams.example/harbour.mp3"
 
-    # TuneIn knows a station by its number. A plain http stream is fetched as it is
-    # by a page that is plain http itself.
+    # So does one of the favourites. TuneIn knows a station by its number. A plain
+    # http stream is fetched as it is by a page that is plain http itself.
+    tuned = "x-sonosapi-stream:s1234?sid=254"
+    lists(aioclient_mock, f'<item id="FV:2/6"><res>{tuned}</res></item>')
     stream = "http://streams.example/h.mp3"
     offer = {"body": [{"url": stream, "media_type": "mp3", "is_direct": True}]}
     aioclient_mock.get(TUNEIN, json=offer)
-    tuned = "x-sonosapi-stream:s1234?sid=254"
     assert (await ask(client, ADDRESS, uri=tuned))["result"]["url"] == stream
     assert aioclient_mock.mock_calls[-1][1].query["id"] == "s1234"
 
-    # A page reached over https is given it through Jukebox, which passes sound on
-    # and nothing else.
+    # An address the page makes up isn't looked up: Home Assistant would fetch
+    # whatever it names, anywhere on the house's network (hacs/default#14999).
+    made_up = await ask(client, ADDRESS, uri="aac://192.168.1.1/admin", secure=True)
+    assert "Only a station a Sonos room is playing" in made_up["error"]["message"]
+    refused = await ask(client, ADDRESS, uri="https://example.com/anything")
+    assert "Only a library song" in refused["error"]["message"]
+
+    # A page reached over https is given it through Jukebox, by a link signed for
+    # the login that asked, which passes sound on and nothing else.
     relayed = (await ask(client, ADDRESS, uri=tuned, secure=True))["result"]["url"]
-    assert relayed.startswith(STREAM)
+    assert relayed.startswith(f"{STREAM}/") and "authSig=" in relayed
     web = await hass_client_no_auth()
     aioclient_mock.get(stream, content=b"sound", headers={"Content-Type": "audio/mpeg"})
     got = await web.get(relayed)
     assert got.status == 200 and await got.read() == b"sound"
     assert got.headers["Content-Type"] == "audio/mpeg"
+    # Not without its signature.
+    assert (await web.get(relayed.partition("?")[0])).status == 401
 
     aioclient_mock.clear_requests()
     aioclient_mock.get(stream, text="<html>", headers={"Content-Type": "text/html"})
     assert (await web.get(relayed)).status == 502
-    wrong_key = relayed.replace(hass.data[f"{DOMAIN}_feed"].art_key, "guessed")
-    assert (await web.get(wrong_key)).status == 404
-
-    refused = await ask(client, ADDRESS, uri="https://example.com/anything")
-    assert "Only a library song" in refused["error"]["message"]
 
 
 async def test_a_library_song_is_a_signed_link_to_home_assistants_media(
@@ -215,10 +224,11 @@ async def test_a_library_song_is_a_signed_link_to_home_assistants_media(
     assert "isn't among Home Assistant's media" in missing["error"]["message"]
 
 
-async def test_spotifys_player_is_for_hosts_once_jukebox_is_signed_in(
+async def test_spotifys_player_is_for_administrators_once_jukebox_is_signed_in(
     hass,
     hass_ws_client,
     hass_read_only_access_token,
+    hass_read_only_user,
     sent,  # noqa: F811
 ):
     entry = hass.config_entries.async_entries(DOMAIN)[0]
@@ -231,17 +241,21 @@ async def test_spotifys_player_is_for_hosts_once_jukebox_is_signed_in(
 
     # Signed in. Renewing the sign-in changes the entry's data every hour, which must
     # not start Jukebox again.
-    token = {"access_token": "abc", "refresh_token": "def", "expires_at": 9e12}
-    signed = {"auth_implementation": DOMAIN, "token": token}
-    await async_import_client_credential(hass, DOMAIN, ClientCredential("id", "secret"))
-    hass.config_entries.async_update_entry(entry, data=signed)
-    await hass.async_block_till_done()
+    await signed_in(hass)
     assert entry.state is ConfigEntryState.LOADED and entry.runtime_data is running
-
     assert (await ask(client, TOKEN))["result"] == {"token": "abc", "expires": 9e12}
-    guest = await hass_ws_client(hass, hass_read_only_access_token)
-    refused = await ask(guest, TOKEN)
-    assert "Only the people who may run a party" in refused["error"]["message"]
+
+    # Not for a login that may run a party but isn't an administrator: whoever holds
+    # the token can act as the house's Spotify account (hacs/default#14999).
+    hosts = entry.options | {CONF_HOSTS: [hass_read_only_user.id]}
+    hass.config_entries.async_update_entry(entry, options=hosts)
+    await hass.async_block_till_done()
+    host = await hass_ws_client(hass, hass_read_only_access_token)
+    assert (await ask(host, HOUSE))["success"]
+    told = (await host.receive_json())["event"]
+    assert (told["me"], told["spotify"]) == ("host", False)
+    refused = await ask(host, TOKEN)
+    assert "Only an administrator" in refused["error"]["message"]
 
 
 async def test_reconfigure_signs_jukebox_in_to_spotify(
