@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.14-b23
+
+- **New card: Casa Mia Clock.** The time, digital or analogue, made as big as the space it
+  is given, such as a Camera Commander's last place or a Tablet Layout panel. It has the
+  options of Home Assistant's clock card: 12 or 24 hours, seconds and a time zone, and no
+  background if you like. See [Clock and Buttons cards](../docs/clock-and-buttons.md).
+- **New card: Casa Mia Buttons.** A few small buttons as the style guide's chips, four of
+  which fit a Camera Commander's last place on a phone. A tap is Home Assistant's own
+  action, so a button can toggle, open more-info, go to another page or ask first. Its
+  editor is Home Assistant's own list, with its entity, icon and action pickers.
+
 ## 2026.11.14-b22
 
 - **Camera Commander: each commander's Main camera select lists its cameras' event

@@ -398,8 +398,9 @@ Assistant's card picker. For the chosen card, **‹ Earlier** and **Later ›** 
 **✕ Remove** takes it out, and **Card** and **Visibility** open Home Assistant's own editor
 for the card and for its visibility conditions, as in Home Assistant's own edit dialog.
 
-Some cards that suit the place: a clock; a grid card holding a few button cards; a card
-that shows alerts only when there are any. With many cameras the place is one tile, and a
+Some cards that suit the place: [Casa Mia Clock](../clock-and-buttons.md#casa-mia-clock),
+which fills it; [Casa Mia Buttons](../clock-and-buttons.md#casa-mia-buttons), four of
+which fit it on a phone; a card that shows alerts only when there are any. With many cameras the place is one tile, and a
 card made for a wide column may not fit it: anything that doesn't fit is cut off at its
 edge.
 

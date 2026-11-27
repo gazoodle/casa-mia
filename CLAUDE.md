@@ -153,7 +153,10 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
   to the design before the code. Why: in 2026.11.14 b8 to b15 the Camera Commander's
   names and controls went through a share of the picture, clamps, a square root, a
   mouse case, a tuning tool and fitted curves, while KNX Pi's copy of `pills.css` looked
-  right on a phone, two tablets and a Mac with no sizing code at all.
+  right on a phone, two tablets and a Mac with no sizing code at all. **The one exception:
+  a clock's face** (Casa Mia Clock) fills its place, sized as a camera picture is, by CSS
+  container units or an SVG viewBox (owner, 2026-11-27: "fill the space" clocks). Any
+  chips or small print beside it keep the fixed sizes.
 - **Pills, chips and chrome:** one source each, never hand-rolled. Pills and chips:
   `app/web/src/pills.css` (global `cm-` classes, coloured by `--tone`), adopted by the cards
   through `integration/cards/src/pills.ts`. Chrome (buttons, dialogs, menus, selects,

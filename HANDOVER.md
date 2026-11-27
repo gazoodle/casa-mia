@@ -100,6 +100,14 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   own (a clock) go in the same way later.
   - **Seen on the test VM (2026-11-27):** it works; HA's clock card fits the place and a
     grid of four HA button cards is cut off at half its height (figures in BACKLOG).
+  - **Casa Mia Clock and Casa Mia Buttons** (b23, `src/clock/`, `src/buttons/`, in
+    `cm-cards.js`): the clock's face fills its place by container units or an SVG viewBox
+    (the owner's exception to fixed sizes, CLAUDE.md), and falls back to an aspect ratio
+    with no height given (`width: 100%` too, or the ratio makes the width from the
+    height). Buttons are `pills.css` chips in a CSS grid; a tap fires `hass-action`, so
+    HA runs it. Its editor is ha-form's object selector with `multiple` and `fields`. Seen
+    on the VM in the place at 1280 x 800 and 393 x 852; a real tap on a chip there
+    navigated.
   - **A list since b21** (`cards`; b19's `card` read as a list of one, `place.ts:
     cardsOf`): each in HA's `hui-card`, which sets `hidden` by its Visibility or the card's
     own wish, and one CSS rule shows the first not hidden. Edited by
