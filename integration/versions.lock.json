@@ -4,8 +4,8 @@
     "version": "2026.11.14-b19"
   },
   "casa_mia": {
-    "digest": "db52aff0e79c4be90bf6d88d64d040fd0879b9728be1d03839004700d485c281",
-    "version": "2026.11.14-b19"
+    "digest": "ea057dd59c4aebe03674a330b148d9413f64c01ac00d8c90127f7294615568c9",
+    "version": "2026.11.14-b20"
   },
   "casa_mia_commander": {
     "digest": "9255fa6975a2847fe036110df36ceafa4b4c1349883f107b1d4680b6d84a192d",
@@ -20,8 +20,8 @@
     "version": "2026.11.2-b21"
   },
   "casa_mia_intercom": {
-    "digest": "9dfd466e3fe56a9c0b991e477a6996a8862ea87351828bf920425e90ccaba923",
-    "version": "2026.11.2-b20"
+    "digest": "bc96ffb339bea88bfb34273d0ac77622d8027085ef27e41edaa1712cbcda81f5",
+    "version": "2026.11.14-b20"
   },
   "casa_mia_jukebox": {
     "digest": "b64f6234fca7857374dc025c39f963d1f0f5e4a3cafebfee4056637336ddb85b",
@@ -32,8 +32,8 @@
     "version": "2026.11.14-b19"
   },
   "casa_mia_protect_talkback": {
-    "digest": "dde0abdacfc4178e08b84f524d976cce2e6f6d342058476fcdb56bcd0079dc7e",
-    "version": "2026.11.2-b21"
+    "digest": "e5d7f1b01a52ed675250290a33ae9b586fdc89c9dbbdbdd5430f6dea24129a3a",
+    "version": "2026.11.14-b20"
   },
   "casa_mia_sensor_watch": {
     "digest": "44d93dec7aeedc5de88a002d1022056436a29cf74629cb73f148223aab7d0a73",

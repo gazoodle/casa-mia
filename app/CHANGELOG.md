@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.14-b20
+
+- **Casa Mia Intercom and Casa Mia Protect Talkback: checked against Home Assistant
+  2026.11.3.** The parts of Home Assistant they patch are the same as in 2026.11.0,
+  apart from one change to how go2rtc's streams are compared, which leaves Protect
+  Talkback's streams alone as before. Each logged a warning on every Home Assistant
+  but 2026.11.0; now it warns only on a release outside 2026.11.0 to 2026.11.3.
+
 ## 2026.11.14-b19
 
 - **Camera Commander: a place for a card of your own.** A Responsive commander has a new

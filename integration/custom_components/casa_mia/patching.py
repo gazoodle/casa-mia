@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 
+from awesomeversion import AwesomeVersion
 from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
@@ -20,6 +21,11 @@ from homeassistant.helpers import issue_registry as ir
 _LOGGER = logging.getLogger(__name__)
 
 ISSUE_ID = "patch_failed"  # each child's translations say what stops working
+# The Home Assistant releases whose source the patches were checked against, oldest and
+# newest: the parts they patch are the same, or changed in a way checked to be harmless,
+# in every release between. tools/check_patches.py compares a new release with the newest
+# and moves it on (docs/augmenting-home-assistant.md, "After a Home Assistant update").
+CHECKED = ("2026.11.0", "2026.11.3")
 # The integration these two replace, from the separate intercom repo (up to 2026.11.1-b11).
 OLD_DOMAIN = "intercom_talkback"
 
@@ -28,12 +34,20 @@ class PatchError(Exception):
     """HA's internals no longer look as a patch expects."""
 
 
+def checked(version: str) -> bool:
+    """Whether a Home Assistant release is within the range the patches were checked on."""
+    return (
+        AwesomeVersion(CHECKED[0])
+        <= AwesomeVersion(version)
+        <= AwesomeVersion(CHECKED[1])
+    )
+
+
 class Patches:
     """What one child replaced inside HA, to put back."""
 
-    def __init__(self, domain: str, tested_ha: str) -> None:
-        # tested_ha: the HA release whose source the patches were written against.
-        self.domain, self.tested_ha = domain, tested_ha
+    def __init__(self, domain: str) -> None:
+        self.domain = domain
         self._undo: list[tuple[object, str, object]] = []
 
     def __bool__(self) -> bool:
@@ -41,11 +55,12 @@ class Patches:
 
     def apply(self, replacements: Iterable[tuple[object, str, object]]) -> None:
         """Replace each (owner, attribute, replacement). Check them all before calling."""
-        if HA_VERSION != self.tested_ha:
+        if not checked(HA_VERSION):
             _LOGGER.warning(
-                "%s was written for HA %s, running on %s: check the patches still apply",
+                "%s's patches were checked against HA %s to %s, running on %s: check "
+                "they still apply (tools/check_patches.py)",
                 self.domain,
-                self.tested_ha,
+                *CHECKED,
                 HA_VERSION,
             )
         for owner, name, replacement in replacements:

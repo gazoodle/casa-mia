@@ -78,6 +78,16 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   b8). Why: a new user took the generated commander page (one picture with a base64 tap
   zone over each tile) for the way to show a commander. A commander goes on a dashboard
   as its card; `docs/how-to/commander-on-your-home-page.md` is the worked example.
+- **Checking the patches on each Home Assistant release** (2026.11.14-b20): Casa Mia
+  Intercom and Protect Talkback patch HA's go2rtc, camera and Protect code. The releases
+  they were checked on are `CHECKED` in `casa_mia/patching.py` (2026.11.0 to 2026.11.3);
+  outside it each logs a warning. When HA releases, run `.venv/bin/python
+  tools/check_patches.py`: it compares the files they reach into (its `FILES`) with the
+  newest checked, records the new release when nothing changed, and otherwise prints the
+  diff to read against the two `patches.py` (`--accept` records it). Bump first. The
+  test harness lags: `pytest-homeassistant-custom-component` 0.13.375, the newest on
+  2026-11-27, pins HA 2026.10.4, so `tests_ha` can't run on 2026.11 yet; raise
+  `tests_ha/requirements.txt` when a 2026.11 release of it appears.
 - **The card place** (2026.11.14-b19, owner's family asked 2026-11-26; spec: "A place for
   a card, and less important cameras" in `docs/design/commander-responsive-layout.md`).
   A Responsive commander's `card_place` (one option in `layout.json`) keeps the last
@@ -88,10 +98,8 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   (`commander/place.ts`), and drawn over the cell. Decided by the owner: one card, so
   four buttons are HA's grid card; drawn by the card, not the compositor; cards of our
   own (a clock) go in the same way later.
-  - **Not seen in a browser yet.** Tests cover the solvers, the clear cell in the
-    picture and the helper. HA's clock card and a grid of four button cards in a real
-    tile have not been looked at (BACKLOG): HA's cards size themselves for a column, and
-    may be cramped or cut off in a small place.
+  - **Seen on the test VM (2026-11-27):** it works; HA's clock card fits the place and a
+    grid of four HA button cards is cut off at half its height (figures in BACKLOG).
   - **Next:** less important cameras (BACKLOG, same spec): the solver run twice.
 - **The card's controls bar** (`integration/cards/src/commander/full.ts`, 2026.11.14-b8):
   the card's own buttons, the camera's controls, then its PTZ presets (each the call the

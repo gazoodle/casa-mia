@@ -71,6 +71,13 @@ and report incompatibilities in the browser console. Protect talkback reports a 
 patch in Home Assistant's Repairs and log. Those checks cannot anticipate every change
 HA might make.
 
+Casa Mia Intercom and Protect talkback are checked against each Home Assistant release
+as it comes out. On a release newer than the last one checked, each logs a warning that
+its patches were checked against HA 2026.11.0 to 2026.11.3 (say), naming the release it
+is running on. They still work as long as Home Assistant hasn't changed what they patch,
+and a patch that no longer fits is refused and raised as a Repair rather than half
+applied.
+
 If a feature stops working, check its guide and the relevant log, and report the HA and
 Casa Mia versions with the error. Screen orientation's saved YAML continues to be an HA
 condition even when Casa Mia's editor augmentation is off or unavailable. Each helper's
