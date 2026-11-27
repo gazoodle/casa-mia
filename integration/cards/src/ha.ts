@@ -244,6 +244,26 @@ export function ratioFor(dpr: number, viaHa: boolean, sharpness: Sharpness = "ba
   return viaHa ? Math.min(dpr, SHARPNESS[sharpness] ?? SHARPNESS.balanced) : dpr;
 }
 
+/** A kiosk's page zoom, 1 for none. A page zoomed k times in a window that fills the
+ * screen has a window the screen's shape, k times smaller both ways, and its
+ * devicePixelRatio leaves the zoom out (2026-11-26: a wall tablet's kiosk at 1.6x, a
+ * 2410 x 1506 screen, a 1506 x 941 window, 1.0625 either way). A computer's window
+ * smaller than its screen is another shape, so it is 1. So is a kiosk that keeps a
+ * status bar: there the browser's full screen still drops the zoom (card.ts: toScreen). */
+export function pageZoom(
+  screen: { width: number; height: number } = window.screen,
+  win: { innerWidth: number; innerHeight: number } = window,
+): number {
+  const across = screen.width / win.innerWidth;
+  const down = screen.height / win.innerHeight;
+  return across > 1.01 && Math.abs(across - down) < across / 100 ? Math.round(across * 100) / 100 : 1;
+}
+
+/** Device pixels to a CSS px: the screen's pixel ratio, and a kiosk's page zoom, which
+ * the ratio leaves out (pageZoom). A picture asked for at the ratio alone is stretched
+ * by the zoom, and soft. */
+export const screenRatio = (): number => (window.devicePixelRatio || 1) * pageZoom();
+
 /** The channel a live main camera plays (the compositor's ladder, compositor.choose):
  * going up its channels, smallest first ([entity, width, height]; 0 x 0 not known), the
  * first at least the place's size (device pixels), so the video is only made smaller;

@@ -1,7 +1,21 @@
 /** A camera's controls (a gate, a light) and how they are shown on a commander's full
  * screen, in one place for the Cameras page and the Camera Commander card's full screen. */
 
-export type Control = { entity: string; name?: string; icon?: string };
+/** `confirm`: a tap on its button only arms it and a second tap acts (the Cameras page's
+ * Two taps); left out, its kind decides (guardedKind). */
+export type Control = { entity: string; name?: string; icon?: string; confirm?: boolean };
+
+// The kinds a slip of a finger must not work: a lock, a valve (water or gas), a siren, and
+// a cover that is a garage door, a gate or a door. Dash-Bored's guarded devices, and a
+// camera control's Two taps until it is set (owner, 2026-11-26).
+const GUARDED_DOMAINS = new Set(["lock", "valve", "siren"]);
+const GUARDED_COVERS = new Set(["garage", "gate", "door"]);
+
+/** Whether an entity of this domain and device class takes two taps by default. */
+export const guardedKind = (domain: string, deviceClass?: string) => GUARDED_DOMAINS.has(domain) || (domain === "cover" && GUARDED_COVERS.has(deviceClass ?? ""));
+
+/** Whether a tap on a control's button only arms it: as set for it, else by its kind. */
+export const twoTaps = (c: Control, deviceClass?: string) => c.confirm ?? guardedKind(c.entity.split(".")[0], deviceClass);
 
 export type Edge = "top" | "bottom" | "left" | "right";
 export const EDGES: Edge[] = ["top", "bottom", "left", "right"];

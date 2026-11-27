@@ -4,15 +4,21 @@
 // and the card's own buttons (Sound, Full screen). A
 // tap on a control is Home Assistant's own toggle, as on the camera dashboard's tiles
 // (auto_dashboards/dashboard.py: control_tile), so a lock, a cover or a button does
-// what it does there. A tap on a preset is the camera's PTZ action with that preset, as
-// the app built it (cameras.py: preset_calls).
+// what it does there. A control with Two taps (the Cameras page; a lock or a gate unless
+// set otherwise) is armed by its first tap and worked by its second, as Dash-Bored's
+// guarded devices are, so a finger brushing it opens nothing. A tap on a preset is the
+// camera's PTZ action with that preset, as the app built it (cameras.py: preset_calls).
 import { css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
-import { alignOf, controlsAt, foldPresets, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+import { alignOf, controlsAt, foldPresets, twoTaps, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
 import type { Card, Preset } from "./common.ts";
 
 /** States a control can't be used in: shown dimmed and said, never a dead button. */
 const OUT = new Set(["unavailable", "unknown"]);
+
+/** How long a control with Two taps waits for its second tap: a lease, so a gate armed
+ * and walked away from can't be opened later by a passing tap. Dash-Bored's ARMED. */
+export const ARMED_MS = 6_000;
 
 /** How long "why a preset or a zoom didn't go" stays with the controls. */
 export const PTZ_NOTE_MS = 10_000;
@@ -32,7 +38,9 @@ export type Line = "ptz" | "zoom";
 /** The card's side of a camera's presets and zoom: the line opened out ("" for none), a
  * tap on the PTZ or the Zoom button (`show`: opens its line, or puts it away), a preset's
  * tap, a zoom level to go to, the level asked for and not yet reached (null: none), and
- * why the last preset or zoom didn't go ("" when it did, or after PTZ_NOTE_MS). */
+ * why the last preset or zoom didn't go ("" when it did, or after PTZ_NOTE_MS). And the
+ * control armed by its first tap (`armed`, its armKey; "" for none), which `arm` sets for
+ * ARMED_MS, or clears with "". */
 export type Lines = {
   open: Line | "";
   show: (line: Line) => void;
@@ -40,7 +48,14 @@ export type Lines = {
   zoom: (entity: string, value: number) => void;
   zoomTo: number | null;
   failed: string;
+  armed: string;
+  arm: (key: string) => void;
 };
+
+/** What an armed control is known by, on its button too (data-control): its entity and
+ * its state when armed, so one that moves meanwhile (a gate opened from elsewhere) is no
+ * longer armed, and a second tap meant for the other way doesn't work it. */
+export const armKey = (entity: string, hass: Hass) => `${entity}=${hass.states[entity]?.state}`;
 
 /** The camera's controls and presets (after the card's own buttons) along their edge of
  * `place`: the full screen, or the main area (Config.main_controls), `size` px. The wide
@@ -112,15 +127,26 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
       const st = hass.states[c.entity];
       const name = nameOf(c);
       const out = !st ? "Not found" : OUT.has(st.state) ? "Unavailable" : "";
+      const key = armKey(c.entity, hass);
+      const armed = lines.armed === key;
+      const guarded = twoTaps(c, st?.attributes.device_class as string | undefined);
+      // A tap anywhere but on the armed button disarms it before it lands (card.ts:
+      // disarm), so here a first tap arms and a tap on the armed one works it.
+      const tap = () => {
+        if (guarded && !armed) return lines.arm(key);
+        lines.arm("");
+        fire(el, "hass-action", { config: { entity: c.entity, tap_action: { action: "toggle" } }, action: "tap" });
+      };
       return html`<button
-        class="control cm-chip ${st?.state === "on" || st?.state === "open" || st?.state === "unlocked" ? "cm-on" : ""}"
+        class="control cm-chip ${armed ? "armed cm-warn" : st?.state === "on" || st?.state === "open" || st?.state === "unlocked" ? "cm-on" : ""}"
+        data-control=${key}
         ?disabled=${Boolean(out)}
-        title=${out ? `${c.entity}: ${out}` : name}
-        aria-label=${name}
-        @click=${() => fire(el, "hass-action", { config: { entity: c.entity, tap_action: { action: "toggle" } }, action: "tap" })}
+        title=${out ? `${c.entity}: ${out}` : armed ? `Tap again for ${name}; a tap anywhere else lets it be` : guarded ? `${name} (two taps)` : name}
+        aria-label=${armed ? `${name}: tap again` : name}
+        @click=${tap}
       >
         ${st ? html`<ha-state-icon .hass=${hass} .stateObj=${st} .icon=${c.icon}></ha-state-icon>` : html`<ha-icon icon="mdi:alert-circle-outline"></ha-icon>`}
-        <span>${name}</span>
+        <span>${armed ? `${name}: tap again` : name}</span>
         ${out ? html`<span class="cm-pill cm-filled cm-bad">${out}</span>` : nothing}
       </button>`;
     }),
@@ -157,10 +183,12 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
   ];
   // A tap that misses a button, between two or just beside one, lands on the group they
   // stand in and does nothing: it was going through to the picture, which opened the
-  // camera full screen (owner, 2026-11-27). While a line is opened out, a tap
-  // anywhere else in the place puts it away, and does no more than that.
+  // camera full screen (owner, 2026-11-27). While a line is opened out or a control is
+  // armed, a tap anywhere else in the place puts it away or disarms it, and does no more
+  // than that.
+  const armedHere = controls.some((c) => lines.armed === armKey(c.entity, hass));
   return html`<div class="controls-area" style=${place}>
-    ${opened ? html`<div class="controls-away" @click=${() => lines.show(lines.open as Line)}></div>` : nothing}
+    ${opened || armedHere ? html`<div class="controls-away" @click=${() => opened && lines.show(lines.open as Line)}></div>` : nothing}
     <div class="controls" style="--cm-chip-align:${alignOf(at)};--cm-chip-alpha:${at.opacity}%" data-edge=${edge}>
       <div class="controls-group">
         <div class="controls-line">
@@ -173,8 +201,11 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
 }
 
 export const fullStyles = css`
-  /* Over the whole screen, Home Assistant's own header and sidebar too. */
-  .full {
+  /* Over the whole screen, Home Assistant's own header and sidebar too: the main camera
+     (.full), and the card itself when its Full fills a zoomed kiosk's window (card.ts:
+     toScreen). */
+  .full,
+  :host([filled]) {
     position: fixed;
     inset: 0;
     z-index: 10;
@@ -227,6 +258,12 @@ export const fullStyles = css`
   .controls .control.cm-chip.cm-on {
     background: color-mix(in srgb, var(--state-active-color, var(--primary-color)) var(--cm-chip-alpha), transparent);
   }
+  /* Armed by its first tap (Two taps): solid in the warning colour whatever the
+     Background, so it stands out over any picture, with dark text, which reads on it. */
+  .controls .control.cm-chip.armed {
+    background: var(--tone);
+    color: #000;
+  }
   .controls .control.cm-chip:disabled {
     opacity: 0.7;
   }
@@ -241,6 +278,18 @@ export const fullStyles = css`
   .controls[data-edge="right"] .control::after {
     inset: -2.5px -11px;
   }
+  /* A line opened out stands 5 px from the bar, so there the two lines' tap areas meet
+     half-way, as chips' do along a line. Reaching 11 px, the opened line's covered 6 px
+     of the bar's chips, PTZ's too, and a tap there sent a preset (2026.11.14-b17;
+     tests/test_commander_tap_areas.py). */
+  .controls[data-edge="top"] .controls-line:not(:last-child) .control::after,
+  .controls[data-edge="bottom"] .controls-line + .controls-line .control::after { bottom: -2.5px; }
+  .controls[data-edge="bottom"] .controls-line:not(:last-child) .control::after,
+  .controls[data-edge="top"] .controls-line + .controls-line .control::after { top: -2.5px; }
+  .controls[data-edge="left"] .controls-line:not(:last-child) .control::after,
+  .controls[data-edge="right"] .controls-line + .controls-line .control::after { right: -2.5px; }
+  .controls[data-edge="right"] .controls-line:not(:last-child) .control::after,
+  .controls[data-edge="left"] .controls-line + .controls-line .control::after { left: -2.5px; }
   /* The zoom's level, between its two steps: says, and is not pressed. */
   .controls .level {
     cursor: default;

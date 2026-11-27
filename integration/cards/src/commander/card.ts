@@ -4,13 +4,13 @@
 import { html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { repeat } from "lit/directives/repeat.js";
-import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
+import { fire, type Hass, inPicker, navigate, pageZoom, screenRatio, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, NAME, nameSize, useFont } from "../labels.ts";
 import { dot, dotSize } from "./motion.ts";
 import { debugBox, dialogOpen, type Figures, recordOf, reference, toggleDialog, tunedAt, tuneDialog, tuneStyles, whereOf } from "./tune.ts";
-import { controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
+import { ARMED_MS, controlsBar, fullStyles, PTZ_NOTE_MS, ZOOM_PENDING_MS, type Line, type Lines, type Own } from "./full.ts";
 import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, type Preset, Size, columnHeight, commanders, pictureDown, VERSION } from "./common.ts";
 import { PILLS } from "../pills.ts";
@@ -18,11 +18,12 @@ import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 
 export class CommanderCard extends CommanderTalk {
-  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true } };
+  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true }, _opened: { state: true }, _zoomTo: { state: true }, _ptzFailed: { state: true }, _tuneNote: { state: true }, _armed: { state: true } };
   /** The camera heard (its Sound button), "" for none: a camera's own, so another main
    * camera (a tap, Track motion) is never heard without a tap of its own. */
   _sound = "";
-  /** The card has the whole screen (its Full screen button, screen.ts). */
+  /** The card has the whole screen (its Full button): the browser's (screen.ts), or a
+   * zoomed kiosk's window (toScreen). */
   _screen = false;
   /** The line of the controls bar that is opened out (its PTZ or Zoom button, full.ts),
    * and whose: a camera's own, so it is put away when another becomes the main camera. */
@@ -35,6 +36,10 @@ export class CommanderCard extends CommanderTalk {
   private ptzNoteGone = 0;
   /** What came of the last tuning record (tune.ts): its reference, or why it failed. */
   _tuneNote = "";
+  /** The control armed by its first tap (Two taps, full.ts) and whose camera, until
+   * ARMED_MS lapses or a tap lands anywhere else. */
+  _armed: { camera: string; key: string } | null = null;
+  private armGone = 0;
 
   constructor() {
     super();
@@ -43,7 +48,37 @@ export class CommanderCard extends CommanderTalk {
     for (const name of SCREEN_EVENTS) this.addEventListener(name, () => (this._screen = filling()));
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("click", this.disarm, true);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("click", this.disarm, true);
+  }
+
+  /** A tap anywhere on the page but on the armed button disarms it: on the way down, so
+   * it is disarmed before the tap does whatever it does, and a tap on another control with
+   * Two taps arms that one. */
+  private disarm = (e: Event) => {
+    const key = this._armed?.key;
+    if (key && !e.composedPath().some((n) => n instanceof HTMLElement && n.dataset.control === key && this.renderRoot.contains(n))) this._armed = null;
+  };
+
+  /** Give the card the whole screen, or give it back. The browser's full screen drops a
+   * kiosk's page zoom (ha.ts: pageZoom), so everything in it was 1/zoom the size it is in
+   * the page (owner, 2026-11-26). A kiosk already fills the screen, so there the card
+   * fills its window instead (full.ts: :host([filled])), and the zoom stays. Given back
+   * the way it was taken. */
+  private toScreen(on: boolean) {
+    if (on ? pageZoom() === 1 : filling()) fill(this, on);
+    else this._screen = on;
+  }
+
   updated() {
+    // Over the window while it has the screen (toScreen); in the browser's full screen
+    // the browser places it, and this changes nothing.
+    this.toggleAttribute("filled", this._screen);
     // The app restarted (an update): its stream died with it, and a browser often says
     // nothing (the <img> keeps a blank or frozen picture), so start a fresh one.
     const run = this.now().card?.run ?? "";
@@ -130,7 +165,7 @@ export class CommanderCard extends CommanderTalk {
     // Full screen (tap_main: full): the camera tapped, live over the whole screen, shown
     // whole; its channel chosen for the screen's device pixels, as the main area's is.
     const full = Boolean(this._full && card.cameras[this._full]);
-    const screen: Rect = [0, 0, Math.round(innerWidth * devicePixelRatio), Math.round(innerHeight * devicePixelRatio)];
+    const screen: Rect = [0, 0, Math.round(innerWidth * screenRatio()), Math.round(innerHeight * screenRatio())];
     // The live main camera (live.ts): its videos, and whether the picture leaves the main
     // area to one. With none to show, the picture draws the main camera itself.
     const live =
@@ -163,7 +198,7 @@ export class CommanderCard extends CommanderTalk {
               icon: this._screen ? "mdi:fullscreen-exit" : "mdi:fullscreen",
               label: "Full", // short, so it is never the bar's longest (owner, 2026-11-26); pressed while it has the screen
               title: this._screen ? "Back to the page" : "The commander over the whole screen",
-              toggle: () => fill(this, !this._screen),
+              toggle: () => this.toScreen(!this._screen),
             },
           ]
         : playing && canPlayFull(playing)
@@ -239,7 +274,7 @@ export class CommanderCard extends CommanderTalk {
           hass: this.hass!,
           select,
           colour: own.debug?.colour ?? "#ffd60a",
-          head: html`${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px; screen ${window.devicePixelRatio}x<br />
+          head: html`${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px; screen ${window.devicePixelRatio}x${pageZoom() === 1 ? "" : `, page zoom ${pageZoom()}x`}<br />
             asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"} ${this.viaHa() ? "through Home Assistant" : "direct"}
             ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}`,
           figures,
@@ -409,6 +444,12 @@ export class CommanderCard extends CommanderTalk {
     const open = this._opened.camera === main ? this._opened.line : "";
     return {
       open,
+      armed: this._armed?.camera === main ? this._armed.key : "",
+      arm: (key) => {
+        clearTimeout(this.armGone);
+        this._armed = key ? { camera: main, key } : null;
+        if (key) this.armGone = window.setTimeout(() => (this._armed = null), ARMED_MS);
+      },
       failed: this._ptzFailed,
       zoomTo: this._zoomTo?.camera === main ? this._zoomTo.value : null,
       show: (line) => (this._opened = { camera: main, line: open === line ? "" : line }),
@@ -439,7 +480,7 @@ export class CommanderCard extends CommanderTalk {
     else if (how === "full" && this.liveMain(card)) this._full = camera;
     else if (how !== "none") {
       // Home Assistant's dialog is outside the card, so under it while it has the screen.
-      if (this._screen) fill(this, false);
+      if (this._screen) this.toScreen(false);
       fire(this, "hass-more-info", { entityId: camera });
     }
   }

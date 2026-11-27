@@ -104,11 +104,18 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     the presets or the zoom's stepper one more, as before b16. `CHIP` and `ROOM` in
     `controls.ts` are the chip and the room round it in numbers, for `foldPresets` and
     the Cameras page's preview only. Room: 5 px between chips (tap areas meet half-way,
-    44 px across the bar), 22 px at each end of the edge (owner: Full at the top of a
+    44 px across the bar, but half-way to a line opened beside it:
+    `tests/test_commander_tap_areas.py` checks every chip's face is its own), 22 px at each end of the edge (owner: Full at the top of a
     wall tablet's frame was missed for the button under it). The card's Full screen
     button is named Full (owner: not the longest name). A saved `size` is dropped by
     `controlsAt`. Down a side on a phone, seven chips run past the place's foot: not
     handled.
+  - **Two taps** (b18; owner, 2026-11-26): a control's `confirm` from the Cameras page,
+    else `guardedKind` (`controls.ts`, the one rule Dash-Bored's `house.ts` uses too).
+    The first tap arms (`card.ts` `_armed`, a lease of `ARMED_MS`, keyed by `armKey`:
+    entity and state); a capture-phase window click anywhere but on that button
+    disarms. The camera dashboard's tiles and Dash-Bored's camera clippings don't read
+    the tick yet. **Not seen** on a device.
   - **The motion dot** is half the tile names (`dotSize`); the editor's Size is gone.
   - **Zoom** (b9; owner: always one Zoom button and a stepper, not a slider): a second
     line (Out, level, In, Reset) as PTZ has. `zoomOf`/`zoomStep`: a tap is a tenth of
@@ -125,10 +132,13 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
     "commander tuning <ref>: <json>" in the app log (read it with the Supervisor's
     `/api/hassio/addons/<slug>/logs`, stripping the ANSI colours). Quirk: two cards of
     one commander share their tuned sizes on a device.
-  - **The 1.6x page zoom** on the large wall tablet's kiosk is a true page zoom (the
-    window shrinks, devicePixelRatio stays 1.0625), and full screen drops it, so
-    everything is 1.6x smaller there in full screen. The picture is asked at 1.0625 and
-    stretched 1.6x in the page, so it is soft: BACKLOG.
+  - **A kiosk's page zoom** (2026.11.14-b18): the large wall tablet's kiosk zooms pages
+    1.6x, which shrinks the window and leaves devicePixelRatio at 1.0625, and the
+    browser's full screen drops it. `ha.ts: pageZoom` sees it as a window the screen's
+    shape but smaller. `screenRatio()` (ratio × zoom) sizes the picture and the live
+    channel, so both are sharp. Where zoomed, Full fills the window (`card.ts: toScreen`,
+    `:host([filled])`) instead of asking the browser, so the zoom stays. Not seen: a
+    kiosk that keeps a status bar (another shape).
   - The docs' screenshots (`cameras-controls.webp`, `commander-controls.webp`,
     `commander-names-settings.webp`, `commander-full-screen.webp`) show the old look.
 - **A stale picture gives way** (`Cache.pick(camera, channel, stale)`, 2026.11.14-b8): one

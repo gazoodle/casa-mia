@@ -294,3 +294,69 @@ Each was an open point in the draft.
   is more than the page should ask of anyone.
 - **Reset to defaults**, in the editor (see there). Why: the owner often changes settings
   to see what they do, and then has no way back to what the defaults were.
+
+## A place for a card, and less important cameras (owner, 2026-11-26)
+
+Asked for by the owner's family: a clock in the last place, four less important cameras
+sharing one place, and a few buttons to navigate or to work a light or a gate. Specified
+here and not built. Both parts are for Responsive only: Fixed has a list of cameras for
+each edge and so no single last place, and no solver to choose anything.
+
+### The card place
+
+- **Keep the last place for a card** is a switch on the commander (`card_place`). It is
+  on the commander, not the card, for the reason in "Where it lives": one picture per
+  commander and size.
+- With it on, the last cell in the order the cells fill is kept. That is the end of the
+  last edge, which is the picture's corner. It is always there when the layout has tiles,
+  and it is never given up for a camera: **+n more** takes the cell before it.
+- The solver takes the cell out of the room for tiles and counts it as showing something,
+  so a grid is not marked down for it. Its place is in the layout's answer (`card`).
+- The compositor draws nothing there, so the background shows.
+- The commander card has a `card:` option holding one Lovelace card, and draws it over
+  that place. A tap there belongs to that card and never changes the main camera. With
+  no `card:` set the place is empty, and in the dashboard's edit mode it says what it is
+  for.
+- **One card, not a grid of our own.** Four buttons are Home Assistant's grid card with
+  four button cards in it. Why: Home Assistant already has the pattern, and a card of our
+  own (a clock, say) goes in the same way with nothing changed here.
+- **Drawn by the card, not the compositor.** Why: a button that shows a light's state, or
+  a clock, would otherwise mean sending Home Assistant's state to the app and encoding a
+  new picture for each change, and each dashboard can then hold a different card on the
+  same commander. What it costs: anything that shows the picture without the card has an
+  empty place there.
+- A commander showing the main camera alone (one camera, or limits that can't be met
+  with Keep to my limits) has no cells and so no card place. The view of all cameras
+  does not show it either.
+- This replaces the backlog's "Buttons among a commander's cameras" (2026-11-12), which
+  had the compositor draw each button as a tile.
+
+### Less important cameras
+
+- **Less important** is a mark on a camera in the commander's list (`lesser`), on at most
+  four of them.
+- It is the solver's to use, not a place the owner sets. The solver works each layout
+  out twice: with the marked cameras in tiles of their own, and with them sharing one
+  tile (two side by side, three or four as quarters). The usual order picks between the
+  two: the fewest cameras in **+n more**, then the score, which marks a layout down for
+  space that shows no camera. When the two are equal the cameras keep tiles of their
+  own, since those are bigger.
+- The shared tile is where the first marked camera would have been in the order. A tap
+  on one of its cameras makes it the main camera, as a tap on any tile does, and the
+  motion dot goes on that camera's part of the tile.
+- The **Smallest tile** limit is for whole tiles. A quarter of a tile may be smaller than
+  it, which is accepted for a camera marked as less important.
+- With one camera marked there is nothing to share, and it is a tile like any other.
+- Both engines, with new cases written from Python.
+
+### Order of work
+
+1. The card place: the solver and its cases in both engines, the compositor leaving the
+   cell clear, the switch in the editor, and the card drawing its `card:` there.
+2. Seen on the test VM with Home Assistant's clock card, and with a grid card of four
+   button cards, at a tablet's and a phone's size. This decides whether button or clock
+   cards of our own are needed soon.
+3. Less important cameras.
+4. Separately: the backlog's "A clock for every era" as a card of ours, which goes in the
+   card place. Whether a clock's face is sized as a picture (scaled whole to its place,
+   as a camera is) or by the fixed sizes rule is the owner's to decide then.

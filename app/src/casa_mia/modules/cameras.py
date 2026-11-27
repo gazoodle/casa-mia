@@ -344,6 +344,8 @@ class Cameras:
                 cam: {"entity": switch, "on": now.get(switch) == "on"}
                 for cam, switch in motion_switches(registry, mine).items()
             },
+            # A control's Two taps is on at first for a gate, garage door or door cover:
+            # the page needs the device class to tell one from a blind.
             "entities": sorted(
                 (
                     {
@@ -352,6 +354,11 @@ class Cameras:
                         or s["entity_id"],
                         "state": s.get("state"),
                     }
+                    | (
+                        {"device_class": dc}
+                        if (dc := s.get("attributes", {}).get("device_class"))
+                        else {}
+                    )
                     for s in states
                 ),
                 key=lambda e: e["entity"],

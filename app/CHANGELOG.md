@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026.11.14-b18
+
+- **Camera Commander card: a lock, a gate or a garage door takes two taps.** The first
+  tap on its button only gets it ready: the button turns amber and says "tap again". A
+  second tap works it, and a tap anywhere else, or six seconds without one, lets it be.
+- **Cameras page: each page control has Two taps.** It is ticked at first for a lock, a
+  valve, a siren, and a garage door, gate or door, and can be ticked for any other
+  control, such as a switch that opens a gate, or unticked.
+- **Cameras page: the help for Controls on a full screen** no longer speaks of a size
+  for the buttons or of their names giving way, which ended in b16.
+- **Camera Commander card: a tap on a control no longer sends a PTZ preset.** With the
+  presets or the zoom opened out beside the controls, a tap near the inner side of a
+  control (along the top or foot, the lower or upper quarter of it) went to the preset
+  or zoom button beside it. Since b17.
+- **Camera Commander card: in a kiosk app that zooms its pages, Full keeps the zoom.**
+  The browser's full screen dropped it, so the controls, the names and the tiles all
+  shrank when the commander went full screen. Where the page is zoomed, Full now fills
+  the kiosk's window, which already fills the screen.
+- **Camera Commander card: the picture is sharp in a kiosk app that zooms its pages.** It
+  was asked for at the screen's pixel ratio alone and stretched by the zoom. It is now
+  asked for at the zoomed size, and so is the live main camera's channel.
+
 ## 2026.11.14-b17
 
 - **Camera Commander card: the controls keep the chip's size, font and shape, in their

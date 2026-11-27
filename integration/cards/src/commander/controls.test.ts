@@ -2,7 +2,18 @@
 // and what gives way where they don't fit.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { controlsAt, foldPresets, previewStyle, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+import { controlsAt, foldPresets, previewStyle, twoTaps, zoomOf, zoomPct, zoomStep } from "../../../../app/web/src/cameras/controls.ts";
+
+test("a lock, a valve, a siren and a garage door, gate or door take two taps, unless a camera's control says otherwise", () => {
+  for (const entity of ["lock.front", "valve.mains", "siren.yard"]) assert.equal(twoTaps({ entity }), true, entity);
+  for (const kind of ["garage", "gate", "door"]) assert.equal(twoTaps({ entity: "cover.c" }, kind), true, kind);
+  assert.equal(twoTaps({ entity: "cover.blind" }, "blind"), false);
+  assert.equal(twoTaps({ entity: "cover.blind" }), false);
+  assert.equal(twoTaps({ entity: "switch.gate" }), false);
+  // set on the Cameras page: either way
+  assert.equal(twoTaps({ entity: "switch.gate", confirm: true }), true);
+  assert.equal(twoTaps({ entity: "lock.front", confirm: false }), false);
+});
 
 test("controls have no size of their own, and go down the right from the top unless a camera says otherwise", () => {
   assert.deepEqual(controlsAt(), { landscape: "right", portrait: "right", align: "start", opacity: 60 });

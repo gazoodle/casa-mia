@@ -2,7 +2,7 @@
 // Home Assistant over plain http at a home address.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { atHome, ratioFor } from "./ha.ts";
+import { atHome, pageZoom, ratioFor } from "./ha.ts";
 
 const at = (url: string) => atHome(new URL(url));
 
@@ -23,6 +23,17 @@ test("through Home Assistant the pixel ratio is capped by the sharpness; direct 
   assert.equal(ratioFor(2, true, "light"), 1);
   assert.equal(ratioFor(2, true, "saver"), 0.75);
   assert.equal(ratioFor(1, true, "balanced"), 1); // never more than the screen's own
+});
+
+test("a kiosk's page zoom is seen from a window the screen's shape but smaller; any other window is 1", () => {
+  const zoom = (sw: number, sh: number, w: number, h: number) => pageZoom({ width: sw, height: sh }, { innerWidth: w, innerHeight: h });
+  assert.equal(zoom(2410, 1506, 1506, 941), 1.6); // a wall tablet's kiosk at 1.6x
+  assert.equal(zoom(2410, 1506, 2410, 1506), 1); // the same at 1x
+  assert.equal(zoom(2410, 1506, 2409, 1506), 1); // in the browser's full screen
+  assert.equal(zoom(393, 852, 393, 852), 1); // a phone
+  assert.equal(zoom(393, 852, 393, 659), 1); // a phone's browser, its bars shown
+  assert.equal(zoom(3200, 1800, 2432, 1449), 1); // a computer's window
+  assert.equal(zoom(1024, 1366, 1366, 1024), 1); // an iPad turned round (its screen is not)
 });
 
 test("a live main camera plays the smallest channel big enough", async () => {

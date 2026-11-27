@@ -533,6 +533,22 @@
   gap: 6px;
 }
 
+/* Its Two taps and its remove button, in one cell, so they stay side by side in a
+   phone's two columns. */
+.controlEnd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controlEnd label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 /* Cameras: one row each. */
 .table {
   display: grid;

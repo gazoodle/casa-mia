@@ -1,7 +1,7 @@
 // The Camera Commander card's first layer (see index.ts for how it works): the picture
 // stream, its size and token, and whether the card is in sight.
 import { LitElement } from "lit";
-import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, watchRoom } from "../ha.ts";
+import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, screenRatio, watchRoom } from "../ha.ts";
 import { Motion } from "./motion.ts";
 import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, framesAddress, pictureToken, pictureDown, NO_FRAME_MS, throughHa, givesUpDirect } from "./common.ts";
 
@@ -69,7 +69,7 @@ export class CommanderBase extends LitElement {
     this._box = [Math.round(width * 10) / 10, Math.round(height * 10) / 10];
     this.measure();
     if (this.debugOn()) this.requestUpdate();
-    const size = askFor(width, height, ratioFor(window.devicePixelRatio || 1, this.viaHa(), this._config?.away_sharpness));
+    const size = askFor(width, height, ratioFor(screenRatio(), this.viaHa(), this._config?.away_sharpness));
     clearTimeout(this.settle);
     if (String(size) === String(this._size)) return;
     if (!this._size) this._size = size; // the first at once; then each once it holds
@@ -341,7 +341,7 @@ export class CommanderBase extends LitElement {
       console.warn("casa-mia: the picture's direct address gave nothing from this page; it comes through Home Assistant until the app restarts");
       directOut = true;
       // Asked for again at Home Assistant's sharpness, as the resize would have (resize).
-      this._size = askFor(this._box[0], this._box[1], ratioFor(window.devicePixelRatio || 1, true, this._config?.away_sharpness));
+      this._size = askFor(this._box[0], this._box[1], ratioFor(screenRatio(), true, this._config?.away_sharpness));
       this.requestUpdate();
       return;
     }

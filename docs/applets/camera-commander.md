@@ -385,6 +385,12 @@ buttons over the main camera, in one bar with two buttons of its own.
   switches, a lock locks or unlocks, a cover opens or closes. An entity that Home
   Assistant can't find, or that is unavailable, has a dimmed button that says so. The
   controls belong to the camera, so they change when the main camera does.
+- **Two taps.** A control with **Two taps** ticked on the Cameras page (a lock, a gate
+  or a garage door, unless you untick it) is not worked by its first tap. That tap turns
+  the button amber and adds "tap again" to its name, and a second tap on it works it. A
+  tap anywhere else, or six seconds without the second tap, lets it be. If the entity
+  changes in the meantime (someone opens the gate from elsewhere), the button is no
+  longer ready, and the next tap starts again.
 - **The camera's PTZ presets.** They are in the same bar, after the controls. A camera
   with up to three presets has a button for each, named as the preset is on the Cameras
   page. A camera with more has one **PTZ** button: a tap opens all its presets as a
@@ -427,6 +433,10 @@ browser's own way out (Esc on a keyboard, or the close button Safari shows).
 
 - It works in a browser on a computer or a tablet, Safari on an iPad included. It is not
   shown in an app or frame that doesn't allow full screen.
+- A kiosk app that zooms its pages (to 1.6×, say) loses the zoom in the browser's full
+  screen, so everything there would be smaller than on the page. The card sees the zoom,
+  and there it fills the kiosk's window instead, which already fills the screen, so the
+  zoom stays. It also asks for the picture at the zoomed size, so it is sharp.
 - An iPad keeps its status bar (the time, the date, the battery) on top of a full screen
   page. The commander leaves a black strip at the top for it, so the status bar doesn't
   sit over the picture.

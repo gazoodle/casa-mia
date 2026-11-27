@@ -46,6 +46,12 @@ camera sees: the gate it looks at, the lock on the door, a light. Each has its e
 optional name and an optional icon; left blank, the entity's own name and icon are used.
 **+ Control** adds one.
 
+Each control also has **Two taps**. With it ticked, the first tap on the control's button
+on a Camera Commander card only gets it ready, and a second tap works it, so a finger
+brushing the button doesn't open the gate. It is ticked at first for a lock, a valve, a
+siren, and a cover that is a garage door, a gate or a door. Tick it for any other control
+that needs the same care, such as a switch or a button that opens a gate, or untick it.
+
 <img src="../screenshots/cameras-controls.webp" alt="Editing the Entrance camera on the Cameras page. Under Page controls are two rows, lock.front_door named Front door and light.hall_light named Hall light, and a + Control button. Under Controls on a full screen are a choice of Top, Bottom, Left or Right for a wide screen and for a tall one, each above a small preview of the camera on that screen with the two buttons along its foot, then a Size slider at 56 px, Along the edge (Left or top, Centre, Right or bottom) and a Background slider at 60%" width="480">
 
 They are shown in three places, and a tap on one is Home Assistant's toggle in each:

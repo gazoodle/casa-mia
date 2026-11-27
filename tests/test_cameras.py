@@ -229,6 +229,28 @@ def test_each_cameras_own_motion_detection_switch():
     }
 
 
+def test_the_page_is_told_each_entitys_device_class_where_it_has_one(cams):
+    """A control's Two taps is ticked at first for a gate cover and not for a blind: the
+    page tells them apart by the device class."""
+    cams.ha.states = [
+        {
+            "entity_id": "cover.drive",
+            "state": "closed",
+            "attributes": {"friendly_name": "Drive gate", "device_class": "gate"},
+        },
+        {"entity_id": "switch.porch", "state": "on", "attributes": {}},
+    ]
+    assert cams.from_ha()["entities"] == [
+        {
+            "entity": "cover.drive",
+            "name": "Drive gate",
+            "state": "closed",
+            "device_class": "gate",
+        },
+        {"entity": "switch.porch", "name": "switch.porch", "state": "on"},
+    ]
+
+
 def test_motion_detection_switched_from_the_page(cams):
     cams.ha.registry = [
         {"entity_id": "camera.a_low", "device_id": "d"},

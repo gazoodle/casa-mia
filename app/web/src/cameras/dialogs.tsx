@@ -154,14 +154,18 @@ export function CameraDialog({
           </Field>
         </div>
       )}
-      <Field group label="Page controls" help="Entities at the top of its live page (a gate, a light); a tap toggles them.">
+      <Field
+        group
+        label="Page controls"
+        help="Entities at the top of its live page (a gate, a light); a tap toggles them. With Two taps, the first tap on its button on a Camera Commander card only gets it ready, and a second tap works it. Two taps is ticked at first for a lock, a valve, a siren, and a garage door, gate or door."
+      >
         <Controls value={c.controls ?? []} onChange={(controls) => set({ controls })} />
       </Field>
       {(!!c.controls?.length || presetNames.length > 0 || !!c.zoom) && (
         <Field
           group
           label="Controls on a full screen"
-          help="How its controls, PTZ presets and zoom are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), or over its main camera: the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The buttons are the size of the main camera's name there, set for each commander on the Camera Commander page. Up to three presets are buttons of their own; more are behind one PTZ button, which opens them out beside the others. Where they don't all fit, the presets go behind PTZ, then the names go and the buttons are icons. The previews are a 1280 × 800 tablet, to scale."
+          help="How its controls, PTZ presets and zoom are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), or over its main camera: the edge for a wide screen and for a tall one, where along it, and the buttons' background. The buttons are the style guide's chips, one size on every device, and always keep their names. Up to three presets are buttons of their own; more are behind one PTZ button, which opens them out beside the others, as the presets also do where they don't all fit. The previews are a 1280 × 800 tablet, to scale."
         >
           <ControlsEdges entity={entity} controls={c.controls ?? []} presets={presetNames} zoom={!!c.zoom} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
         </Field>

@@ -5,6 +5,7 @@
 // entities alone.
 import { choices, type Choice } from "./choices.ts";
 import type { Hass } from "../ha.ts";
+import { guardedKind } from "../../../../app/web/src/cameras/controls.ts";
 
 export type Kind = "light" | "switch" | "cover" | "lock" | "climate" | "media_player" | "camera" | "fan" | "valve" | "vacuum" | "lawn_mower" | "water_heater" | "humidifier" | "siren" | "alarm_control_panel";
 export type Device = {
@@ -116,11 +117,6 @@ const PLUMBING = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|p
 const NOUN: Partial<Record<Kind, string>> = { climate: "thermostat", media_player: "player", lawn_mower: "mower", water_heater: "water heater", alarm_control_panel: "alarm" };
 /** The kinds whose level is a temperature, in degrees; every other level is in per cent. */
 export const DEGREES: ReadonlySet<string> = new Set(["climate", "water_heater"]);
-// These never move because a finger brushed a sentence, and to unlock, open or sound one
-// takes two presses in its clipping: a lock, a valve (water or gas), a siren.
-const GUARDED_KINDS = new Set(["lock", "valve", "siren"]);
-// So are these classes of cover: a garage door, a gate, a door.
-const GUARDED = new Set(["garage", "gate", "door"]);
 
 /** "Kitchen Ceiling Light" in the kitchen is "Ceiling": the room and the kind of thing are
  * said by where it is shown. "Landing - Left" is "Left", and "Kitchen" alone is "Light". */
@@ -163,7 +159,9 @@ export function survey(hass: Hass, options: Options): Survey {
     const device = hass.entities?.[cam.entity]?.device_id;
     if (device) lensed.set(device, cam);
   }
-  const guards = (domain: string, state: { attributes: Record<string, any> }) => GUARDED_KINDS.has(domain) || (domain === "cover" && GUARDED.has(state.attributes.device_class));
+  // These never move because a finger brushed a sentence, and to unlock, open or sound one
+  // takes two presses in its clipping.
+  const guards = (domain: string, state: { attributes: Record<string, any> }) => guardedKind(domain, state.attributes.device_class);
 
   for (const entry of Object.values<any>(hass.entities ?? {})) {
     const id: string = entry.entity_id;

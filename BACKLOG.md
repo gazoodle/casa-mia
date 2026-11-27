@@ -4,13 +4,6 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 
 ## Cameras, Camera Commander and the compositor
 
-- **A sharp commander picture under a page zoom** (asked 2026-11-26). The large wall
-  tablet's kiosk zooms pages 1.6x: the window shrinks to 1/1.6 but devicePixelRatio stays
-  1.0625, so the card asks for its picture at 1.0625 and the tablet stretches it 1.6x,
-  soft, names included. Find a figure the WebView gives for the zoom (visualViewport
-  scale, or the screen's width over the window's where the card fills the screen) and
-  ask for the picture at the true pixels. Full screen drops the zoom and is sharp.
-
 - **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:
   - **Seen on the guest network:** the low channel plays; the medium channel shows a first frame and is lost about 10 seconds later, on a regular cycle; nothing arrives on the high channel. Each loss and return also restarts the card's picture stream (see below), which is what makes the page feel slow.
   - **Ports that are known, guest network to the box, all TCP:** Home Assistant's own port, the guest sign-in's (8675), the compositor's (8099; optional since 2026.11.6-b4, as the card falls back through Home Assistant) and 18555, the built-in go2rtc's WebRTC port.

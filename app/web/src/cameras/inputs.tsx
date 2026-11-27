@@ -5,7 +5,7 @@ import edges from "./edges.module.css";
 import { Segmented } from "../ui";
 import { Control, Entities, ThumbRound } from "./common";
 import { Slider } from "../controls";
-import { type ControlsAt, EDGES, controlsAt, foldPresets, previewStyle } from "./controls";
+import { type ControlsAt, EDGES, controlsAt, foldPresets, previewStyle, twoTaps } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -208,8 +208,10 @@ export function ControlsEdges({
   );
 }
 
-/** Entities shown at the top of a page (gates, lights): tapping one toggles it. */
+/** Entities shown at the top of a page (gates, lights): tapping one toggles it. Each has
+ * Two taps, ticked for a lock, a gate and the like until set (controls.ts: twoTaps). */
 export function Controls({ value, onChange }: { value: Control[]; onChange: (c: Control[]) => void }) {
+  const entities = useContext(Entities);
   const set = (i: number, c: Partial<Control>) => {
     const next = value.map((x, j) => (j === i ? clean({ ...x, ...c }) : x));
     onChange(next);
@@ -221,9 +223,19 @@ export function Controls({ value, onChange }: { value: Control[]; onChange: (c: 
           <EntityInput placeholder="switch.gate" value={c.entity} onChange={(entity) => set(i, { entity })} />
           <input placeholder="Name (the entity's own)" value={c.name ?? ""} onChange={(e) => set(i, { name: e.target.value })} />
           <input placeholder="mdi:gate (the entity's own)" value={c.icon ?? ""} onChange={(e) => set(i, { icon: e.target.value })} />
-          <button className={ui.iconButton} onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="Remove control">
-            ✕
-          </button>
+          <span className={css.controlEnd}>
+            <label title="On a Camera Commander card, the first tap on its button only gets it ready; a second tap works it, and a tap anywhere else lets it be.">
+              <input
+                type="checkbox"
+                checked={twoTaps(c, entities.find((e) => e.entity === c.entity)?.device_class)}
+                onChange={(e) => set(i, { confirm: e.target.checked })}
+              />
+              Two taps
+            </label>
+            <button className={ui.iconButton} onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="Remove control">
+              ✕
+            </button>
+          </span>
         </div>
       ))}
       <button className={`${ui.button} ${ui.small} ${css.start}`} onClick={() => onChange([...value, { entity: "" }])}>
@@ -237,5 +249,6 @@ export function clean(c: Control): Control {
   const out: Control = { entity: c.entity };
   if (c.name) out.name = c.name;
   if (c.icon) out.icon = c.icon;
+  if (c.confirm !== undefined) out.confirm = c.confirm;
   return out;
 }
